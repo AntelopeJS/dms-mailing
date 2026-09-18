@@ -1,6 +1,21 @@
 # Changelog
 
 
+## v0.3.0
+
+
+### 💅 Refactors
+
+- ⚠️  Publish under the public @antelopejs scope ([a86c6ef](https://github.com/AntelopeJS/dms-mailing/commit/a86c6ef))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Publish under the public @antelopejs scope ([a86c6ef](https://github.com/AntelopeJS/dms-mailing/commit/a86c6ef))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.1.0...v0.2.0)
