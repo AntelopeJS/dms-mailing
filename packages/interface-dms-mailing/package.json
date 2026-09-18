@@ -1,0 +1,77 @@
+{
+  "name": "@antelopejs/interface-dms-mailing",
+  "version": "0.2.0",
+  "description": "AntelopeJS interface for DMS mailing",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntelopeJS/dms-mailing.git",
+    "directory": "packages/interface-dms-mailing"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "dist/*": [
+        "dist/*",
+        "dist/*/index.d.ts"
+      ],
+      "*": [
+        "dist/*",
+        "dist/*/index.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./dist": {
+      "types": "./dist/index.d.ts"
+    },
+    "./dist/*": {
+      "types": "./dist/*.d.ts"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "check:consumer": "node scripts/check-consumer.mjs",
+    "format": "oxfmt .",
+    "lint": "oxlint && oxfmt --check .",
+    "prepack": "pnpm run build",
+    "release": "pnpm run lint && pnpm run build && release-it",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@antelopejs/interface-core": ">=0.0.13 <1.0.0",
+    "@antelopejs/interface-email": ">=0.0.5 <1.0.0"
+  },
+  "devDependencies": {
+    "@antelopejs/tooling-configs": ">=0.0.6 <1.0.0",
+    "@types/node": "^24.0.0",
+    "oxfmt": "^0.66.0",
+    "oxlint": "1.81.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "release-it": "^19.2.4",
+    "release-it-changelogen": "^0.1.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^5.9.3"
+  },
+  "antelopeJs": {}
+}

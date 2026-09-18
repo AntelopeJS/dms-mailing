@@ -1,0 +1,397 @@
+{
+	"dms_mailing": {
+		"attention": {
+			"bounces_description": "Adresses invalides — à retirer pour protéger la réputation d'envoi.",
+			"bounces_title": "{count} rejets permanents",
+			"missing_locales_description": "Templates incomplets — {names}. Les envois retombent sur la langue par défaut.",
+			"missing_locales_title": "{count} traductions manquantes",
+			"problem_sends": {
+				"description": "Rejetés, refusés ou en échec — ouvrez l'onglet Problèmes pour les traiter.",
+				"title": "{count} envoi à traiter | {count} envois à traiter"
+			},
+			"stale_drafts": {
+				"description": "Jamais publiés et inchangés depuis plus d’une semaine — publiez-les ou archivez-les.",
+				"title": "{count} brouillon en attente | {count} brouillons en attente"
+			},
+			"stale_drafts_description": "Jamais publiés depuis leur dernière modification — publiez-les ou archivez-les.",
+			"stale_drafts_title": "{count} brouillons en attente",
+			"test_only_window": {
+				"description": "Ces chiffres ne comptent que le trafic réel. Tous les envois de cette période étaient des tests — retrouvez-les dans le journal d'envois.",
+				"title": "{count} envois de test exclus"
+			},
+			"untracked_rates": {
+				"title": "Les ouvertures et les clics ne sont pas suivis",
+				"description": "{provider} n'en remonte aucun, donc ces taux restent à 0 %. La livraison, les ouvertures et les clics demandent un fournisseur qui renvoie des évènements."
+			},
+			"unused_live": {
+				"description": "Publiés mais aucun code ne les appelle — vérifiez le slug utilisé à l'appel.",
+				"title": "{count} template en ligne jamais envoyé | {count} templates en ligne jamais envoyés"
+			}
+		},
+		"blocks": {
+			"button": "Bouton",
+			"code": "Code / OTP",
+			"divider": "Séparateur",
+			"footer": "Pied de page",
+			"heading": "Titre",
+			"hero": "Image",
+			"if": "Condition",
+			"list": "Liste",
+			"paragraph": "Paragraphe",
+			"total": "Total"
+		},
+		"description": "E-mails, modèles et campagnes",
+		"editor": {
+			"actions": {
+				"delete": "Supprimer ce bloc",
+				"drag": "Déplacer ce bloc",
+				"duplicate": "Dupliquer ce bloc",
+				"move_down": "Descendre",
+				"move_up": "Monter"
+			},
+			"add_block": "Ajouter un bloc",
+			"back": "Retour aux templates",
+			"block_settings": {
+				"align": "Alignement",
+				"alt": "Texte alternatif",
+				"always_show": "Toujours afficher ce bloc",
+				"conditional_help": "Le bloc disparaît de l'e-mail quand la règle est fausse.",
+				"delete_block": "Supprimer le bloc",
+				"href": "Lien",
+				"image_url": "URL de l'image",
+				"insert_hint": "Tapez {'{{'} ou cliquez une variable ci-dessous pour l'insérer.",
+				"label": "Libellé",
+				"label_path": "Chemin du libellé",
+				"only_if": "N'afficher que si…",
+				"preferences_label": "Libellé des préférences",
+				"size": "Taille",
+				"source": "Source de la liste",
+				"source_help": "Chemin du tableau à parcourir, par exemple order.lines.",
+				"text": "Texte",
+				"unsubscribe_label": "Libellé de désinscription",
+				"value": "Valeur affichée",
+				"value_path": "Chemin de la valeur"
+			},
+			"condition": {
+				"add_else": "Ajouter une branche « sinon »",
+				"add_here": "Ajouter dans cette branche",
+				"compiled": "Compilé",
+				"else": "SINON",
+				"eval_false": "faux avec le jeu de test",
+				"eval_true": "vrai avec le jeu de test",
+				"field": "Champ",
+				"hidden": "masqué par la condition",
+				"if": "SI",
+				"operator": "Opérateur",
+				"remove_else": "Retirer la branche « sinon »",
+				"simulate_false": "faux",
+				"simulate_true": "vrai",
+				"value": "Valeur"
+			},
+			"data": {
+				"block_on_missing": "Bloquer les envois en cas de variable manquante",
+				"controls": "Contrôles",
+				"covered": "Toutes les variables utilisées sont couvertes.",
+				"help_invalid": "JSON invalide : l'aperçu retombe sur les noms de variables.",
+				"help_off": "Activez « Données de test » dans la barre du haut pour interpoler l'aperçu et évaluer les conditions.",
+				"help_valid": "JSON valide — variables interpolées et conditions évaluées pour de vrai.",
+				"save": "Enregistrer ce jeu",
+				"saved": "Données de test enregistrées",
+				"title": "Jeu de données de test",
+				"uncovered": "{count} variables non couvertes : {path} est utilisée par le template mais absente du jeu de test.",
+				"use": "Utiliser ce jeu de données"
+			},
+			"description": "Éditeur de blocs d'un template de mailing",
+			"desktop": "Desktop",
+			"discard": "Abandonner",
+			"discard_description": "Toutes les modifications non enregistrées reviennent à la dernière version enregistrée.",
+			"discard_title": "Abandonner le brouillon ?",
+			"groups": {
+				"conditional": "Affichage conditionnel",
+				"content": "Contenu",
+				"logic": "Logique",
+				"variables": "Variables disponibles"
+			},
+			"leave_guard": "Ce template a des modifications non enregistrées. Quitter quand même ?",
+			"load_error": "Ce modèle n'a pas pu être chargé.",
+			"loading": "Chargement du modèle…",
+			"missing_locale": {
+				"blank": "Partir d'une page vide",
+				"duplicate": "Dupliquer depuis {fallback}",
+				"hint": "Les envois en {locale} retombent sur {fallback}. Dupliquez pour traduire, ou repartez d'une page vide.",
+				"title": "Version {locale} inexistante"
+			},
+			"mobile": "Mobile",
+			"open_template_settings": "Réglages du template",
+			"operators": {
+				"eq": "est égal à",
+				"falsy": "est faux",
+				"gt": "est supérieur à",
+				"lt": "est inférieur à",
+				"ne": "est différent de",
+				"truthy": "est vrai"
+			},
+			"palette": {
+				"hint": "Glissez une tuile dans l'aperçu pour l'insérer à l'endroit voulu — y compris à l'intérieur d'une condition. Glissez un bloc existant pour le déplacer."
+			},
+			"preheader": "Préheader",
+			"preview_mode": {
+				"back": "Revenir aux noms de variables",
+				"data": "Aperçu : données de test",
+				"variables": "Aperçu : variables"
+			},
+			"publish": "Publier",
+			"published": "Modèle publié",
+			"save": "Enregistrer",
+			"saved": "Enregistré",
+			"settings_hint": "Sélectionnez un bloc sur la feuille pour le modifier.",
+			"status_hint": "Publier enregistre la date ; archiver empêche l'envoi du template.",
+			"still_called": "le code appelle toujours {slug}",
+			"subject": "Objet",
+			"subject_help": "Les variables non fournies à l'envoi feront échouer l'appel.",
+			"tabs": {
+				"blocks": "Blocs",
+				"data": "Données",
+				"settings": "Réglages",
+				"template": "Template"
+			},
+			"test_send": "Envoi de test",
+			"test_send_modal": {
+				"recipients": "Destinataires",
+				"send": "Envoyer",
+				"sent": "Test envoyé",
+				"title": "Envoi de test"
+			},
+			"title": "Éditeur",
+			"toggle_rail": "Afficher ou masquer le panneau latéral",
+			"unsaved": "{count} modifications non enregistrées",
+			"variables": {
+				"add": "Ajouter",
+				"cancel": "Annuler",
+				"declare": "Déclarer une variable",
+				"empty": "Aucune variable déclarée pour le moment.",
+				"insert": "Insérer cette variable",
+				"path": "Chemin",
+				"required": "Obligatoire",
+				"type": "Type",
+				"unused": "inutilisée"
+			}
+		},
+		"errors": {
+			"bad_webhook_secret": "Secret de webhook invalide.",
+			"duplicate_slug": "Ce slug est déjà utilisé.",
+			"invalid_body": "Le corps de la requête est invalide.",
+			"invalid_content": "Le contenu du template est invalide.",
+			"invalid_settings": "Les réglages sont invalides.",
+			"missing_send_permission": "Vous n'êtes pas autorisé à envoyer des e-mails.",
+			"missing_variables": "Des variables requises manquent à l'envoi.",
+			"no_recipient": "L'envoi n'a aucun destinataire.",
+			"send_not_found": "Cet envoi n'existe pas.",
+			"template_not_found": "Ce template n'existe pas.",
+			"template_not_live": "Ce template n'est pas en ligne.",
+			"unknown_metric": "Métrique inconnue.",
+			"version_not_found": "Cette version du template n'existe pas."
+		},
+		"funnel": {
+			"clicked": "Cliqués",
+			"delivered": "Délivrés",
+			"opened": "Ouverts",
+			"sent": "Envoyés",
+			"unsubscribed": "Désinscriptions"
+		},
+		"metrics": {
+			"bounces": "Rejets",
+			"click_rate": "Clics",
+			"deliverability": "Délivrabilité",
+			"domain_sends": "taux d'ouverture",
+			"domains": "Par domaine destinataire",
+			"latency": "Latence médiane",
+			"open_rate": "Ouverture",
+			"previous": "Période précédente",
+			"queued": "En file",
+			"ranking": "Classement des templates",
+			"sends": "Envois",
+			"unsubscribes": "Désinscriptions",
+			"volume": "Volume d'envoi"
+		},
+		"notifications": {
+			"bounce_description": "L'e-mail envoyé à {email} n'a pas pu être distribué.",
+			"bounce_title": "Problème de distribution sur {slug}"
+		},
+		"overview": {
+			"attention_empty": "Rien à signaler : traductions complètes, aucun rejet.",
+			"attention_title": "À traiter",
+			"description": "Le fournisseur transporte, ce module garde la mémoire — tous les chiffres ci-dessous sont agrégés localement.",
+			"funnel_title": "Entonnoir",
+			"title": "Vue d'ensemble"
+		},
+		"provider": {
+			"connected": "{name} connecté",
+			"disconnected": "Aucun fournisseur connecté"
+		},
+		"sends": {
+			"cols": {
+				"createdAt": "Envoyé le",
+				"error": "Erreur",
+				"isTest": "Test",
+				"latency": "Latence",
+				"latencyMs": "Latence",
+				"locale": "Langue",
+				"recipient": "Destinataire",
+				"recipientEmail": "Adresse du destinataire",
+				"recipientName": "Nom du destinataire",
+				"source": "Source",
+				"status": "Statut",
+				"template": "Template",
+				"templateSlug": "Template",
+				"test": "Test",
+				"when": "Quand"
+			},
+			"confirm": {
+				"replay_description": "La même version du template et les mêmes variables sont renvoyées au même destinataire.",
+				"replay_title": "Rejouer cet envoi ?"
+			},
+			"description": "Chaque envoi est journalisé ici, avec sa charge utile et ses événements fournisseur — l'historique reste local.",
+			"drawer": {
+				"invalid_address": "Adresse invalide",
+				"latency": "Latence API",
+				"locale": "Langue",
+				"payload": "Charge utile envoyée",
+				"replay": "Rejouer cet envoi",
+				"replayed": "Envoi rejoué",
+				"status": "Statut",
+				"template": "Template",
+				"timeline": "Chronologie",
+				"transport_error": "Erreur de transport",
+				"view_html": "Voir le rendu reçu"
+			},
+			"empty": "Aucun envoi ne correspond à ce filtre.",
+			"status": {
+				"bounced": "Rejeté",
+				"clicked": "Cliqué",
+				"delivered": "Délivré",
+				"failed": "Échec",
+				"opened": "Ouvert",
+				"queued": "En file",
+				"sent": "Envoyé",
+				"spam": "Spam",
+				"unsubscribed": "Désinscrit"
+			},
+			"tabs": {
+				"problems": "Problèmes"
+			},
+			"timeline": {
+				"bounced": "Rejet permanent",
+				"clicked": "Cliqué",
+				"delivered": "Délivré",
+				"failed": "Échec de l'envoi",
+				"opened": "Ouvert",
+				"queued": "Mis en file",
+				"sent": "Transmis au fournisseur",
+				"spam": "Marqué comme spam",
+				"unsubscribed": "Désinscription"
+			},
+			"title": "Envois"
+		},
+		"settings": {
+			"categories": {
+				"add": "Ajouter une catégorie",
+				"empty": "Aucune catégorie. Les templates peuvent rester sans catégorie.",
+				"hint": "Supprimer une catégorie laisse sans catégorie les templates qui l'utilisaient. L'icône est un nom Phosphor, comme i-ph-package.",
+				"label": "Nom de la catégorie",
+				"remove": "Retirer"
+			},
+			"description": "Expéditeur, rétention et garde-fous d'envoi du module mailing.",
+			"fields": {
+				"blockOnMissingVariables": "Bloquer l'envoi si une variable manque",
+				"categories": "Catégories de templates",
+				"fallbackLocale": "Langue de repli",
+				"logRetentionDays": "Rétention des logs (jours)",
+				"replyTo": "Adresse de réponse",
+				"senderEmail": "Adresse d'expédition",
+				"senderName": "Nom de l'expéditeur",
+				"webhookSecret": "Secret du webhook"
+			},
+			"title": "Réglages"
+		},
+		"templates": {
+			"actions": {
+				"archive": "Archiver",
+				"archived": "Template archivé",
+				"create": "Nouveau template",
+				"details": "Détails",
+				"duplicate": "Dupliquer",
+				"edit": "Éditer",
+				"new": "Nouveau modèle",
+				"open_editor": "Ouvrir l'éditeur",
+				"publish": "Publier",
+				"published": "Template publié",
+				"send": "Envoyer",
+				"test_send": "Envoi de test",
+				"unpublish": "Dépublier",
+				"unpublished": "Template dépublié"
+			},
+			"card": {
+				"add_locale": "Ajouter la version {locale} — absente",
+				"edit_locale": "Modifier la version {locale}",
+				"open": "ouv.",
+				"sends": "envois"
+			},
+			"cols": {
+				"category": "Catégorie",
+				"locales": "Langues",
+				"name": "Nom",
+				"slug": "Slug",
+				"status": "Statut",
+				"updatedAt": "Modifié",
+				"updatedBy": "Modifié par"
+			},
+			"confirm": {
+				"archive_description": "Un template archivé ne peut plus être envoyé. Les versions sont conservées.",
+				"archive_title": "Archiver ce template ?"
+			},
+			"description": "Un slug, des variables typées, une version par enregistrement. Le rendu est compilé à l'enregistrement et envoyé via le fournisseur configuré.",
+			"display": {
+				"gallery": "Grille",
+				"table": "Tableau"
+			},
+			"drawer": {
+				"create_locale": "Créer la version {locale}",
+				"declare_variable": "Déclarer une variable",
+				"missing_locale": "Version {locale} absente. L'envoi retombe sur {fallback}.",
+				"no_variables": "Ce template n'utilise encore aucune variable.",
+				"required": "requis",
+				"stats_click": "Clics",
+				"stats_open": "Ouverture",
+				"stats_sends": "Envois",
+				"unused": "inutilisée",
+				"variables": "Variables"
+			},
+			"empty": {
+				"hint": "Aucun template ne correspond à ce filtre.",
+				"reset": "Réinitialiser les filtres",
+				"title": "Aucun template"
+			},
+			"send_modal": {
+				"confirm": "Je comprends qu'il s'agit d'un envoi réel",
+				"draft_hint": "Seul un template en ligne peut être envoyé pour de vrai. Publiez-le, ou faites un envoi de test.",
+				"real_hint": "Il atteint les destinataires ci-dessous et compte dans les statistiques. Aucun retour en arrière possible.",
+				"real_title": "Ce message part vraiment",
+				"send": "Envoyer pour de vrai",
+				"title": "Envoyer"
+			},
+			"start_from": {
+				"blank": "Vierge",
+				"label": "Partir de"
+			},
+			"status": {
+				"archived": "Archivé",
+				"draft": "Brouillon",
+				"live": "En ligne"
+			},
+			"title": "Templates",
+			"uncategorised": "Sans catégorie"
+		},
+		"title": "Mailing"
+	}
+}

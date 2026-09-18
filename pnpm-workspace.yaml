@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+
+# pnpm ignores the `pnpm` field of package.json once a workspace file exists.
+onlyBuiltDependencies:
+  - mongodb-memory-server-core
+  - esbuild
