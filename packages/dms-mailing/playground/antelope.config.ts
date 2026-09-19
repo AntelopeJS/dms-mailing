@@ -25,6 +25,9 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.dms,
       config: {
         homepage: "/modules/mailing/overview",
+        auth: {
+          jwtSecret: "dev",
+        },
         meta: {
           title: "AntelopeJS Mailing",
           description: "AntelopeJS DMS mailing playground",
