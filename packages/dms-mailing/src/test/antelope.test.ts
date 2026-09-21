@@ -97,14 +97,6 @@ export default defineConfig({
     },
   },
   modules: {
-    dms: {
-      source: SHARED_MODULE_SOURCES.dms,
-      config: {
-        auth: {
-          jwtSecret: JWT_SECRET,
-        },
-      },
-    },
     local: {
       source: {
         type: "local",
@@ -112,6 +104,14 @@ export default defineConfig({
         installCommand: ["pnpm build"],
       },
       config: { useHtmlRender: false },
+    },
+    dms: {
+      source: SHARED_MODULE_SOURCES.dms,
+      config: {
+        auth: {
+          jwtSecret: JWT_SECRET,
+        },
+      },
     },
     mongodb: {
       source: SHARED_MODULE_SOURCES.mongodb,
