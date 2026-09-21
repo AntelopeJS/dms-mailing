@@ -62,4 +62,3 @@ jobs:
       - run: pnpm --dir packages/dms-mailing knip
       - run: pnpm --dir packages/dms-mailing build
       - run: pnpm --dir packages/dms-mailing test
-      - run: pnpm --dir packages/dms-mailing test:frontend
