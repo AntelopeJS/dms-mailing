@@ -155,8 +155,4 @@ pnpm typecheck   # tsconfig.json (the one editors and the type-aware lint read)
 pnpm knip        # unused dependencies
 pnpm build       # tsconfig.build.json -> dist/
 pnpm test        # backend (mocha through `ajs module test`) + layer (vitest)
-pnpm test:frontend # generated client/SSR/email builds and Vue typecheck
 ```
-
-The frontend check uses the published DMS and frontend adapter packages. It
-renders English/French email fixtures locally and does not send email.

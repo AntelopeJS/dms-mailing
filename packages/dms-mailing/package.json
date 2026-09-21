@@ -42,7 +42,6 @@
     "release": "pnpm --filter @antelopejs/interface-dms-mailing build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
     "prepack": "pnpm run build",
     "test": "pnpm run test:backend && pnpm run test:layer",
-    "test:frontend": "node scripts/check-frontend.mjs",
     "test:backend": "pnpm run build && ajs module test .",
     "test:layer": "cd frontend-vue && pnpm test",
     "test:unit": "pnpm run build && DMS_MAILING_TEST_DIR=dist/test/unit ajs module test .",
@@ -63,8 +62,6 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.8.0 <2",
-    "@antelopejs/dms": ">=0.3.5 <1.0.0",
-    "@antelopejs/dms-frontend": ">=0.2.0 <1.0.0",
     "@antelopejs/tooling-configs": ">=0.0.6 <1.0.0",
     "@types/chai": "^4.3.20",
     "@types/mocha": "^10",

@@ -24,7 +24,3 @@ The test scripts all live in `packages/dms-mailing`; the root forwards only
   SMTP fixture) then `test:layer` (vitest over the Vue layer). Both run on
   their own too, and `test:unit` / `test:integration` narrow the backend run to
   one folder.
-- `pnpm --dir packages/dms-mailing test:frontend` compiles and typechecks a
-  generated Vue workspace from the published DMS and frontend adapter packages,
-  then renders the email fixtures without sending email. It is not part of
-  `test`; CI runs it as its own step.
