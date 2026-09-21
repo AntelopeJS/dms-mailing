@@ -6,19 +6,6 @@ const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
 export default defineConfig({
   name: "playground",
   modules: {
-    dms: {
-      source: SHARED_MODULE_SOURCES.dms,
-      config: {
-        homepage: "/modules/mailing/overview",
-        auth: {
-          jwtSecret: "dev",
-        },
-        meta: {
-          title: "AntelopeJS Mailing",
-          description: "AntelopeJS DMS mailing playground",
-        },
-      },
-    },
     playground: {
       source: {
         type: "local",
@@ -35,6 +22,19 @@ export default defineConfig({
         installCommand: ["pnpm build"],
       },
       config: {},
+    },
+    dms: {
+      source: SHARED_MODULE_SOURCES.dms,
+      config: {
+        homepage: "/modules/mailing/overview",
+        auth: {
+          jwtSecret: "dev",
+        },
+        meta: {
+          title: "AntelopeJS Mailing",
+          description: "AntelopeJS DMS mailing playground",
+        },
+      },
     },
     "dms-automation": {
       source: {
