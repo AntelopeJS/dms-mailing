@@ -126,6 +126,8 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.api,
       config: {
         servers: [{ protocol: "http", host: "127.0.0.1", port: API_PORT }],
+        // Required outside development, which the test run is not.
+        publicBaseUrl: `http://127.0.0.1:${API_PORT}`,
       },
     },
     "file-storage-local": {

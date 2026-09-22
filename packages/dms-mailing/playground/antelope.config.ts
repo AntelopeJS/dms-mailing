@@ -2,6 +2,9 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 import { SHARED_MODULE_SOURCES } from "../src/antelope-modules";
 
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
+// The dev frontend is a separate CLI process, not a module: it publishes no
+// config variable, so its port stays written here, once.
+const dmsClientPort = 3001;
 
 export default defineConfig({
   name: "playground",
@@ -61,7 +64,9 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES["file-storage-local"],
       config: {
         storagePath: ".antelope/file-storage",
-        baseUrl: "http://127.0.0.1:5010",
+        // The origin the api actually serves, which moves off the preferred
+        // port when it is taken: minted asset URLs reach the browser.
+        baseUrl: "${@api.API_PUBLIC_BASE_URL}",
         defaultVisibility: "private",
       },
     },
@@ -77,13 +82,14 @@ export default defineConfig({
         servers: [
           {
             protocol: "http",
+            // The preferred port: the api publishes the one it reserved.
             port: "5010",
           },
         ],
         cors: {
           allowedOrigins: [
-            "http://localhost:3001",
-            "http://127.0.0.1:3001",
+            `http://localhost:${dmsClientPort}`,
+            `http://127.0.0.1:${dmsClientPort}`,
             /^https:\/\/[^/]+\.onamp\.dev$/,
             ...(dmsClientUrl ? [dmsClientUrl] : []),
           ],
