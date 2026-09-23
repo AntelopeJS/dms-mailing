@@ -12,6 +12,8 @@
     "useDefineForClassFields": true,
     "outDir": "dist",
     "rootDir": "src",
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
     "paths": {
       "@/*": ["./src/*"]
     }

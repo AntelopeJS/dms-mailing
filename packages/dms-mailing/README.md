@@ -151,8 +151,8 @@ Every backend-declared text uses the `$key` convention: a string starting with
 
 ```sh
 pnpm lint        # oxlint + oxfmt + the layer's eslint
-pnpm typecheck   # tsconfig.json (the one editors and the type-aware lint read)
+pnpm typecheck   # tsc --noEmit on tsconfig.json
 pnpm knip        # unused dependencies
-pnpm build       # tsconfig.build.json -> dist/
+pnpm build       # tsconfig.json -> dist/
 pnpm test        # backend (mocha through `ajs module test`) + layer (vitest)
 ```
