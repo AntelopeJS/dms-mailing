@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "noEmit": true,
     "moduleResolution": "bundler",
     "target": "esnext",
-    "module": "preserve",
+    "module": "commonjs",
     "lib": ["ES2020"],
     "allowJs": true,
+    "types": ["node"],
     "outDir": "dist",
     "strict": true,
     "noImplicitAny": true,
@@ -18,7 +18,9 @@
     "declaration": true,
     "sourceMap": true,
     "useDefineForClassFields": true,
-    "rootDir": "src"
+    "rootDir": "src",
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": ["./src/**/*.ts"]
 }
