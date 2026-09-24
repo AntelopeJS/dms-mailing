@@ -41,7 +41,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@antelopejs/interface-core": ">=0.0.13 <1.0.0",
+    "@antelopejs/interface-core": ">=0.1.1 <1.0.0",
     "@antelopejs/interface-email": ">=0.0.5 <1.0.0"
   },
   "devDependencies": {
