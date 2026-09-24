@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/interface-dms-mailing",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "AntelopeJS interface for DMS mailing",
   "license": "Apache-2.0",
   "repository": {
