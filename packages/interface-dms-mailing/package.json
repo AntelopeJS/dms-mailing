@@ -16,30 +16,12 @@
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "typesVersions": {
-    "*": {
-      "dist/*": [
-        "dist/*",
-        "dist/*/index.d.ts"
-      ],
-      "*": [
-        "dist/*",
-        "dist/*/index.d.ts"
-      ]
-    }
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
-    "./dist": {
-      "types": "./dist/index.d.ts"
-    },
-    "./dist/*": {
-      "types": "./dist/*.d.ts"
-    },
     "./*": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
@@ -52,7 +34,6 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc",
-    "check:consumer": "node scripts/check-consumer.mjs",
     "format": "oxfmt .",
     "lint": "oxlint && oxfmt --check .",
     "prepack": "pnpm run build",
