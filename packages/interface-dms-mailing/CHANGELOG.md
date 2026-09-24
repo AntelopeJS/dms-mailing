@@ -1,6 +1,27 @@
 # Changelog
 
 
+## v0.5.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.4.0...v0.5.0)
+
+### 💅 Refactors
+
+- **permissions:** ⚠️  Use the DMS default page permissions ([#17](https://github.com/AntelopeJS/dms-mailing/pull/17))
+
+### 🏡 Chore
+
+- **deps:** Update @antelopejs dependencies to latest ([#16](https://github.com/AntelopeJS/dms-mailing/pull/16))
+- **release:** @antelopejs/dms-mailing v0.3.0 ([231430b](https://github.com/AntelopeJS/dms-mailing/commit/231430b))
+
+#### ⚠️ Breaking Changes
+
+- **permissions:** ⚠️  Use the DMS default page permissions ([#17](https://github.com/AntelopeJS/dms-mailing/pull/17))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.3.0...v0.4.0)
