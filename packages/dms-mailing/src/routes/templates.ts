@@ -96,7 +96,7 @@ export class TemplatesController extends Controller(
 
   /**
    * The tenant's categories for a category picker. Separate from `/settings`,
-   * which is guarded by the settings-manage permission a template editor need
+   * which is guarded by the settings page permission a template editor need
    * not hold.
    */
   @Get("/categories")

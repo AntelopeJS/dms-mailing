@@ -10,12 +10,7 @@ import {
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
-import {
-  API_BASE_PATH,
-  MAILING_ACCESS_PERMISSION,
-  MODULE_ID,
-  SENDS_PERIOD_SCOPE,
-} from "../constants";
+import { API_BASE_PATH, MODULE_ID, SENDS_PERIOD_SCOPE } from "../constants";
 import { SendsTableAPI } from "../data/sends-table";
 import {
   OPERATIONAL_AUDIENCE,
@@ -58,7 +53,6 @@ export class SendsPageController extends PageController(
     icon: "i-ph-paper-plane-tilt",
     module: MODULE_ID,
     order: SENDS_ORDER,
-    permission: { id: MAILING_ACCESS_PERMISSION },
   },
   DefaultLayout({ fullWidth: true }),
 ) {

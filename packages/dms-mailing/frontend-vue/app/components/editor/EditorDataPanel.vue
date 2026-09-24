@@ -3,7 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
 import { parseTestData } from '../../utils/testData'
 
-const SETTINGS_PERMISSION = 'mailing.settings.manage'
+// Default permission of the mailing settings page (its fullId). The Vue layer
+// has no access to the server-side page registry, so it is spelled out here.
+const SETTINGS_PERMISSION = 'settings.mailing.settings'
 const TEXTAREA_ROWS = 12
 
 const { t } = useI18n()
