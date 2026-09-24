@@ -43,14 +43,14 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/dms-automation",
-        version: ">=0.0.1 <1.0.0",
+        version: ">=0.1.5 <1.0.0",
       },
       config: {},
     },
     mongodb: {
       source: SHARED_MODULE_SOURCES.mongodb,
       config: {
-        url: "mongodb://localhost:27017",
+        url: process.env.MONGO_URL ?? "mongodb://localhost:27017",
         database: "playground_dms_mailing",
       },
     },

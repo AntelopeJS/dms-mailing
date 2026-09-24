@@ -130,7 +130,8 @@ pnpm frontend:dev   # the DMS front-end, in another terminal
 ```
 
 The backend listens on `http://localhost:5010` and needs a MongoDB on
-`mongodb://localhost:27017` (database `playground_dms_mailing`).
+`mongodb://localhost:27017` (database `playground_dms_mailing`); set
+`MONGO_URL` to point the playground at another instance.
 
 Both packages are public on npm, published under the `@antelopejs` scope with
 npm trusted publishing and provenance. The interface package must be released
