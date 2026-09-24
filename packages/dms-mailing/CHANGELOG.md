@@ -1,6 +1,46 @@
 # Changelog
 
 
+## v0.3.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.2.3...v0.3.0)
+
+### 🩹 Fixes
+
+- **playground:** Load dms before mailing ([#5](https://github.com/AntelopeJS/dms-mailing/pull/5))
+- Route playground through public gateway ([#6](https://github.com/AntelopeJS/dms-mailing/pull/6))
+- **playground:** Declare the interface packages the playground imports ([#9](https://github.com/AntelopeJS/dms-mailing/pull/9))
+
+### 💅 Refactors
+
+- **build:** Merge tsconfig.build.json into tsconfig.json ([#12](https://github.com/AntelopeJS/dms-mailing/pull/12))
+- **package:** ⚠️  Drop moduleResolution node support and pack-based checks ([#15](https://github.com/AntelopeJS/dms-mailing/pull/15))
+- **permissions:** ⚠️  Use the DMS default page permissions ([#17](https://github.com/AntelopeJS/dms-mailing/pull/17))
+
+### 🏡 Chore
+
+- Add orb playground setup ([#2](https://github.com/AntelopeJS/dms-mailing/pull/2))
+- **playground:** Use dms frontend 0.2.1 ([#3](https://github.com/AntelopeJS/dms-mailing/pull/3))
+- **agents:** Install Node 24 in setup script ([#7](https://github.com/AntelopeJS/dms-mailing/pull/7))
+- Remove the generated frontend check ([#8](https://github.com/AntelopeJS/dms-mailing/pull/8))
+- **playground:** Derive the api origin from config variables ([#10](https://github.com/AntelopeJS/dms-mailing/pull/10))
+- **release:** @antelopejs/interface-dms-mailing v0.4.0 ([a35a2bf](https://github.com/AntelopeJS/dms-mailing/commit/a35a2bf))
+
+### 🤖 CI
+
+- **release:** Skip the npm auth pre-flight for trusted publishing ([#1](https://github.com/AntelopeJS/dms-mailing/pull/1))
+- **release:** Release next from a dedicated branch and restore requireCommits ([#13](https://github.com/AntelopeJS/dms-mailing/pull/13))
+- **release:** Reference the shared release workflows through v1 ([#14](https://github.com/AntelopeJS/dms-mailing/pull/14))
+
+#### ⚠️ Breaking Changes
+
+- **package:** ⚠️  Drop moduleResolution node support and pack-based checks ([#15](https://github.com/AntelopeJS/dms-mailing/pull/15))
+- **permissions:** ⚠️  Use the DMS default page permissions ([#17](https://github.com/AntelopeJS/dms-mailing/pull/17))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.3
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.3.0...v0.2.3)
