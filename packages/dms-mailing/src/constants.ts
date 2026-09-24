@@ -4,10 +4,7 @@ export const TABLES_BASE_PATH = `${API_BASE_PATH}/tables`;
 export const FRONTEND_MODULE_NAME = "@antelopejs/dms-mailing-frontend-vue";
 export const EMAIL_TEMPLATE_NAME = "EmailMailingTemplate";
 
-export const MAILING_ACCESS_PERMISSION = "mailing.access";
-export const MAILING_TEMPLATES_MANAGE_PERMISSION = "mailing.templates.manage";
 export const MAILING_SEND_PERMISSION = "mailing.send";
-export const MAILING_SETTINGS_MANAGE_PERMISSION = "mailing.settings.manage";
 
 export const OVERVIEW_PERIOD_SCOPE = "mailing-overview";
 export const SENDS_PERIOD_SCOPE = "mailing-sends";

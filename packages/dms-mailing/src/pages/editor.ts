@@ -1,7 +1,7 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import { MAILING_TEMPLATES_MANAGE_PERMISSION, MODULE_ID } from "../constants";
+import { MODULE_ID } from "../constants";
 
 const EDITOR_PAGE_ORDER = 2;
 
@@ -15,7 +15,6 @@ export class MailingEditorController extends PageController(
     module: MODULE_ID,
     order: EDITOR_PAGE_ORDER,
     hidden: true,
-    permission: { id: MAILING_TEMPLATES_MANAGE_PERMISSION },
   },
   DefaultLayout({ fullWidth: true }),
 ) {

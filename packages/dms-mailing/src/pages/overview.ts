@@ -13,7 +13,6 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import {
   API_BASE_PATH,
-  MAILING_ACCESS_PERMISSION,
   MAILING_SENDS_TOPIC,
   MODULE_ID,
   OVERVIEW_PERIOD_SCOPE,
@@ -50,7 +49,6 @@ export class OverviewPageController extends PageController(
     icon: "i-ph-chart-pie-slice",
     module: MODULE_ID,
     order: OVERVIEW_ORDER,
-    permission: { id: MAILING_ACCESS_PERMISSION },
   },
   DefaultLayout({ fullWidth: true }),
 ) {

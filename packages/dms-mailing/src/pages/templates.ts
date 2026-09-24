@@ -3,12 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import type { TableViewTab } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
-import {
-  API_BASE_PATH,
-  GALLERY_DISPLAY_ID,
-  MAILING_ACCESS_PERMISSION,
-  MODULE_ID,
-} from "../constants";
+import { API_BASE_PATH, GALLERY_DISPLAY_ID, MODULE_ID } from "../constants";
 import { TemplatesTableAPI } from "../data/templates-table";
 import "./module";
 
@@ -43,7 +38,6 @@ export class TemplatesPageController extends PageController(
     icon: "i-ph-envelope-simple",
     module: MODULE_ID,
     order: TEMPLATES_ORDER,
-    permission: { id: MAILING_ACCESS_PERMISSION },
   },
   DefaultLayout({ fullWidth: true }),
 ) {
