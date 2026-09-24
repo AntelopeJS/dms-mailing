@@ -50,7 +50,7 @@ export default defineConfig({
     mongodb: {
       source: SHARED_MODULE_SOURCES.mongodb,
       config: {
-        url: "mongodb://localhost:27017",
+        url: process.env.MONGO_URL ?? "mongodb://localhost:27017",
         database: "playground_dms_mailing",
       },
     },
