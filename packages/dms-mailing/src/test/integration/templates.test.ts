@@ -249,12 +249,17 @@ describe("[integration] template content and status", () => {
   it("previews the current content with test data and reports missing variables", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    const list = await client.get(`${TABLE}/list`);
-    const id = (
-      list.data.results.find(
-        (item: TemplateRow) => item.slug === "welcome",
-      ) as TemplateRow
-    )._id;
+    // Looked up by slug rather than on the table's first page, which other
+    // tests fill with their own templates.
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { DEFAULT_TENANT_ID } =
+      await import("@antelopejs/interface-dms/constants");
+    const { TemplateModel } = await import("../../db");
+    const welcome = await GetModel(TemplateModel, DEFAULT_TENANT_ID).getBySlug(
+      "welcome",
+    );
+    const id = welcome?._id as string;
     const preview = await client.post(`/api/mailing/templates/${id}/preview`, {
       locale: "en",
       data: {},
