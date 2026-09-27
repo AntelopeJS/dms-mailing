@@ -61,4 +61,31 @@ describe("[unit] period range", () => {
     expect(spanDays(previous)).to.equal(MAX_WINDOW_DAYS);
     expect(previous.to.getTime()).to.equal(current.from.getTime());
   });
+
+  // `compareFrom`/`compareTo` are plain query parameters too, and every metric
+  // reads its comparison window from the send log in full.
+  it("clamps an explicit comparison window like the current one", () => {
+    const current = currentRange(ctxWith({}));
+    const previous = comparisonRange(
+      ctxWith({
+        compareFrom: "1970-01-01T00:00:00.000Z",
+        compareTo: "2026-09-01T00:00:00.000Z",
+      }),
+      current,
+    );
+    expect(spanDays(previous)).to.equal(MAX_WINDOW_DAYS);
+    expect(previous.to.toISOString()).to.equal("2026-09-01T00:00:00.000Z");
+  });
+
+  it("keeps an explicit comparison window within the cap", () => {
+    const current = currentRange(ctxWith({}));
+    const previous = comparisonRange(
+      ctxWith({
+        compareFrom: "2026-08-01T00:00:00.000Z",
+        compareTo: "2026-09-01T00:00:00.000Z",
+      }),
+      current,
+    );
+    expect(previous.from.toISOString()).to.equal("2026-08-01T00:00:00.000Z");
+  });
 });

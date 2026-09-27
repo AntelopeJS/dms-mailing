@@ -14,6 +14,9 @@ type NewSend = Omit<
   "_id" | "createdAt" | "revision" | "isRetiring" | "lastActivityAt"
 >;
 
+/** A send as the metrics read it: everything but the rendered variables. */
+export type SendSummary = Omit<MailingSend, "json_variables">;
+
 type SendActivity = Pick<
   MailingSend,
   "status" | "opens" | "clicks" | "lastEventAt" | "provider"
@@ -74,11 +77,12 @@ export class SendModel extends BasicDataModel(
     return rows[0];
   }
 
-  listBetween(from: Date, to: Date): Promise<MailingSend[]> {
+  listBetween(from: Date, to: Date): Promise<SendSummary[]> {
     return this.table
       .filter((row) => row.key("createdAt").ge(from))
       .filter((row) => row.key("createdAt").lt(to))
-      .run();
+      .without("json_variables")
+      .run() as Promise<SendSummary[]>;
   }
 
   listOlderThan(limit: Date, pageSize: number): Promise<MailingSend[]> {
