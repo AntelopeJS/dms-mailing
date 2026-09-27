@@ -21,7 +21,6 @@ export class MailingSendEvent extends Table {
   @Field("string")
   declare type: SendEventType;
 
-  @Index()
   @Field("date")
   declare at: Date;
 

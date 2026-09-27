@@ -20,7 +20,6 @@ export class MailingSend extends Table {
   @Field("date")
   declare createdAt: Date;
 
-  @Index()
   @Field("string")
   declare templateId: string;
 
