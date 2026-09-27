@@ -44,14 +44,21 @@ function toRow(values: MailingSettingsValues): Partial<MailingSettings> {
   return { ...rest, json_categories: JSON.stringify(categories) };
 }
 
+/** The tenant's stored settings, without creating them when there are none. */
+export async function findSettings(
+  tenantId: string,
+): Promise<MailingSettingsValues | undefined> {
+  const existing = await GetModel(SettingsModel, tenantId).getSingleton();
+  return existing ? toValues(existing) : undefined;
+}
+
 export async function getSettings(
   tenantId: string,
 ): Promise<MailingSettingsValues> {
-  const model = GetModel(SettingsModel, tenantId);
-  const existing = await model.getSingleton();
-  if (existing) return toValues(existing);
+  const existing = await findSettings(tenantId);
+  if (existing) return existing;
   const created = defaults();
-  await model.insert(toRow(created));
+  await GetModel(SettingsModel, tenantId).insert(toRow(created));
   return created;
 }
 

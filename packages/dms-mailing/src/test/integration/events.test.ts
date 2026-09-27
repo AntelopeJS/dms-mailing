@@ -3,11 +3,12 @@ import {
   clearEmailEventSubscriptions,
   emailEventTrigger,
 } from "../../automation/email-event-trigger";
-import { authorizedClient } from "../helpers/http";
+import { authorizedClient, createClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
+const SECRET_LENGTH = 48;
 const TABLE = "/api/mailing/tables/templates";
 
 interface EventRow {
@@ -97,6 +98,28 @@ describe("[integration] events", () => {
 
     const after = await client.get(`/api/mailing/sends/${sendId}`);
     expect(after.data.send.status).to.equal("delivered");
+  });
+});
+
+describe("[integration] webhook for a tenant without settings", () => {
+  // The endpoint is unauthenticated and takes the tenant from the body: reading
+  // the secret must not create a settings row for whatever tenant id it names.
+  it("refuses the event and stores nothing", async () => {
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { SettingsModel } = await import("../../db");
+    const tenantId = `unknown-tenant-${Date.now()}`;
+
+    const hook = await createClient().post(
+      "/api/mailing/events/manual",
+      { messageId: "unknown-message", type: "opened", tenantId },
+      { headers: { "x-mailing-webhook-secret": "a".repeat(SECRET_LENGTH) } },
+    );
+
+    expect(hook.status).to.equal(HTTP_FORBIDDEN);
+    expect(await GetModel(SettingsModel, tenantId).getAll()).to.have.lengthOf(
+      0,
+    );
   });
 });
 

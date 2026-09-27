@@ -104,14 +104,14 @@ export async function recordEmailEvent(
 /**
  * Whether a webhook request carries the tenant's secret.
  *
- * Fails closed on a blank stored secret: the event endpoint is the module's
- * only unauthenticated route, so "no secret configured" must refuse everything
- * rather than accept an empty header. The comparison itself is constant-time;
+ * Fails closed on a blank or missing stored secret: the event endpoint is the
+ * module's only unauthenticated route, so "no secret configured" must refuse
+ * everything rather than accept an empty header. The comparison itself is constant-time;
  * only the length is observable.
  */
 export function webhookSecretMatches(
   provided: string | undefined,
-  stored: string,
+  stored: string | undefined,
 ): boolean {
   if (!stored || !provided) return false;
   const left = Buffer.from(provided);
