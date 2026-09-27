@@ -66,7 +66,9 @@ row per recipient lands in the send log, and the returned
 
 Provider events are posted to `POST /api/mailing/events/:provider`, guarded by
 the `x-mailing-webhook-secret` header (the secret lives in the mailing
-settings, per tenant).
+settings, per tenant). The endpoint never creates those settings: until a
+tenant's settings exist (any mailing page or send creates them), its events are
+refused with `403`.
 
 ```sh
 curl -X POST http://localhost:5010/api/mailing/events/brevo \
