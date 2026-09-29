@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.3.2
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.1...v0.3.2)
+
+### 🩹 Fixes
+
+- **deps:** Relax @antelopejs/interface-database to >=0.1.7 <1.0.0 ([#26](https://github.com/AntelopeJS/dms-mailing/pull/26))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.0...v0.3.1)
