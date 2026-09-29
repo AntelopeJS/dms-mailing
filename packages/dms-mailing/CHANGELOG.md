@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v0.3.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.0...v0.3.1)
+
+### 🩹 Fixes
+
+- **db:** Stop the mailing webhook from creating settings and key the settings row per tenant ([#24](https://github.com/AntelopeJS/dms-mailing/pull/24))
+
+### 🏡 Chore
+
+- Remove agent work reports ([#19](https://github.com/AntelopeJS/dms-mailing/pull/19))
+- **release:** @antelopejs/interface-dms-mailing v0.5.0 ([#20](https://github.com/AntelopeJS/dms-mailing/pull/20))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.2.3...v0.3.0)
