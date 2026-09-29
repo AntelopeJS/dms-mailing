@@ -44,15 +44,43 @@ function toRow(values: MailingSettingsValues): Partial<MailingSettings> {
   return { ...rest, json_categories: JSON.stringify(categories) };
 }
 
+/** The tenant's stored settings, without creating them when there are none. */
+export async function findSettings(
+  tenantId: string,
+): Promise<MailingSettingsValues | undefined> {
+  const existing = await GetModel(SettingsModel, tenantId).getSingleton(
+    tenantId,
+  );
+  return existing ? toValues(existing) : undefined;
+}
+
+/**
+ * Creates the tenant's row under its tenant id, so two concurrent first
+ * readers cannot both insert one: the loser's insert is refused on the key.
+ * Resolves false when another writer created the row first.
+ */
+async function insertKeyedSettings(
+  tenantId: string,
+  values: MailingSettingsValues,
+): Promise<boolean> {
+  const model = GetModel(SettingsModel, tenantId);
+  try {
+    await model.insert({ ...toRow(values), _id: tenantId });
+    return true;
+  } catch (error) {
+    if (await model.get(tenantId)) return false;
+    throw error;
+  }
+}
+
 export async function getSettings(
   tenantId: string,
 ): Promise<MailingSettingsValues> {
-  const model = GetModel(SettingsModel, tenantId);
-  const existing = await model.getSingleton();
-  if (existing) return toValues(existing);
+  const existing = await findSettings(tenantId);
+  if (existing) return existing;
   const created = defaults();
-  await model.insert(toRow(created));
-  return created;
+  if (await insertKeyedSettings(tenantId, created)) return created;
+  return (await findSettings(tenantId)) as MailingSettingsValues;
 }
 
 export async function saveSettings(
@@ -60,9 +88,10 @@ export async function saveSettings(
   values: MailingSettingsValues,
 ): Promise<MailingSettingsValues> {
   const model = GetModel(SettingsModel, tenantId);
-  const existing = await model.getSingleton();
+  const existing = await model.getSingleton(tenantId);
   if (existing) await model.update(existing._id, toRow(values));
-  else await model.insert(toRow(values));
+  else if (!(await insertKeyedSettings(tenantId, values)))
+    await model.update(tenantId, toRow(values));
   return values;
 }
 

@@ -5,6 +5,7 @@ import { ensureOwnerSession } from "../helpers/owner";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
+const HTTP_CONFLICT = 409;
 const TABLE = "/api/mailing/tables/templates";
 
 interface TemplateRow {
@@ -116,6 +117,43 @@ describe("[integration] templates table", () => {
     expect(row.data.category).to.equal("billing");
   });
 
+  // Sends resolve a template by slug and only the create paths check it is
+  // free, so an edit must neither move it nor, by omitting it, clear it.
+  it("refuses a slug change on edit and keeps the slug when it is omitted", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const created = await client.post(`${TABLE}/new`, {
+      slug: "fixed-slug",
+      name: "Fixed slug",
+      category: "orders",
+    });
+    const id = created.data[0] as string;
+
+    const moved = await client.put(`${TABLE}/edit?id=${id}`, {
+      slug: "order-confirmed",
+      name: "Fixed slug",
+      category: "orders",
+    });
+    expect(moved.status).to.equal(HTTP_CONFLICT);
+    expect(JSON.stringify(moved.data)).to.contain("slug_immutable");
+
+    const omitted = await client.put(`${TABLE}/edit?id=${id}`, {
+      name: "Renamed without slug",
+      category: "orders",
+    });
+    expect(omitted.status, JSON.stringify(omitted.data)).to.equal(HTTP_OK);
+    const row = await client.get(`${TABLE}/get?id=${id}`);
+    expect(row.data.slug).to.equal("fixed-slug");
+    expect(row.data.name).to.equal("Renamed without slug");
+
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { DEFAULT_TENANT_ID } =
+      await import("@antelopejs/interface-dms/constants");
+    const { TemplateModel } = await import("../../db");
+    await GetModel(TemplateModel, DEFAULT_TENANT_ID).delete(id);
+  });
+
   it("refuses an unknown source template", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -211,12 +249,17 @@ describe("[integration] template content and status", () => {
   it("previews the current content with test data and reports missing variables", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    const list = await client.get(`${TABLE}/list`);
-    const id = (
-      list.data.results.find(
-        (item: TemplateRow) => item.slug === "welcome",
-      ) as TemplateRow
-    )._id;
+    // Looked up by slug rather than on the table's first page, which other
+    // tests fill with their own templates.
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { DEFAULT_TENANT_ID } =
+      await import("@antelopejs/interface-dms/constants");
+    const { TemplateModel } = await import("../../db");
+    const welcome = await GetModel(TemplateModel, DEFAULT_TENANT_ID).getBySlug(
+      "welcome",
+    );
+    const id = welcome?._id as string;
     const preview = await client.post(`/api/mailing/templates/${id}/preview`, {
       locale: "en",
       data: {},

@@ -21,14 +21,19 @@ function parseDate(raw: string | undefined): Date | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
+/** Every window is read from the send log in full, so none may exceed the cap. */
+function clampToMaxWindow(requested: Date, to: Date): DateRange {
+  const earliest = to.getTime() - MAX_WINDOW_DAYS * DAY_MS;
+  const from = requested.getTime() < earliest ? new Date(earliest) : requested;
+  return { from, to };
+}
+
 export function currentRange(ctx: RangeContext): DateRange {
   const to = parseDate(readQuery(ctx, "to")) ?? new Date();
   const requested =
     parseDate(readQuery(ctx, "from")) ??
     new Date(to.getTime() - DEFAULT_WINDOW_DAYS * DAY_MS);
-  const earliest = to.getTime() - MAX_WINDOW_DAYS * DAY_MS;
-  const from = requested.getTime() < earliest ? new Date(earliest) : requested;
-  return { from, to };
+  return clampToMaxWindow(requested, to);
 }
 
 export function comparisonRange(
@@ -37,7 +42,7 @@ export function comparisonRange(
 ): DateRange {
   const from = parseDate(readQuery(ctx, "compareFrom"));
   const to = parseDate(readQuery(ctx, "compareTo"));
-  if (from && to) return { from, to };
+  if (from && to) return clampToMaxWindow(from, to);
   const span = current.to.getTime() - current.from.getTime();
   return {
     from: new Date(current.from.getTime() - span),

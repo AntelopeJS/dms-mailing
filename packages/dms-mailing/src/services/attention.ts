@@ -1,4 +1,4 @@
-import type { MailingSend, MailingTemplate } from "../db";
+import type { SendSummary, MailingTemplate } from "../db";
 import { PROBLEM_STATUSES } from "../types";
 
 export type AttentionTone = "error" | "warning" | "neutral";
@@ -24,7 +24,7 @@ const isStaleDraft = (template: MailingTemplate, now: number): boolean =>
   !template.publishedAt &&
   now - new Date(template.updatedAt).getTime() > STALE_DRAFT_DAYS * DAY_MS;
 
-function problemsItem(sends: MailingSend[]): AttentionItem[] {
+function problemsItem(sends: SendSummary[]): AttentionItem[] {
   const problems = sends.filter((send) =>
     PROBLEM_STATUSES.includes(send.status),
   );
@@ -62,7 +62,7 @@ function staleDraftsItem(templates: MailingTemplate[]): AttentionItem[] {
 
 function neverSentItem(
   templates: MailingTemplate[],
-  sends: MailingSend[],
+  sends: SendSummary[],
 ): AttentionItem[] {
   const used = new Set(sends.map((send) => send.templateSlug));
   const unused = templates.filter(
@@ -89,8 +89,8 @@ function neverSentItem(
  */
 export interface AttentionWindow {
   templates: MailingTemplate[];
-  sends: MailingSend[];
-  excluded: MailingSend[];
+  sends: SendSummary[];
+  excluded: SendSummary[];
   /** What the configured provider can report; `null` when it is unreachable. */
   tracking: ProviderTracking | null;
 }

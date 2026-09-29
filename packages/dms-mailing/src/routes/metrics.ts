@@ -12,7 +12,7 @@ import type { TopListItem } from "@antelopejs/interface-dms/base";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { API_BASE_PATH, HTTP_NOT_FOUND } from "../constants";
 import {
-  type MailingSend,
+  type SendSummary,
   type MailingTemplate,
   SendModel,
   TemplateModel,
@@ -91,7 +91,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     return readAudience(this.ctx.url.searchParams.get(SEND_AUDIENCE_QUERY_KEY));
   }
 
-  private async load(range: DateRange): Promise<MailingSend[]> {
+  private async load(range: DateRange): Promise<SendSummary[]> {
     const rows = await this.sends.listBetween(range.from, range.to);
     return forAudience(rows, this.audience);
   }
@@ -228,7 +228,7 @@ async function readTracking(): Promise<ProviderTracking | null> {
 
 function toTemplateItem(
   slug: string,
-  rows: MailingSend[],
+  rows: SendSummary[],
   templates: MailingTemplate[],
   extract: (totals: Totals) => number,
 ): TopListItem {

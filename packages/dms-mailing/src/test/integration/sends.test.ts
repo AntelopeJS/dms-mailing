@@ -45,6 +45,39 @@ describe("[integration] sends", () => {
     expect(detail.data.events[0].type).to.equal(detail.data.send.status);
   });
 
+  // Metrics load every send of their window; the rendered variables are the
+  // one unbounded field and none of them reads it.
+  it("reads a metrics window without the rendered variables", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const created = await client.post(`${TABLE}/new`, {
+      slug: "metrics-window",
+      name: "Metrics window",
+      category: "orders",
+    });
+    const sent = await client.post(
+      `/api/mailing/templates/${created.data[0]}/test-send`,
+      { to: ["metrics@example.test"], locale: "en", data: { any: "value" } },
+    );
+    expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
+    const sendId = sent.data.results[0].sendId as string;
+
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { DEFAULT_TENANT_ID } =
+      await import("@antelopejs/interface-dms/constants");
+    const { SendModel } = await import("../../db");
+    const now = Date.now();
+    const rows = await GetModel(SendModel, DEFAULT_TENANT_ID).listBetween(
+      new Date(now - DAY_MS),
+      new Date(now + DAY_MS),
+    );
+
+    const row = rows.find((candidate) => candidate._id === sendId);
+    expect(row?.templateSlug).to.equal("metrics-window");
+    expect(row).to.not.have.property("json_variables");
+  });
+
   it("refuses a real send on a draft template", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);

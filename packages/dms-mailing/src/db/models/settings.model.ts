@@ -5,7 +5,13 @@ export class SettingsModel extends BasicDataModel(
   MailingSettings,
   MAILING_SETTINGS_TABLE_NAME,
 ) {
-  async getSingleton(): Promise<MailingSettings | undefined> {
+  /**
+   * The tenant's settings row, keyed by the tenant id. Rows written before the
+   * key existed carry a random id and are still found by a scan.
+   */
+  async getSingleton(tenantId: string): Promise<MailingSettings | undefined> {
+    const keyed = await this.get(tenantId);
+    if (keyed) return keyed;
     const rows = await this.getAll();
     return rows[0];
   }

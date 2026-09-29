@@ -39,6 +39,7 @@ import { createTemplateSchema } from "../validation/templates.schema";
 import { parseBody } from "./body";
 
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
+const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
 const SOURCE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const CREATE_ONLY = { edit: ReadonlyBehaviorType.disabled };
 // Read-only columns render as empty dashes on the create form; the four fields
@@ -99,9 +100,54 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
   };
 }
 
+interface EditParams {
+  id: string;
+}
+
+/**
+ * The body an edit may apply. Sends resolve templates by slug and nothing
+ * enforces its uniqueness but the create checks, so a slug never changes once
+ * set: a different one is refused, a missing one (which the data-api edit
+ * would null) is kept.
+ */
+async function withStoredSlug(
+  tenantId: string,
+  templateId: string,
+  body: Buffer | string,
+): Promise<Buffer | string> {
+  const stored = await GetModel(TemplateModel, tenantId).get(templateId);
+  if (!stored) return body;
+  const edit = parseBody(body);
+  if (edit.slug !== undefined && edit.slug !== stored.slug) {
+    throw new HTTPResult(HTTP_CONFLICT, SLUG_IMMUTABLE);
+  }
+  return JSON.stringify({ ...edit, slug: stored.slug });
+}
+
+function withFixedSlug(base: DataControllerCallback): DataControllerCallback {
+  return {
+    ...base,
+    func: async function (
+      this: unknown,
+      ctx: RequestContext,
+      params: EditParams,
+      body: Buffer | string,
+      ...rest: unknown[]
+    ) {
+      const guarded = await withStoredSlug(
+        getRequestTenantId(ctx),
+        params.id,
+        body,
+      );
+      return base.func.call(this, ctx, params, guarded, ...rest);
+    },
+  };
+}
+
 const templateRoutes = {
   ...TableViewRoutes.All,
   new: withSeeding(TableViewRoutes.New),
+  edit: withFixedSlug(TableViewRoutes.Edit),
 };
 
 @RegisterDataController()

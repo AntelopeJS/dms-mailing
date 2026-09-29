@@ -22,6 +22,7 @@ describe("[unit] webhook secret", () => {
     expect(webhookSecretMatches("", "")).to.equal(false);
     expect(webhookSecretMatches(undefined, "")).to.equal(false);
     expect(webhookSecretMatches(VALID_SECRET, "")).to.equal(false);
+    expect(webhookSecretMatches(VALID_SECRET, undefined)).to.equal(false);
   });
 
   it("refuses a missing or wrong header against a real secret", () => {

@@ -48,3 +48,81 @@ describe("[integration] settings", () => {
     expect(restored.status).to.equal(HTTP_OK);
   });
 });
+
+const CONCURRENT_READERS = 5;
+const LEGACY_RETENTION_DAYS = 45;
+const LEGACY_SECRET = "l".repeat(48);
+
+async function loadSettingsModules() {
+  const { GetModel } =
+    await import("@antelopejs/interface-database-decorators");
+  const { SettingsModel } = await import("../../db");
+  const settings = await import("../../services/settings");
+  return {
+    ...settings,
+    rowsOf: (tenantId: string) => GetModel(SettingsModel, tenantId).getAll(),
+    insertLegacyRow: (tenantId: string) =>
+      GetModel(SettingsModel, tenantId).insert({
+        fallbackLocale: "en",
+        logRetentionDays: LEGACY_RETENTION_DAYS,
+        blockOnMissingVariables: false,
+        senderName: "",
+        senderEmail: "",
+        replyTo: "",
+        json_categories: "[]",
+        webhookSecret: LEGACY_SECRET,
+      }),
+  };
+}
+
+describe("[integration] settings row per tenant", () => {
+  // Every request path reads the settings, so a tenant's first reads arrive
+  // together. Each used to insert its own default row with its own webhook
+  // secret; the row is now keyed by the tenant id so only one can land.
+  it("creates a single row when first readers race", async () => {
+    const { getSettings, rowsOf } = await loadSettingsModules();
+    const tenantId = `settings-race-${Date.now()}`;
+
+    const reads = await Promise.all(
+      Array.from({ length: CONCURRENT_READERS }, () => getSettings(tenantId)),
+    );
+
+    const rows = await rowsOf(tenantId);
+    expect(rows).to.have.lengthOf(1);
+    expect(rows[0]?._id).to.equal(tenantId);
+    for (const read of reads) {
+      expect(read.webhookSecret).to.equal(rows[0]?.webhookSecret);
+    }
+  });
+
+  it("keeps reading and updating a row written before the key existed", async () => {
+    const { getSettings, saveSettings, rowsOf, insertLegacyRow } =
+      await loadSettingsModules();
+    const tenantId = `settings-legacy-${Date.now()}`;
+    await insertLegacyRow(tenantId);
+
+    const read = await getSettings(tenantId);
+    expect(read.webhookSecret).to.equal(LEGACY_SECRET);
+    await saveSettings(tenantId, {
+      ...read,
+      logRetentionDays: UPDATED_RETENTION_DAYS,
+    });
+
+    const rows = await rowsOf(tenantId);
+    expect(rows).to.have.lengthOf(1);
+    expect(rows[0]?.logRetentionDays).to.equal(UPDATED_RETENTION_DAYS);
+  });
+
+  it("saves a tenant's first settings under the tenant id", async () => {
+    const { getSettings, saveSettings, rowsOf } = await loadSettingsModules();
+    const tenantId = `settings-first-save-${Date.now()}`;
+    const values = await getSettings(`settings-template-${Date.now()}`);
+
+    await saveSettings(tenantId, { ...values, webhookSecret: LEGACY_SECRET });
+
+    const rows = await rowsOf(tenantId);
+    expect(rows).to.have.lengthOf(1);
+    expect(rows[0]?._id).to.equal(tenantId);
+    expect(rows[0]?.webhookSecret).to.equal(LEGACY_SECRET);
+  });
+});

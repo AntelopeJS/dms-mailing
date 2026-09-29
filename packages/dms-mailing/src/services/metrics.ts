@@ -1,4 +1,4 @@
-import type { MailingSend } from "../db";
+import type { SendSummary } from "../db";
 import {
   BUSINESS_AUDIENCE,
   OPERATIONAL_AUDIENCE,
@@ -6,7 +6,7 @@ import {
   type SendStatus,
 } from "../types";
 
-const AUDIENCE_KEEPS: Record<SendAudience, (send: MailingSend) => boolean> = {
+const AUDIENCE_KEEPS: Record<SendAudience, (send: SendSummary) => boolean> = {
   [BUSINESS_AUDIENCE]: (send) => !send.isTest,
   [OPERATIONAL_AUDIENCE]: () => true,
 };
@@ -22,9 +22,9 @@ export function readAudience(raw: string | null | undefined): SendAudience {
 }
 
 export function forAudience(
-  sends: MailingSend[],
+  sends: SendSummary[],
   audience: SendAudience,
-): MailingSend[] {
+): SendSummary[] {
   return sends.filter(AUDIENCE_KEEPS[audience]);
 }
 
@@ -72,13 +72,13 @@ export const ratio = (part: number, whole: number): number =>
   whole ? (part / whole) * PERCENT : 0;
 
 const countIf = (
-  sends: MailingSend[],
-  predicate: (send: MailingSend) => boolean,
+  sends: SendSummary[],
+  predicate: (send: SendSummary) => boolean,
 ): number => sends.filter(predicate).length;
 
 const byStatus =
   (status: SendStatus) =>
-  (send: MailingSend): boolean =>
+  (send: SendSummary): boolean =>
     send.status === status;
 
 function median(values: number[]): number {
@@ -87,7 +87,7 @@ function median(values: number[]): number {
   return sorted[Math.floor(sorted.length / 2)] as number;
 }
 
-export function aggregate(sends: MailingSend[]): Totals {
+export function aggregate(sends: SendSummary[]): Totals {
   const delivered = countIf(sends, (send) =>
     DELIVERED_LIKE.includes(send.status),
   );
@@ -138,7 +138,7 @@ const dayKey = (date: Date): string =>
  * still counted it.
  */
 export function dailySeries(
-  sends: MailingSend[],
+  sends: SendSummary[],
   from: Date,
   to: Date,
 ): SeriesPoint[] {

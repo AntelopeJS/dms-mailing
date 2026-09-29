@@ -187,6 +187,7 @@
 			"missing_variables": "Des variables requises manquent à l'envoi.",
 			"no_recipient": "L'envoi n'a aucun destinataire.",
 			"send_not_found": "Cet envoi n'existe pas.",
+			"slug_immutable": "Le slug d'un modèle ne peut plus être modifié après sa création.",
 			"template_not_found": "Ce template n'existe pas.",
 			"template_not_live": "Ce template n'est pas en ligne.",
 			"unknown_metric": "Métrique inconnue.",

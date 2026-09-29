@@ -187,6 +187,7 @@
 			"missing_variables": "Required variables are missing from the send.",
 			"no_recipient": "The send has no recipient.",
 			"send_not_found": "This send does not exist.",
+			"slug_immutable": "A template's slug cannot be changed once it is created.",
 			"template_not_found": "This template does not exist.",
 			"template_not_live": "This template is not live.",
 			"unknown_metric": "Unknown metric.",

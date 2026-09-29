@@ -11,7 +11,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { z } from "zod";
 import { API_BASE_PATH, HTTP_FORBIDDEN } from "../constants";
 import { recordEmailEvent, webhookSecretMatches } from "../services/events";
-import { getSettings } from "../services/settings";
+import { findSettings } from "../services/settings";
 import { SEND_STATUSES, type SendStatus } from "../types";
 
 const SECRET_HEADER = "x-mailing-webhook-secret";
@@ -39,9 +39,9 @@ export class MailingEventsController extends Controller(
   ) {
     const event = assertValidation(body, (value) => eventSchema.parse(value));
     const tenantId = event.tenantId ?? getRequestTenantId(this.ctx);
-    const settings = await getSettings(tenantId);
+    const settings = await findSettings(tenantId);
     assert(
-      webhookSecretMatches(secret, settings.webhookSecret),
+      webhookSecretMatches(secret, settings?.webhookSecret),
       HTTP_FORBIDDEN,
       BAD_SECRET,
     );

@@ -16,7 +16,6 @@ export class MailingTemplate extends Table {
   @Field("string")
   declare _id: string;
 
-  @Index()
   @CreationTime()
   @Field("date")
   declare createdAt: Date;
