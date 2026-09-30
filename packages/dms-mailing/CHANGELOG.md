@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.3.4
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.3...v0.3.4)
+
+### 🚀 Enhancements
+
+- **frontend-vue:** Declare the @antelopejs/dms-frontend releases the layer supports ([#27](https://github.com/AntelopeJS/dms-mailing/pull/27))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio
+
 ## v0.3.3
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.2...v0.3.3)
