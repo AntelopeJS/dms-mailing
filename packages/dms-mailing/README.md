@@ -142,7 +142,10 @@ before `@antelopejs/dms-mailing`. Each package has its own manual workflow:
 DMS mailing module` publishes this package and refuses to run until the
 interface version its dependency range is floored at resolves on npm. Inside
 the workspace that same range resolves to the sibling package, through
-`link-workspace-packages`.
+`link-workspace-packages`. The module implements the interface, so that range
+is capped below the next minor (`>=0.5.0 <0.6.0`): a breaking interface minor
+never reaches a module that does not implement it, and the release workflow
+refuses any other shape.
 
 ## Conventions
 
