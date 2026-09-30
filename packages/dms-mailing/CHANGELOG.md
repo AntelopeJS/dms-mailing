@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.3.3
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.2...v0.3.3)
+
+### 🩹 Fixes
+
+- **deps:** Cap @antelopejs/interface-dms-mailing below the next minor and check interface ranges ([#29](https://github.com/AntelopeJS/dms-mailing/pull/29))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.2
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.1...v0.3.2)
