@@ -52,3 +52,12 @@ export function toCategoryOption(value: string | null | undefined): string {
 export function fromCategoryOption(value: string): string {
 	return value === NO_CATEGORY ? '' : value
 }
+
+/**
+ * The category an edit stores. "No category" is sent as `null` rather than
+ * omitted: from interface-data-api 0.2.0 on, the edit route leaves an absent
+ * key unchanged, so only an explicit `null` clears it.
+ */
+export function toStoredCategory(value: string | null | undefined): string | null {
+	return value || null
+}

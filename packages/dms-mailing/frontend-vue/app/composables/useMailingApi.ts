@@ -64,12 +64,13 @@ export interface SavedResponse {
 /**
  * The template's own writable fields. All of them, always: the data-api `edit`
  * route replaces the writable set rather than patching it, so a body missing
- * one nulls it in the database.
+ * one nulls it in the database. `null` clears the category on every data-api
+ * version, including those that leave an absent key unchanged.
  */
 export interface TemplateDetails {
 	name: string
 	slug: string
-	category?: string
+	category: string | null
 }
 
 export interface CategoriesResponse {

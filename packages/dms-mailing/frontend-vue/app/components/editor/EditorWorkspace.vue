@@ -10,6 +10,7 @@ import type {
 import { provideEditorContext } from '../../composables/useEditorContext'
 import { useMailingApi } from '../../composables/useMailingApi'
 import { createEditorState } from '../../composables/useTemplateEditor'
+import { toStoredCategory } from '../../utils/categories'
 import { deepClone } from '../../utils/clone'
 
 interface Props {
@@ -66,11 +67,11 @@ async function saveDetails(): Promise<void> {
 	const next = {
 		name: trimmed,
 		slug: template.value.slug,
-		category: category.value || undefined,
+		category: toStoredCategory(category.value),
 	}
 	if (
 		next.name === template.value.name &&
-		next.category === (template.value.category || undefined)
+		next.category === toStoredCategory(template.value.category)
 	) {
 		return
 	}
