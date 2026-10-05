@@ -117,6 +117,29 @@ describe("[integration] templates table", () => {
     expect(row.data.category).to.equal("billing");
   });
 
+  // From interface-data-api 0.2.0 on, an absent key leaves the field unchanged:
+  // the editor clears a category by sending `null`, which every version stores.
+  it("clears the category when the edit sends null", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const created = await client.post(`${TABLE}/new`, {
+      slug: "clears-category",
+      name: "Clears category",
+      category: "orders",
+    });
+    const id = created.data[0] as string;
+
+    const edited = await client.put(`${TABLE}/edit?id=${id}`, {
+      slug: "clears-category",
+      name: "Clears category",
+      category: null,
+    });
+    expect(edited.status, JSON.stringify(edited.data)).to.equal(HTTP_OK);
+    const row = await client.get(`${TABLE}/get?id=${id}`);
+    expect(row.data.slug).to.equal("clears-category");
+    expect(row.data.category).to.equal(null);
+  });
+
   // Sends resolve a template by slug and only the create paths check it is
   // free, so an edit must neither move it nor, by omitting it, clear it.
   it("refuses a slug change on edit and keeps the slug when it is omitted", async () => {
