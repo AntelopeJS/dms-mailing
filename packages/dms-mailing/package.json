@@ -31,7 +31,7 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc",
-    "dev": "ajs project run -w -p playground",
+    "dev": "ajs project dev -w -p playground",
     "dev:frontend": "cd playground && pnpm frontend:dev",
     "frontend:dev": "cd playground && pnpm frontend:dev",
     "lint": "oxlint && oxfmt --check . && cd frontend-vue && pnpm lint && antelopejs-check-interface-ranges",
