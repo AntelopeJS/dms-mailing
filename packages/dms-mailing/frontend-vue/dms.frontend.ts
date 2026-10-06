@@ -1,6 +1,6 @@
 import { defineAsyncComponent, type Component } from 'vue'
 import type { DmsFrontendModule } from '#dms/frontend-module'
-import templateGallery from './app/plugins/template-gallery-display.client'
+import templateGallery from './app/plugins/template-gallery-display'
 
 interface VueModule {
 	default: Component
@@ -22,7 +22,7 @@ const frontendModule: DmsFrontendModule = {
 					: 'DmsMailing'
 				sdk.registerComponent(`${prefix}${name}`, defineAsyncComponent(loader))
 			})
-		sdk.registerPlugin(templateGallery, { clientOnly: true })
+		sdk.registerPlugin(templateGallery)
 	},
 }
 

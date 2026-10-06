@@ -1,6 +1,6 @@
 import TemplateGallery from '../components/TemplateGallery.vue'
 
-const GALLERY_DISPLAY_ID = 'gallery'
+const GALLERY_DISPLAY_ID = 'mailing:gallery'
 const GALLERY_DISPLAY_ORDER = 5
 
 export default defineDmsPlugin(() => {

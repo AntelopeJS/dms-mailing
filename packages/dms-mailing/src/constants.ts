@@ -11,7 +11,7 @@ export const SENDS_PERIOD_SCOPE = "mailing-sends";
 
 export const MAILING_SENDS_TOPIC = "mailing:sends";
 
-export const GALLERY_DISPLAY_ID = "gallery";
+export const GALLERY_DISPLAY_ID = `${MODULE_ID}:gallery`;
 export const TEMPLATE_CATEGORIES_TYPE_ID = "mailing_template_categories";
 export const TEMPLATE_CATEGORY_TYPE_ID = "mailing_template_category";
 
