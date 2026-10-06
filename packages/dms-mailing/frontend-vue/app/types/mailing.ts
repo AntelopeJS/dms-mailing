@@ -278,8 +278,8 @@ export interface TemplateRow {
 	_id: string
 	slug: string
 	name: string
-	/** Absent or empty when the template is uncategorised. */
-	category?: string
+	/** Absent, `null` or empty when the template is uncategorised. */
+	category?: string | null
 	status: TemplateStatus
 	/** Comma-separated locale codes of the content; blank means unknown. */
 	locales?: string

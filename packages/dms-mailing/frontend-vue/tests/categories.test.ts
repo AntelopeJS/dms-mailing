@@ -6,6 +6,7 @@ import {
 	serializeCategories,
 	slugifyId,
 	toCategoryOption,
+	toStoredCategory,
 } from '../app/utils/categories'
 import type { TemplateCategory } from '../app/types/mailing'
 
@@ -60,5 +61,20 @@ describe('the uncategorised sentinel', () => {
 	it('maps the sentinel back to the empty value callers expect', () => {
 		expect(fromCategoryOption(NO_CATEGORY)).toBe('')
 		expect(fromCategoryOption(toCategoryOption(null))).toBe('')
+	})
+})
+
+describe('toStoredCategory', () => {
+	// The data-api edit leaves an absent key unchanged from 0.2.0 on, so "no
+	// category" must travel as an explicit `null` to clear a stored one.
+	it('sends null for every empty form of "no category"', () => {
+		expect(toStoredCategory('')).toBeNull()
+		expect(toStoredCategory(null)).toBeNull()
+		expect(toStoredCategory(undefined)).toBeNull()
+		expect(toStoredCategory(fromCategoryOption(NO_CATEGORY))).toBeNull()
+	})
+
+	it('keeps a real category id', () => {
+		expect(toStoredCategory('orders')).toBe('orders')
 	})
 })
