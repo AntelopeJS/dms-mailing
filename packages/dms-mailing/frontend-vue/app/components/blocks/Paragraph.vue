@@ -13,6 +13,6 @@ defineProps<Props>()
 		class="mb-4 text-sm leading-relaxed text-gray-600"
 		:style="{ textAlign: block.align }"
 	>
-		<DmsMailingTokenText :text="block.text" />
+		<MailingTokenText :text="block.text" />
 	</p>
 </template>

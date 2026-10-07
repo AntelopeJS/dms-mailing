@@ -39,7 +39,7 @@ import { SEND_AUDIENCE_QUERY_KEY, type SendAudience } from "../types";
 import { comparisonRange, currentRange } from "./period";
 
 const UNKNOWN_METRIC = "$dms_mailing.errors.unknown_metric";
-const EDITOR_PATH = "/modules/mailing/editor";
+const TEMPLATES_PATH = "/modules/mailing/templates";
 const MAX_TOP_TEMPLATES = 10;
 const MAX_TOP_DOMAINS = 6;
 const FULL_RATE = 100;
@@ -184,7 +184,12 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
 
   @Get("/funnel")
   async funnel() {
-    const totals = aggregate(await this.load(currentRange(this.ctx)));
+    const kind = readFunnelKind(this.ctx.url.searchParams.get("kind"));
+    const [sends, templates] = await Promise.all([
+      this.load(currentRange(this.ctx)),
+      this.templates.getAll(),
+    ]);
+    const totals = aggregate(filterByKind(sends, templates, kind));
     return {
       steps: FUNNEL_STEPS.map(([id, extract]) => ({
         id,
@@ -209,6 +214,42 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
       items: buildAttentionItems({ templates, sends, excluded, tracking }),
     };
   }
+}
+
+/** Which sends the funnel counts: all, or one side of the marketing split. */
+export type FunnelKind = "all" | "marketing" | "transactional";
+
+const MARKETING_CATEGORY = "marketing";
+const FUNNEL_KINDS: Record<string, FunnelKind> = {
+  all: "all",
+  marketing: "marketing",
+  transactional: "transactional",
+};
+
+export function readFunnelKind(raw: string | null): FunnelKind {
+  return FUNNEL_KINDS[raw ?? ""] ?? "all";
+}
+
+const KIND_KEEPS: Record<FunnelKind, (category: string) => boolean> = {
+  all: () => true,
+  marketing: (category) => category === MARKETING_CATEGORY,
+  transactional: (category) => category !== MARKETING_CATEGORY,
+};
+
+/**
+ * Sends of the templates on one side of the split. A template's category
+ * decides: "marketing" is the campaign side, everything else transactional.
+ */
+export function filterByKind(
+  sends: SendSummary[],
+  templates: MailingTemplate[],
+  kind: FunnelKind,
+): SendSummary[] {
+  const categories = new Map(
+    templates.map((template) => [template.slug, template.category ?? ""]),
+  );
+  const keeps = KIND_KEEPS[kind];
+  return sends.filter((send) => keeps(categories.get(send.templateSlug) ?? ""));
 }
 
 /**
@@ -238,6 +279,6 @@ function toTemplateItem(
     title: template?.name ?? slug,
     description: slug,
     value: extract(aggregate(rows)),
-    to: template ? `${EDITOR_PATH}?id=${template._id}` : undefined,
+    to: template ? `${TEMPLATES_PATH}/${template._id}` : undefined,
   };
 }

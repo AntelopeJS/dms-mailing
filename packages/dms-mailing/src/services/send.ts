@@ -11,22 +11,35 @@ import {
 } from "@antelopejs/interface-email";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { MODULE_ID } from "../constants";
-import { SendEventModel, SendModel, TemplateModel } from "../db";
+import {
+  type MailingTemplate,
+  SendEventModel,
+  SendModel,
+  TemplateModel,
+} from "../db";
 import { resolveEmail } from "../engine";
 import type {
   SendTemplateParams,
   SendTemplateResult,
 } from "@antelopejs/interface-dms-mailing";
-import type {
-  MailingSettingsValues,
-  SendStatus,
-  TemplateContent,
+import {
+  type MailingSettingsValues,
+  type SendStatus,
+  stageOf,
+  type TemplateContent,
 } from "../types";
 import { publishSendCreated } from "../realtime";
 import { renderEmailHtml } from "./render";
 import { getSettings } from "./settings";
 import { toSendStatus } from "./status";
-import { localeContentOf, parseContent, pickLocale } from "./templates";
+import {
+  hasDraft,
+  localeContentOf,
+  parseContent,
+  pickLocale,
+  publishedVersionOf,
+  workingContent,
+} from "./templates";
 
 export class SendError extends Error {
   constructor(
@@ -40,10 +53,26 @@ export class SendError extends Error {
 export interface PreparedSend {
   content: TemplateContent;
   locale: string;
+  /** Locale the caller asked for, blank when it let the fallback pick. */
+  requestedLocale: string;
+  /** Template version the content belongs to; 0 for a draft. */
+  version: number;
   templateId: string;
   slug: string;
   tenantId: string;
 }
+
+/**
+ * What the module's own routes add to a `SendTemplate` call: the version a
+ * content override belongs to, so a send again records the version it
+ * repeats rather than the draft marker.
+ */
+export interface ModuleSendParams extends SendTemplateParams {
+  version?: number;
+}
+
+const DRAFT_VERSION = 0;
+const TEST_SUBJECT_PREFIX = "[TEST] ";
 
 interface SendOutcome {
   latencyMs: number;
@@ -116,10 +145,39 @@ const nameOf = (to: EmailAddress): string | undefined =>
 const toRecipients = (to: EmailAddress | EmailAddress[]): EmailAddress[] =>
   Array.isArray(to) ? to : [to];
 
+interface ResolvedContent {
+  content: TemplateContent;
+  version: number;
+}
+
+/**
+ * The content a send renders and the version it belongs to. A real send gets
+ * what customers receive; a test send gets the draft when there is one, so a
+ * change can be tried before it is published.
+ */
+function resolveContent(
+  template: MailingTemplate,
+  params: ModuleSendParams,
+): ResolvedContent {
+  if (params.content)
+    return {
+      content: params.content,
+      version: params.version ?? DRAFT_VERSION,
+    };
+  if (params.isTest && hasDraft(template))
+    return { content: workingContent(template), version: DRAFT_VERSION };
+  if (params.isTest && !publishedVersionOf(template))
+    return { content: workingContent(template), version: DRAFT_VERSION };
+  return {
+    content: parseContent(template),
+    version: publishedVersionOf(template),
+  };
+}
+
 async function prepare(
   tenantId: string,
   slug: string,
-  params: SendTemplateParams,
+  params: ModuleSendParams,
 ): Promise<PreparedSend> {
   const template = await GetModel(TemplateModel, tenantId).getBySlug(slug);
   if (!template) {
@@ -131,15 +189,22 @@ async function prepare(
       `Template "${slug}" is ${template.status}`,
     );
   }
-  const content = params.content ?? parseContent(template);
+  const { content, version } = resolveContent(template, params);
   const settings = await getSettings(tenantId);
   return {
     content,
     locale: pickLocale(content, params.locale, settings.fallbackLocale),
+    requestedLocale: params.locale ?? "",
+    version,
     templateId: template._id,
     slug,
     tenantId,
   };
+}
+
+/** The subject a recipient sees: a test says so before anything else. */
+export function subjectFor(subject: string, isTest: boolean): string {
+  return isTest ? `${TEST_SUBJECT_PREFIX}${subject}` : subject;
 }
 
 function messageFor(input: DeliveryInput, to: EmailAddress): EmailParams {
@@ -291,9 +356,12 @@ async function record(
     templateId: prepared.templateId,
     templateSlug: prepared.slug,
     locale: prepared.locale,
+    requestedLocale: prepared.requestedLocale,
+    templateVersion: prepared.version,
     recipientEmail: addressOf(to),
     recipientName: nameOf(to),
     status,
+    stage: stageOf(status),
     provider: outcome.provider,
     providerMessageId: outcome.providerMessageId,
     latencyMs: outcome.latencyMs,
@@ -379,7 +447,7 @@ export function aggregateResults(
 
 export async function sendTemplate(
   slug: string,
-  params: SendTemplateParams,
+  params: ModuleSendParams,
 ): Promise<SendTemplateResult> {
   const recipients = toRecipients(params.to);
   if (recipients.length === 0) {
@@ -401,7 +469,7 @@ export async function sendTemplate(
   const delivered = await deliver({
     prepared,
     settings,
-    subject: email.subject,
+    subject: subjectFor(email.subject, Boolean(params.isTest)),
     html: await renderEmailHtml(email, prepared.locale),
     recipients,
   });

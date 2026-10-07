@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createEditorState } from '../app/composables/useTemplateEditor'
 import type { TemplateContent } from '../app/types/mailing'
+import { HISTORY_COALESCE_MS } from '../app/utils/history'
 
 const CONTENT: TemplateContent = {
 	locales: {
@@ -21,6 +22,11 @@ const CONTENT: TemplateContent = {
 	},
 }
 
+function steppingClock() {
+	let now = 0
+	return () => (now += HISTORY_COALESCE_MS)
+}
+
 describe('editor state', () => {
 	it('starts clean on the requested locale and tracks dirtiness', () => {
 		const state = createEditorState(CONTENT, 'en', ['en', 'fr'])
@@ -30,13 +36,14 @@ describe('editor state', () => {
 		expect(state.dirty).toBe(1)
 		expect(state.current?.blocks[0]).toMatchObject({ text: 'Hello' })
 	})
-	it('selects and deselects blocks and the subject', () => {
+	it('selects a block and opens the Block tab of the inspector', () => {
 		const state = createEditorState(CONTENT, 'en', ['en'])
+		state.rightTab = 'template'
 		state.select('h1')
 		expect(state.selected?.id).toBe('h1')
-		state.selectSubject()
+		expect(state.rightTab).toBe('block')
+		state.select(null)
 		expect(state.selected).toBeNull()
-		expect(state.subjectSelected).toBe(true)
 	})
 	it('reports missing locales and creates one from a source locale', () => {
 		const state = createEditorState(CONTENT, 'fr', ['en', 'fr'])
@@ -46,20 +53,97 @@ describe('editor state', () => {
 		expect(state.current?.subject).toBe('S')
 		expect(state.current?.blocks[0]?.id).not.toBe('h1')
 	})
-	it('removes a block by id and marks the state dirty', () => {
+	it('removes the selected block and clears the selection', () => {
 		const state = createEditorState(CONTENT, 'en', ['en'])
+		state.select('h1')
 		state.removeBlockById('h1')
 		expect(state.current?.blocks).toHaveLength(0)
+		expect(state.selectedId).toBeNull()
 		expect(state.dirty).toBe(1)
 	})
-	it('adds blocks at the end of a list, inside branches too, and resets on save', () => {
+	it('adds a block under the selected one, inside branches too', () => {
 		const state = createEditorState(CONTENT, 'en', ['en'])
 		const branch = state.addBlock('if')
-		state.addBlock('paragraph', { parentId: branch.id, branch: 'children' })
-		expect(state.current?.blocks.at(-1)?.type).toBe('if')
+		const nested = state.addBlock('paragraph', {
+			parentId: branch.id,
+			branch: 'children',
+		})
+		state.select(nested.id)
+		state.addBlockUnderSelected('button')
 		const found = state.findBlock(branch.id)
-		expect(found?.type === 'if' && found.children).toHaveLength(1)
+		expect(found?.type === 'if' && found.children.map((b) => b.type)).toEqual([
+			'paragraph',
+			'button',
+		])
+		state.select('h1')
+		state.addBlockUnderSelected('divider')
+		expect(state.current?.blocks.map((block) => block.type)).toEqual([
+			'heading',
+			'divider',
+			'if',
+		])
+	})
+	it('duplicates and moves blocks by id', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'])
+		state.duplicateBlockById('h1')
+		const copyId = state.selectedId
+		expect(copyId).not.toBe('h1')
+		state.moveBlockById(copyId as string, -1)
+		expect(state.current?.blocks[0]?.id).toBe(copyId)
+	})
+	it('switches the else branch on and off', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'])
+		const branch = state.addBlock('if')
+		state.setElse(branch.id, true)
+		const found = () => state.findBlock(branch.id)
+		expect(found()?.type === 'if' && found()?.elseChildren).toHaveLength(1)
+		state.setElse(branch.id, false)
+		expect(found()?.type === 'if' && found()?.elseChildren).toBeNull()
+	})
+	it('marks only the revision a save captured as saved', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'])
+		state.updateBlock('h1', { text: 'A' })
+		const captured = state.revision
+		state.updateBlock('h1', { text: 'B' })
+		state.markSaved(captured)
+		expect(state.dirty).toBe(1)
 		state.markSaved()
 		expect(state.dirty).toBe(0)
+	})
+	it('undoes and redoes changes, each one bumping the revision', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'], steppingClock())
+		state.updateBlock('h1', { text: 'One' })
+		state.updateBlock('h1', { text: 'Two' })
+		expect(state.canUndo).toBe(true)
+		state.undo()
+		expect(state.current?.blocks[0]).toMatchObject({ text: 'One' })
+		state.undo()
+		expect(state.current?.blocks[0]).toMatchObject({ text: 'Hi' })
+		expect(state.canUndo).toBe(false)
+		state.redo()
+		expect(state.current?.blocks[0]).toMatchObject({ text: 'One' })
+		expect(state.dirty).toBeGreaterThan(0)
+	})
+	it('drops the selection when an undo removes the selected block', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'], steppingClock())
+		const added = state.addBlock('divider')
+		expect(state.selectedId).toBe(added.id)
+		state.undo()
+		expect(state.selectedId).toBeNull()
+	})
+	it('resets to new content with an empty history', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'], steppingClock())
+		state.updateBlock('h1', { text: 'Changed' })
+		state.reset(CONTENT)
+		expect(state.dirty).toBe(0)
+		expect(state.canUndo).toBe(false)
+		expect(state.current?.blocks[0]).toMatchObject({ text: 'Hi' })
+	})
+	it('opens the block search on the Blocks tab', () => {
+		const state = createEditorState(CONTENT, 'en', ['en'])
+		state.leftTab = 'outline'
+		state.requestSearch()
+		expect(state.leftTab).toBe('blocks')
+		expect(state.isSearchRequested).toBe(true)
 	})
 })

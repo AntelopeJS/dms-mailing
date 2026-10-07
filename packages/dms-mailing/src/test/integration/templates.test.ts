@@ -30,7 +30,7 @@ describe("[integration] templates table", () => {
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
 
-    const list = await client.get(`${TABLE}/list`);
+    const list = await client.get(`${TABLE}/list?limit=100`);
     expect(list.status).to.equal(HTTP_OK);
     const row = list.data.results.find(
       (item: TemplateRow) => item.slug === "order-confirmed",

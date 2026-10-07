@@ -8,11 +8,21 @@ import type {
 import {
 	cloneWithNewIds,
 	createBlock,
+	duplicateBlock,
 	findBlock,
 	findParentList,
+	insertionAfter,
+	moveBlock,
 	removeBlock,
 } from '../utils/blocks'
 import { deepClone } from '../utils/clone'
+import {
+	createHistory,
+	recordChange,
+	redoChange,
+	undoChange,
+} from '../utils/history'
+import type { EditorHistory } from '../utils/history'
 
 export type IfBranch = 'children' | 'elseChildren'
 
@@ -21,21 +31,29 @@ export interface InsertTarget {
 	branch: IfBranch
 }
 
-export type RailTab = 'blocks' | 'settings' | 'template' | 'data'
+export type LeftTab = 'blocks' | 'outline' | 'variables'
+export type RightTab = 'block' | 'data' | 'template'
 export type EditorDevice = 'desktop' | 'mobile'
+export type PreviewMode = 'variables' | 'data'
 export type LocalePatch = Partial<Pick<LocaleContent, 'subject' | 'preheader'>>
+
+/** A clock, injectable so the history's coalescing is testable. */
+export type EditorClock = () => number
 
 interface EditorCore {
 	content: TemplateContent
 	locale: string
 	locales: string[]
-	dirty: number
+	revision: number
+	savedRevision: number
 	selectedId: string | null
-	subjectSelected: boolean
-	tab: RailTab
+	leftTab: LeftTab
+	rightTab: RightTab
 	device: EditorDevice
-	previewMode: boolean
-	railOpen: boolean
+	previewMode: PreviewMode
+	simulation: Record<string, boolean>
+	isSearchRequested: boolean
+	history: EditorHistory
 }
 
 const emptyLocale = (): LocaleContent => ({
@@ -43,6 +61,8 @@ const emptyLocale = (): LocaleContent => ({
 	preheader: '',
 	blocks: [],
 })
+
+const snapshotOf = (content: TemplateContent): string => JSON.stringify(content)
 
 function createCore(
 	content: TemplateContent,
@@ -53,13 +73,16 @@ function createCore(
 		content: deepClone(content),
 		locale,
 		locales,
-		dirty: 0,
+		revision: 0,
+		savedRevision: 0,
 		selectedId: null,
-		subjectSelected: false,
-		tab: 'blocks',
+		leftTab: 'blocks',
+		rightTab: 'block',
 		device: 'desktop',
-		previewMode: false,
-		railOpen: true,
+		previewMode: 'variables',
+		simulation: {},
+		isSearchRequested: false,
+		history: createHistory(snapshotOf(content)),
 	}) as EditorCore
 }
 
@@ -77,32 +100,14 @@ function createViews(core: EditorCore) {
 		missingLocales: computed(() =>
 			core.locales.filter((code) => !core.content.locales[code]),
 		),
+		dirty: computed(() => core.revision - core.savedRevision),
+		canUndo: computed(() => core.history.past.length > 0),
+		canRedo: computed(() => core.history.future.length > 0),
+		isDataMode: computed(() => core.previewMode === 'data'),
 	}
 }
 
 type EditorViews = ReturnType<typeof createViews>
-
-function blocksOf(views: EditorViews): Block[] | null {
-	return views.current.value?.blocks ?? null
-}
-
-function createSelectionActions(core: EditorCore) {
-	function select(id: string | null): void {
-		core.selectedId = id
-		core.subjectSelected = false
-		if (id) core.tab = 'settings'
-	}
-	function selectSubject(): void {
-		core.selectedId = null
-		core.subjectSelected = true
-		core.tab = 'settings'
-	}
-	function setLocale(code: string): void {
-		core.locale = code
-		select(null)
-	}
-	return { select, selectSubject, setLocale }
-}
 
 interface MutationDeps {
 	core: EditorCore
@@ -111,10 +116,31 @@ interface MutationDeps {
 	touch: () => void
 }
 
+function blocksOf(views: EditorViews): Block[] | null {
+	return views.current.value?.blocks ?? null
+}
+
+function createSelectionActions(core: EditorCore) {
+	function select(id: string | null): void {
+		core.selectedId = id
+		if (id) core.rightTab = 'block'
+	}
+	return {
+		select,
+		setLocale(code: string): void {
+			core.locale = code
+			select(null)
+		},
+		requestSearch(): void {
+			core.leftTab = 'blocks'
+			core.isSearchRequested = true
+		},
+	}
+}
+
 function listFor(views: EditorViews, target?: InsertTarget): Block[] | null {
 	const blocks = blocksOf(views)
-	if (!blocks) return null
-	if (!target) return blocks
+	if (!blocks || !target) return blocks
 	const parent = findBlock(blocks, target.parentId)
 	if (parent?.type !== 'if') return null
 	if (target.branch === 'elseChildren' && !parent.elseChildren)
@@ -122,59 +148,81 @@ function listFor(views: EditorViews, target?: InsertTarget): Block[] | null {
 	return parent[target.branch]
 }
 
-function createBlockActions({ views, select, touch }: MutationDeps) {
-	function updateBlock(id: string, patch: Partial<Block>): void {
-		const blocks = blocksOf(views)
-		const block = blocks ? findBlock(blocks, id) : null
-		if (!block) return
-		Object.assign(block, patch)
-		touch()
-	}
-	function addBlock(
-		type: BlockType,
-		target?: InsertTarget,
-		index?: number,
-	): Block {
+function createInsertActions({ views, select, touch, core }: MutationDeps) {
+	function insertInto(list: Block[], index: number, type: BlockType): Block {
 		const block = createBlock(type)
-		const list = listFor(views, target)
-		list?.splice(index ?? list.length, 0, block)
+		list.splice(Math.min(index, list.length), 0, block)
 		select(block.id)
 		touch()
 		return block
 	}
-	function addElse(id: string): void {
-		const blocks = blocksOf(views)
-		const block = blocks ? findBlock(blocks, id) : null
-		if (block?.type !== 'if' || block.elseChildren) return
-		block.elseChildren = [createBlock('paragraph')]
-		touch()
+	return {
+		insertInto,
+		addBlock(type: BlockType, target?: InsertTarget, index?: number): Block {
+			const list = listFor(views, target) ?? []
+			return insertInto(list, index ?? list.length, type)
+		},
+		addBlockUnderSelected(type: BlockType): Block | null {
+			const blocks = blocksOf(views)
+			if (!blocks) return null
+			const point = insertionAfter(blocks, core.selectedId)
+			return insertInto(point.list, point.index, type)
+		},
 	}
-	function removeElse(id: string): void {
+}
+
+function createBlockActions({ views, select, touch, core }: MutationDeps) {
+	const find = (id: string): Block | null => {
 		const blocks = blocksOf(views)
-		const block = blocks ? findBlock(blocks, id) : null
-		if (block?.type !== 'if') return
-		block.elseChildren = null
-		touch()
+		return blocks ? findBlock(blocks, id) : null
 	}
-	function removeBlockById(id: string): void {
+	const mutateTree = (change: (blocks: Block[]) => unknown): void => {
 		const blocks = blocksOf(views)
-		if (blocks && removeBlock(blocks, id)) touch()
+		if (blocks && change(blocks)) touch()
 	}
 	return {
-		updateBlock,
-		addBlock,
-		addElse,
-		removeElse,
-		removeBlockById,
-		findBlock: (id: string) => {
-			const blocks = blocksOf(views)
-			return blocks ? findBlock(blocks, id) : null
-		},
+		findBlock: find,
 		parentListOf: (id: string) => {
 			const blocks = blocksOf(views)
 			return blocks ? findParentList(blocks, id) : null
 		},
-		updateLocale: (patch: LocalePatch) => {
+		updateBlock(id: string, patch: Partial<Block>): void {
+			const block = find(id)
+			if (!block) return
+			Object.assign(block, patch)
+			touch()
+		},
+		removeBlockById(id: string): void {
+			if (core.selectedId === id) select(null)
+			mutateTree((blocks) => removeBlock(blocks, id))
+		},
+		duplicateBlockById(id: string): void {
+			mutateTree((blocks) => {
+				const copy = duplicateBlock(blocks, id)
+				if (copy) select(copy.id)
+				return copy
+			})
+		},
+		moveBlockById(id: string, direction: -1 | 1): void {
+			mutateTree((blocks) => moveBlock(blocks, id, direction))
+		},
+	}
+}
+
+function createBranchActions({ views, touch }: MutationDeps) {
+	const findIf = (id: string) => {
+		const blocks = blocksOf(views)
+		const block = blocks ? findBlock(blocks, id) : null
+		return block?.type === 'if' ? block : null
+	}
+	return {
+		setElse(id: string, isEnabled: boolean): void {
+			const block = findIf(id)
+			if (!block || Boolean(block.elseChildren) === isEnabled) return
+			block.elseChildren = isEnabled ? [createBlock('paragraph')] : null
+			touch()
+		},
+		updateLocale(patch: LocalePatch): void {
 			if (!views.current.value) return
 			Object.assign(views.current.value, patch)
 			touch()
@@ -182,45 +230,74 @@ function createBlockActions({ views, select, touch }: MutationDeps) {
 	}
 }
 
-function createLifecycleActions({ core, select, touch }: MutationDeps) {
-	function createLocale(code: string, from?: string): void {
-		const source = from ? core.content.locales[from] : undefined
-		core.content.locales[code] = source
-			? { ...deepClone(source), blocks: source.blocks.map(cloneWithNewIds) }
-			: emptyLocale()
-		core.locale = code
-		touch()
+function createHistoryActions(
+	core: EditorCore,
+	select: (id: string | null) => void,
+) {
+	function restore(snapshot: string | null): void {
+		if (snapshot === null) return
+		core.content = JSON.parse(snapshot) as TemplateContent
+		core.revision += 1
+		const blocks = core.content.locales[core.locale]?.blocks ?? []
+		if (core.selectedId && !findBlock(blocks, core.selectedId)) select(null)
 	}
-	function markSaved(): void {
-		core.dirty = 0
+	return {
+		undo: () => restore(undoChange(core.history)),
+		redo: () => restore(redoChange(core.history)),
 	}
-	function reset(content: TemplateContent): void {
-		core.content = deepClone(content)
-		core.dirty = 0
-		select(null)
-	}
-	return { createLocale, markSaved, reset, touch }
 }
 
+function createLifecycleActions({ core, select, touch }: MutationDeps) {
+	return {
+		touch,
+		createLocale(code: string, from?: string): void {
+			const source = from ? core.content.locales[from] : undefined
+			core.content.locales[code] = source
+				? { ...deepClone(source), blocks: source.blocks.map(cloneWithNewIds) }
+				: emptyLocale()
+			core.locale = code
+			touch()
+		},
+		/** Marks the content up to `revision` as saved (the latest by default). */
+		markSaved(revision?: number): void {
+			core.savedRevision = revision ?? core.revision
+		},
+		reset(content: TemplateContent): void {
+			core.content = deepClone(content)
+			core.history = createHistory(snapshotOf(content))
+			core.savedRevision = core.revision
+			select(null)
+		},
+	}
+}
+
+/**
+ * The editor's state: the content being edited, the selection and panes, and
+ * the history. Every mutation goes through `touch()`, which bumps the revision
+ * autosave watches and records an undo step.
+ */
 export function createEditorState(
 	content: TemplateContent,
 	locale: string,
 	locales: string[],
+	clock: EditorClock = Date.now,
 ) {
 	const core = createCore(content, locale, locales)
 	const views = createViews(core)
 	const selection = createSelectionActions(core)
-	const deps: MutationDeps = {
-		core,
-		views,
-		select: selection.select,
-		touch: () => (core.dirty += 1),
+	const touch = (): void => {
+		core.revision += 1
+		recordChange(core.history, snapshotOf(core.content), clock())
 	}
+	const deps: MutationDeps = { core, views, select: selection.select, touch }
 	return reactive({
 		...toRefs(core),
 		...views,
 		...selection,
+		...createInsertActions(deps),
 		...createBlockActions(deps),
+		...createBranchActions(deps),
+		...createHistoryActions(core, selection.select),
 		...createLifecycleActions(deps),
 	})
 }

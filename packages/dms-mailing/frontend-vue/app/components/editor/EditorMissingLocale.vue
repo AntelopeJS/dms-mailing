@@ -2,61 +2,67 @@
 import { computed } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
 
-interface Props {
-	fallback: string
-}
-
-const props = defineProps<Props>()
+const KEY = 'dms_mailing.editor.missing_locale'
 
 const { t } = useI18n()
-const { editor } = useEditorContext()
+const { editor, session } = useEditorContext()
+
+const locale = computed(() => editor.locale.toUpperCase())
+const fallback = computed(() => session.state.fallbackLocale)
+
+const affected = computed(() =>
+	(session.state.performance?.fallbacks ?? [])
+		.filter((entry) => entry.requested === editor.locale)
+		.reduce((sum, entry) => sum + entry.count, 0),
+)
 
 const canDuplicate = computed(
 	() =>
-		props.fallback !== editor.locale &&
-		Boolean(editor.content.locales[props.fallback]),
+		fallback.value !== editor.locale &&
+		Boolean(editor.content.locales[fallback.value]),
 )
+
+const description = computed(() => {
+	const params = {
+		locale: locale.value,
+		fallback: fallback.value.toUpperCase(),
+		count: affected.value,
+	}
+	return affected.value > 0
+		? t(`${KEY}.affected`, params, affected.value)
+		: t(`${KEY}.hint`, params)
+})
+
+const actions = computed(() => [
+	...(canDuplicate.value
+		? [
+				{
+					label: t(`${KEY}.duplicate`, {
+						fallback: fallback.value.toUpperCase(),
+					}),
+					icon: 'i-ph-copy',
+					onClick: () => editor.createLocale(editor.locale, fallback.value),
+				},
+			]
+		: []),
+	{
+		label: t(`${KEY}.blank`),
+		color: 'neutral' as const,
+		variant: canDuplicate.value ? ('ghost' as const) : ('solid' as const),
+		onClick: () => editor.createLocale(editor.locale),
+	},
+])
 </script>
 
 <template>
-	<div class="bg-elevated/40 flex flex-1 items-center justify-center p-8">
-		<div class="flex max-w-sm flex-col items-center gap-3 text-center">
-			<UIcon name="i-ph-globe-hemisphere-west" class="text-muted size-10" />
-			<h2 class="text-base font-semibold">
-				{{
-					t('dms_mailing.editor.missing_locale.title', {
-						locale: editor.locale.toUpperCase(),
-					})
-				}}
-			</h2>
-			<p class="text-muted text-sm">
-				{{
-					t('dms_mailing.editor.missing_locale.hint', {
-						locale: editor.locale.toUpperCase(),
-						fallback: fallback.toUpperCase(),
-					})
-				}}
-			</p>
-			<div class="mt-1 flex items-center gap-2">
-				<UButton
-					v-if="canDuplicate"
-					icon="i-ph-copy"
-					@click="editor.createLocale(editor.locale, fallback)"
-				>
-					{{
-						t('dms_mailing.editor.missing_locale.duplicate', {
-							fallback: fallback.toUpperCase(),
-						})
-					}}
-				</UButton>
-				<UButton
-					variant="ghost"
-					color="neutral"
-					@click="editor.createLocale(editor.locale)"
-				>
-					{{ t('dms_mailing.editor.missing_locale.blank') }}
-				</UButton>
-			</div>
-		</div>
+	<div class="border-default bg-default shadow-xs mt-10 rounded-lg border">
+		<DmsEmptyState
+			icon="i-ph-globe-hemisphere-west"
+			tone="warning"
+			size="lg"
+			:title="t(`${KEY}.title_short`, { locale })"
+			:description="description"
+			:actions="actions"
+		/>
 	</div>
 </template>

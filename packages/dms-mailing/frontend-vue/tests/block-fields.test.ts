@@ -15,9 +15,11 @@ describe('fieldsFor', () => {
 		])
 		expect(fieldsFor('divider')).toEqual([])
 		expect(fieldsFor('list').map((field) => field.kind)).toEqual([
-			'text',
+			'path',
 			'text',
 			'text',
 		])
+		expect(fieldsFor('paragraph')[0]?.kind).toBe('tokens')
+		expect(fieldsFor('button')[0]?.kind).toBe('token')
 	})
 })

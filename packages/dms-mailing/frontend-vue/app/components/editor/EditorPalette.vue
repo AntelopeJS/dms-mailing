@@ -1,62 +1,105 @@
 <script setup lang="ts">
-import draggable from 'vuedraggable'
-import type { BlockType } from '../../types/mailing'
+import { computed, nextTick, ref, watch } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
 import {
 	BLOCK_PALETTE,
 	LOGIC_PALETTE,
-	PALETTE_GROUP,
-	cloneFromPalette,
+	filterPalette,
+	paletteLabelKey,
 } from '../../utils/blocks'
+import type { PaletteEntry } from '../../utils/blocks'
+
+interface PaletteGroup {
+	id: string
+	entries: PaletteEntry[]
+}
+
+interface FocusableInput {
+	inputRef?: HTMLInputElement
+}
+
+const KEY = 'dms_mailing.editor.palette'
 
 const { t } = useI18n()
 const { editor } = useEditorContext()
 
-const groups = [
-	{ id: 'content', entries: BLOCK_PALETTE },
-	{ id: 'logic', entries: LOGIC_PALETTE },
-]
+const query = ref('')
+const search = ref<(ComponentPublicInstance & FocusableInput) | null>(null)
 
-function add(type: BlockType): void {
+const labelOf = (entry: PaletteEntry): string => t(paletteLabelKey(entry.type))
+
+const groups = computed<PaletteGroup[]>(() =>
+	[
+		{
+			id: 'content',
+			entries: filterPalette(BLOCK_PALETTE, query.value, labelOf),
+		},
+		{
+			id: 'logic',
+			entries: filterPalette(LOGIC_PALETTE, query.value, labelOf),
+		},
+	].filter((group) => group.entries.length > 0),
+)
+
+function add(entry: PaletteEntry): void {
 	if (!editor.current) return
-	editor.addBlock(type)
+	editor.addBlockUnderSelected(entry.type)
+	query.value = ''
 }
+
+function addFirstMatch(): void {
+	const first = groups.value[0]?.entries[0]
+	if (first) add(first)
+}
+
+watch(
+	() => editor.isSearchRequested,
+	async (isRequested) => {
+		if (!isRequested) return
+		editor.isSearchRequested = false
+		await nextTick()
+		search.value?.inputRef?.focus()
+	},
+	{ immediate: true },
+)
 </script>
 
 <template>
 	<div class="flex flex-col gap-4">
-		<section v-for="group in groups" :key="group.id">
-			<p
-				class="text-muted mb-2 text-[11px] font-semibold uppercase tracking-wide"
-			>
-				{{ t(`dms_mailing.editor.groups.${group.id}`) }}
-			</p>
-			<draggable
-				:list="group.entries"
-				:group="PALETTE_GROUP"
-				:clone="cloneFromPalette"
-				:sort="false"
-				item-key="type"
-				class="grid grid-cols-2 gap-2"
-			>
-				<template #item="{ element }">
-					<button
-						type="button"
-						class="border-default bg-default hover:border-primary hover:text-primary flex cursor-grab items-center gap-2 rounded-md border px-2.5 py-2 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-50"
-						:disabled="!editor.current"
-						@click="add(element.type)"
-					>
-						<UIcon :name="element.icon" class="size-4 shrink-0" />
-						<span class="truncate">
-							{{ t(`dms_mailing.blocks.${element.type}`) }}
-						</span>
-					</button>
-				</template>
-			</draggable>
-		</section>
+		<UInput
+			ref="search"
+			v-model="query"
+			size="sm"
+			icon="i-ph-magnifying-glass"
+			:placeholder="t(`${KEY}.search`)"
+			class="w-full"
+			@keydown.enter.prevent="addFirstMatch()"
+			@keydown.escape.stop="query = ''"
+		>
+			<template #trailing>
+				<UKbd value="/" size="sm" />
+			</template>
+		</UInput>
 
-		<p class="text-muted text-[11px]">
-			{{ t('dms_mailing.editor.palette.hint') }}
+		<MailingEditorPaletteGroup
+			v-for="group in groups"
+			:key="group.id"
+			:title="t(`dms_mailing.editor.groups.${group.id}`)"
+			:entries="group.entries"
+			:disabled="!editor.current"
+			@add="add"
+		/>
+
+		<p v-if="groups.length === 0" class="text-muted text-xs">
+			{{ t(`${KEY}.no_match`, { query }) }}
 		</p>
+
+		<div
+			class="border-default text-muted flex gap-2 rounded-lg border border-dashed p-3 text-xs leading-relaxed"
+		>
+			<UIcon name="i-ph-info" class="mt-0.5 size-3.5 shrink-0" />
+			<span>{{ t(`${KEY}.help`) }}</span>
+		</div>
 	</div>
 </template>

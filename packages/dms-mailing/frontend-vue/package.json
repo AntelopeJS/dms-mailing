@@ -6,7 +6,7 @@
 	"license": "Apache-2.0",
 	"packageManager": "pnpm@10.2.0",
 	"engines": {
-		"@antelopejs/dms-frontend": ">=0.3.1 <0.4.0"
+		"@antelopejs/dms-frontend": ">=0.5.0 <0.6.0"
 	},
 	"scripts": {
 		"format": "prettier --write .",
@@ -20,7 +20,7 @@
 		"vuedraggable": "^4.1.0"
 	},
 	"devDependencies": {
-		"@nuxt/ui": "^4.0.1",
+		"@nuxt/ui": "4.10.0",
 		"@vitejs/plugin-vue": "^6.0.0",
 		"@vitest/runner": "^4.1.5",
 		"eslint": "^9.0.0",

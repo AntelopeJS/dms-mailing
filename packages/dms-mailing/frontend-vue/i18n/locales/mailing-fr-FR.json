@@ -6,26 +6,36 @@
 			"missing_locales_description": "Templates incomplets — {names}. Les envois retombent sur la langue par défaut.",
 			"missing_locales_title": "{count} traductions manquantes",
 			"problem_sends": {
-				"description": "Rejetés, refusés ou en échec — ouvrez l'onglet Problèmes pour les traiter.",
-				"title": "{count} envoi à traiter | {count} envois à traiter"
+				"description": "{bounced} rebond · {failed} échec fournisseur · {spam} signalement spam.",
+				"title": "{count} envoi en échec | {count} envois en échec",
+				"action": "Voir les problèmes"
 			},
 			"stale_drafts": {
 				"description": "Jamais publiés et inchangés depuis plus d’une semaine — publiez-les ou archivez-les.",
-				"title": "{count} brouillon en attente | {count} brouillons en attente"
+				"title": "{count} brouillon en attente | {count} brouillons en attente",
+				"action": "Publier ou archiver"
 			},
 			"stale_drafts_description": "Jamais publiés depuis leur dernière modification — publiez-les ou archivez-les.",
 			"stale_drafts_title": "{count} brouillons en attente",
 			"test_only_window": {
 				"description": "Ces chiffres ne comptent que le trafic réel. Tous les envois de cette période étaient des tests — retrouvez-les dans le journal d'envois.",
-				"title": "{count} envois de test exclus"
+				"title": "{count} envois de test exclus",
+				"action": "Ouvrir le journal"
 			},
 			"untracked_rates": {
 				"title": "Les ouvertures et les clics ne sont pas suivis",
-				"description": "{provider} n'en remonte aucun, donc ces taux restent à 0 %. La livraison, les ouvertures et les clics demandent un fournisseur qui renvoie des évènements."
+				"description": "{provider} n'en remonte aucun, donc ces taux restent à 0 %. La livraison, les ouvertures et les clics demandent un fournisseur qui renvoie des évènements.",
+				"action": "Réglages du fournisseur"
 			},
 			"unused_live": {
-				"description": "Publiés mais aucun code ne les appelle — vérifiez le slug utilisé à l'appel.",
-				"title": "{count} template en ligne jamais envoyé | {count} templates en ligne jamais envoyés"
+				"description": "{names} : en ligne, mais aucun code ne les appelle encore. Vérifiez le slug dans l'appel.",
+				"title": "{count} template en ligne jamais envoyé | {count} templates en ligne jamais envoyés",
+				"action": "Vérifier les slugs"
+			},
+			"missing_locales": {
+				"title": "{count} modèle sans une traduction | {count} modèles sans une traduction",
+				"description": "Manquante dans {names}. Ces clients reçoivent la langue de repli.",
+				"action": "Voir les modèles"
 			}
 		},
 		"blocks": {
@@ -86,7 +96,18 @@
 				"remove_else": "Retirer la branche « sinon »",
 				"simulate_false": "faux",
 				"simulate_true": "vrai",
-				"value": "Valeur"
+				"value": "Valeur",
+				"sim_locked": "Évaluée avec les données de test",
+				"sim_hint": "Simuler la branche que prend l’e-mail",
+				"no_value": "pas de valeur",
+				"eval_branch_true": "Avec les données de test : vrai → première branche",
+				"eval_branch_false": "Avec les données de test : faux → branche sinon",
+				"eval_visibility_true": "Avec les données de test : vrai → affiché",
+				"eval_visibility_false": "Avec les données de test : faux → masqué",
+				"first_branch_if": "Afficher la première branche si",
+				"else_branch": "Branche sinon",
+				"else_count": "{count} bloc affiché quand la règle est fausse | {count} blocs affichés quand la règle est fausse",
+				"else_off": "Rien ne s’affiche quand la règle est fausse"
 			},
 			"data": {
 				"block_on_missing": "Bloquer les envois en cas de variable manquante",
@@ -119,7 +140,9 @@
 				"blank": "Partir d'une page vide",
 				"duplicate": "Dupliquer depuis {fallback}",
 				"hint": "Les envois en {locale} retombent sur {fallback}. Dupliquez pour traduire, ou repartez d'une page vide.",
-				"title": "Version {locale} inexistante"
+				"title": "Version {locale} inexistante",
+				"title_short": "Pas encore de version {locale}",
+				"affected": "{count} destinataire a demandé la version {locale} ces 30 derniers jours et a reçu la version {fallback}. Dupliquez-la pour la traduire, ou partez d’une page vide. | {count} destinataires ont demandé la version {locale} ces 30 derniers jours et ont reçu la version {fallback}. Dupliquez-la pour la traduire, ou partez d’une page vide."
 			},
 			"mobile": "Mobile",
 			"open_template_settings": "Réglages du template",
@@ -132,7 +155,14 @@
 				"truthy": "est vrai"
 			},
 			"palette": {
-				"hint": "Glissez une tuile dans l'aperçu pour l'insérer à l'endroit voulu — y compris à l'intérieur d'une condition. Glissez un bloc existant pour le déplacer."
+				"hint": "Glissez une tuile dans l'aperçu pour l'insérer à l'endroit voulu — y compris à l'intérieur d'une condition. Glissez un bloc existant pour le déplacer.",
+				"search": "Rechercher un bloc",
+				"no_match": "Aucun bloc ne correspond à « {query} ».",
+				"help": "Glissez une tuile sur l’e-mail, ou cliquez dessus pour l’ajouter sous le bloc sélectionné. Appuyez sur / sur le canevas pour chercher un bloc.",
+				"tiles": {
+					"footer": "Pied de page · désabonnement",
+					"if": "Condition · si / sinon"
+				}
 			},
 			"preheader": "Préheader",
 			"preview_mode": {
@@ -174,7 +204,179 @@
 				"path": "Chemin",
 				"required": "Obligatoire",
 				"type": "Type",
-				"unused": "inutilisée"
+				"unused": "inutilisée",
+				"insert_hint": "Cliquez pour insérer au curseur",
+				"undeclared": "non déclarée",
+				"declare_one": "Déclarer",
+				"edit": "Modifier cette variable",
+				"remove": "Supprimer cette variable",
+				"save": "Enregistrer"
+			},
+			"states": {
+				"back": "Retour aux modèles",
+				"retry": "Réessayer",
+				"error_title": "Ce modèle n’a pas pu être chargé",
+				"error_description": "Il a peut-être été supprimé, ou son contenu est invalide."
+			},
+			"toolbar": {
+				"test": "Tester",
+				"test_hint": "Envoyer un test",
+				"publish": "Publier les modifications",
+				"uncategorised": "Sans catégorie",
+				"locale": "Langue",
+				"locale_missing": "Absente : remplacée par {fallback}",
+				"device": "Appareil",
+				"desktop": "Ordinateur · 600 px",
+				"mobile": "Mobile · 380 px",
+				"mode": "Aperçu",
+				"mode_variables": "Variables",
+				"mode_data": "Données"
+			},
+			"save_state": {
+				"saving": "Enregistrement…",
+				"saved": "Enregistré",
+				"unpublished": "{count} non publiée | {count} non publiées",
+				"error": "Non enregistré",
+				"retry": "Le brouillon n’a pas pu être enregistré. Cliquez pour réessayer.",
+				"hint": "Vos modifications sont enregistrées automatiquement en brouillon.",
+				"undo": "Annuler",
+				"redo": "Rétablir",
+				"saved_toast": "Brouillon enregistré",
+				"leave_failed": "Les dernières modifications n’ont pas pu être enregistrées et seront perdues."
+			},
+			"notice": {
+				"live_changes": "Les clients reçoivent toujours la v{version}, publiée le {date} à {time}. Votre modification ne part qu’à la publication. | Les clients reçoivent toujours la v{version}, publiée le {date} à {time}. Vos {count} modifications ne partent qu’à la publication.",
+				"live_clean": "Les clients reçoivent la v{version}, publiée le {date} à {time}. Vos modifications restent en brouillon jusqu’à la publication.",
+				"never_published": "Pas encore publié : rien ne part aux clients avant la publication de la v1.",
+				"draft_changes": "Votre modification reste en brouillon ; la v{version} n’est pas en ligne. | Vos {count} modifications restent en brouillon ; la v{version} n’est pas en ligne.",
+				"compare": "Comparer avec la version en ligne",
+				"discard": "Abandonner le brouillon"
+			},
+			"left": {
+				"blocks": "Blocs",
+				"outline": "Structure",
+				"variables": "Variables",
+				"shortcut_save": "enregistrer",
+				"shortcut_publish": "publier",
+				"shortcut_test": "tester"
+			},
+			"outline": {
+				"empty": "Aucun bloc pour l’instant. Ajoutez-en un depuis l’onglet Blocs."
+			},
+			"envelope": {
+				"subject": "Objet",
+				"preheader": "Pré-en-tête",
+				"subject_empty": "Pas encore d’objet",
+				"preheader_empty": "Pas de pré-en-tête",
+				"subject_length": "Les messageries affichent environ {max} caractères d’un objet."
+			},
+			"canvas": {
+				"add_here": "Ajouter un bloc ici",
+				"insert": "Ajouter un bloc ici"
+			},
+			"inspector": {
+				"block": "Bloc",
+				"data": "Données de test",
+				"template": "Modèle",
+				"empty_title": "Aucun bloc sélectionné",
+				"empty_description": "Cliquez sur un bloc de l’e-mail pour le modifier ici.",
+				"position": "bloc {index} sur {total}",
+				"position_branches": "{position} · {then} + {else} blocs",
+				"duplicate": "Dupliquer",
+				"delete": "Supprimer"
+			},
+			"autocomplete": {
+				"hint": "Tapez {'{{'} pour insérer une variable.",
+				"undeclared": "non déclarée",
+				"system": "système"
+			},
+			"visibility": {
+				"label": "Visibilité",
+				"always": "Toujours afficher",
+				"only_if": "Seulement si…",
+				"help": "Une condition masque le bloc quand sa règle est fausse."
+			},
+			"test_data": {
+				"label": "Données de test",
+				"invalid": "JSON invalide : corrigez-le pour prévisualiser avec les données et lancer les vérifications.",
+				"valid_unsaved": "JSON valide · pas encore enregistré",
+				"valid_saved": "JSON valide · enregistré avec le modèle",
+				"fix_json": "Corrigez le JSON pour lancer les vérifications.",
+				"saved": "Données de test enregistrées",
+				"save": "Enregistrer",
+				"reset": "Réinitialiser",
+				"checks": "Vérifications",
+				"block_on_missing": "Bloquer les envois avec des variables manquantes",
+				"block_on_missing_help": "Réglage de l’espace de travail · refuser plutôt qu’envoyer un e-mail à trous."
+			},
+			"checks": {
+				"undeclared": "{path} n’est pas déclarée : les appels qui ne la fournissent pas envoient l’e-mail avec un vide, ou échouent quand les envois avec des variables manquantes sont bloqués.",
+				"required_missing": "{path} est obligatoire mais absente des données de test.",
+				"required_covered": "{count} variable obligatoire couverte | {count} variables obligatoires couvertes",
+				"missing": "{path} est utilisée mais absente des données de test.",
+				"missing_undeclared": "{path} est utilisée mais absente des données et non déclarée.",
+				"condition_true": "La condition {path} est vraie : la première branche s’affiche.",
+				"condition_false": "La condition {path} est fausse : la branche sinon s’affiche."
+			},
+			"template_tab": {
+				"name": "Nom",
+				"slug": "Identifiant",
+				"locked": "verrouillé",
+				"slug_help": "Le code envoie ce modèle par son identifiant : il ne peut pas changer.",
+				"category": "Catégorie",
+				"no_category": "Aucune catégorie",
+				"saved": "Modèle mis à jour",
+				"envelope": "Enveloppe · {locale}"
+			},
+			"lifecycle": {
+				"title": "Cycle de vie",
+				"status": "Statut",
+				"version": "Version",
+				"sends": "Envois 30 j",
+				"unpublish": "Dépublier",
+				"archive": "Archiver…",
+				"restore": "Restaurer",
+				"unpublish_title": "Dépublier ce modèle ?",
+				"archive_title": "Archiver ce modèle ?",
+				"refuse_warning": "Les modèles dépubliés ou archivés refusent les envois : le code qui appelle {slug} recevrait une erreur.",
+				"unpublish_done": "Modèle dépublié",
+				"archive_done": "Modèle archivé",
+				"restore_done": "Modèle restauré"
+			},
+			"publish_review": {
+				"title": "Publier {count} modification de {name} ? | Publier {count} modifications de {name} ?",
+				"title_first": "Publier {name} ?",
+				"description": "Chaque envoi de {slug} utilise la v{next} juste après. La v{version} reste dans l’historique.",
+				"description_first": "Le code qui appelle {slug} peut l’envoyer dès la publication de la v{next}.",
+				"done": "v{version} publiée",
+				"no_changes": "Aucune modification du contenu depuis la v{version}.",
+				"checks": "{count} point à vérifier | {count} points à vérifier",
+				"test_first": "Tester d’abord",
+				"keep_editing": "Continuer l’édition",
+				"confirm": "Publier la v{version}"
+			},
+			"discard_dialog": {
+				"title": "Abandonner le brouillon ?",
+				"description": "Votre modification est perdue et l’éditeur revient à la v{version} en ligne. | Vos {count} modifications sont perdues et l’éditeur revient à la v{version} en ligne.",
+				"confirm": "Abandonner {count} modification | Abandonner {count} modifications",
+				"cancel": "Garder le brouillon"
+			},
+			"compare": {
+				"title": "Comparer avec la version en ligne",
+				"description": "Ce que reçoivent les clients aujourd’hui (v{version}) à côté de votre brouillon.",
+				"live": "En ligne",
+				"draft": "Brouillon",
+				"error": "Les aperçus n’ont pas pu être générés."
+			},
+			"changes": {
+				"locale_added": "Langue ajoutée",
+				"locale_removed": "Langue supprimée",
+				"subject": "Objet modifié",
+				"preheader": "Pré-en-tête modifié",
+				"block_added": "Bloc {block} ajouté",
+				"block_removed": "Bloc {block} supprimé",
+				"block_changed": "Bloc {block} modifié",
+				"blocks_reordered": "Blocs réordonnés"
 			}
 		},
 		"errors": {
@@ -191,7 +393,12 @@
 			"template_not_found": "Ce template n'existe pas.",
 			"template_not_live": "Ce template n'est pas en ligne.",
 			"unknown_metric": "Métrique inconnue.",
-			"version_not_found": "Cette version du template n'existe pas."
+			"version_not_found": "Cette version du template n'existe pas.",
+			"invalid_transition": "Ce modèle ne peut pas passer à ce statut depuis son statut actuel.",
+			"no_replay_after_spam": "Le destinataire a signalé cet e-mail comme spam : il n'est pas renvoyé.",
+			"nothing_to_publish": "Ce modèle n'a pas encore de contenu à publier.",
+			"replay_needs_new_address": "Cette adresse a rebondi. Envoyez plutôt à une adresse corrigée.",
+			"starter_not_found": "Ce modèle de départ n'existe pas."
 		},
 		"funnel": {
 			"clicked": "Cliqués",
@@ -204,13 +411,13 @@
 			"bounces": "Rejets",
 			"click_rate": "Clics",
 			"deliverability": "Délivrabilité",
-			"domain_sends": "taux d'ouverture",
-			"domains": "Par domaine destinataire",
+			"domain_sends": "Sur la période",
+			"domains": "Taux d'ouverture par domaine",
 			"latency": "Latence médiane",
 			"open_rate": "Ouverture",
 			"previous": "Période précédente",
 			"queued": "En file",
-			"ranking": "Classement des templates",
+			"ranking": "Modèles les plus ouverts",
 			"sends": "Envois",
 			"unsubscribes": "Désinscriptions",
 			"volume": "Volume d'envoi"
@@ -222,9 +429,23 @@
 		"overview": {
 			"attention_empty": "Rien à signaler : traductions complètes, aucun rejet.",
 			"attention_title": "À traiter",
-			"description": "Le fournisseur transporte, ce module garde la mémoire — tous les chiffres ci-dessous sont agrégés localement.",
+			"description": "Délivrabilité et engagement de chaque e-mail envoyé par votre espace. Les envois de test ne sont pas comptés.",
 			"funnel_title": "Entonnoir",
-			"title": "Vue d'ensemble"
+			"title": "Vue d'ensemble",
+			"groups": {
+				"reach": {
+					"title": "Portée",
+					"description": "Comparé à la période précédente"
+				},
+				"engagement": {
+					"title": "Engagement",
+					"description": "Des e-mails délivrés"
+				},
+				"health": {
+					"title": "Santé de la liste",
+					"description": "Plus c'est bas, mieux c'est"
+				}
+			}
 		},
 		"provider": {
 			"connected": "{name} connecté",
@@ -246,27 +467,64 @@
 				"template": "Template",
 				"templateSlug": "Template",
 				"test": "Test",
-				"when": "Quand"
+				"when": "Quand",
+				"stage": "Étape",
+				"requestedLocale": "Langue demandée",
+				"templateVersion": "Version"
 			},
 			"confirm": {
-				"replay_description": "La même version du template et les mêmes variables sont renvoyées au même destinataire.",
-				"replay_title": "Rejouer cet envoi ?"
+				"replay_description": "La même version et les mêmes données partent vers {recipientEmail}. C'est un envoi réel.",
+				"replay_title": "Renvoyer cet e-mail ?",
+				"replay_confirm": "Renvoyer"
 			},
-			"description": "Chaque envoi est journalisé ici, avec sa charge utile et ses événements fournisseur — l'historique reste local.",
+			"description": "Chaque e-mail envoyé par votre espace : à qui, avec quelles données, et ce que le fournisseur a répondu.",
 			"drawer": {
 				"invalid_address": "Adresse invalide",
 				"latency": "Latence API",
 				"locale": "Langue",
-				"payload": "Charge utile envoyée",
-				"replay": "Rejouer cet envoi",
+				"payload": "Données envoyées",
+				"replay": {
+					"to": "À",
+					"template": "Modèle",
+					"last_try": "Dernier essai",
+					"cancel": "Annuler"
+				},
 				"replayed": "Envoi rejoué",
 				"status": "Statut",
-				"template": "Template",
+				"template": "Modèle",
 				"timeline": "Chronologie",
 				"transport_error": "Erreur de transport",
-				"view_html": "Voir le rendu reçu"
+				"view_html": "Voir le rendu reçu",
+				"eyebrow": "Envoi · {id}",
+				"previous": "Envoi précédent",
+				"next": "Envoi suivant",
+				"copy_link": "Copier le lien",
+				"link_copied": "Lien copié",
+				"address_copied": "Adresse copiée",
+				"json_copied": "Données copiées",
+				"test": "Test",
+				"version": "v{version}",
+				"draft_version": "brouillon",
+				"fallback_used": "{locale} utilisée : pas de version dans cette langue",
+				"as_requested": "Comme demandé",
+				"slow_latency": "Le fournisseur a tardé à répondre",
+				"latency_hint": "Appel API au fournisseur",
+				"pending": "En attente du fournisseur",
+				"origin": "Origine",
+				"source": "source",
+				"copy_json": "Copier le JSON",
+				"actions": {
+					"rendering": "Rendu",
+					"see_received": "Voir ce qu’il a reçu",
+					"fix_address": "Corriger l’adresse",
+					"send_again": "Renvoyer…",
+					"copy_address": "Copier l’adresse"
+				}
 			},
-			"empty": "Aucun envoi ne correspond à ce filtre.",
+			"empty": {
+				"title": "Aucun e-mail envoyé",
+				"description": "Les envois apparaissent ici dès que votre code ou une automatisation appelle un modèle en ligne."
+			},
 			"status": {
 				"bounced": "Rejeté",
 				"clicked": "Cliqué",
@@ -282,38 +540,233 @@
 				"problems": "Problèmes"
 			},
 			"timeline": {
-				"bounced": "Rejet permanent",
+				"bounced": "Rebond définitif",
 				"clicked": "Cliqué",
-				"delivered": "Délivré",
-				"failed": "Échec de l'envoi",
+				"delivered": "Livré",
+				"failed": "Échec de l’envoi",
 				"opened": "Ouvert",
-				"queued": "Mis en file",
-				"sent": "Transmis au fournisseur",
-				"spam": "Marqué comme spam",
-				"unsubscribed": "Désinscription"
+				"queued": "En file",
+				"sent": "Confié au fournisseur",
+				"spam": "Signalé comme spam",
+				"unsubscribed": "Désabonné",
+				"sent_to": "Confié à {provider}"
 			},
-			"title": "Envois"
+			"title": "Envois",
+			"caption": "Journal des envois",
+			"search": "Destinataire, slug ou id d'envoi",
+			"test_badge": "TEST",
+			"views": {
+				"all": "Tous",
+				"problem": "Problèmes",
+				"in_progress": "En cours",
+				"delivered": "Délivrés",
+				"engaged": "Ouverts ou cliqués",
+				"unsubscribed": "Désinscrits"
+			},
+			"filters": {
+				"tests": "Envois de test",
+				"template": "Modèle"
+			},
+			"footer": {
+				"count": "{count} envoi | {count} envois"
+			},
+			"actions": {
+				"details": "Détails",
+				"rendering": "Voir ce qu'il a reçu",
+				"send_again": "Renvoyer…",
+				"sent_again": "Renvoyé"
+			},
+			"stats": {
+				"label": "Chiffres des envois",
+				"sends": "Envois",
+				"delivered": "Livrés",
+				"problems": "Problèmes",
+				"queued": "En file",
+				"latency": "Latence médiane",
+				"tests_excluded": "+ {count} test, non compté | + {count} tests, non comptés",
+				"no_tests": "Les envois de test ne sont jamais comptés",
+				"delivered_of": "{delivered} sur {sends}",
+				"breakdown": {
+					"bounced": "{count} rebond | {count} rebonds",
+					"failed": "{count} échec | {count} échecs",
+					"spam": "{count} spam | {count} spams"
+				},
+				"no_problems": "Aucun rebond, échec ni spam",
+				"oldest_waiting": "Le plus ancien attend depuis {minutes} min",
+				"nothing_waiting": "Rien en attente",
+				"latency_detail": "Appel API à {provider}",
+				"latency_detail_generic": "Appel API au fournisseur"
+			},
+			"banner": {
+				"the_provider": "Le fournisseur",
+				"unreachable_title": "{provider} ne répond pas",
+				"failures_title": "Les envois vers {provider} échouent",
+				"unreachable_description": "Aucun e-mail ne peut partir tant qu’il ne répond pas. Vérifiez les réglages du fournisseur.",
+				"missing_title": "Aucun fournisseur connecté",
+				"missing_description": "Aucun e-mail ne peut partir tant que l’interface e-mail de l’espace de travail n’a pas de fournisseur.",
+				"failures_description": "{count} envoi a échoué dans la dernière heure, depuis {time}. Il figure dans Problèmes ; vous pourrez le renvoyer quand {provider} sera de retour. | {count} envois ont échoué dans la dernière heure, depuis {time}. Ils figurent dans Problèmes ; vous pourrez les renvoyer quand {provider} sera de retour.",
+				"settings": "Réglages du fournisseur",
+				"send_again": "Renvoyer {count}… | Renvoyer les {count}…",
+				"replayed": "{count} envoi renvoyé | {count} envois renvoyés",
+				"confirm": {
+					"title": "Renvoyer {count} e-mail ? | Renvoyer {count} e-mails ?",
+					"description": "La même version et les mêmes données partent aux mêmes destinataires. Ce sont de vrais envois ; les rebonds et signalements de spam n’en font jamais partie. | La même version et les mêmes données partent aux mêmes destinataires. Ce sont de vrais envois ; les rebonds et signalements de spam n’en font jamais partie.",
+					"confirm": "Renvoyer {count} | Renvoyer les {count}",
+					"cancel": "Annuler"
+				}
+			},
+			"empty_log": {
+				"title": "Aucun e-mail envoyé pour l’instant",
+				"description": "Les envois apparaissent ici dès que votre code ou une automatisation appelle un modèle en ligne.",
+				"test_instead": "Envoyer plutôt un test"
+			},
+			"problems": {
+				"address_missing": {
+					"title": "Cette adresse n’existe pas",
+					"description": "Le serveur de {domain} l’a refusée. Les prochains envois vers elle rebondiront aussi."
+				},
+				"mailbox_full": {
+					"title": "La boîte de réception est pleine",
+					"description": "{domain} connaît l’adresse mais n’a plus de place pour elle. Un envoi ultérieur pourra passer."
+				},
+				"rejected_spam": {
+					"title": "Refusé comme spam",
+					"description": "Le serveur de {domain} l’a refusé comme courrier indésirable. Vérifiez le contenu et la configuration du domaine expéditeur."
+				},
+				"spam_report": {
+					"title": "Signalé comme spam",
+					"description": "Le destinataire a signalé cet e-mail. Plus rien ne lui est envoyé d’ici."
+				},
+				"provider_timeout": {
+					"title": "{provider} n’a pas répondu à temps",
+					"description": "Rien n’a été livré. Le renvoyer est sans risque."
+				},
+				"rejected": {
+					"title": "Le serveur du destinataire l’a refusé",
+					"description": "{domain} l’a renvoyé : {error}"
+				},
+				"provider_error": {
+					"title": "{provider} n’a pas pu l’envoyer",
+					"description": "Rien n’a été livré : {error}. Le renvoyer est sans risque une fois la cause corrigée."
+				}
+			},
+			"fix_address": {
+				"title": "Corriger l’adresse",
+				"description": "{email} ne reçoit pas d’e-mail. La même version et les mêmes données partent à l’adresse corrigée ; c’est un vrai envoi.",
+				"label": "Adresse corrigée",
+				"previous": "Adresse en rebond",
+				"template": "Modèle",
+				"version": "v{version}",
+				"draft_version": "brouillon",
+				"cancel": "Annuler",
+				"submit": "Envoyer à cette adresse",
+				"sent": "Envoyé à {email}",
+				"errors": {
+					"required": "Saisissez l’adresse corrigée.",
+					"invalid": "Ce n’est pas une adresse e-mail.",
+					"same": "C’est l’adresse qui a rebondi : saisissez-en une autre."
+				}
+			}
 		},
 		"settings": {
 			"categories": {
 				"add": "Ajouter une catégorie",
-				"empty": "Aucune catégorie. Les templates peuvent rester sans catégorie.",
+				"empty": "Aucune catégorie. Les modèles peuvent rester sans catégorie.",
 				"hint": "Supprimer une catégorie laisse sans catégorie les templates qui l'utilisaient. L'icône est un nom Phosphor, comme i-ph-package.",
 				"label": "Nom de la catégorie",
-				"remove": "Retirer"
+				"remove": "Retirer",
+				"usage": "aucun modèle | {count} modèle | {count} modèles",
+				"drag": "Glisser pour réordonner",
+				"change_icon": "Changer l’icône",
+				"pick_icon": "Choisir une icône",
+				"drag_hint": "Glissez pour réordonner la galerie"
 			},
-			"description": "Expéditeur, rétention et garde-fous d'envoi du module mailing.",
+			"description": "De qui partent les e-mails, comment les envois sont protégés, combien de temps le journal est gardé et comment les modèles sont rangés.",
 			"fields": {
 				"blockOnMissingVariables": "Bloquer l'envoi si une variable manque",
-				"categories": "Catégories de templates",
-				"fallbackLocale": "Langue de repli",
-				"logRetentionDays": "Rétention des logs (jours)",
-				"replyTo": "Adresse de réponse",
-				"senderEmail": "Adresse d'expédition",
-				"senderName": "Nom de l'expéditeur",
-				"webhookSecret": "Secret du webhook"
+				"categories": {
+					"label": "Catégories",
+					"description": "Glissez pour réordonner la galerie."
+				},
+				"fallbackLocale": {
+					"label": "Langue de repli",
+					"description": "Envoyée quand un modèle n'a pas de version dans la langue du destinataire."
+				},
+				"logRetentionDays": {
+					"label": "Garder les envois",
+					"description": "Entre 1 jour et 10 ans. Un envoi supprimé ne peut plus être renvoyé."
+				},
+				"replyTo": {
+					"label": "Adresse de réponse",
+					"description": "Où vont les réponses. Laissez vide pour utiliser l'expéditeur."
+				},
+				"senderEmail": {
+					"label": "Adresse d'expédition",
+					"description": "Doit appartenir à un domaine vérifié chez votre fournisseur."
+				},
+				"senderName": {
+					"label": "Nom de l'expéditeur",
+					"description": "Votre marque, pas une personne : il sert pour chaque modèle."
+				},
+				"webhookSecret": {
+					"label": "Secret du webhook",
+					"description": "Envoyé par le fournisseur dans l'en-tête x-mailing-webhook-secret. Les événements sans lui sont refusés."
+				},
+				"missingVariables": {
+					"label": "Variables manquantes",
+					"description": "Quand le code appelle un modèle sans une variable obligatoire.",
+					"refuse": "Refuser l'envoi",
+					"refuse_hint": "L'appel échoue, rien ne part",
+					"send": "Envoyer quand même",
+					"send_hint": "Des blancs là où la valeur manque"
+				},
+				"provider": {
+					"label": "Fournisseur",
+					"description": "Défini par l'interface e-mail de l'espace."
+				},
+				"webhookUrl": {
+					"label": "URL du webhook",
+					"description": "Collez-la dans les réglages de webhook de votre fournisseur."
+				}
 			},
-			"title": "Réglages"
+			"title": "Réglages",
+			"saved": "Réglages enregistrés",
+			"sections": {
+				"sender": {
+					"title": "Expéditeur",
+					"description": "Ce que les destinataires voient dans leur boîte. Un modèle ne peut pas le changer."
+				},
+				"guards": {
+					"title": "Garde-fous d'envoi",
+					"description": "Ce qui se passe quand un envoi n'est pas tout à fait correct."
+				},
+				"provider": {
+					"title": "Fournisseur et webhook",
+					"description": "Le fournisseur achemine les e-mails. Son webhook nous informe des délivrances, ouvertures, clics et rebonds."
+				},
+				"retention": {
+					"title": "Conservation du journal",
+					"description": "Une tâche quotidienne supprime les envois et leurs événements au-delà de cette durée. Les modèles ne sont jamais supprimés."
+				},
+				"categories": {
+					"title": "Catégories de modèles",
+					"description": "Rangent la galerie. Supprimer une catégorie laisse ses modèles sans catégorie."
+				}
+			},
+			"locale": {
+				"workspace": "Langues de l’espace de travail : {locales}",
+				"placeholder": "Choisir une langue"
+			},
+			"retention": {
+				"label": "Conserver les envois",
+				"days": "{count} jour | {count} jours",
+				"one_year": "1 an",
+				"custom": "Personnalisé",
+				"days_unit": "jours",
+				"tonight": "cette nuit",
+				"preview": "Prochain passage {when} à {time} · {count} envoi de plus de {days} jours sera supprimé. | Prochain passage {when} à {time} · {count} envois de plus de {days} jours seront supprimés.",
+				"preview_none": "Prochain passage {when} à {time} · aucun envoi n’a encore plus de {days} jours."
+			}
 		},
 		"templates": {
 			"actions": {
@@ -330,13 +783,23 @@
 				"send": "Envoyer",
 				"test_send": "Envoi de test",
 				"unpublish": "Dépublier",
-				"unpublished": "Template dépublié"
+				"unpublished": "Template dépublié",
+				"real_send": "Envoyer à de vrais destinataires",
+				"restore": "Restaurer",
+				"restored": "Modèle restauré"
 			},
 			"card": {
 				"add_locale": "Ajouter la version {locale} — absente",
 				"edit_locale": "Modifier la version {locale}",
-				"open": "ouv.",
-				"sends": "envois"
+				"open": "ouverture",
+				"sends": "envoi | envois",
+				"test": "Tester",
+				"draft_changes": "Modifs en brouillon",
+				"edited": "Modifié le {date}",
+				"edited_by": "Modifié le {date} par {name}",
+				"no_send_since": "Aucun envoi · en ligne depuis le {date}",
+				"stale_days": "{days} j",
+				"never_sent": "jamais envoyé"
 			},
 			"cols": {
 				"category": "Catégorie",
@@ -345,13 +808,17 @@
 				"slug": "Slug",
 				"status": "Statut",
 				"updatedAt": "Modifié",
-				"updatedBy": "Modifié par"
+				"updatedBy": "Modifié par",
+				"updated_by": "{date} · par {name}",
+				"publishedVersion": "Version",
+				"isDraftPending": "Modifications non publiées",
+				"publishedAt": "Publié"
 			},
 			"confirm": {
 				"archive_description": "Un template archivé ne peut plus être envoyé. Les versions sont conservées.",
 				"archive_title": "Archiver ce template ?"
 			},
-			"description": "Un slug, des variables typées, une version par enregistrement. Le rendu est compilé à l'enregistrement et envoyé via le fournisseur configuré.",
+			"description": "Chaque modèle a un slug appelé par votre code, des variables typées et une version par langue. Les modifications restent en brouillon jusqu'à la publication.",
 			"display": {
 				"gallery": "Grille",
 				"table": "Tableau"
@@ -366,12 +833,43 @@
 				"stats_open": "Ouverture",
 				"stats_sends": "Envois",
 				"unused": "inutilisée",
-				"variables": "Variables"
+				"variables": "Variables",
+				"eyebrow": "Modèle",
+				"previous": "Modèle précédent",
+				"next": "Modèle suivant",
+				"more": "Plus d’actions",
+				"edited": "modifié le {date} par {name}",
+				"never_published": "jamais publié",
+				"tab_preview": "Aperçu",
+				"tab_performance": "Performances",
+				"subject": "Objet · {subject}",
+				"missing_title": "Pas de version {locale}",
+				"missing_description": "Les destinataires {locale} reçoivent l’e-mail en {fallback}.",
+				"create_short": "Créer {locale}",
+				"declared_detected": "Déclarées et détectées",
+				"not_declared": "non déclarée",
+				"declare": "Déclarer",
+				"call_from_code": "L’appeler depuis le code",
+				"last_30_days": "30 derniers jours",
+				"open_send_log": "Ouvrir dans le journal d’envois",
+				"stats_problems": "Problèmes",
+				"problems_detail": "À examiner dans le journal d’envois",
+				"called_from": "Appelé depuis",
+				"no_sources": "Aucun envoi réel ces 30 derniers jours.",
+				"unknown_source": "Appelant inconnu",
+				"sends_count": "{count} envoi | {count} envois",
+				"fallbacks": "Langues de repli",
+				"no_fallbacks": "Chaque destinataire a reçu la langue demandée."
 			},
 			"empty": {
 				"hint": "Aucun template ne correspond à ce filtre.",
 				"reset": "Réinitialiser les filtres",
-				"title": "Aucun template"
+				"title": "Aucun template",
+				"no_match_title": "Aucun modèle ne correspond à « {search} »",
+				"no_match_description": "La recherche porte sur les noms et les slugs. Essayez un autre mot ou réinitialisez les filtres.",
+				"view_title": "Aucun modèle dans cette vue",
+				"view_description": "Essayez un autre onglet ou réinitialisez les filtres.",
+				"create_named": "Créer « {name} »"
 			},
 			"send_modal": {
 				"confirm": "Je comprends qu'il s'agit d'un envoi réel",
@@ -383,7 +881,9 @@
 			},
 			"start_from": {
 				"blank": "Vierge",
-				"label": "Partir de"
+				"label": "Partir de",
+				"blank_hint": "page vide",
+				"starter": "modèle de départ"
 			},
 			"status": {
 				"archived": "Archivé",
@@ -391,8 +891,281 @@
 				"live": "En ligne"
 			},
 			"title": "Templates",
-			"uncategorised": "Sans catégorie"
+			"uncategorised": "Sans catégorie",
+			"caption": "Modèles",
+			"search": "Chercher un nom ou un slug",
+			"tabs": {
+				"all": "Tous",
+				"live": "En ligne",
+				"draft": "Brouillons",
+				"archived": "Archivés"
+			},
+			"filters": {
+				"category": "Catégorie"
+			},
+			"footer": {
+				"count": "{count} modèle | {count} modèles",
+				"hint": "Cliquez une carte pour l'éditer · ↵ ouvrir · T envoi de test"
+			},
+			"attention": {
+				"chip": "À revoir",
+				"hint": "Brouillons laissés de côté, modèles en ligne jamais envoyés depuis 30 jours, langues manquantes",
+				"none_title": "Rien à revoir ici",
+				"none_description": "Tous les modèles de cette page sont publiés, envoyés et traduits.",
+				"show_all": "Afficher tous les modèles"
+			},
+			"gallery": {
+				"new_tile": "Nouveau modèle",
+				"new_tile_hint": "ou appuyez sur N",
+				"load_more": "Charger plus de modèles"
+			},
+			"starters": {
+				"title": "Commencez par les e-mails dont toute boutique a besoin",
+				"description": "Choisissez un modèle de départ : il arrive en brouillon, avec ses variables déclarées et ses données de test remplies.",
+				"blank": "Modèle vierge"
+			},
+			"slug_errors": {
+				"required": "Donnez un slug au modèle.",
+				"format": "Uniquement des minuscules, des chiffres et des tirets, en commençant par une lettre ou un chiffre.",
+				"too_long": "Le slug doit faire moins de 64 caractères.",
+				"taken": "Un autre modèle utilise déjà ce slug."
+			},
+			"name_errors": {
+				"required": "Donnez un nom au modèle.",
+				"too_long": "Le nom doit faire moins de 120 caractères."
+			},
+			"lifecycle": {
+				"publish": "Publier le brouillon",
+				"publish_title": "Publier « {name} » ?",
+				"publish_description": "Les clients reçoivent cette version dès le prochain envoi. La précédente reste dans l’historique.",
+				"publish_confirm": "Publier",
+				"publish_done": "Modèle publié",
+				"unpublish": "Dépublier",
+				"unpublish_title": "Dépublier « {name} » ?",
+				"unpublish_description": "Il repasse en brouillon. Chaque appel depuis votre code renvoie une erreur jusqu’à sa republication.",
+				"unpublish_confirm": "Dépublier",
+				"unpublish_done": "Modèle dépublié",
+				"archive": "Archiver",
+				"archive_title": "Archiver « {name} » ?",
+				"archive_description": "Un modèle archivé ne peut plus être envoyé. Les appels depuis votre code renvoient une erreur. Les versions sont conservées.",
+				"archive_confirm": "Archiver",
+				"archive_done": "Modèle archivé",
+				"restore": "Restaurer",
+				"restore_done": "Modèle restauré en brouillon"
+			}
 		},
-		"title": "Mailing"
+		"title": "Mailing",
+		"catalog_category": "Communication",
+		"nav": {
+			"mailing": "Mailing",
+			"configure": "Configurer"
+		},
+		"permissions": {
+			"send": {
+				"name": "Envoyer des e-mails et des tests",
+				"description": "Envoyer des e-mails de test, envoyer un modèle à de vrais destinataires et renvoyer un e-mail du journal."
+			},
+			"editor": {
+				"name": "Éditeur de modèle",
+				"description": "Modifier les blocs, les variables et les données de test d'un modèle, publier ou abandonner son brouillon."
+			},
+			"attention": {
+				"name": "Carte « À traiter »",
+				"description": "Liste ce qui demande un coup d'œil : envois en échec, traductions manquantes, brouillons et modèles inutilisés."
+			},
+			"funnel": {
+				"name": "Entonnoir de délivrabilité",
+				"description": "E-mails envoyés, délivrés, ouverts et cliqués sur la période."
+			},
+			"overview_gate": {
+				"name": "Tableau de bord Mailing",
+				"description": "Le tableau de bord, ou les étapes de configuration tant que l'espace ne peut pas envoyer."
+			},
+			"page_header": {
+				"name": "Fournisseur et période",
+				"description": "L'état du fournisseur et le choix de période dans l'en-tête de page."
+			},
+			"settings_form": {
+				"name": "Réglages Mailing",
+				"description": "Expéditeur, garde-fous d'envoi, webhook du fournisseur, conservation du journal et catégories de modèles."
+			},
+			"template_drawer": {
+				"name": "Détails du modèle",
+				"description": "Aperçu, variables et performances d'un modèle."
+			},
+			"test_send": {
+				"name": "Fenêtre d'envoi de test",
+				"description": "Envoyer un modèle à cinq destinataires de test au plus."
+			},
+			"real_send": {
+				"name": "Fenêtre d'envoi réel",
+				"description": "Envoyer un modèle en ligne à cinq vrais destinataires au plus."
+			},
+			"new_template": {
+				"name": "Fenêtre de nouveau modèle",
+				"description": "Créer un modèle depuis une page vierge, un modèle de départ ou un autre modèle."
+			},
+			"provider_banner": {
+				"name": "Alerte fournisseur",
+				"description": "Prévient quand le fournisseur ne répond plus et propose de renvoyer les échecs."
+			},
+			"sends_stats": {
+				"name": "Chiffres du journal",
+				"description": "Envois, délivrances, problèmes, file d'attente et latence de la période."
+			},
+			"sends_empty": {
+				"name": "Journal vide",
+				"description": "Comment faire un premier envoi, tant que le journal est vide."
+			},
+			"send_drawer": {
+				"name": "Détails d'un envoi",
+				"description": "Chronologie, origine et données d'un envoi, avec l'étape suivante dont il a besoin."
+			},
+			"rendering": {
+				"name": "Rendu reçu",
+				"description": "L'e-mail tel que le destinataire l'a reçu."
+			}
+		},
+		"new_template": {
+			"title": "Nouveau modèle",
+			"description": "Le code l’envoie par son slug. Vous pourrez le publier une fois le contenu prêt.",
+			"name_placeholder": "Devis accepté",
+			"slug_auto": "déduit du nom",
+			"slug_help": "Non modifiable ensuite : c’est l’identifiant qu’appelle votre code.",
+			"shortcut": "créer",
+			"submit": "Créer et ouvrir l’éditeur"
+		},
+		"test_send": {
+			"title": "Envoyer un test",
+			"current_draft": "brouillon actuel",
+			"unsaved_draft": "brouillon non enregistré",
+			"recipients": "Destinataires",
+			"add_address": "Ajouter une adresse",
+			"recipients_hint": "Entrée ou virgule pour ajouter",
+			"locale": "Langue",
+			"data": "Données",
+			"data_test": "Jeu de données de test",
+			"data_none": "Aucune donnée",
+			"info_title": "Les tests restent hors de vos chiffres",
+			"info_description": "L’objet reçoit le préfixe {prefix} et l’envoi est marqué comme test dans le journal.",
+			"shortcut": "envoyer",
+			"submit": "Envoyer un test | Envoyer {count} test | Envoyer {count} tests",
+			"sent": "{count} test envoyé | {count} tests envoyés"
+		},
+		"real_send": {
+			"title": "Envoyer à de vrais destinataires",
+			"heading": "Envoyer « {name} » à de vrais destinataires",
+			"warning": "Il arrive dans leur boîte de réception et compte dans les statistiques. Impossible d’annuler.",
+			"recipients_hint": "5 au maximum. Pour une liste, passez par une automatisation.",
+			"from": "De",
+			"subject": "Objet",
+			"version": "Version",
+			"published_on": "publiée le {date}",
+			"data_names": "Noms des destinataires uniquement",
+			"data_test": "Jeu de données de test",
+			"acknowledge": "Ajoutez d’abord un destinataire | Je comprends que cela envoie un vrai e-mail à {count} personne | Je comprends que cela envoie un vrai e-mail à {count} personnes",
+			"submit": "Envoyer aux destinataires | Envoyer à {count} destinataire | Envoyer à {count} destinataires",
+			"sent": "Envoyé à {count} destinataire | Envoyé à {count} destinataires",
+			"refused_title": "« {name} » ne peut pas encore être envoyé",
+			"refused_draft": "C’est un brouillon. Seul un modèle en ligne peut partir vers de vrais destinataires.",
+			"refused_archived": "Il est archivé. Restaurez-le et publiez-le avant de l’envoyer à de vrais destinataires.",
+			"refused_live": "Seul un modèle en ligne peut partir vers de vrais destinataires.",
+			"check_status": "Statut : {status} · modifié le {date} par {name}",
+			"check_variables_ok": "Variables déclarées et couvertes par les données de test",
+			"check_variables_warn": "Certaines variables ne sont pas déclarées ou n’ont pas de valeur de test",
+			"check_locales_ok": "Toutes les langues de l’espace existent",
+			"check_locales_warn": "Pas de version {missing}. Ces destinataires recevraient la version {fallback}.",
+			"test_instead": "Envoyer un test à la place",
+			"review_publish": "Relire et publier"
+		},
+		"rendering": {
+			"title": "Ce que le destinataire a reçu",
+			"received_by": "Ce que {name} a reçu",
+			"description": "Rendu à partir de la version et des données conservées avec l’envoi ·",
+			"views": {
+				"desktop": "Ordinateur",
+				"mobile": "Mobile",
+				"html": "HTML"
+			},
+			"view_label": "Vue du rendu",
+			"version": "v{version}",
+			"draft_version": "brouillon",
+			"frame_title": "E-mail reçu",
+			"error_title": "Le rendu ne peut pas être affiché",
+			"error_description": "Le modèle de cet envoi a été supprimé, ou sa version n’est plus lisible."
+		},
+		"period": {
+			"short": {
+				"last_hour": "1 H",
+				"last_24h": "24 H",
+				"today": "1 J",
+				"last_7_days": "7 J",
+				"last_30_days": "30 J",
+				"last_90_days": "90 J"
+			}
+		},
+		"page_header": {
+			"provider_connected": "{name} connecté",
+			"no_provider": "Aucun fournisseur",
+			"provider_hint": "Les livraisons, ouvertures, clics et rebonds reviennent du fournisseur par webhook."
+		},
+		"setup": {
+			"title": "Envoyez votre premier e-mail",
+			"description": "Mailing conserve vos modèles, les rend dans chaque langue et journalise chaque envoi. Le fournisseur (Brevo, Postmark, SMTP…) ne fait que transporter le courrier.",
+			"create_template": "Créer un modèle",
+			"how_it_works": "Comment fonctionne l’envoi",
+			"how_it_works_body": "Votre code appelle SendTemplate avec le slug d’un modèle et ses données. Mailing rend la version publiée dans la langue du destinataire, la confie au fournisseur et journalise l’envoi ; le webhook du fournisseur signale ensuite les livraisons, ouvertures, clics et rebonds.",
+			"steps": {
+				"install": {
+					"title": "Installer le module Mailing",
+					"description": "Fait : le module est actif dans cet espace de travail.",
+					"action": "Réglages"
+				},
+				"provider": {
+					"title": "Connecter un fournisseur",
+					"description": "Aucun e-mail ne peut partir tant qu’il n’est pas configuré.",
+					"action": "Connecter"
+				},
+				"sender": {
+					"title": "Définir l’expéditeur",
+					"description": "Le nom et l’adresse que voient les clients.",
+					"action": "Définir l’expéditeur"
+				},
+				"template": {
+					"title": "Créer et tester un modèle",
+					"description": "Partez d’un modèle de départ ou d’une page vierge.",
+					"action": "Modèles"
+				}
+			}
+		},
+		"attention_card": {
+			"title": "À traiter",
+			"updated": "mis à jour à {time}",
+			"empty": {
+				"title": "Rien à traiter",
+				"description": "Aucun envoi en échec sur la période, chaque modèle en ligne a toutes ses langues et a été utilisé."
+			}
+		},
+		"funnel_card": {
+			"title": "Entonnoir · de la livraison au clic",
+			"kinds": {
+				"all": "Tous",
+				"transactional": "Transactionnels",
+				"marketing": "Marketing"
+			},
+			"kind_label": "Type d’e-mail",
+			"takeaway": "Plus forte baisse : {from} → {to}.",
+			"no_drop": "Rien à comparer pour l’instant : aucun e-mail envoyé sur la période."
+		},
+		"common": {
+			"cancel": "Annuler"
+		},
+		"duplicate": {
+			"title": "Dupliquer le modèle",
+			"description": "Copie toutes les langues, les variables et les données de test dans un nouveau brouillon.",
+			"source": "Copie de {name} ·",
+			"copy_name": "{name} (copie)",
+			"submit": "Dupliquer en brouillon"
+		}
 	}
 }

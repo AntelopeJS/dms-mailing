@@ -6,7 +6,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
-import type { SendStatus } from "../../types";
+import type { SendStage, SendStatus } from "../../types";
 
 export const MAILING_SENDS_TABLE_NAME = "mailing_sends";
 
@@ -27,8 +27,17 @@ export class MailingSend extends Table {
   @Field("string")
   declare templateSlug: string;
 
+  /** Locale the e-mail was rendered in. */
   @Field("string")
   declare locale: string;
+
+  /** Locale the caller asked for; differs from `locale` on a fallback. */
+  @Field("string")
+  declare requestedLocale?: string;
+
+  /** Template version the send used; 0 for a test send of a draft. */
+  @Field("number")
+  declare templateVersion?: number;
 
   @Index()
   @Field("string")
@@ -40,6 +49,11 @@ export class MailingSend extends Table {
   @Index()
   @Field("string")
   declare status: SendStatus;
+
+  /** The send log tab a status belongs to, derived from `status`. */
+  @Index()
+  @Field("string")
+  declare stage?: SendStage;
 
   @Field("string")
   declare provider?: string;

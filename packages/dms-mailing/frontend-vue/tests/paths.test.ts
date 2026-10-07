@@ -3,7 +3,9 @@ import type { Block } from '../app/types/mailing'
 import {
 	collectContentPaths,
 	collectPaths,
+	isPresent,
 	pathsInBlocks,
+	readPath,
 } from '../app/utils/paths'
 
 const blocks: Block[] = [
@@ -124,5 +126,17 @@ describe('collectContentPaths', () => {
 			},
 		}
 		expect(collectContentPaths(content)).toEqual(['real.one'])
+	})
+})
+
+describe('readPath', () => {
+	it('reads nested values and array paths like the engine', () => {
+		const data = { order: { lines: [1, 2], total: 0, note: null } }
+		expect(readPath(data, 'order.total')).toBe(0)
+		expect(readPath(data, 'order.lines[]')).toEqual([1, 2])
+		expect(readPath(data, ' order.missing.deep ')).toBeUndefined()
+		expect(readPath(data, 'constructor')).toBeUndefined()
+		expect(isPresent(readPath(data, 'order.note'))).toBe(false)
+		expect(isPresent(readPath(data, 'order.total'))).toBe(true)
 	})
 })

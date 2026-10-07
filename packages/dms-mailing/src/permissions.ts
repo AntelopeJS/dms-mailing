@@ -9,8 +9,8 @@ const sendsPagePermissionId = GetPermissionId(SendsPageController);
 
 RegisterPermission(MAILING_SEND_PERMISSION, {
   id: MAILING_SEND_PERMISSION,
-  title: "Send e-mails and tests",
+  title: "$dms_mailing.permissions.send.name",
   icon: "i-ph-paper-plane-tilt",
-  description: "Trigger test sends and replay a previous send",
+  description: "$dms_mailing.permissions.send.description",
   dependencies: sendsPagePermissionId ? [sendsPagePermissionId] : [],
 });

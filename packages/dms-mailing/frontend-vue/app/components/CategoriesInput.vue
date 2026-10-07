@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import draggable from 'vuedraggable'
+import { useMailingApi } from '../composables/useMailingApi'
 import {
+	CATEGORY_ICONS,
+	DEFAULT_CATEGORY_ICON,
+	formatCategoriesLike,
 	parseCategories,
 	serializeCategories,
-	slugifyId,
+	toStoredCategories,
+	type EditableCategory,
 } from '../utils/categories'
 import type { TemplateCategory } from '../types/mailing'
 
@@ -12,115 +18,206 @@ interface CategoriesInputProps {
 	disabled?: boolean
 }
 
-const DEFAULT_ICON = 'i-ph-folder'
-
 const props = withDefaults(defineProps<CategoriesInputProps>(), {
 	modelValue: null,
 	initialValue: null,
 	disabled: false,
 })
 
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+const emit = defineEmits<{
+	'update:modelValue': [value: TemplateCategory[] | string]
+}>()
 
+const KEY_PREFIX = 'dms_mailing.settings.categories.'
+const NEW_ICON = CATEGORY_ICONS[0] ?? DEFAULT_CATEGORY_ICON
+
+const api = useMailingApi()
 const { t } = useI18n()
 
-const categories = ref<TemplateCategory[]>(
-	parseCategories(props.modelValue ?? props.initialValue).map((entry) => ({
-		...entry,
-	})),
-)
+let nextKey = 0
+const keyOf = (): string => `category-${nextKey++}`
+
+const source = computed(() => props.modelValue ?? props.initialValue)
+const rows = ref<EditableCategory[]>(toRows(source.value))
+const usage = ref<Record<string, number>>({})
+const pickerOpen = ref<string | null>(null)
+let lastEmitted = serializeCategories(toStoredCategories(rows.value))
+
+const key = (
+	path: string,
+	params: Record<string, unknown> = {},
+	plural = 1,
+): string => t(`${KEY_PREFIX}${path}`, params, plural)
+
+function toRows(
+	value: TemplateCategory[] | string | null | undefined,
+): EditableCategory[] {
+	return parseCategories(value).map((category) => ({
+		...category,
+		key: keyOf(),
+		isNew: false,
+	}))
+}
 
 function onEdit(): void {
-	emit('update:modelValue', serializeCategories(categories.value))
+	const stored = toStoredCategories(rows.value)
+	const labelled = rows.value.filter((row) => row.label.trim())
+	stored.forEach((category, index) => {
+		const row = labelled[index]
+		if (row) row.id = category.id
+	})
+	lastEmitted = serializeCategories(stored)
+	emit('update:modelValue', formatCategoriesLike(source.value, stored))
 }
 
-// The id is stored on every template, so it is derived once at creation and
-// never follows a later rename.
 function addCategory(): void {
-	categories.value.push({ id: '', label: '', icon: DEFAULT_ICON })
-	onEdit()
-}
-
-function onLabelInput(index: number): void {
-	const entry = categories.value[index]
-	if (entry && !entry.id) entry.id = slugifyId(entry.label)
-	onEdit()
+	rows.value.push({
+		key: keyOf(),
+		id: '',
+		label: '',
+		icon: NEW_ICON,
+		isNew: true,
+	})
 }
 
 function removeCategory(index: number): void {
-	categories.value.splice(index, 1)
+	rows.value.splice(index, 1)
 	onEdit()
 }
 
+function pickIcon(row: EditableCategory, icon: string): void {
+	row.icon = icon
+	pickerOpen.value = null
+	onEdit()
+}
+
+function usageLabel(row: EditableCategory): string {
+	const count = row.isNew ? 0 : (usage.value[row.id] ?? 0)
+	return key('usage', { count }, count)
+}
+
+watch(source, (value) => {
+	if (serializeCategories(parseCategories(value)) === lastEmitted) return
+	rows.value = toRows(value)
+	lastEmitted = serializeCategories(toStoredCategories(rows.value))
+})
+
 watch(
-	() => props.modelValue,
+	() => props.initialValue,
 	(value) => {
-		const parsed = parseCategories(value)
-		if (serializeCategories(parsed) !== serializeCategories(categories.value)) {
-			categories.value = parsed.map((entry) => ({ ...entry }))
-		}
+		const saved = new Set(parseCategories(value).map((category) => category.id))
+		rows.value
+			.filter((row) => row.isNew && saved.has(row.id))
+			.forEach((row) => (row.isNew = false))
 	},
 )
+
+onMounted(async () => {
+	try {
+		usage.value = (await api.categoryUsage()).counts
+	} catch {
+		usage.value = {}
+	}
+})
 </script>
 
 <template>
-	<div class="flex flex-col gap-2">
-		<div
-			v-for="(category, index) in categories"
-			:key="index"
-			class="flex items-center gap-2"
+	<div class="border-default flex flex-col overflow-hidden rounded-lg border">
+		<draggable
+			v-model="rows"
+			item-key="key"
+			handle="[data-drag-handle]"
+			:disabled="disabled"
+			class="divide-default flex flex-col divide-y"
+			@end="onEdit"
 		>
-			<UIcon
-				:name="category.icon || DEFAULT_ICON"
-				class="text-dimmed size-4 shrink-0"
-				aria-hidden="true"
-			/>
-			<UInput
-				v-model="category.label"
-				:placeholder="t('dms_mailing.settings.categories.label')"
-				:disabled="disabled"
-				size="sm"
-				class="flex-1"
-				@update:model-value="onLabelInput(index)"
-			/>
-			<UInput
-				v-model="category.icon"
-				:placeholder="DEFAULT_ICON"
-				:disabled="disabled"
-				size="sm"
-				class="w-40 font-mono"
-				@update:model-value="onEdit"
-			/>
-			<code class="text-dimmed w-28 shrink-0 truncate font-mono text-[11px]">
-				{{ category.id }}
-			</code>
-			<UButton
-				v-if="!disabled"
-				icon="i-ph-x"
-				color="neutral"
-				variant="ghost"
-				size="xs"
-				:title="t('dms_mailing.settings.categories.remove')"
-				@click="removeCategory(index)"
-			/>
-		</div>
+			<template #item="{ element, index }">
+				<div class="flex items-center gap-2.5 px-3 py-2">
+					<UIcon
+						v-if="!disabled"
+						data-drag-handle
+						name="i-ph-dots-six-vertical"
+						class="text-dimmed size-4 shrink-0 cursor-grab"
+						:aria-label="key('drag')"
+					/>
+					<UPopover
+						:open="pickerOpen === element.key"
+						@update:open="
+							(open: boolean) => (pickerOpen = open ? element.key : null)
+						"
+					>
+						<UButton
+							color="neutral"
+							variant="outline"
+							size="sm"
+							square
+							:icon="element.icon || DEFAULT_CATEGORY_ICON"
+							:disabled="disabled"
+							:aria-label="key('change_icon')"
+						/>
+						<template #content>
+							<div class="flex flex-col gap-2 p-2.5">
+								<DmsEyebrow :label="key('pick_icon')" />
+								<div class="grid grid-cols-8 gap-1">
+									<UButton
+										v-for="icon in CATEGORY_ICONS"
+										:key="icon"
+										:icon="icon"
+										size="sm"
+										square
+										:color="icon === element.icon ? 'primary' : 'neutral'"
+										:variant="icon === element.icon ? 'soft' : 'ghost'"
+										:aria-label="icon"
+										:aria-pressed="icon === element.icon"
+										@click="pickIcon(element, icon)"
+									/>
+								</div>
+							</div>
+						</template>
+					</UPopover>
+					<UInput
+						v-model="element.label"
+						:placeholder="t('dms_mailing.settings.categories.label')"
+						:disabled="disabled"
+						size="sm"
+						class="min-w-0 flex-1"
+						@update:model-value="onEdit"
+					/>
+					<span
+						class="text-dimmed w-24 shrink-0 text-right font-mono text-[11px]"
+					>
+						{{ usageLabel(element) }}
+					</span>
+					<UButton
+						v-if="!disabled"
+						icon="i-ph-x"
+						color="neutral"
+						variant="ghost"
+						size="xs"
+						square
+						:aria-label="t('dms_mailing.settings.categories.remove')"
+						@click="removeCategory(index)"
+					/>
+				</div>
+			</template>
+		</draggable>
 
-		<p v-if="!categories.length" class="text-muted text-[12.5px]">
+		<p v-if="!rows.length" class="text-muted px-4 py-3 text-[12.5px]">
 			{{ t('dms_mailing.settings.categories.empty') }}
 		</p>
 
-		<UButton
-			v-if="!disabled"
-			icon="i-ph-plus"
-			variant="link"
-			size="sm"
-			class="self-start"
-			:label="t('dms_mailing.settings.categories.add')"
-			@click="addCategory"
-		/>
-
-		<p class="text-dimmed text-[11.5px]">
-			{{ t('dms_mailing.settings.categories.hint') }}
-		</p>
+		<div class="border-default flex items-center gap-2 border-t px-3 py-2">
+			<UButton
+				v-if="!disabled"
+				icon="i-ph-plus"
+				variant="ghost"
+				size="sm"
+				:label="t('dms_mailing.settings.categories.add')"
+				@click="addCategory"
+			/>
+			<span class="text-dimmed ms-auto text-[12px]">
+				{{ key('drag_hint') }}
+			</span>
+		</div>
 	</div>
 </template>

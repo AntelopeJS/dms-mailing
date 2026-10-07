@@ -72,3 +72,58 @@ export function removeBlock(blocks: Block[], id: string): boolean {
 export function insertBlock(list: Block[], index: number, block: Block): void {
 	list.splice(index, 0, block)
 }
+
+/** Every block of the tree, depth first, branches in place. */
+export function flattenBlocks(blocks: Block[]): Block[] {
+	return blocks.flatMap((block) => [
+		block,
+		...branchesOf(block).flatMap(flattenBlocks),
+	])
+}
+
+/** Where a block sits in the whole tree, 1-based ("block 3 of 12"). */
+export interface BlockPosition {
+	index: number
+	total: number
+}
+
+export function blockPosition(
+	blocks: Block[],
+	id: string,
+): BlockPosition | null {
+	const flat = flattenBlocks(blocks)
+	const index = flat.findIndex((block) => block.id === id)
+	return index < 0 ? null : { index: index + 1, total: flat.length }
+}
+
+/** A list of the tree and the index a new block goes to in it. */
+export interface InsertionPoint {
+	list: Block[]
+	index: number
+}
+
+/**
+ * Where a block added "under the selected one" lands: right after it in its
+ * own list, or at the end of the root list when nothing is selected.
+ */
+export function insertionAfter(
+	blocks: Block[],
+	id: string | null,
+): InsertionPoint {
+	const list = id ? findParentList(blocks, id) : null
+	if (!list) return { list: blocks, index: blocks.length }
+	return { list, index: list.findIndex((block) => block.id === id) + 1 }
+}
+
+/** How many blocks each branch of a condition holds (then, else). */
+export interface BranchCounts {
+	then: number
+	else: number | null
+}
+
+export function branchCounts(block: IfBlock): BranchCounts {
+	return {
+		then: block.children.length,
+		else: block.elseChildren ? block.elseChildren.length : null,
+	}
+}

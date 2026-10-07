@@ -1,98 +1,164 @@
 <script setup lang="ts">
-import { buildTimeline, type TimelineTone } from '../utils/timeline'
+import { useClipboard } from '@vueuse/core'
+import { useMailingApi } from '../composables/useMailingApi'
+import { describeProblem, problemEventReason } from '../utils/problems'
+import {
+	formatPayload,
+	SEND_STATUS_TONES,
+	sendFooterActions,
+	shortSendId,
+	type SendAction,
+	type SendActionId,
+} from '../utils/send-actions'
+import { formatLatency, isSlowLatency } from '../utils/send-stats'
+import { buildTimeline, type TimelineItem } from '../utils/timeline'
 import type { Component } from 'vue'
-import type { SendDetailResponse, SendRow, SendStatus } from '../types/mailing'
+import type { SendDetailResponse, SendRow } from '../types/mailing'
+
+interface RowNavigation {
+	hasPrev: boolean
+	hasNext: boolean
+	prev: () => void
+	next: () => void
+}
 
 interface SendDrawerProps {
 	sendId?: string
 	rowData?: SendRow
 	onSuccessCallback?: () => void
+	navigation?: RowNavigation
 }
 
-const EDITOR_PATH = '/modules/mailing/editor'
-const HTML_PREVIEW_COMPONENT = 'DmsMailingHtmlPreviewModal'
-const HTML_MODAL_SIZE = 'xl'
-const PAYLOAD_INDENT = 2
+interface StatTrioItem {
+	id: string
+	eyebrow: string
+	value: string
+	detail?: string
+	detailTone?: 'warning' | 'error'
+}
+
+const EDITOR_PATH = '/modules/mailing/templates'
+const RENDERING_MODAL = 'MailingRenderingModal'
+const RENDERING_MODAL_SIZE = '3xl'
+const FIX_ADDRESS_MODAL = 'MailingFixAddressModal'
+const FIX_ADDRESS_MODAL_SIZE = 'md'
+const KEY_PREFIX = 'dms_mailing.sends.drawer.'
+const DATE_FORMAT: Intl.DateTimeFormatOptions = {
+	month: 'short',
+	day: 'numeric',
+	hour: '2-digit',
+	minute: '2-digit',
+	second: '2-digit',
+}
 const TIME_FORMAT: Intl.DateTimeFormatOptions = {
 	hour: '2-digit',
 	minute: '2-digit',
+	second: '2-digit',
 }
-
-const PROBLEM_STATUSES: SendStatus[] = ['bounced', 'spam', 'failed']
 
 const props = defineProps<SendDrawerProps>()
 
 const api = useMailingApi()
 const toast = useToast()
-const { t, locale: uiLocale } = useI18n()
+const { confirm } = useConfirm()
 const { open: openModal } = useModal()
+const { t, locale } = useI18n()
+const { copy } = useClipboard()
+
+const KeyValueList = resolveComponent('DmsKeyValueList') as Component
 
 const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
-
 const detail = ref<SendDetailResponse | null>(null)
 const loading = ref(false)
-const replaying = ref(false)
+const sending = ref(false)
 
-const send = computed(() => detail.value?.send ?? props.rowData ?? null)
-
-const isProblem = computed(() =>
-	send.value ? PROBLEM_STATUSES.includes(send.value.status) : false,
+const send = computed<SendRow | null>(
+	() => detail.value?.send ?? props.rowData ?? null,
 )
+const key = (path: string, params: Record<string, unknown> = {}): string =>
+	t(`${KEY_PREFIX}${path}`, params)
 
-const TONE_CLASSES: Record<TimelineTone, string> = {
-	neutral: 'bg-elevated text-muted',
-	primary: 'bg-primary/10 text-primary',
-	success: 'bg-success/10 text-success',
-	warning: 'bg-warning/10 text-warning',
-	error: 'bg-error/10 text-error',
-}
+const dateOf = (iso: string, format: Intl.DateTimeFormatOptions): string =>
+	new Date(iso).toLocaleString(locale.value, format)
+
+const problem = computed(() =>
+	send.value
+		? describeProblem(
+				{
+					...send.value,
+					error:
+						send.value.error ||
+						problemEventReason(detail.value?.events ?? []),
+				},
+				t('dms_mailing.sends.banner.the_provider'),
+			)
+		: null,
+)
+const actions = computed<SendAction[]>(() =>
+	send.value ? sendFooterActions(send.value.status) : [],
+)
+const payload = computed(() => formatPayload(send.value?.json_variables))
+const versionLabel = computed(() =>
+	send.value?.templateVersion
+		? key('version', { version: send.value.templateVersion })
+		: key('draft_version'),
+)
 
 const timeline = computed(() =>
-	buildTimeline(detail.value?.events ?? []).map((item) => ({
-		...item,
-		title: t(`dms_mailing.sends.timeline.${item.type}`),
-		time: new Date(item.at).toLocaleTimeString(uiLocale.value, TIME_FORMAT),
-	})),
+	send.value ? buildTimeline(detail.value?.events ?? [], send.value) : [],
 )
 
-// The reference header carries exactly three values, not a banner.
-const headerValues = computed(() => {
+const stats = computed<StatTrioItem[]>(() => {
 	const row = send.value
 	if (!row) return []
+	const isFallback = !!row.requestedLocale && row.requestedLocale !== row.locale
 	return [
 		{
-			label: t('dms_mailing.sends.drawer.status'),
-			value: t(`dms_mailing.sends.status.${row.status}`),
-			tone: isProblem.value ? 'text-error' : 'text-highlighted',
+			id: 'template',
+			eyebrow: key('template'),
+			value: row.templateSlug,
+			detail: versionLabel.value,
 		},
 		{
-			label: t('dms_mailing.sends.drawer.latency'),
-			value: `${row.latencyMs} ms`,
-			tone: 'text-highlighted',
+			id: 'locale',
+			eyebrow: key('locale'),
+			value: (row.requestedLocale || row.locale).toUpperCase(),
+			detail: isFallback
+				? key('fallback_used', { locale: row.locale.toUpperCase() })
+				: key('as_requested'),
+			detailTone: isFallback ? 'warning' : undefined,
 		},
 		{
-			label: t('dms_mailing.sends.drawer.locale'),
-			value: row.locale.toUpperCase(),
-			tone: 'text-highlighted',
+			id: 'latency',
+			eyebrow: key('latency'),
+			value: formatLatency(row.latencyMs, locale.value),
+			detail: isSlowLatency(row.latencyMs)
+				? key('slow_latency')
+				: key('latency_hint'),
+			detailTone: isSlowLatency(row.latencyMs) ? 'error' : undefined,
 		},
 	]
 })
 
-const payload = computed(() => {
-	const raw = send.value?.json_variables
-	if (!raw) return ''
-	try {
-		return JSON.stringify(JSON.parse(raw), null, PAYLOAD_INDENT)
-	} catch {
-		return raw
-	}
+const originTitle = computed(() => {
+	const template = detail.value?.template
+	const name = template?.name ?? send.value?.templateSlug ?? ''
+	return `${name} · ${versionLabel.value}`
 })
 
-const errorTitle = computed(() =>
-	send.value?.status === 'bounced'
-		? t('dms_mailing.sends.drawer.invalid_address')
-		: t('dms_mailing.sends.drawer.transport_error'),
+const editorLink = computed(() =>
+	send.value
+		? `${EDITOR_PATH}/${send.value.templateId}?locale=${send.value.locale}`
+		: undefined,
 )
+
+function stepTitle(item: TimelineItem): string {
+	return t(item.titleKey, item.titleParams)
+}
+
+function stepTime(item: TimelineItem): string {
+	return item.at ? dateOf(item.at, TIME_FORMAT) : '—'
+}
 
 async function load(): Promise<void> {
 	if (!sendId.value) return
@@ -100,199 +166,304 @@ async function load(): Promise<void> {
 	try {
 		detail.value = await api.send(sendId.value)
 	} catch (error) {
-		toast.add({ color: 'error', title: String(error) })
+		useApiError(error)
 	} finally {
 		loading.value = false
 	}
 }
 
+function settle(): void {
+	if (props.onSuccessCallback) {
+		props.onSuccessCallback()
+		return
+	}
+	void load()
+}
+
+async function copyText(value: string, messageKey: string): Promise<void> {
+	await copy(value)
+	toast.add({ color: 'success', title: key(messageKey) })
+}
+
+function openRendering(): void {
+	const row = send.value
+	if (!row) return
+	openModal({
+		title: t('dms_mailing.rendering.received_by', {
+			name: row.recipientName || row.recipientEmail,
+		}),
+		component: resolveComponent(RENDERING_MODAL) as Component,
+		componentOptions: { rowData: row, sendId: row._id },
+		size: RENDERING_MODAL_SIZE,
+	})
+}
+
+function openFixAddress(): void {
+	const row = send.value
+	if (!row) return
+	const modal = openModal({
+		title: t('dms_mailing.sends.fix_address.title'),
+		component: resolveComponent(FIX_ADDRESS_MODAL) as Component,
+		componentOptions: { rowData: row, version: row.templateVersion ?? 0 },
+		size: FIX_ADDRESS_MODAL_SIZE,
+	})
+	void modal.result.then((result) => {
+		if (result) settle()
+	})
+}
+
+function replayBody() {
+	const row = send.value as SendRow
+	const lastTry = row.error || t(`dms_mailing.sends.status.${row.status}`)
+	return h(KeyValueList, {
+		dense: true,
+		items: [
+			{
+				id: 'to',
+				label: key('replay.to'),
+				value: `${row.recipientName ? `${row.recipientName} · ` : ''}${row.recipientEmail}`,
+			},
+			{
+				id: 'template',
+				label: key('replay.template'),
+				value: `${row.templateSlug} · ${versionLabel.value} · ${row.locale.toUpperCase()}`,
+				type: 'mono',
+			},
+			{
+				id: 'last',
+				label: key('replay.last_try'),
+				value: lastTry,
+				tone: 'error',
+			},
+		],
+	})
+}
+
 async function replay(): Promise<void> {
-	replaying.value = true
+	sending.value = true
 	try {
 		await api.replay(sendId.value)
 		toast.add({
 			color: 'success',
-			title: t('dms_mailing.sends.drawer.replayed'),
+			title: t('dms_mailing.sends.actions.sent_again'),
 		})
-		if (props.onSuccessCallback) {
-			props.onSuccessCallback()
-			return
-		}
-		await load()
-	} catch (error) {
-		toast.add({ color: 'error', title: String(error) })
+		settle()
 	} finally {
-		replaying.value = false
+		sending.value = false
 	}
 }
 
-async function viewHtml(): Promise<void> {
-	try {
-		const { html } = await api.sendHtml(sendId.value)
-		openModal({
-			title: t('dms_mailing.sends.drawer.view_html'),
-			component: resolveComponent(HTML_PREVIEW_COMPONENT) as Component,
-			componentOptions: { html },
-			size: HTML_MODAL_SIZE,
-		})
-	} catch (error) {
-		toast.add({ color: 'error', title: String(error) })
-	}
-}
-
-function openTemplate(): void {
-	if (!send.value) return
-	navigateDms({
-		path: EDITOR_PATH,
-		query: { id: send.value.templateId, locale: send.value.locale },
+function confirmSendAgain(): void {
+	const row = send.value
+	if (!row) return
+	void confirm({
+		title: t('dms_mailing.sends.confirm.replay_title'),
+		description: t('dms_mailing.sends.confirm.replay_description', {
+			recipientEmail: row.recipientEmail,
+		}),
+		color: 'warning',
+		icon: 'i-ph-arrow-clockwise',
+		confirmIcon: 'i-ph-arrow-clockwise',
+		confirmLabel: t('dms_mailing.sends.confirm.replay_confirm'),
+		cancelLabel: key('replay.cancel'),
+		body: replayBody,
+		onConfirm: replay,
 	})
 }
+
+const ACTION_HANDLERS: Record<SendActionId, () => void> = {
+	rendering: openRendering,
+	copy_address: () =>
+		void copyText(send.value?.recipientEmail ?? '', 'address_copied'),
+	fix_address: openFixAddress,
+	send_again: confirmSendAgain,
+}
+
+const copyLink = () => void copyText(window.location.href, 'link_copied')
+const copyPayload = () => void copyText(payload.value, 'json_copied')
 
 onMounted(load)
 </script>
 
 <template>
-	<div class="flex flex-col gap-4">
-		<USkeleton v-if="loading && !send" class="h-64 w-full" />
+	<div class="flex min-h-full flex-col">
+		<USkeleton v-if="loading && !send" class="m-5 h-64" />
 
 		<template v-else-if="send">
-			<div class="flex flex-col gap-0.5">
-				<span class="text-highlighted truncate text-sm font-semibold">
-					{{ send.recipientName || send.recipientEmail }}
-				</span>
-				<span class="text-dimmed truncate font-mono text-[11px]">
-					{{ send.recipientEmail }} · {{ send._id }}
-				</span>
-			</div>
-
-			<div
-				class="border-default divide-default grid grid-cols-3 divide-x rounded-lg border"
+			<header
+				class="border-default flex flex-col gap-1.5 border-b px-5 pb-4 pt-1"
 			>
-				<div
-					v-for="value in headerValues"
-					:key="value.label"
-					class="flex flex-col gap-1 px-3 py-2.5"
-				>
-					<span
-						class="text-dimmed font-mono text-[10px] uppercase tracking-widest"
-					>
-						{{ value.label }}
-					</span>
-					<span class="truncate text-[13px] font-semibold" :class="value.tone">
-						{{ value.value }}
-					</span>
-				</div>
-			</div>
-
-			<DmsBanner
-				v-if="send.error"
-				color="error"
-				icon="i-ph-warning"
-				:title="errorTitle"
-				:description="send.error"
-			/>
-
-			<section class="flex flex-col gap-2">
-				<h3 class="text-dimmed font-mono text-[10px] uppercase tracking-widest">
-					{{ t('dms_mailing.sends.drawer.timeline') }}
-				</h3>
-				<ol class="flex flex-col">
-					<li
-						v-for="(item, index) in timeline"
-						:key="item.id"
-						class="relative flex items-start gap-3 pb-3 last:pb-0"
-					>
-						<span
-							v-if="index < timeline.length - 1"
-							class="bg-default absolute bottom-0 left-[11px] top-6 w-px"
-							aria-hidden="true"
+				<div class="flex items-center gap-1">
+					<DmsEyebrow
+						class="min-w-0 flex-1"
+						truncate
+						:label="key('eyebrow', { id: shortSendId(send._id) })"
+					/>
+					<template v-if="navigation">
+						<UButton
+							icon="i-ph-caret-up"
+							color="neutral"
+							variant="ghost"
+							size="sm"
+							:disabled="!navigation.hasPrev"
+							:aria-label="key('previous')"
+							@click="navigation.prev()"
 						/>
-						<span
-							:class="TONE_CLASSES[item.tone]"
-							class="relative z-10 grid size-[22px] shrink-0 place-items-center rounded-full"
-						>
-							<UIcon :name="item.icon" class="size-3" aria-hidden="true" />
-						</span>
-						<span class="flex min-w-0 flex-1 flex-col">
-							<span
-								class="truncate text-[12.5px] font-medium"
-								:class="item.tone === 'error' ? 'text-error' : 'text-toned'"
-							>
-								{{ item.title }}
-							</span>
-							<span
-								v-if="item.description"
-								class="text-dimmed truncate text-[11px]"
-							>
-								{{ item.description }}
-							</span>
-						</span>
-						<span class="text-dimmed shrink-0 font-mono text-[11px]">
-							{{ item.time }}
-						</span>
-					</li>
-				</ol>
-			</section>
-
-			<section class="flex flex-col gap-1">
-				<h3 class="text-dimmed font-mono text-[10px] uppercase tracking-widest">
-					{{ t('dms_mailing.sends.drawer.template') }}
-				</h3>
-				<button
-					type="button"
-					class="hover:bg-elevated/60 flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
-					@click="openTemplate"
+						<UButton
+							icon="i-ph-caret-down"
+							color="neutral"
+							variant="ghost"
+							size="sm"
+							:disabled="!navigation.hasNext"
+							:aria-label="key('next')"
+							@click="navigation.next()"
+						/>
+					</template>
+					<UButton
+						icon="i-ph-link"
+						color="neutral"
+						variant="ghost"
+						size="sm"
+						:aria-label="key('copy_link')"
+						@click="copyLink"
+					/>
+				</div>
+				<h3
+					class="text-highlighted flex flex-wrap items-center gap-2 text-lg font-semibold"
 				>
-					<UIcon
-						name="i-ph-envelope-simple"
-						class="text-dimmed size-3.5 shrink-0"
-					/>
-					<span class="text-toned min-w-0 flex-1 truncate text-[12.5px]">
-						{{ send.templateSlug }}
+					<span class="min-w-0 truncate">
+						{{ send.recipientName || send.recipientEmail }}
 					</span>
-					<UIcon
-						name="i-ph-arrow-square-out"
-						class="text-dimmed size-3.5 shrink-0"
+					<DmsStatusPill
+						:tone="SEND_STATUS_TONES[send.status]"
+						:label="t(`dms_mailing.sends.status.${send.status}`)"
 					/>
-				</button>
-				<div v-if="send.source" class="flex items-center gap-2 px-2 py-1.5">
-					<UIcon name="i-ph-code" class="text-dimmed size-3.5 shrink-0" />
-					<span
-						class="text-dimmed min-w-0 flex-1 truncate font-mono text-[11.5px]"
-					>
-						{{ send.source }}
-					</span>
-				</div>
-			</section>
-
-			<section class="flex flex-col gap-2">
-				<h3 class="text-dimmed font-mono text-[10px] uppercase tracking-widest">
-					{{ t('dms_mailing.sends.drawer.payload') }}
+					<DmsStatusPill
+						v-if="send.isTest"
+						tone="warning"
+						dot="none"
+						size="sm"
+						uppercase
+						:label="key('test')"
+					/>
 				</h3>
-				<div class="bg-elevated/50 relative rounded-lg p-2.5">
-					<pre
-						class="text-toned overflow-x-auto font-mono text-[11px] leading-relaxed"
-						>{{ payload }}</pre>
-					<DmsCopyButton :value="payload" class="absolute right-1 top-1" />
-				</div>
-			</section>
+				<p class="text-muted truncate text-[12.5px]">
+					<span class="font-mono">{{ send.recipientEmail }}</span>
+					· {{ dateOf(send.createdAt, DATE_FORMAT) }}
+				</p>
+			</header>
 
-			<div class="flex items-center gap-2">
-				<UButton
-					class="flex-1 justify-center"
-					icon="i-ph-arrow-clockwise"
-					:label="t('dms_mailing.sends.drawer.replay')"
-					:loading="replaying"
-					@click="replay"
-				/>
-				<UButton
-					icon="i-ph-eye"
-					color="neutral"
-					variant="ghost"
-					:title="t('dms_mailing.sends.drawer.view_html')"
-					@click="viewHtml"
-				/>
+			<div class="flex flex-1 flex-col gap-6 p-5">
+				<section class="flex flex-col gap-3">
+					<DmsStatGroup layout="joined" :columns="3" :items="stats" />
+					<DmsBanner
+						v-if="problem"
+						:tone="send.status === 'spam' ? 'warning' : 'error'"
+						:icon="problem.icon"
+						:title="t(problem.titleKey, problem.params)"
+						:description="t(problem.descriptionKey, problem.params)"
+					/>
+				</section>
+
+				<section class="flex flex-col gap-2">
+					<DmsEyebrow :label="key('timeline')" />
+					<ol class="flex flex-col">
+						<li
+							v-for="item in timeline"
+							:key="item.id"
+							:class="item.isPending && 'opacity-50'"
+						>
+							<DmsActivityItem
+								:icon="item.icon"
+								:icon-color="item.isPending ? 'neutral' : item.tone"
+								:subtitle="
+									item.isPending ? key('pending') : item.detail || undefined
+								"
+								:mono="item.isDetailMono && !item.isPending"
+								:trailing="stepTime(item)"
+								:interactive="false"
+							>
+								<span
+									:class="
+										item.tone === 'error' && !item.isPending
+											? 'text-error'
+											: undefined
+									"
+								>
+									{{ stepTitle(item) }}
+								</span>
+							</DmsActivityItem>
+						</li>
+					</ol>
+				</section>
+
+				<section class="flex flex-col gap-2">
+					<DmsEyebrow :label="key('origin')" />
+					<div
+						class="border-default divide-default divide-y overflow-hidden rounded-lg border"
+					>
+						<DmsListRow
+							:to="editorLink"
+							icon="i-ph-envelope-simple"
+							icon-size="2xs"
+							size="sm"
+							:title="originTitle"
+						>
+							<template #trailing>
+								<UIcon
+									name="i-ph-arrow-square-out"
+									class="text-dimmed size-4"
+									aria-hidden="true"
+								/>
+							</template>
+						</DmsListRow>
+						<DmsListRow
+							v-if="send.source"
+							icon="i-ph-code"
+							icon-size="2xs"
+							size="sm"
+							:trailing="key('source')"
+						>
+							<span class="font-mono text-[12.5px]">{{ send.source }}</span>
+						</DmsListRow>
+					</div>
+				</section>
+
+				<section class="flex flex-col gap-2">
+					<div class="flex items-center justify-between gap-2">
+						<DmsEyebrow :label="key('payload')" />
+						<UButton
+							v-if="payload"
+							size="xs"
+							variant="link"
+							:label="key('copy_json')"
+							@click="copyPayload"
+						/>
+					</div>
+					<pre
+						class="bg-elevated/50 border-default text-toned max-h-72 overflow-auto rounded-lg border p-3 font-mono text-[11.5px] leading-relaxed"
+						>{{ payload || '{}' }}</pre>
+				</section>
 			</div>
+
+			<footer
+				class="bg-default border-default sticky bottom-0 flex items-center gap-2 border-t px-5 py-3"
+			>
+				<UButton
+					v-for="(action, index) in actions"
+					:key="action.id"
+					:class="index === 1 ? 'ms-auto' : undefined"
+					:icon="action.icon"
+					:color="action.variant === 'solid' ? 'primary' : 'neutral'"
+					:variant="action.variant"
+					:label="action.labelKey ? t(action.labelKey) : undefined"
+					:aria-label="
+						action.labelKey ? undefined : key(`actions.${action.id}`)
+					"
+					:loading="action.id === 'send_again' && sending"
+					@click="ACTION_HANDLERS[action.id]()"
+				/>
+			</footer>
 		</template>
 	</div>
 </template>

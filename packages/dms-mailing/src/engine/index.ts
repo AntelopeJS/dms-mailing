@@ -1,3 +1,4 @@
+export * from "./changes";
 export * from "./conditions";
 export * from "./coverage";
 export * from "./fallback-html";

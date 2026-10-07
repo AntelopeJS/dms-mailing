@@ -1,6 +1,11 @@
 import type { BlockType } from '../../types/mailing'
 
-export type FieldKind = 'text' | 'textarea' | 'url' | 'align' | 'size'
+/**
+ * `tokens` multi-line text with `{{` autocomplete, `token` the one-line
+ * version, `text` plain text, `path` a variable path, `align` the alignment
+ * switch, `size` the heading size slider.
+ */
+export type FieldKind = 'tokens' | 'token' | 'text' | 'path' | 'align' | 'size'
 
 export interface BlockField {
 	key: string
@@ -22,32 +27,29 @@ const field = (key: string, kind: FieldKind, help?: string): BlockField => ({
 })
 
 const FIELDS: Record<BlockType, BlockField[]> = {
-	hero: [field('imageUrl', 'url'), field('alt', 'text')],
+	hero: [field('imageUrl', 'token'), field('alt', 'token')],
 	heading: [
-		field('text', 'textarea', 'insert_hint'),
+		field('text', 'tokens'),
 		field('align', 'align'),
 		field('size', 'size'),
 	],
-	paragraph: [
-		field('text', 'textarea', 'insert_hint'),
-		field('align', 'align'),
-	],
-	code: [field('text', 'text')],
+	paragraph: [field('text', 'tokens'), field('align', 'align')],
+	code: [field('text', 'token')],
 	list: [
-		field('source', 'text', 'source_help'),
+		field('source', 'path', 'source_help'),
 		field('labelPath', 'text'),
 		field('valuePath', 'text'),
 	],
-	total: [field('label', 'text'), field('value', 'text')],
+	total: [field('label', 'token'), field('value', 'token')],
 	button: [
-		field('text', 'text'),
-		field('href', 'url'),
+		field('text', 'token'),
+		field('href', 'token'),
 		field('align', 'align'),
 	],
 	if: [],
 	divider: [],
 	footer: [
-		field('text', 'textarea'),
+		field('text', 'tokens'),
 		field('unsubscribeLabel', 'text'),
 		field('preferencesLabel', 'text'),
 	],

@@ -9,13 +9,19 @@ export interface AttentionItem {
   icon: string;
   title: string;
   description: string;
+  /** The verb of the next step, an i18n key ("Review problems"). */
+  action: string;
   to: string;
+  /** The figure the title leads with, shown bold. */
+  count?: number;
   params?: Record<string, string | number>;
 }
 
 const TEMPLATES_PAGE = "/modules/mailing/templates";
+const TEMPLATES_ATTENTION_PAGE = `${TEMPLATES_PAGE}?tab=attention`;
 const SENDS_PAGE = "/modules/mailing/sends";
-const SENDS_PROBLEMS_PAGE = `${SENDS_PAGE}?tab=problems`;
+const SENDS_PROBLEMS_PAGE = `${SENDS_PAGE}?view=problems`;
+const SETTINGS_PAGE = "/modules/mailing/settings";
 const STALE_DRAFT_DAYS = 7;
 const DAY_MS = 86_400_000;
 
@@ -36,8 +42,10 @@ function problemsItem(sends: SendSummary[]): AttentionItem[] {
       icon: "i-ph-warning-octagon",
       title: "$dms_mailing.attention.problem_sends.title",
       description: "$dms_mailing.attention.problem_sends.description",
+      action: "$dms_mailing.attention.problem_sends.action",
       to: SENDS_PROBLEMS_PAGE,
-      params: { count: problems.length },
+      count: problems.length,
+      params: problemBreakdown(problems),
     },
   ];
 }
@@ -54,8 +62,10 @@ function staleDraftsItem(templates: MailingTemplate[]): AttentionItem[] {
       icon: "i-ph-pencil-simple",
       title: "$dms_mailing.attention.stale_drafts.title",
       description: "$dms_mailing.attention.stale_drafts.description",
-      to: TEMPLATES_PAGE,
-      params: { count: stale.length },
+      action: "$dms_mailing.attention.stale_drafts.action",
+      to: TEMPLATES_ATTENTION_PAGE,
+      count: stale.length,
+      params: { count: stale.length, days: STALE_DRAFT_DAYS },
     },
   ];
 }
@@ -76,8 +86,10 @@ function neverSentItem(
       icon: "i-ph-eye-slash",
       title: "$dms_mailing.attention.unused_live.title",
       description: "$dms_mailing.attention.unused_live.description",
-      to: TEMPLATES_PAGE,
-      params: { count: unused.length },
+      action: "$dms_mailing.attention.unused_live.action",
+      to: TEMPLATES_ATTENTION_PAGE,
+      count: unused.length,
+      params: { count: unused.length, names: namesOf(unused) },
     },
   ];
 }
@@ -111,7 +123,9 @@ function testOnlyWindowItem(window: AttentionWindow): AttentionItem[] {
       icon: "i-ph-flask",
       title: "$dms_mailing.attention.test_only_window.title",
       description: "$dms_mailing.attention.test_only_window.description",
+      action: "$dms_mailing.attention.test_only_window.action",
       to: SENDS_PAGE,
+      count: window.excluded.length,
       params: { count: window.excluded.length },
     },
   ];
@@ -134,8 +148,67 @@ function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
       icon: "i-ph-eye-slash",
       title: "$dms_mailing.attention.untracked_rates.title",
       description: "$dms_mailing.attention.untracked_rates.description",
-      to: SENDS_PAGE,
+      action: "$dms_mailing.attention.untracked_rates.action",
+      to: SETTINGS_PAGE,
       params: { provider: tracking.name },
+    },
+  ];
+}
+
+const MAX_LISTED_NAMES = 2;
+const LIST_SEPARATOR = ", ";
+
+function namesOf(templates: MailingTemplate[]): string {
+  return templates
+    .slice(0, MAX_LISTED_NAMES)
+    .map((template) => template.name)
+    .join(LIST_SEPARATOR);
+}
+
+function problemBreakdown(problems: SendSummary[]): Record<string, number> {
+  const countOf = (status: string) =>
+    problems.filter((send) => send.status === status).length;
+  return {
+    count: problems.length,
+    bounced: countOf("bounced"),
+    failed: countOf("failed"),
+    spam: countOf("spam"),
+  };
+}
+
+const localeCodes = (template: MailingTemplate): string[] =>
+  (template.locales || "").split(",").filter(Boolean);
+
+/**
+ * Live templates missing a locale the workspace writes in elsewhere: the
+ * locales any live template carries stand for the workspace's languages,
+ * since the server holds no list of its own.
+ */
+export function missingLocaleTemplates(
+  templates: MailingTemplate[],
+): MailingTemplate[] {
+  const live = templates.filter((template) => template.status === "live");
+  const known = new Set(live.flatMap(localeCodes));
+  return live.filter((template) => {
+    const own = new Set(localeCodes(template));
+    return own.size > 0 && [...known].some((code) => !own.has(code));
+  });
+}
+
+function missingLocalesItem(templates: MailingTemplate[]): AttentionItem[] {
+  const missing = missingLocaleTemplates(templates);
+  if (!missing.length) return [];
+  return [
+    {
+      id: "missing-locales",
+      tone: "warning",
+      icon: "i-ph-translate",
+      title: "$dms_mailing.attention.missing_locales.title",
+      description: "$dms_mailing.attention.missing_locales.description",
+      action: "$dms_mailing.attention.missing_locales.action",
+      to: TEMPLATES_ATTENTION_PAGE,
+      count: missing.length,
+      params: { count: missing.length, names: namesOf(missing) },
     },
   ];
 }
@@ -143,6 +216,7 @@ function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
 export function buildAttentionItems(window: AttentionWindow): AttentionItem[] {
   return [
     ...problemsItem(window.sends),
+    ...missingLocalesItem(window.templates),
     ...testOnlyWindowItem(window),
     ...untrackedRatesItem(window),
     ...neverSentItem(window.templates, window.sends),

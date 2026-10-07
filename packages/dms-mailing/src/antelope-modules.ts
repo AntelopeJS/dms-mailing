@@ -11,19 +11,19 @@
  * `config`, since the playground talks to a real Mongo and Ethereal while the
  * tests drive a memory replica set and an SMTP fixture.
  *
- * Modules only one stack needs — the playground's `dms-automation`, the local
+ * Modules only one stack needs — the local
  * checkouts — stay in their own config.
  */
 export const SHARED_MODULE_SOURCES = {
   dms: {
     type: "package",
     package: "@antelopejs/dms",
-    version: ">=0.5.0 <1.0.0",
+    version: ">=0.6.0 <0.7.0",
   },
   mongodb: {
     type: "package",
     package: "@antelopejs/mongodb",
-    version: "^1.3.1",
+    version: ">=1.4.2 <2",
   },
   "auth-jwt": {
     type: "package",

@@ -121,7 +121,7 @@ describe("[integration] sends", () => {
   it("records one send per recipient of a multi-recipient test send", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    const list = await client.get(`${TABLE}/list`);
+    const list = await client.get(`${TABLE}/list?limit=100`);
     const id = (
       list.data.results.find(
         (item: TemplateRow) => item.slug === "test-send",
@@ -148,7 +148,7 @@ describe("[integration] sends", () => {
       ...settings.data,
       blockOnMissingVariables: true,
     });
-    const list = await client.get(`${TABLE}/list`);
+    const list = await client.get(`${TABLE}/list?limit=100`);
     const id = (
       list.data.results.find(
         (item: TemplateRow) => item.slug === "test-send",

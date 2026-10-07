@@ -14,6 +14,10 @@ vi.mock('../app/composables/useEditorContext', () => ({
 	useEditorContext: () => ({ editor: { touch: vi.fn() } }),
 }))
 
+vi.mock('../app/components/editor/EditorInsertPoint.vue', () => ({
+	default: defineComponent({ setup: () => () => h('span') }),
+}))
+
 vi.mock('../app/components/editor/EditorBlock.vue', () => ({
 	default: defineComponent({
 		props: ['block'],
@@ -34,7 +38,7 @@ describe('editor draggable items', () => {
 		const host = document.createElement('div')
 		const app = createApp(EditorBlockList, { list })
 		app.component(
-			'DmsMailingEditorBlock',
+			'MailingEditorBlock',
 			defineAsyncComponent(() => new Promise(() => {})),
 		)
 		app.config.errorHandler = (error) => errors.push(error)

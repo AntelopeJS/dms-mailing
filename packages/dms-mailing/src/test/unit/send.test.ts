@@ -20,6 +20,8 @@ const RECIPIENTS = ["first@test.local", "second@test.local"];
 const PREPARED: PreparedSend = {
   content: { locales: {} },
   locale: "en",
+  requestedLocale: "en",
+  version: 1,
   templateId: "template-1",
   slug: "welcome",
   tenantId: "tenant-1",

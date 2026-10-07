@@ -25,6 +25,41 @@ export const SEND_STATUSES: SendStatus[] = [
 export const PROBLEM_STATUSES: SendStatus[] = ["bounced", "failed", "spam"];
 
 /**
+ * The send log tab a status belongs to. Stored next to the status so a tab is a
+ * single-value filter: a view filter is AND-only and `is` compares one value.
+ */
+export type SendStage =
+  | "problem"
+  | "in_progress"
+  | "delivered"
+  | "engaged"
+  | "unsubscribed";
+
+export const SEND_STAGES: SendStage[] = [
+  "problem",
+  "in_progress",
+  "delivered",
+  "engaged",
+  "unsubscribed",
+];
+
+export const STAGE_BY_STATUS: Record<SendStatus, SendStage> = {
+  queued: "in_progress",
+  sent: "in_progress",
+  delivered: "delivered",
+  opened: "engaged",
+  clicked: "engaged",
+  bounced: "problem",
+  spam: "problem",
+  failed: "problem",
+  unsubscribed: "unsubscribed",
+};
+
+export function stageOf(status: SendStatus): SendStage {
+  return STAGE_BY_STATUS[status];
+}
+
+/**
  * Which sends a metric describes. The Overview is the business view and hides
  * test sends; the Sends page is the operational log and counts what actually
  * went through the provider.

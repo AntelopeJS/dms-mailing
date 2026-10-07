@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { useMailingApi } from '../composables/useMailingApi'
 import {
+	DEFAULT_CATEGORY_ICON,
 	fromCategoryOption,
 	NO_CATEGORY,
 	toCategoryOption,
@@ -28,13 +30,24 @@ const selected = ref<string>(
 	toCategoryOption(props.modelValue ?? props.initialValue),
 )
 
+const UNCATEGORISED_ICON = 'i-ph-tray'
+
 const items = computed(() => [
-	{ label: t('dms_mailing.templates.uncategorised'), value: NO_CATEGORY },
+	{
+		label: t('dms_mailing.templates.uncategorised'),
+		value: NO_CATEGORY,
+		icon: UNCATEGORISED_ICON,
+	},
 	...categories.value.map((entry) => ({
 		label: entry.label,
 		value: entry.id,
+		icon: entry.icon || DEFAULT_CATEGORY_ICON,
 	})),
 ])
+
+const selectedIcon = computed(
+	() => items.value.find((item) => item.value === selected.value)?.icon,
+)
 
 watch(
 	() => props.modelValue,
@@ -58,6 +71,7 @@ onMounted(async () => {
 		v-model="selected"
 		:items="items"
 		value-key="value"
+		:icon="selectedIcon"
 		:disabled="disabled"
 		class="w-full"
 		@update:model-value="

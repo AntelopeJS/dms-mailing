@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
+	CATEGORY_ICONS,
+	formatCategoriesLike,
 	fromCategoryOption,
 	NO_CATEGORY,
 	parseCategories,
 	serializeCategories,
 	slugifyId,
 	toCategoryOption,
+	toStoredCategories,
 	toStoredCategory,
+	uniqueId,
+	type EditableCategory,
 } from '../app/utils/categories'
 import type { TemplateCategory } from '../app/types/mailing'
 
@@ -76,5 +81,71 @@ describe('toStoredCategory', () => {
 
 	it('keeps a real category id', () => {
 		expect(toStoredCategory('orders')).toBe('orders')
+	})
+})
+
+describe('formatCategoriesLike', () => {
+	it('writes back in the shape the field handed in', () => {
+		expect(formatCategoriesLike(CATEGORIES, CATEGORIES)).toEqual(CATEGORIES)
+		expect(formatCategoriesLike('[]', CATEGORIES)).toBe(
+			serializeCategories(CATEGORIES),
+		)
+		expect(formatCategoriesLike(null, CATEGORIES)).toBe(
+			serializeCategories(CATEGORIES),
+		)
+	})
+})
+
+describe('uniqueId', () => {
+	it('suffixes an id already taken', () => {
+		expect(uniqueId('orders', new Set())).toBe('orders')
+		expect(uniqueId('orders', new Set(['orders', 'orders-2']))).toBe('orders-3')
+	})
+})
+
+const row = (patch: Partial<EditableCategory>): EditableCategory => ({
+	key: patch.label ?? 'row',
+	id: '',
+	label: '',
+	icon: 'i-ph-package',
+	isNew: false,
+	...patch,
+})
+
+describe('toStoredCategories', () => {
+	it('keeps saved ids even after a rename', () => {
+		expect(
+			toStoredCategories([row({ id: 'orders', label: 'Purchases' })]),
+		).toEqual([{ id: 'orders', label: 'Purchases', icon: 'i-ph-package' }])
+	})
+
+	it('derives a new row id from its whole label, unique among the others', () => {
+		const stored = toStoredCategories([
+			row({ id: 'billing', label: 'Billing' }),
+			row({ label: 'Billing', isNew: true }),
+			row({ label: 'Été', isNew: true }),
+		])
+		expect(stored.map((category) => category.id)).toEqual([
+			'billing',
+			'billing-2',
+			'ete',
+		])
+	})
+
+	it('leaves out rows without a label and fills a missing icon', () => {
+		const stored = toStoredCategories([
+			row({ label: '   ', isNew: true }),
+			row({ label: '!!!', isNew: true, icon: '' }),
+		])
+		expect(stored).toEqual([
+			{ id: 'category', label: '!!!', icon: 'i-ph-folder' },
+		])
+	})
+})
+
+describe('CATEGORY_ICONS', () => {
+	it('offers sixteen distinct Phosphor icons', () => {
+		expect(new Set(CATEGORY_ICONS).size).toBe(16)
+		expect(CATEGORY_ICONS.every((icon) => icon.startsWith('i-ph-'))).toBe(true)
 	})
 })

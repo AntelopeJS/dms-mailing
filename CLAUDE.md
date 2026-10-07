@@ -9,10 +9,11 @@ See [AGENTS.md](./AGENTS.md) for code conventions and guidelines.
 The repository is a pnpm workspace: the root holds tooling only, the two
 published packages live under `packages/`.
 
-- `packages/dms-mailing/src/` — the whole server side. Pages are declared with DMS factories (`TableView`, `KpiCard`, `ChartCard`, `TopListCard`, `PeriodSelector`, `Form`), not custom Vue: `overview`, `templates`, `editor`, `sends`, plus a `settings` page in the settings area.
+- `packages/dms-mailing/src/` — the whole server side. Pages are declared with DMS factories (`TableView`, `KpiCard`, `ChartCard`, `TopListCard`, `Section`, `Form` with sections), custom Vue only where the DMS has no block: `overview`, `templates`, the editor (`templates/:id`), `sends` and `settings`, all in the module sidebar. Every `CustomComponent` and the settings form carry a `.meta()` with `$dms_mailing.permissions.*` keys. Templates keep a draft (`json_draft`) next to the published content (`json_content`); publishing writes a row in `mailing_template_versions`.
 - `packages/dms-mailing/src/engine/` — pure TS, no runtime dependency: a block tree resolves to an e-mail (token interpolation, conditions, list expansion) and can render itself to standalone HTML when the front end is unreachable.
 - `packages/interface-dms-mailing/` — the separately published public interface other modules consume: `SendTemplate` and `RecordEmailEvent`.
-- `packages/dms-mailing/frontend-vue/` — only what the DMS cannot express: the templates gallery (a TableView display), the detail drawers, the block editor, and `app/emails/EmailMailingTemplate.vue`. `dms.frontend.ts` registers Vue components and plugins; `dms.email.ts` exposes server-only templates that share the DMS email branding.
+- `packages/dms-mailing/frontend-vue/` — only what the DMS cannot express: the templates gallery (a TableView display), the drawers and dialogs, the block editor, the overview and settings blocks, and `app/emails/EmailMailingTemplate.vue`. `dms.frontend.ts` registers every component under the `Mailing` prefix (`MailingEditor`, `MailingBlockHero`…) and the plugins; the module's composables and utils are imported by path. `dms.email.ts` exposes server-only templates that share the DMS email branding.
+- `docs/design-v2-grill-me.md` — the decision log of the v2 redesign.
 
 ## Testing
 

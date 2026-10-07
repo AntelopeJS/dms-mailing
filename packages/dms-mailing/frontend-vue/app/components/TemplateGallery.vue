@@ -1,41 +1,139 @@
 <script setup lang="ts">
-import { editorRoute } from '../utils/editor-route'
-import { groupByCategory } from '../utils/gallery'
-import type { GalleryDisplayContext } from '../types/component'
-import type { TemplateCategory, TemplateRow } from '../types/mailing'
+import { useEventListener } from '@vueuse/core'
+import { useMailingApi } from '../composables/useMailingApi'
+import { useTemplateDrawer } from '../composables/useTemplateDrawer'
+import {
+	groupByCategory,
+	isNarrowed,
+	searchTermOf,
+	userFilterKeys,
+	type GalleryContext,
+} from '../utils/gallery'
+import {
+	attentionReasons,
+	type AttentionReason,
+} from '../utils/template-attention'
+import { TEMPLATES_PATH, editorRoute } from '../utils/editor-route'
+import type {
+	TemplateCategory,
+	TemplateRow,
+	TemplateStats,
+} from '../types/mailing'
 
 interface TemplateGalleryProps {
-	context: GalleryDisplayContext<TemplateRow>
+	context: GalleryContext<TemplateRow>
 }
 
+type GalleryState = 'loading' | 'first_run' | 'empty' | 'no_attention' | 'grid'
+
+type StateRule = [GalleryState, () => boolean]
+
 const FIRST_PAGE = 1
+const PAGES_MODE = 'pages'
+const SKELETON_CARDS = 3
+const NEW_TEMPLATE_KEY = 'n'
+const TYPING_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
+const OPEN_OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]'
 
 const props = defineProps<TemplateGalleryProps>()
 
 const api = useMailingApi()
 const { t } = useI18n()
-const { open: openTemplateDrawer } = useTemplateDrawer()
-const { open: openTestSendModal } = useTestSendModal()
+const { uniqueLocales } = useUniqueLocales()
+const overlays = useTemplateDrawer()
 
-// Fetched, not read from the page options: the tenant edits them in Settings,
-// and a page declaration is serialised once, at registration.
 const categories = ref<TemplateCategory[]>([])
+const statsById = ref(new Map<string, TemplateStats>())
+const templateCount = ref<number | null>(null)
+const isAttentionOnly = ref(false)
+const now = ref(new Date())
 
-onMounted(async () => {
-	try {
-		const response = await api.listCategories()
-		categories.value = response.categories
-	} catch {
-		categories.value = []
-	}
+async function loadCategories(): Promise<void> {
+	const response = await api.listCategories().catch(() => ({ categories: [] }))
+	categories.value = response.categories
+}
+
+async function loadStats(): Promise<void> {
+	const response = await api.templatesOverview().catch(() => ({ items: [] }))
+	statsById.value = new Map(response.items.map((entry) => [entry.id, entry]))
+}
+
+async function loadCount(): Promise<void> {
+	const response = await api.listTemplates().catch(() => null)
+	templateCount.value = response ? response.total : null
+}
+
+onMounted(() => {
+	void loadCategories()
+	void loadStats()
+	void loadCount()
 })
+
+watch(
+	() => props.context.items,
+	() => (now.value = new Date()),
+)
+
+const workspaceCodes = computed(() =>
+	uniqueLocales.value.map((entry) => entry.code),
+)
+
+const reasonsById = computed(
+	() =>
+		new Map<string, AttentionReason[]>(
+			props.context.items.map((row) => [
+				row._id,
+				attentionReasons({
+					row,
+					stats: statsById.value.get(row._id),
+					workspaceLocales: workspaceCodes.value,
+					now: now.value,
+				}),
+			]),
+		),
+)
+
+const attentionCount = computed(
+	() =>
+		[...reasonsById.value.values()].filter((reasons) => reasons.length).length,
+)
+
+const visibleItems = computed(() =>
+	isAttentionOnly.value
+		? props.context.items.filter(
+				(row) => reasonsById.value.get(row._id)?.length,
+			)
+		: props.context.items,
+)
 
 const groups = computed(() =>
 	groupByCategory(
-		props.context.items,
+		visibleItems.value,
 		categories.value,
 		t('dms_mailing.templates.uncategorised'),
 	),
+)
+
+const search = computed(() => searchTermOf(props.context.query))
+const narrowed = computed(() => isNarrowed(props.context.query))
+const hasNoItems = computed(() => !props.context.items.length)
+
+const STATE_RULES: StateRule[] = [
+	['loading', () => props.context.loading && hasNoItems.value],
+	[
+		'loading',
+		() => hasNoItems.value && !narrowed.value && templateCount.value === null,
+	],
+	[
+		'first_run',
+		() => hasNoItems.value && !narrowed.value && templateCount.value === 0,
+	],
+	['empty', () => hasNoItems.value],
+	['no_attention', () => !visibleItems.value.length],
+]
+
+const state = computed<GalleryState>(
+	() => STATE_RULES.find(([, matches]) => matches())?.[0] ?? 'grid',
 )
 
 const page = computed({
@@ -43,38 +141,177 @@ const page = computed({
 	set: (value: number) => props.context.pagination.setPage(value - FIRST_PAGE),
 })
 
-function openEditor(template: TemplateRow, locale?: string): void {
-	void navigateDms(editorRoute(template._id, locale))
+const isPaged = computed(
+	() => (props.context.pagination.mode ?? PAGES_MODE) === PAGES_MODE,
+)
+
+const emptyTitle = computed(() =>
+	search.value
+		? t('dms_mailing.templates.empty.no_match_title', { search: search.value })
+		: t('dms_mailing.templates.empty.view_title'),
+)
+
+const emptyDescription = computed(() =>
+	search.value
+		? t('dms_mailing.templates.empty.no_match_description')
+		: t('dms_mailing.templates.empty.view_description'),
+)
+
+function refreshAll(): void {
+	void props.context.refresh()
+	void loadStats()
+	void loadCount()
 }
+
+function openRow(row: TemplateRow): void {
+	if (props.context.actions) {
+		props.context.actions.open(row)
+		return
+	}
+	void navigateDms(editorRoute(row._id))
+}
+
+function openLocale(row: TemplateRow, code: string): void {
+	void navigateDms(editorRoute(row._id, code))
+}
+
+function openNewTemplate(initialName?: string): void {
+	overlays.openNewTemplate({ initialName, onDone: refreshAll })
+}
+
+function resetFilters(): void {
+	isAttentionOnly.value = false
+	const table = props.context.table
+	table?.setGlobalFilter('')
+	if (!table || userFilterKeys(props.context.query).length) {
+		void navigateDms({ path: TEMPLATES_PATH })
+	}
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+	const element = target as HTMLElement | null
+	if (!element) return false
+	return element.isContentEditable || TYPING_TAGS.has(element.tagName)
+}
+
+useEventListener(
+	typeof document === 'undefined' ? undefined : document,
+	'keydown',
+	(event: KeyboardEvent) => {
+		if (event.key.toLowerCase() !== NEW_TEMPLATE_KEY) return
+		if (event.metaKey || event.ctrlKey || event.altKey) return
+		if (isTypingTarget(event.target)) return
+		if (document.querySelector(OPEN_OVERLAY_SELECTOR)) return
+		event.preventDefault()
+		openNewTemplate()
+	},
+)
 </script>
 
 <template>
 	<div class="flex flex-col gap-6 p-4">
-		<USkeleton v-if="context.loading && !groups.length" class="h-64 w-full" />
-
 		<div
-			v-else-if="!groups.length"
-			class="flex flex-col items-center gap-3 py-16 text-center"
+			v-if="attentionCount || isAttentionOnly"
+			class="flex items-center gap-2"
 		>
-			<UIcon name="i-ph-envelope-simple" class="text-dimmed size-8" />
-			<h3 class="text-highlighted text-sm font-semibold">
-				{{ t('dms_mailing.templates.empty.title') }}
-			</h3>
-			<p class="text-muted text-[13px]">
-				{{ t('dms_mailing.templates.empty.hint') }}
-			</p>
 			<UButton
-				color="neutral"
-				variant="ghost"
-				size="sm"
-				:label="t('dms_mailing.templates.empty.reset')"
-				@click="context.refresh()"
-			/>
+				icon="i-ph-warning"
+				color="warning"
+				:variant="isAttentionOnly ? 'soft' : 'outline'"
+				size="xs"
+				:aria-pressed="isAttentionOnly"
+				@click="isAttentionOnly = !isAttentionOnly"
+			>
+				{{ t('dms_mailing.templates.attention.chip') }}
+				<span class="font-mono text-[10.5px] font-semibold">
+					{{ attentionCount }}
+				</span>
+			</UButton>
+			<span class="text-dimmed text-xs">
+				{{ t('dms_mailing.templates.attention.hint') }}
+			</span>
 		</div>
 
-		<div v-else class="flex flex-col gap-6">
-			<div v-for="group in groups" :key="group.category.id">
-				<div class="mb-3 flex items-center gap-2">
+		<div
+			v-if="state === 'loading'"
+			class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4"
+			aria-busy="true"
+		>
+			<DmsCard
+				v-for="index in SKELETON_CARDS"
+				:key="index"
+				:padded="false"
+				class="overflow-hidden"
+			>
+				<USkeleton class="h-[172px] w-full rounded-none" />
+				<div class="flex flex-col gap-2 p-3.5">
+					<USkeleton class="h-3 w-3/5" />
+					<USkeleton class="h-2.5 w-2/5" />
+				</div>
+			</DmsCard>
+		</div>
+
+		<MailingStarterGallery
+			v-else-if="state === 'first_run'"
+			@created="refreshAll"
+		/>
+
+		<DmsEmptyState
+			v-else-if="state === 'empty'"
+			:title="emptyTitle"
+			:description="emptyDescription"
+			variant="no-result"
+			icon="i-ph-magnifying-glass"
+			size="lg"
+			hatched
+		>
+			<template #actions>
+				<UButton
+					v-if="narrowed"
+					icon="i-ph-x"
+					color="neutral"
+					variant="outline"
+					size="sm"
+					:label="t('dms_mailing.templates.empty.reset')"
+					@click="resetFilters"
+				/>
+				<UButton
+					icon="i-ph-plus"
+					size="sm"
+					:label="
+						search
+							? t('dms_mailing.templates.empty.create_named', { name: search })
+							: t('dms_mailing.templates.actions.create')
+					"
+					@click="openNewTemplate(search || undefined)"
+				/>
+			</template>
+		</DmsEmptyState>
+
+		<DmsEmptyState
+			v-else-if="state === 'no_attention'"
+			:title="t('dms_mailing.templates.attention.none_title')"
+			:description="t('dms_mailing.templates.attention.none_description')"
+			icon="i-ph-check-circle"
+			tone="success"
+			size="md"
+			:actions="[
+				{
+					label: t('dms_mailing.templates.attention.show_all'),
+					color: 'neutral',
+					variant: 'outline',
+					onClick: () => (isAttentionOnly = false),
+				},
+			]"
+		/>
+
+		<template v-else>
+			<section
+				v-for="(group, index) in groups"
+				:key="group.category.id"
+				class="flex flex-col gap-3"
+			>
+				<div class="flex items-center gap-2">
 					<UIcon :name="group.category.icon" class="text-dimmed size-4" />
 					<h2 class="text-highlighted text-[13px] font-semibold">
 						{{ group.category.label }}
@@ -82,30 +319,68 @@ function openEditor(template: TemplateRow, locale?: string): void {
 					<span class="text-dimmed font-mono text-[11.5px]">
 						{{ group.items.length }}
 					</span>
-					<span class="bg-default ml-2 h-px flex-1" />
+					<span class="bg-(--ui-border) ml-2 h-px flex-1" />
 				</div>
 				<div class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4">
-					<DmsMailingTemplateCard
+					<MailingTemplateCard
 						v-for="template in group.items"
 						:key="template._id"
 						:template="template"
-						@open="openEditor(template)"
-						@open-locale="(code: string) => openEditor(template, code)"
-						@details="openTemplateDrawer(template._id)"
-						@test-send="openTestSendModal(template._id)"
+						:stats="statsById.get(template._id)"
+						:attention="reasonsById.get(template._id)"
+						@open="openRow(template)"
+						@open-locale="(code: string) => openLocale(template, code)"
+						@details="
+							overlays.openDetails(template, {
+								rows: visibleItems,
+								onDone: refreshAll,
+							})
+						"
+						@test-send="overlays.openTestSend(template._id)"
+						@real-send="
+							overlays.openRealSend(template._id, {
+								rowData: template,
+								onDone: refreshAll,
+							})
+						"
 					/>
+					<button
+						v-if="index === groups.length - 1"
+						type="button"
+						class="border-default text-muted hover:border-primary/60 hover:text-highlighted focus-visible:outline-primary rounded-(--dms-radius-card) flex min-h-[260px] flex-col items-center justify-center gap-2 border border-dashed text-[13px] font-medium transition-colors focus-visible:outline-2"
+						@click="openNewTemplate()"
+					>
+						<DmsIconWell icon="i-ph-plus" size="md" />
+						{{ t('dms_mailing.templates.gallery.new_tile') }}
+						<span class="text-dimmed text-[11.5px] font-normal">
+							{{ t('dms_mailing.templates.gallery.new_tile_hint') }}
+						</span>
+					</button>
 				</div>
-			</div>
-		</div>
+			</section>
+		</template>
 
 		<div
-			v-if="context.pagination.total > context.pagination.pageSize"
+			v-if="isPaged && context.pagination.total > context.pagination.pageSize"
 			class="flex justify-end"
 		>
 			<UPagination
 				v-model:page="page"
 				:items-per-page="context.pagination.pageSize"
 				:total="context.pagination.total"
+			/>
+		</div>
+		<div
+			v-else-if="!isPaged && context.pagination.hasMore"
+			class="flex justify-center"
+		>
+			<UButton
+				color="neutral"
+				variant="outline"
+				size="sm"
+				:loading="context.loading"
+				:label="t('dms_mailing.templates.gallery.load_more')"
+				@click="context.pagination.loadMore?.()"
 			/>
 		</div>
 	</div>
