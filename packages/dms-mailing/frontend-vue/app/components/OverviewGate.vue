@@ -123,7 +123,11 @@ onMounted(load)
 					<DmsListRow
 						as="div"
 						:title="key(`steps.${step.id}.title`)"
-						:description="key(`steps.${step.id}.description`)"
+						:description="
+							key(
+								`steps.${step.id}.${step.state === 'done' ? 'done' : 'description'}`,
+							)
+						"
 						:current="step.state === 'current'"
 					>
 						<template #leading>

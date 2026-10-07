@@ -1119,22 +1119,26 @@
 				"install": {
 					"title": "Install the Mailing module",
 					"description": "Done: the module is active in this workspace.",
-					"action": "Settings"
+					"action": "Settings",
+					"done": "Done: the module is active in this workspace."
 				},
 				"provider": {
 					"title": "Connect a provider",
 					"description": "No e-mail can leave until one is configured.",
-					"action": "Connect"
+					"action": "Connect",
+					"done": "Done: a provider is connected, e-mails can leave."
 				},
 				"sender": {
 					"title": "Set the sender",
 					"description": "Name and address customers see.",
-					"action": "Set sender"
+					"action": "Set sender",
+					"done": "Done: customers see your sender name and address."
 				},
 				"template": {
 					"title": "Create and test a template",
 					"description": "Start from a starter template or a blank page.",
-					"action": "Templates"
+					"action": "Templates",
+					"done": "Done: your first template is ready."
 				}
 			}
 		},

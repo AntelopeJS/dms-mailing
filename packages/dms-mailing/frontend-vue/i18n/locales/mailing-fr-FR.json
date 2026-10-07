@@ -1119,22 +1119,26 @@
 				"install": {
 					"title": "Installer le module Mailing",
 					"description": "Fait : le module est actif dans cet espace de travail.",
-					"action": "Réglages"
+					"action": "Réglages",
+					"done": "Fait : le module est actif dans cet espace."
 				},
 				"provider": {
 					"title": "Connecter un fournisseur",
 					"description": "Aucun e-mail ne peut partir tant qu’il n’est pas configuré.",
-					"action": "Connecter"
+					"action": "Connecter",
+					"done": "Fait : un fournisseur est connecté, les e-mails peuvent partir."
 				},
 				"sender": {
 					"title": "Définir l’expéditeur",
 					"description": "Le nom et l’adresse que voient les clients.",
-					"action": "Définir l’expéditeur"
+					"action": "Définir l’expéditeur",
+					"done": "Fait : les clients voient votre nom et votre adresse d'expéditeur."
 				},
 				"template": {
 					"title": "Créer et tester un modèle",
 					"description": "Partez d’un modèle de départ ou d’une page vierge.",
-					"action": "Modèles"
+					"action": "Modèles",
+					"done": "Fait : votre premier modèle est prêt."
 				}
 			}
 		},
