@@ -135,7 +135,7 @@ function chipLabel(code: string, present: boolean): string {
 				/>
 			</div>
 			<DmsStatusPill
-				class="absolute left-2.5 top-2.5 z-10 bg-(--ui-bg)"
+				class="bg-(--ui-bg) absolute left-2.5 top-2.5 z-10"
 				:tone="STATUS_TONES[template.status]"
 				:label="statusLabel"
 				:dot="isLive ? 'live' : 'static'"

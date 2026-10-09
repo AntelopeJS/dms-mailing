@@ -592,10 +592,16 @@
 					"spam": "{count} spam | {count} spam"
 				},
 				"no_problems": "No bounce, failure or spam",
-				"oldest_waiting": "Oldest waiting {minutes} min",
+				"oldest_waiting": "Oldest queued {time}",
 				"nothing_waiting": "Nothing waiting",
 				"latency_detail": "API call to {provider}",
-				"latency_detail_generic": "API call to the provider"
+				"latency_detail_generic": "API call to the provider",
+				"joined": "{left} · {right}",
+				"delta_up": "▲ {delta}",
+				"delta_down": "▼ {delta}",
+				"rate": "{rate}",
+				"latency_ms": "{value} ms",
+				"latency_s": "{value} s"
 			},
 			"banner": {
 				"the_provider": "The provider",
@@ -666,7 +672,8 @@
 					"invalid": "This isn't an e-mail address.",
 					"same": "This is the address that bounced: enter a different one."
 				}
-			}
+			},
+			"locale_fallback": "{requested} asked"
 		},
 		"settings": {
 			"categories": {

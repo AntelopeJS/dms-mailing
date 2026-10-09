@@ -19,7 +19,10 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { DefaultDisplays } from "@antelopejs/interface-dms/base/table-view";
+import {
+  type CellSubline,
+  DefaultDisplays,
+} from "@antelopejs/interface-dms/base/table-view";
 import { TABLES_BASE_PATH } from "../constants";
 import { MailingSend, SendModel } from "../db";
 import {
@@ -28,7 +31,7 @@ import {
   type SendStage,
   type SendStatus,
 } from "../types";
-import { LocaleFallbackDisplay } from "./displays";
+import { localeCode, localeFallbackSubline } from "./locale-fallback";
 
 const STATUS_ITEMS = SEND_STATUSES.map((value) => ({
   value,
@@ -161,9 +164,23 @@ export class SendsTableAPI extends DataController(
     name: "$dms_mailing.sends.cols.locale",
     type: new DefaultDataTypes.StringType({}),
     size: NARROW_COLUMN_WIDTH,
-    display: new LocaleFallbackDisplay({ requestedField: "requestedLocale" }),
+    display: new DefaultDisplays.TwoLineDisplay({
+      primaryField: "localeLabel",
+      subField: "localeFallback",
+      subTone: "warning",
+    }),
   })
   declare locale: string;
+
+  @Listable(["locale"])
+  get localeLabel(): string {
+    return localeCode(this.locale);
+  }
+
+  @Listable(["locale", "requestedLocale"])
+  get localeFallback(): CellSubline | null {
+    return localeFallbackSubline(this.locale, this.requestedLocale);
+  }
 
   @Listable()
   @Exported()

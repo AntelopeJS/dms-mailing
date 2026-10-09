@@ -33,19 +33,19 @@ resolves:
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-dms` | `>=0.4.0 <1.0.0` (module and playground) |
+| `@antelopejs/interface-dms` | `>=0.5.0 <1.0.0` (module and playground) |
 | `@antelopejs/interface-data-api` | `>=0.2.0 <1.0.0` |
 | `@antelopejs/interface-database` | `>=0.1.8 <1.0.0` |
 | `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.6.0 <0.7.0` |
+| `@antelopejs/dms` (shared module sources) | `>=0.7.1 <0.8.0` (0.7.0 shipped without its interface) |
 | `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
-| `@antelopejs/dms-frontend` (playground) | `0.5.0` |
+| `@antelopejs/dms-frontend` (playground) | `0.5.1` |
 | `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.0 <0.6.0` |
 
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
 keeps `<1.0.0` with its floor raised to 0.4. What pins the runtime is the
-`@antelopejs/dms` module range (`>=0.6.0 <0.7.0`) in the shared module
+`@antelopejs/dms` module range (`>=0.7.1 <0.8.0`) in the shared module
 sources, which the tests and the playground both boot.
 
 ### Q1.2 What breaks at compile time or at registration?
@@ -444,6 +444,20 @@ dependency, and adding one is a product decision, not a redesign detail.
 - Mailing settings under workspace Settings (ML-13).
 - Saving a live template no longer ships it: edits are drafts until published
   (ML-01). Code calling `SendTemplate` keeps receiving the published content.
+
+## 8b. DMS 0.7 follow-up
+
+- The sends locale column uses the stock `two_line` display: the used locale
+  over a warning sub-line "DE asked" when the caller asked for another one.
+  The custom `mailing:locale-fallback` cell renderer is gone.
+- The send log stat strip is worded on the server as `StatGroup` items with
+  composed texts (counts, percentages, relative dates). The front end only
+  feeds them to `DmsStatGroup`, because `StatGroup` still has no
+  `periodScope`; the day it does, the block becomes a stock `StatGroup`.
+- The Sends nav badge is red (`{ count, tone: "error" }`).
+- dms 0.7's stricter permissions change nothing here: module pages stay
+  owner-only, and `mailing.send` keeps its dependency on the sends page for
+  the day module pages become grantable.
 
 ## 9. Out of scope, recorded as DMS gaps
 

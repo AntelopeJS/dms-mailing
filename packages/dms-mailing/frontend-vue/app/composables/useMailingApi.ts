@@ -21,6 +21,9 @@ import type {
 	VariableDefinition,
 } from '../types/mailing'
 
+/** A text slot of a DMS block: a string, an i18n key or a composed text. */
+export type ComposableText = string | number | Record<string, unknown>
+
 const BASE = '/api/mailing'
 
 /** Far above any real tenant's template count; the data-api caps at 100. */
@@ -100,6 +103,22 @@ export interface TemplateOverviewResponse {
 export interface ReplayFailedResponse {
 	count: number
 	results: SendResult[]
+}
+
+/** A stat cell as the server words it, texts composed by the DMS. */
+export interface SendStatItem {
+	id?: string
+	icon?: string
+	tone?: string
+	eyebrow: ComposableText
+	value: ComposableText
+	detail?: ComposableText
+	detailTone?: string
+	to?: string
+}
+
+export interface SendStatsResponse extends SendStats {
+	items: SendStatItem[]
 }
 
 export interface CategoryUsageResponse {
@@ -269,7 +288,7 @@ export function useMailingApi() {
 				since ? { since } : {},
 			),
 		sendStats: (query: Record<string, string>) =>
-			$authFetch<SendStats>(mailingPath('sends', 'stats'), { query }),
+			$authFetch<SendStatsResponse>(mailingPath('sends', 'stats'), { query }),
 		sendHealth: () => $authFetch<SendHealth>(mailingPath('sends', 'health')),
 		settings: () => $authFetch<MailingSettings>(mailingPath('settings')),
 		saveSettings: (settings: MailingSettings) =>

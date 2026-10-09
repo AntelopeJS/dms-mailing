@@ -592,10 +592,16 @@
 					"spam": "{count} spam | {count} spams"
 				},
 				"no_problems": "Aucun rebond, échec ni spam",
-				"oldest_waiting": "Le plus ancien attend depuis {minutes} min",
+				"oldest_waiting": "Plus ancien en attente {time}",
 				"nothing_waiting": "Rien en attente",
 				"latency_detail": "Appel API à {provider}",
-				"latency_detail_generic": "Appel API au fournisseur"
+				"latency_detail_generic": "Appel API au fournisseur",
+				"joined": "{left} · {right}",
+				"delta_up": "▲ {delta}",
+				"delta_down": "▼ {delta}",
+				"rate": "{rate}",
+				"latency_ms": "{value} ms",
+				"latency_s": "{value} s"
 			},
 			"banner": {
 				"the_provider": "Le fournisseur",
@@ -666,7 +672,8 @@
 					"invalid": "Ce n’est pas une adresse e-mail.",
 					"same": "C’est l’adresse qui a rebondi : saisissez-en une autre."
 				}
-			}
+			},
+			"locale_fallback": "{requested} demandée"
 		},
 		"settings": {
 			"categories": {

@@ -75,26 +75,6 @@ export function missingLocales(present: string[], codes: string[]): string[] {
 		.map((entry) => entry.code)
 }
 
-/** The locale a send used and, when it differs, the one it was asked in. */
-export interface LocaleFallback {
-	used: string
-	requested: string
-	isFallback: boolean
-}
-
-export function localeFallback(
-	used: unknown,
-	requested: unknown,
-): LocaleFallback {
-	const usedCode = typeof used === 'string' ? used.trim() : ''
-	const requestedCode = typeof requested === 'string' ? requested.trim() : ''
-	return {
-		used: usedCode,
-		requested: requestedCode || usedCode,
-		isFallback: Boolean(requestedCode) && requestedCode !== usedCode,
-	}
-}
-
 export function localeChipClass(present: boolean): string {
 	return `${LOCALE_CHIP_CLASS} ${present ? LOCALE_CHIP_PRESENT_CLASS : LOCALE_CHIP_MISSING_CLASS}`
 }

@@ -5,6 +5,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import type { Tone } from "@antelopejs/interface-dms/base/types";
 import { GetModel } from "@antelopejs/interface-database-decorators";
+import type { NavBadgeCount } from "@antelopejs/interface-dms";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { API_BASE_PATH, MODULE_ID, SENDS_PERIOD_SCOPE } from "../constants";
 import { SendModel } from "../db";
@@ -47,14 +48,16 @@ const permissionMeta = (id: string, icon: string) => ({
 /** Problems of the last 24 hours, the red count next to "Sends" in the nav. */
 async function recentProblems(
   ctx: Parameters<typeof getRequestTenantId>[0],
-): Promise<number> {
+): Promise<NavBadgeCount> {
   const since = new Date(Date.now() - DAY_MS);
   const sends = await GetModel(SendModel, getRequestTenantId(ctx)).listBetween(
     since,
     new Date(),
   );
-  return sends.filter((send) => send.stage === "problem" && !send.isTest)
-    .length;
+  const count = sends.filter(
+    (send) => send.stage === "problem" && !send.isTest,
+  ).length;
+  return { count, tone: "error" };
 }
 
 @RegisterPage()

@@ -5,7 +5,6 @@ import {
 	localeChipClass,
 	localeChips,
 	localeCoverage,
-	localeFallback,
 	missingLocales,
 	parseLocaleList,
 } from '../app/utils/locales'
@@ -58,26 +57,6 @@ describe('missingLocales', () => {
 	it('lists the workspace locales a content lacks', () => {
 		expect(missingLocales(['en'], ['en', 'fr', 'de'])).toEqual(['fr', 'de'])
 		expect(missingLocales(['en', 'fr'], ['en', 'fr'])).toEqual([])
-	})
-})
-
-describe('localeFallback', () => {
-	it('spots a send rendered in another locale than asked', () => {
-		expect(localeFallback('en', 'de')).toEqual({
-			used: 'en',
-			requested: 'de',
-			isFallback: true,
-		})
-	})
-
-	it('reads a missing or equal request as no fallback', () => {
-		expect(localeFallback('en', 'en').isFallback).toBe(false)
-		expect(localeFallback('en', undefined)).toEqual({
-			used: 'en',
-			requested: 'en',
-			isFallback: false,
-		})
-		expect(localeFallback(undefined, 'de').used).toBe('')
 	})
 })
 

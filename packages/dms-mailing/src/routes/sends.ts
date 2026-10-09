@@ -14,6 +14,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { SendTemplateResult } from "@antelopejs/interface-dms-mailing";
+import type { StatGroupItem } from "@antelopejs/interface-dms/base";
 import {
   API_BASE_PATH,
   HTTP_CONFLICT,
@@ -42,6 +43,7 @@ import {
   isProviderFailure,
   type SendStats,
 } from "../services/send-stats";
+import { buildSendStatItems } from "../services/send-stat-items";
 import { assertSendPermission } from "../services/permissions";
 import { getSettings } from "../services/settings";
 import {
@@ -91,6 +93,10 @@ export interface SendDetailResponse {
   events: MailingSendEvent[];
   /** `null` when the template was deleted since. */
   template: SendTemplateSummary | null;
+}
+
+export interface SendStatsResponse extends SendStats {
+  items: StatGroupItem[];
 }
 
 export interface SendHealthResponse {
@@ -189,16 +195,24 @@ export class SendsController extends Controller(API_BASE_PATH) {
     return { results: result.results ?? [result] };
   }
 
-  /** The stat strip of the send log, for the period the page selected. */
+  /**
+   * The stat strip of the send log, for the period the page selected: the
+   * figures, and the `StatGroup` items that word them.
+   */
   @Get("/sends/stats")
-  async stats(): Promise<SendStats> {
+  async stats(): Promise<SendStatsResponse> {
     const range = currentRange(this.ctx);
     const previousRange = comparisonRange(this.ctx, range);
-    const [current, previous] = await Promise.all([
+    const [current, previous, capabilities] = await Promise.all([
       this.sends.listBetween(range.from, range.to),
       this.sends.listBetween(previousRange.from, previousRange.to),
+      readCapabilities(),
     ]);
-    return buildSendStats(current, previous);
+    const stats = buildSendStats(current, previous);
+    return {
+      ...stats,
+      items: buildSendStatItems(stats, capabilities?.name ?? ""),
+    };
   }
 
   /** Whether the provider answers, and the failures a send again may fix. */

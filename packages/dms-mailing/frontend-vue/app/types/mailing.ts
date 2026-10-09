@@ -395,11 +395,7 @@ export interface PreviewResponse {
 }
 
 export type SendStage =
-	| 'problem'
-	| 'in_progress'
-	| 'delivered'
-	| 'engaged'
-	| 'unsubscribed'
+	'problem' | 'in_progress' | 'delivered' | 'engaged' | 'unsubscribed'
 
 export interface SendRow {
 	_id: string

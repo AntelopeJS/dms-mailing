@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { useMailingApi } from '../composables/useMailingApi'
 import { useMailingPeriodData } from '../composables/useMailingPeriodData'
-import { buildSendStatItems, type Translate } from '../utils/send-stats'
 import type { MailingComponentProps } from '../types/component'
-import type { SendStats } from '../types/mailing'
+import type { SendStatsResponse } from '../composables/useMailingApi'
 
 interface SendsStatsProps extends MailingComponentProps {
 	periodScope?: string
@@ -18,38 +17,25 @@ const props = withDefaults(defineProps<SendsStatsProps>(), {
 })
 
 const api = useMailingApi()
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const { processText } = useComposedText()
 
-const providerName = ref('')
-
-const { data, loading } = useMailingPeriodData<SendStats>(
+const { data, loading, refresh } = useMailingPeriodData<SendStatsResponse>(
 	props.periodScope,
 	(query) => api.sendStats(query),
 	{ refreshEvery: REFRESH_EVERY_MS },
 )
 
-const translate: Translate = (key, params = {}) =>
-	t(key, params, typeof params.count === 'number' ? params.count : 1)
-
 const items = computed(() =>
-	data.value
-		? buildSendStatItems(data.value, {
-				translate,
-				locale: locale.value,
-				provider: providerName.value,
-				now: new Date(),
-			})
-		: [],
+	(data.value?.items ?? []).map((item) => ({
+		...item,
+		eyebrow: processText(item.eyebrow),
+		value: processText(item.value),
+		detail: item.detail === undefined ? undefined : processText(item.detail),
+	})),
 )
 
-onMounted(async () => {
-	try {
-		const provider = await api.provider()
-		providerName.value = provider.name
-	} catch {
-		providerName.value = ''
-	}
-})
+onMounted(() => onUnmounted(onPageBlocksRefresh(() => void refresh())))
 </script>
 
 <template>

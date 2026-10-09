@@ -87,8 +87,7 @@ const problem = computed(() =>
 				{
 					...send.value,
 					error:
-						send.value.error ||
-						problemEventReason(detail.value?.events ?? []),
+						send.value.error || problemEventReason(detail.value?.events ?? []),
 				},
 				t('dms_mailing.sends.banner.the_provider'),
 			)

@@ -18,7 +18,7 @@ export const SHARED_MODULE_SOURCES = {
   dms: {
     type: "package",
     package: "@antelopejs/dms",
-    version: ">=0.6.0 <0.7.0",
+    version: ">=0.7.1 <0.8.0",
   },
   mongodb: {
     type: "package",
