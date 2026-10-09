@@ -69,6 +69,19 @@ describe("[integration] send lifecycle", () => {
       status: "live",
       publishedVersion: 1,
     });
+
+    const list = await api.get("/api/mailing/tables/sends/list?limit=100");
+    const row = list.data.results.find(
+      (item: { _id: string }) => item._id === sent.data.results[0].sendId,
+    );
+    expect(row.localeLabel).to.equal("EN");
+    expect(row.localeFallback).to.deep.equal({
+      text: {
+        key: "$dms_mailing.sends.locale_fallback",
+        params: { requested: "DE" },
+      },
+      tone: "warning",
+    });
   });
 
   it("test-sends a draft and refuses a real send of it", async () => {

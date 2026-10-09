@@ -173,11 +173,13 @@ export class SendsTableAPI extends DataController(
   declare locale: string;
 
   @Listable(["locale"])
+  @Access(AccessMode.ReadOnly)
   get localeLabel(): string {
     return localeCode(this.locale);
   }
 
   @Listable(["locale", "requestedLocale"])
+  @Access(AccessMode.ReadOnly)
   get localeFallback(): CellSubline | null {
     return localeFallbackSubline(this.locale, this.requestedLocale);
   }
