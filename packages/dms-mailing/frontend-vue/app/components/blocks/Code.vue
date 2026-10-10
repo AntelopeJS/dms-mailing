@@ -12,6 +12,6 @@ defineProps<Props>()
 	<div
 		class="mb-4 rounded-lg border border-dashed border-gray-300 py-5 text-center font-mono text-[27px] tracking-[0.25em] text-gray-900"
 	>
-		<DmsMailingTokenText :text="block.text" />
+		<MailingTokenText :text="block.text" />
 	</div>
 </template>

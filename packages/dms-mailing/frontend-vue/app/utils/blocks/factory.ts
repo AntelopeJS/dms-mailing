@@ -3,23 +3,74 @@ import type { Block, BlockType } from '../../types/mailing'
 export interface PaletteEntry {
 	type: BlockType
 	icon: string
+	/** The tile spans both columns of the palette grid. */
+	isWide?: boolean
 }
 
+/** The icon that stands for each block type, in the palette and the outline. */
+export const BLOCK_ICONS: Record<BlockType, string> = {
+	heading: 'i-ph-text-h',
+	paragraph: 'i-ph-text-align-left',
+	hero: 'i-ph-image',
+	button: 'i-ph-cursor-click',
+	list: 'i-ph-list-bullets',
+	total: 'i-ph-receipt',
+	code: 'i-ph-hash',
+	divider: 'i-ph-minus',
+	footer: 'i-ph-rows',
+	if: 'i-ph-git-branch',
+}
+
+const entry = (type: BlockType, isWide = false): PaletteEntry => ({
+	type,
+	icon: BLOCK_ICONS[type],
+	isWide,
+})
+
 export const BLOCK_PALETTE: PaletteEntry[] = [
-	{ type: 'heading', icon: 'i-ph-text-h' },
-	{ type: 'paragraph', icon: 'i-ph-text-align-left' },
-	{ type: 'button', icon: 'i-ph-cursor-click' },
-	{ type: 'hero', icon: 'i-ph-image' },
-	{ type: 'list', icon: 'i-ph-table' },
-	{ type: 'total', icon: 'i-ph-sigma' },
-	{ type: 'code', icon: 'i-ph-lock-key' },
-	{ type: 'divider', icon: 'i-ph-minus' },
-	{ type: 'footer', icon: 'i-ph-list-dashes' },
+	entry('heading'),
+	entry('paragraph'),
+	entry('hero'),
+	entry('button'),
+	entry('list'),
+	entry('total'),
+	entry('code'),
+	entry('divider'),
+	entry('footer', true),
 ]
 
-export const LOGIC_PALETTE: PaletteEntry[] = [
-	{ type: 'if', icon: 'i-ph-git-branch' },
-]
+export const LOGIC_PALETTE: PaletteEntry[] = [entry('if', true)]
+
+const BLOCK_LABEL_PREFIX = 'dms_mailing.blocks'
+const PALETTE_LABEL_PREFIX = 'dms_mailing.editor.palette.tiles'
+const PALETTE_SPECIFIC_LABELS: BlockType[] = ['footer', 'if']
+
+/** The i18n key naming a block type (outline, inspector, canvas tag). */
+export function blockLabelKey(type: BlockType): string {
+	return `${BLOCK_LABEL_PREFIX}.${type}`
+}
+
+/** The i18n key of a palette tile, longer than the block name for some. */
+export function paletteLabelKey(type: BlockType): string {
+	return PALETTE_SPECIFIC_LABELS.includes(type)
+		? `${PALETTE_LABEL_PREFIX}.${type}`
+		: blockLabelKey(type)
+}
+
+/** Keeps the tiles whose label or type contains `query`, case-insensitively. */
+export function filterPalette(
+	entries: PaletteEntry[],
+	query: string,
+	labelOf: (entry: PaletteEntry) => string,
+): PaletteEntry[] {
+	const needle = query.trim().toLowerCase()
+	if (!needle) return entries
+	return entries.filter(
+		(candidate) =>
+			labelOf(candidate).toLowerCase().includes(needle) ||
+			candidate.type.includes(needle),
+	)
+}
 
 const ID_RADIX = 36
 const ID_LENGTH = 6

@@ -4,6 +4,7 @@ import type {
   AtomicMutationOutcome,
   ValueProxy,
 } from "@antelopejs/interface-database";
+import { SEND_STATUSES, type SendStatus, stageOf } from "../../types";
 import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
 
 const FIRST_ROW_OFFSET = 0;
@@ -14,12 +15,14 @@ type NewSend = Omit<
   "_id" | "createdAt" | "revision" | "isRetiring" | "lastActivityAt"
 >;
 
+const UNSET_STAGE = "";
+
 /** A send as the metrics read it: everything but the rendered variables. */
 export type SendSummary = Omit<MailingSend, "json_variables">;
 
 type SendActivity = Pick<
   MailingSend,
-  "status" | "opens" | "clicks" | "lastEventAt" | "provider"
+  "status" | "opens" | "clicks" | "lastEventAt" | "provider" | "error"
 >;
 
 function canRetire(row: ValueProxy<MailingSend>, limit: Date) {
@@ -134,6 +137,7 @@ export class SendModel extends BasicDataModel(
     const patch = Object.fromEntries(
       Object.entries({
         ...changes,
+        stage: changes.status ? stageOf(changes.status) : undefined,
         lastActivityAt: new Date(),
       }).filter(([, value]) => value !== undefined),
     );
@@ -147,5 +151,44 @@ export class SendModel extends BasicDataModel(
       })
       .run();
     return wasApplied(outcome);
+  }
+
+  /**
+   * Gives rows written before `stage` existed the stage of their status, one
+   * indexed update per status. Returns how many rows it filled.
+   */
+  async backfillStages(): Promise<number> {
+    let filled = 0;
+    for (const status of SEND_STATUSES) filled += await this.fillStage(status);
+    return filled;
+  }
+
+  private fillStage(status: SendStatus): Promise<number> {
+    return this.table
+      .filter((row) =>
+        row
+          .key("status")
+          .eq(status)
+          .and(row.key("stage").default(UNSET_STAGE).eq(UNSET_STAGE)),
+      )
+      .update({ stage: stageOf(status) })
+      .run();
+  }
+
+  /** Sends of a template since `from`, without the rendered variables. */
+  listForTemplate(templateSlug: string, from: Date): Promise<SendSummary[]> {
+    return this.table
+      .getAll(templateSlug, "templateSlug")
+      .filter((row) => row.key("createdAt").ge(from))
+      .without("json_variables")
+      .run() as Promise<SendSummary[]>;
+  }
+
+  /** How many sends the retention would delete with this cutoff. */
+  countOlderThan(limit: Date): Promise<number> {
+    return this.table
+      .filter((row) => canRetire(row, limit))
+      .count()
+      .run();
   }
 }

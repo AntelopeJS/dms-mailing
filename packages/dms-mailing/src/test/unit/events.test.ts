@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { applyEvent } from "../../services/events";
+import { applyEvent, problemReason } from "../../services/events";
+import type { SendEventType } from "../../types";
 
 describe("[unit] services/events", () => {
   it("promotes the status forward only and counts opens/clicks", () => {
@@ -15,5 +16,26 @@ describe("[unit] services/events", () => {
     expect(
       applyEvent({ status: "bounced", opens: 0, clicks: 0 }, "delivered"),
     ).to.deep.equal({ status: "bounced", opens: 0, clicks: 0 });
+  });
+});
+
+describe("[unit] services/events problemReason", () => {
+  const event = (type: SendEventType, reason?: string) => ({
+    provider: "smtp",
+    messageId: "m1",
+    type,
+    details: reason === undefined ? undefined : { reason },
+  });
+
+  it("keeps the provider's words for a problem event", () => {
+    expect(problemReason(event("bounced", "550 5.1.1 No such user"))).to.equal(
+      "550 5.1.1 No such user",
+    );
+  });
+
+  it("ignores reasons on other events and blank reasons", () => {
+    expect(problemReason(event("delivered", "ok"))).to.equal(undefined);
+    expect(problemReason(event("failed", ""))).to.equal(undefined);
+    expect(problemReason(event("spam"))).to.equal(undefined);
   });
 });

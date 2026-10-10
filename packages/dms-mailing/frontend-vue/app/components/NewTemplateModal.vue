@@ -1,102 +1,232 @@
 <script setup lang="ts">
+import FormFieldRow from '../build/components/FormFieldRow.vue'
+import FormRows from '../build/components/FormRows.vue'
+import { useMailingApi } from '../composables/useMailingApi'
+import {
+	HTTP_CONFLICT,
+	apiErrorMessage,
+	apiErrorStatus,
+} from '../utils/api-error'
+import { NO_CATEGORY, fromCategoryOption } from '../utils/categories'
+import { slugify, validateName, validateSlug } from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
-import { fromCategoryOption, NO_CATEGORY } from '../utils/categories'
-import type { TemplateCategory, TemplateRow } from '../types/mailing'
+import type {
+	StarterSummary,
+	TemplateCategory,
+	TemplateRow,
+} from '../types/mailing'
+import type { CreateTemplateInput } from '../composables/useMailingApi'
 
 interface NewTemplateModalProps {
+	initialName?: string
+	/** A starter preselected in "Start from". */
+	initialStarterId?: string
 	onSuccessCallback?: () => void
 }
 
-const SLUG_SEPARATOR = '-'
-// Not the empty string: Reka's `Select` reserves it for "nothing selected" and
-// refuses to open a listbox that offers it. See NO_CATEGORY in utils/categories.
-const BLANK_SOURCE = '__blank__'
+type SourceKind = 'blank' | 'starter' | 'template'
+
+interface SourceChoice {
+	kind: SourceKind
+	id?: string
+}
+
+interface TilePreview {
+	starterId?: string
+	templateId?: string
+}
+
+interface SourceTile {
+	key: string
+	choice: SourceChoice
+	title: string
+	subtitle: string
+	preview: TilePreview
+	pick: () => void
+}
+
+const PREVIEW_WIDTH = 600
+const PREVIEW_SCALE = 0.24
+const BLANK_SOURCE: SourceChoice = { kind: 'blank' }
+
+const SOURCE_FIELDS: Record<
+	SourceKind,
+	(id?: string) => Partial<CreateTemplateInput>
+> = {
+	blank: () => ({}),
+	starter: (id) => ({ starterId: id }),
+	template: (id) => ({ sourceTemplateId: id }),
+}
 
 const props = defineProps<NewTemplateModalProps>()
-
-const emit = defineEmits<{ success: [] }>()
+const emit = defineEmits<{ success: [created?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
 const { t } = useI18n()
 const { processApiMessage } = useTranslation()
 
-const name = ref('')
-const slug = ref('')
-const slugTouched = ref(false)
+const name = ref(props.initialName ?? '')
+const slug = ref(slugify(name.value))
+const isSlugEdited = ref(false)
 const category = ref(NO_CATEGORY)
-const sourceTemplateId = ref(BLANK_SOURCE)
+const source = ref<SourceChoice>(
+	props.initialStarterId
+		? { kind: 'starter', id: props.initialStarterId }
+		: BLANK_SOURCE,
+)
+const isSubmitted = ref(false)
 const saving = ref(false)
-const sources = ref<TemplateRow[]>([])
+const templates = ref<TemplateRow[]>([])
+const starters = ref<StarterSummary[]>([])
 const categories = ref<TemplateCategory[]>([])
+const refusedSlugs = ref(new Set<string>())
+
+onMounted(async () => {
+	const [templateList, starterList, categoryList] = await Promise.all([
+		api.listTemplates().catch(() => ({ results: [] as TemplateRow[] })),
+		api.starters().catch(() => ({ starters: [] as StarterSummary[] })),
+		api.listCategories().catch(() => ({ categories: [] })),
+	])
+	templates.value = templateList.results
+	starters.value = starterList.starters
+	categories.value = categoryList.categories
+})
+
+watch(name, (value) => {
+	if (!isSlugEdited.value) slug.value = slugify(value)
+})
+
+const takenSlugs = computed(
+	() =>
+		new Set([
+			...templates.value.map((template) => template.slug),
+			...refusedSlugs.value,
+		]),
+)
+
+const slugIssue = computed(() => validateSlug(slug.value, takenSlugs.value))
+const nameIssue = computed(() => validateName(name.value))
+
+const slugError = computed(() =>
+	slugIssue.value && (slug.value || isSubmitted.value)
+		? t(`dms_mailing.templates.slug_errors.${slugIssue.value}`)
+		: false,
+)
+
+const nameError = computed(() =>
+	nameIssue.value && isSubmitted.value
+		? t(`dms_mailing.templates.name_errors.${nameIssue.value}`)
+		: false,
+)
+
+const canSubmit = computed(
+	() => !slugIssue.value && !nameIssue.value && !saving.value,
+)
 
 const categoryItems = computed(() => [
 	{ label: t('dms_mailing.templates.uncategorised'), value: NO_CATEGORY },
 	...categories.value.map((entry) => ({
 		label: entry.label,
 		value: entry.id,
+		icon: entry.icon,
 	})),
 ])
 
-// Blank first, then the tenant's own templates. An empty tenant offers only
-// Blank, which is the normal first-run state, not an error.
-const sourceItems = computed(() => [
-	{ label: t('dms_mailing.templates.start_from.blank'), value: BLANK_SOURCE },
-	...sources.value.map((entry) => ({
-		label: `${entry.name} · ${entry.slug}`,
-		value: entry._id,
-	})),
-])
-
-function slugify(value: string): string {
-	return value
-		.normalize('NFD')
-		.replace(/\p{Diacritic}/gu, '')
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, SLUG_SEPARATOR)
-		.replace(/^-+|-+$/g, '')
+function isKnownCategory(id: string | null | undefined): id is string {
+	return Boolean(id) && categories.value.some((entry) => entry.id === id)
 }
 
-watch(name, (value) => {
-	if (!slugTouched.value) slug.value = slugify(value)
-})
+function adoptCategory(id: string | null | undefined): void {
+	if (category.value === NO_CATEGORY && isKnownCategory(id)) category.value = id
+}
 
-const canSubmit = computed(
-	() => Boolean(name.value.trim() && slug.value.trim()) && !saving.value,
-)
+function isPicked(choice: SourceChoice): boolean {
+	return source.value.kind === choice.kind && source.value.id === choice.id
+}
 
-onMounted(async () => {
-	const [templates, categoryList] = await Promise.all([
-		api.listTemplates().catch(() => ({ results: [] })),
-		api.listCategories().catch(() => ({ categories: [] })),
-	])
-	sources.value = templates.results
-	categories.value = categoryList.categories
-})
+function pickStarter(starter: StarterSummary): void {
+	source.value = { kind: 'starter', id: starter.id }
+	if (!name.value.trim()) name.value = starter.name
+	adoptCategory(starter.category)
+}
+
+function pickTemplate(template: TemplateRow): void {
+	source.value = { kind: 'template', id: template._id }
+	adoptCategory(template.category)
+}
+
+const tiles = computed<SourceTile[]>(() => [
+	{
+		key: 'blank',
+		choice: BLANK_SOURCE,
+		title: t('dms_mailing.templates.start_from.blank'),
+		subtitle: t('dms_mailing.templates.start_from.blank_hint'),
+		preview: {},
+		pick: () => (source.value = BLANK_SOURCE),
+	},
+	...starters.value.map((starter) => ({
+		key: `starter-${starter.id}`,
+		choice: { kind: 'starter' as const, id: starter.id },
+		title: starter.name,
+		subtitle: t('dms_mailing.templates.start_from.starter'),
+		preview: { starterId: starter.id },
+		pick: () => pickStarter(starter),
+	})),
+	...templates.value.map((template) => ({
+		key: `template-${template._id}`,
+		choice: { kind: 'template' as const, id: template._id },
+		title: template.name,
+		subtitle: template.slug,
+		preview: { templateId: template._id },
+		pick: () => pickTemplate(template),
+	})),
+])
+
+function onSlugInput(value: string): void {
+	isSlugEdited.value = true
+	slug.value = value.trim().toLowerCase()
+}
+
+function close(created: boolean): void {
+	if (created && props.onSuccessCallback) {
+		props.onSuccessCallback()
+		return
+	}
+	emit('success', created)
+}
+
+function creationInput(): CreateTemplateInput {
+	const chosenCategory = fromCategoryOption(category.value)
+	return {
+		name: name.value.trim(),
+		slug: slug.value,
+		...(chosenCategory ? { category: chosenCategory } : {}),
+		...SOURCE_FIELDS[source.value.kind](source.value.id),
+	}
+}
+
+function reportFailure(error: unknown): void {
+	if (apiErrorStatus(error) === HTTP_CONFLICT) {
+		refusedSlugs.value = new Set([...refusedSlugs.value, slug.value])
+		return
+	}
+	toast.add({
+		color: 'error',
+		title: processApiMessage(apiErrorMessage(error)),
+	})
+}
 
 async function submit(): Promise<void> {
+	isSubmitted.value = true
 	if (!canSubmit.value) return
 	saving.value = true
 	try {
-		const [id] = await api.createTemplate({
-			name: name.value.trim(),
-			slug: slug.value.trim(),
-			category: fromCategoryOption(category.value) || undefined,
-			sourceTemplateId:
-				sourceTemplateId.value === BLANK_SOURCE
-					? undefined
-					: sourceTemplateId.value,
-		})
-		props.onSuccessCallback?.()
-		emit('success')
+		const [id] = await api.createTemplate(creationInput())
+		close(true)
 		if (id) await navigateDms(editorRoute(id))
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(
-				(error as { data?: { message?: string } }).data?.message ?? error,
-			),
-		})
+		reportFailure(error)
 	} finally {
 		saving.value = false
 	}
@@ -104,55 +234,148 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-	<UForm
-		:state="{ name, slug, category, sourceTemplateId }"
-		class="flex flex-col gap-4"
-		@submit="submit"
+	<form
+		class="flex flex-col gap-5"
+		novalidate
+		@submit.prevent="submit"
+		@keydown.meta.enter.prevent="submit"
+		@keydown.ctrl.enter.prevent="submit"
 	>
-		<UFormField :label="t('dms_mailing.templates.cols.name')" name="name">
-			<UInput v-model="name" class="w-full" autofocus />
-		</UFormField>
+		<FormRows has-required>
+			<FormFieldRow
+				:label="t('dms_mailing.templates.cols.name')"
+				:error="nameError"
+				required
+			>
+				<template #default="{ id }">
+					<DmsInputText
+						:id="id"
+						v-model="name"
+						class="w-full"
+						autofocus
+						:placeholder="t('dms_mailing.new_template.name_placeholder')"
+					/>
+				</template>
+			</FormFieldRow>
 
-		<UFormField :label="t('dms_mailing.templates.cols.slug')" name="slug">
-			<UInput
-				v-model="slug"
-				class="w-full font-mono"
-				@update:model-value="slugTouched = true"
+			<FormFieldRow
+				:label="t('dms_mailing.templates.cols.slug')"
+				:help="slugError ? undefined : t('dms_mailing.new_template.slug_help')"
+				:error="slugError"
+				required
+			>
+				<template #label-extra>
+					<span class="text-dimmed text-xs font-normal">
+						{{ t('dms_mailing.new_template.slug_auto') }}
+					</span>
+				</template>
+				<template #default="{ id }">
+					<UFieldGroup class="w-full">
+						<UBadge
+							color="neutral"
+							variant="outline"
+							size="lg"
+							class="text-dimmed font-mono"
+							label="SendTemplate("
+						/>
+						<UInput
+							:id="id"
+							:model-value="slug"
+							class="w-full"
+							:ui="{ base: 'font-mono' }"
+							:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
+							:aria-invalid="Boolean(slugError)"
+							@update:model-value="(value) => onSlugInput(String(value))"
+						/>
+					</UFieldGroup>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow :label="t('dms_mailing.templates.cols.category')">
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="category"
+						:items="categoryItems"
+						value-key="value"
+						:deselectable="false"
+						class="w-full"
+					/>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow
+				:label="t('dms_mailing.templates.start_from.label')"
+				:labels-control="false"
+			>
+				<div
+					role="radiogroup"
+					:aria-label="t('dms_mailing.templates.start_from.label')"
+					class="grid max-h-[320px] grid-cols-2 gap-3 overflow-y-auto p-0.5 sm:grid-cols-3"
+				>
+					<button
+						v-for="tile in tiles"
+						:key="tile.key"
+						type="button"
+						role="radio"
+						:aria-checked="isPicked(tile.choice)"
+						class="flex min-w-0 flex-col gap-1.5 rounded-lg border p-2 text-left transition-colors"
+						:class="
+							isPicked(tile.choice)
+								? 'border-primary ring-primary/30 ring-2'
+								: 'border-default hover:border-accented'
+						"
+						@click="tile.pick()"
+					>
+						<span
+							v-if="tile.choice.kind === 'blank'"
+							class="border-default text-dimmed flex h-[72px] items-center justify-center rounded border border-dashed"
+						>
+							<UIcon name="i-ph-plus" class="size-5" />
+						</span>
+						<span
+							v-else
+							class="bg-elevated/40 pointer-events-none flex h-[72px] justify-center overflow-hidden rounded"
+						>
+							<MailingTemplatePreviewFrame
+								v-bind="tile.preview"
+								:width="PREVIEW_WIDTH"
+								:scale="PREVIEW_SCALE"
+								:label="tile.title"
+								lazy
+							/>
+						</span>
+						<span class="text-highlighted truncate text-[12.5px] font-medium">
+							{{ tile.title }}
+						</span>
+						<span class="text-dimmed truncate font-mono text-[11px]">
+							{{ tile.subtitle }}
+						</span>
+					</button>
+				</div>
+			</FormFieldRow>
+		</FormRows>
+
+		<div class="border-default -mx-1 flex items-center gap-2 border-t pt-4">
+			<span class="text-dimmed hidden items-center gap-1 text-xs sm:flex">
+				<UKbd value="meta" size="sm" />
+				<UKbd value="enter" size="sm" />
+				{{ t('dms_mailing.new_template.shortcut') }}
+			</span>
+			<UButton
+				class="ml-auto"
+				color="neutral"
+				variant="outline"
+				:label="t('dms_mailing.common.cancel')"
+				@click="close(false)"
 			/>
-		</UFormField>
-
-		<UFormField
-			:label="t('dms_mailing.templates.cols.category')"
-			name="category"
-		>
-			<USelect
-				v-model="category"
-				:items="categoryItems"
-				value-key="value"
-				class="w-full"
-			/>
-		</UFormField>
-
-		<UFormField
-			:label="t('dms_mailing.templates.start_from.label')"
-			name="sourceTemplateId"
-		>
-			<USelect
-				v-model="sourceTemplateId"
-				:items="sourceItems"
-				value-key="value"
-				class="w-full"
-			/>
-		</UFormField>
-
-		<div class="flex justify-end">
 			<UButton
 				type="submit"
-				icon="i-ph-plus"
-				:label="t('dms_mailing.templates.actions.create')"
+				icon="i-ph-arrow-right"
+				:label="t('dms_mailing.new_template.submit')"
 				:loading="saving"
-				:disabled="!canSubmit"
+				:disabled="saving"
 			/>
 		</div>
-	</UForm>
+	</form>
 </template>

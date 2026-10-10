@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { computed, resolveComponent } from 'vue'
+import { computed, inject, resolveComponent } from 'vue'
 import type { Block } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
-import {
-	BLOCK_COMPONENT_NAMES,
-	duplicateBlock,
-	moveBlock,
-	removeBlock,
-} from '../../utils/blocks'
+import { BLOCK_COMPONENT_NAMES, blockLabelKey } from '../../utils/blocks'
+import { evaluateCondition } from '../../utils/conditions'
+import { TOKEN_DATA_KEY } from '../../utils/tokens'
 
 interface Props {
 	block: Block
@@ -19,103 +16,47 @@ const props = defineProps<Props>()
 
 const { t } = useI18n()
 const { editor } = useEditorContext()
+const data = inject(TOKEN_DATA_KEY, null)
 
-const selected = computed(() => editor.selected?.id === props.block.id)
+const isSelected = computed(() => editor.selectedId === props.block.id)
 const renderer = computed(() =>
 	resolveComponent(BLOCK_COMPONENT_NAMES[props.block.type]),
 )
-const isLast = computed(() => props.index === props.list.length - 1)
-
-function move(direction: -1 | 1): void {
-	if (moveBlock(props.list, props.block.id, direction)) editor.touch()
-}
-
-function duplicate(): void {
-	if (duplicateBlock(props.list, props.block.id)) editor.touch()
-}
-
-function remove(): void {
-	if (selected.value) editor.select(null)
-	if (removeBlock(props.list, props.block.id)) editor.touch()
-}
+const isHidden = computed(() => {
+	const rule = props.block.visibleIf
+	return Boolean(rule && data?.value && !evaluateCondition(rule, data.value))
+})
 </script>
 
 <template>
 	<div
-		class="group relative rounded-md px-1 py-0.5 transition"
+		class="group relative -mx-2 cursor-pointer rounded-md px-2 py-1.5 transition-shadow"
 		:class="
-			selected ? 'ring-primary ring-2' : 'hover:ring-primary/40 hover:ring-1'
+			isSelected ? 'ring-2 ring-cyan-500' : 'hover:ring-1 hover:ring-cyan-300'
 		"
-		@click.stop="editor.select(props.block.id)"
+		:data-block-id="block.id"
+		@click.stop="editor.select(block.id)"
 	>
-		<div
-			class="pointer-events-none absolute -top-2.5 left-2 z-10 flex items-center gap-1 opacity-0 transition group-hover:opacity-100"
-			:class="{ 'opacity-100': selected }"
+		<span
+			class="mailing-drag-handle absolute -top-2.5 left-2 z-10 inline-flex h-[18px] cursor-grab items-center gap-1 rounded bg-cyan-500 px-1.5 font-mono text-[10px] font-semibold tracking-wide text-white transition-opacity group-hover:opacity-100"
+			:class="isSelected ? 'opacity-100' : 'opacity-0'"
 		>
-			<span
-				class="bg-primary text-inverted rounded px-1.5 py-0.5 text-[10px] font-medium"
-			>
-				{{ t(`dms_mailing.blocks.${props.block.type}`) }}
-			</span>
-			<UBadge
-				v-if="props.block.visibleIf"
-				size="sm"
-				color="warning"
-				variant="subtle"
-				class="font-mono"
-			>
-				if {{ props.block.visibleIf.path }}
-			</UBadge>
-		</div>
-
+			{{ t(blockLabelKey(block.type)) }}
+			<template v-if="block.visibleIf">
+				· if {{ block.visibleIf.path }}
+			</template>
+		</span>
+		<MailingEditorBlockTools
+			v-if="isSelected"
+			:block-id="block.id"
+			:is-first="index === 0"
+			:is-last="index === list.length - 1"
+		/>
 		<div
-			class="border-default bg-default absolute -top-3.5 right-2 z-10 flex items-center gap-0.5 rounded-md border p-0.5 opacity-0 shadow-sm transition group-hover:opacity-100"
-			:class="{ 'opacity-100': selected }"
+			:class="{ 'opacity-40': isHidden }"
+			:title="isHidden ? t('dms_mailing.editor.condition.hidden') : undefined"
 		>
-			<UButton
-				class="mailing-drag-handle cursor-grab"
-				icon="i-ph-dots-six-vertical"
-				size="xs"
-				variant="ghost"
-				color="neutral"
-				:aria-label="t('dms_mailing.editor.actions.drag')"
-			/>
-			<UButton
-				icon="i-ph-arrow-up"
-				size="xs"
-				variant="ghost"
-				color="neutral"
-				:disabled="props.index === 0"
-				:aria-label="t('dms_mailing.editor.actions.move_up')"
-				@click.stop="move(-1)"
-			/>
-			<UButton
-				icon="i-ph-arrow-down"
-				size="xs"
-				variant="ghost"
-				color="neutral"
-				:disabled="isLast"
-				:aria-label="t('dms_mailing.editor.actions.move_down')"
-				@click.stop="move(1)"
-			/>
-			<UButton
-				icon="i-ph-copy"
-				size="xs"
-				variant="ghost"
-				color="neutral"
-				:aria-label="t('dms_mailing.editor.actions.duplicate')"
-				@click.stop="duplicate()"
-			/>
-			<UButton
-				icon="i-ph-trash"
-				size="xs"
-				variant="ghost"
-				color="error"
-				:aria-label="t('dms_mailing.editor.actions.delete')"
-				@click.stop="remove()"
-			/>
+			<component :is="renderer" :block="block" />
 		</div>
-
-		<component :is="renderer" :block="props.block" />
 	</div>
 </template>

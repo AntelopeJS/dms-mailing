@@ -1,13 +1,20 @@
 import type {
-	AttentionItem,
 	FunnelStep,
 	PreviewResponse,
+	PreviewVersion,
 	ProviderInfo,
+	RetentionPreview,
 	SendDetailResponse,
+	SendHtmlResponse,
+	StarterSummary,
+	TemplateChange,
 	TemplateContent,
 	TemplateCategory,
 	TemplateContentResponse,
+	TemplatePerformance,
 	TemplateRow,
+	TemplateStats,
+	TemplateVersionSummary,
 	VariableDefinition,
 } from '../types/mailing'
 
@@ -27,6 +34,8 @@ export function mailingPath(...segments: string[]): string {
 export interface PreviewInput {
 	/** Absent lets the server pick the tenant fallback locale. */
 	locale?: string
+	/** Which content to render when `content` is absent; the draft by default. */
+	version?: PreviewVersion
 	content?: TemplateContent
 	data?: Record<string, unknown>
 }
@@ -48,10 +57,6 @@ export interface SendResult {
 	error?: string
 }
 
-export interface AttentionResponse {
-	items: AttentionItem[]
-}
-
 export interface FunnelResponse {
 	steps: FunnelStep[]
 }
@@ -59,6 +64,34 @@ export interface FunnelResponse {
 export interface SavedResponse {
 	saved: boolean
 	detectedVariables: string[]
+	changes: TemplateChange[]
+}
+
+export interface ChangesResponse {
+	version: number
+	changes: TemplateChange[]
+}
+
+export interface PublishResponse {
+	status: string
+	version: number
+	changes: TemplateChange[]
+}
+
+export interface VersionsResponse {
+	versions: TemplateVersionSummary[]
+}
+
+export interface StartersResponse {
+	starters: StarterSummary[]
+}
+
+export interface TemplateOverviewResponse {
+	items: TemplateStats[]
+}
+
+export interface CategoryUsageResponse {
+	counts: Record<string, number>
 }
 
 /**
@@ -88,6 +121,8 @@ export interface CreateTemplateInput {
 	category?: string
 	/** Absent starts blank; otherwise the template to copy. */
 	sourceTemplateId?: string
+	/** A starter template to start from, when no template is copied. */
+	starterId?: string
 }
 
 export interface StatusResponse {
@@ -114,6 +149,11 @@ export interface HtmlResponse {
 	html: string
 }
 
+export interface StarterPreviewResponse {
+	html: string
+	locale: string
+}
+
 export interface MailingSettings extends Record<string, unknown> {
 	blockOnMissingVariables?: boolean
 }
@@ -129,10 +169,6 @@ export function useMailingApi() {
 
 	return {
 		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
-		attention: (query: Record<string, string>) =>
-			$authFetch<AttentionResponse>(mailingPath('metrics', 'attention'), {
-				query,
-			}),
 		funnel: (query: Record<string, string>) =>
 			$authFetch<FunnelResponse>(mailingPath('metrics', 'funnel'), { query }),
 		templateContent: (id: string) =>
@@ -158,12 +194,34 @@ export function useMailingApi() {
 			post<SavedResponse>(mailingPath('templates', id, 'content'), {
 				content,
 			}),
+		changes: (id: string) =>
+			$authFetch<ChangesResponse>(mailingPath('templates', id, 'changes')),
+		versions: (id: string) =>
+			$authFetch<VersionsResponse>(mailingPath('templates', id, 'versions')),
+		performance: (id: string) =>
+			$authFetch<TemplatePerformance>(
+				mailingPath('templates', id, 'performance'),
+			),
+		templatesOverview: () =>
+			$authFetch<TemplateOverviewResponse>(
+				mailingPath('templates', 'overview'),
+			),
+		starters: () =>
+			$authFetch<StartersResponse>(mailingPath('templates', 'starters')),
+		starterPreview: (starterId: string) =>
+			$authFetch<StarterPreviewResponse>(
+				mailingPath('templates', 'starters', starterId, 'preview'),
+			),
 		publish: (id: string) =>
-			post<StatusResponse>(mailingPath('templates', id, 'publish'), {}),
+			post<PublishResponse>(mailingPath('templates', id, 'publish'), {}),
+		discard: (id: string) =>
+			post<unknown>(mailingPath('templates', id, 'discard'), {}),
 		unpublish: (id: string) =>
 			post<StatusResponse>(mailingPath('templates', id, 'unpublish'), {}),
 		archive: (id: string) =>
 			post<StatusResponse>(mailingPath('templates', id, 'archive'), {}),
+		restore: (id: string) =>
+			post<StatusResponse>(mailingPath('templates', id, 'restore'), {}),
 		duplicate: (id: string, slug: string, name: string) =>
 			post<DuplicateResponse>(mailingPath('templates', id, 'duplicate'), {
 				slug,
@@ -186,12 +244,21 @@ export function useMailingApi() {
 		send: (id: string) =>
 			$authFetch<SendDetailResponse>(mailingPath('sends', id)),
 		sendHtml: (id: string) =>
-			$authFetch<HtmlResponse>(mailingPath('sends', id, 'html')),
-		replay: (id: string) =>
-			post<SendResult>(mailingPath('sends', id, 'replay'), {}),
+			$authFetch<SendHtmlResponse>(mailingPath('sends', id, 'html')),
+		replay: (id: string, to?: string) =>
+			post<SendResult>(mailingPath('sends', id, 'replay'), to ? { to } : {}),
 		settings: () => $authFetch<MailingSettings>(mailingPath('settings')),
 		saveSettings: (settings: MailingSettings) =>
 			post<MailingSettings>(mailingPath('settings'), settings),
+		retentionPreview: (days: number) =>
+			$authFetch<RetentionPreview>(
+				mailingPath('settings', 'retention-preview'),
+				{ query: { days: String(days) } },
+			),
+		categoryUsage: () =>
+			$authFetch<CategoryUsageResponse>(
+				mailingPath('settings', 'category-usage'),
+			),
 	}
 }
 

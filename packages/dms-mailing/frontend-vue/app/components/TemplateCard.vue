@@ -1,40 +1,107 @@
 <script setup lang="ts">
-import { localeBadges } from '../utils/locales'
-import type { TemplateRow, TemplateStatus } from '../types/mailing'
+import { formatCardDate, firstName } from '../utils/gallery'
+import { localeChipClass, localeChips } from '../utils/locales'
+import {
+	cardFooter,
+	daysSince,
+	type AttentionReason,
+	type CardFooterKind,
+} from '../utils/template-attention'
+import type {
+	TemplateRow,
+	TemplateStats,
+	TemplateStatus,
+} from '../types/mailing'
 
 interface TemplateCardProps {
 	template: TemplateRow
-	selected?: boolean
+	/** Last 30 days of real sends; absent means none. */
+	stats?: TemplateStats
+	/** Why the template needs attention, from the gallery's rules. */
+	attention?: AttentionReason[]
 }
 
 const PREVIEW_WIDTH = 600
-const PREVIEW_SCALE = 0.45
-const LIVE_STATUS: TemplateStatus = 'live'
+const PREVIEW_SCALE = 0.4
+const OPEN_RATE_DIGITS = 1
 
-const props = defineProps<TemplateCardProps>()
+const STATUS_TONES: Record<TemplateStatus, string> = {
+	live: 'success',
+	draft: 'neutral',
+	archived: 'warning',
+}
+
+const props = withDefaults(defineProps<TemplateCardProps>(), {
+	stats: undefined,
+	attention: () => [],
+})
 
 const emit = defineEmits<{
 	open: []
 	details: []
 	'test-send': []
+	'real-send': []
 	'open-locale': [code: string]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { uniqueLocales } = useUniqueLocales()
 
+const isLive = computed(() => props.template.status === 'live')
+
 const statusLabel = computed(() =>
-	t(`dms_mailing.templates.status.${props.template.status}`),
+	isLive.value && props.template.isDraftPending
+		? t('dms_mailing.templates.card.draft_changes')
+		: t(`dms_mailing.templates.status.${props.template.status}`),
 )
 
-const badges = computed(() =>
-	localeBadges(
+const chips = computed(() =>
+	localeChips(
 		props.template.locales,
 		uniqueLocales.value.map((entry) => entry.code),
 	),
 )
 
-function badgeLabel(code: string, present: boolean): string {
+const staleDays = computed(() =>
+	props.attention.includes('stale_draft')
+		? daysSince(props.template.updatedAt, new Date())
+		: 0,
+)
+const isNeverSent = computed(() => props.attention.includes('never_sent'))
+
+const footer = computed(() => cardFooter(props.template, props.stats))
+
+const footerDate = computed(() =>
+	formatCardDate(footer.value.at, new Date(), locale.value),
+)
+
+const sendsLabel = computed(() =>
+	new Intl.NumberFormat(locale.value).format(footer.value.sends),
+)
+
+const openRateLabel = computed(() =>
+	new Intl.NumberFormat(locale.value, {
+		maximumFractionDigits: OPEN_RATE_DIGITS,
+	}).format(footer.value.openRate),
+)
+
+const FOOTER_TEXTS: Partial<Record<CardFooterKind, () => string>> = {
+	no_send: () =>
+		t('dms_mailing.templates.card.no_send_since', { date: footerDate.value }),
+	edited: () => {
+		const name = firstName(footer.value.by)
+		return name
+			? t('dms_mailing.templates.card.edited_by', {
+					date: footerDate.value,
+					name,
+				})
+			: t('dms_mailing.templates.card.edited', { date: footerDate.value })
+	},
+}
+
+const footerText = computed(() => FOOTER_TEXTS[footer.value.kind]?.() ?? '')
+
+function chipLabel(code: string, present: boolean): string {
 	const key = present ? 'edit_locale' : 'add_locale'
 	return t(`dms_mailing.templates.card.${key}`, {
 		locale: code.toUpperCase(),
@@ -44,83 +111,141 @@ function badgeLabel(code: string, present: boolean): string {
 
 <template>
 	<DmsCard
+		as="article"
 		:padded="false"
 		interactive
-		:class="selected ? 'ring-primary/40 ring-2' : ''"
-		class="group overflow-hidden"
+		tabindex="0"
+		:aria-label="template.name"
+		class="focus-visible:outline-primary group relative flex flex-col overflow-hidden focus-visible:outline-2"
+		:class="template.status === 'archived' ? 'opacity-75' : ''"
 		@click="emit('open')"
+		@keydown.enter.self="emit('open')"
+		@keydown.t.exact.self="emit('test-send')"
 	>
-		<div class="bg-elevated/40 relative h-[158px] overflow-hidden">
-			<div class="pointer-events-none">
-				<DmsMailingTemplatePreviewFrame
+		<div
+			class="bg-elevated/40 relative flex h-[172px] justify-center overflow-hidden bg-[radial-gradient(var(--ui-border)_1px,transparent_1px)] bg-[length:14px_14px] pt-4"
+		>
+			<div class="pointer-events-none rounded-t-md shadow-sm">
+				<MailingTemplatePreviewFrame
 					:template-id="template._id"
 					:width="PREVIEW_WIDTH"
 					:scale="PREVIEW_SCALE"
+					:label="template.name"
+					lazy
 				/>
 			</div>
+			<DmsStatusPill
+				class="bg-(--ui-bg) absolute left-2.5 top-2.5 z-10"
+				:tone="STATUS_TONES[template.status]"
+				:label="statusLabel"
+				:dot="isLive ? 'live' : 'static'"
+				size="sm"
+			/>
 			<div
-				class="absolute inset-0 flex items-center justify-center gap-2 bg-black/45 opacity-0 transition-opacity group-hover:opacity-100"
+				class="bg-(--ui-bg)/60 pointer-events-none absolute inset-0 flex items-center justify-center gap-2 opacity-0 backdrop-blur-[2px] transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
 			>
 				<UButton
-					icon="i-ph-pencil-simple"
-					:label="t('dms_mailing.templates.actions.edit')"
-					size="sm"
-					@click.stop="emit('open')"
-				/>
-				<UButton
-					icon="i-ph-paper-plane-tilt"
+					icon="i-ph-flask"
 					color="neutral"
-					variant="ghost"
+					variant="outline"
 					size="sm"
-					:title="t('dms_mailing.templates.actions.test_send')"
+					:label="t('dms_mailing.templates.card.test')"
 					@click.stop="emit('test-send')"
 				/>
+				<UTooltip
+					v-if="isLive"
+					:text="t('dms_mailing.templates.actions.real_send')"
+				>
+					<UButton
+						icon="i-ph-paper-plane-right"
+						color="error"
+						variant="outline"
+						size="sm"
+						square
+						:aria-label="t('dms_mailing.templates.actions.real_send')"
+						@click.stop="emit('real-send')"
+					/>
+				</UTooltip>
 				<UButton
-					icon="i-ph-info"
-					color="neutral"
-					variant="ghost"
+					icon="i-ph-pencil-simple"
 					size="sm"
-					:title="t('dms_mailing.templates.actions.details')"
-					@click.stop="emit('details')"
+					:label="t('dms_mailing.templates.actions.edit')"
+					@click.stop="emit('open')"
 				/>
 			</div>
 		</div>
 
-		<div class="flex flex-col gap-1 p-4">
-			<div class="flex items-center gap-2">
-				<h3 class="text-highlighted truncate text-[13.5px] font-semibold">
+		<div
+			class="border-default flex flex-1 flex-col gap-1.5 border-t px-3.5 pb-3 pt-3"
+		>
+			<div class="flex min-w-0 items-center gap-2">
+				<h3
+					class="text-highlighted truncate text-[13.5px] font-semibold"
+					:title="template.name"
+				>
 					{{ template.name }}
 				</h3>
-				<UBadge
-					v-if="template.status !== LIVE_STATUS"
-					:label="statusLabel"
-					color="neutral"
-					variant="subtle"
+				<DmsStatusPill
+					v-if="staleDays"
+					tone="neutral"
 					size="sm"
+					dot="none"
+					:label="
+						t('dms_mailing.templates.card.stale_days', { days: staleDays })
+					"
+				/>
+				<DmsStatusPill
+					v-if="isNeverSent"
+					tone="warning"
+					size="sm"
+					dot="none"
+					:label="t('dms_mailing.templates.card.never_sent')"
+				/>
+				<UButton
+					class="ml-auto shrink-0"
+					icon="i-ph-info"
+					color="neutral"
+					variant="ghost"
+					size="xs"
+					square
+					:aria-label="t('dms_mailing.templates.actions.details')"
+					@click.stop="emit('details')"
 				/>
 			</div>
-			<span class="text-dimmed truncate font-mono text-[11.5px]">
-				{{ template.slug }}
-			</span>
-			<div class="mt-1 flex items-center gap-2">
-				<div v-if="badges.length" class="flex items-center gap-1">
+			<div class="flex min-w-0 items-center gap-2">
+				<span class="text-dimmed truncate font-mono text-[11.5px]">
+					{{ template.slug }}
+				</span>
+				<span v-if="chips.length" class="ml-auto flex shrink-0 gap-1">
 					<button
-						v-for="badge in badges"
-						:key="badge.code"
+						v-for="chip in chips"
+						:key="chip.code"
 						type="button"
-						:title="badgeLabel(badge.code, badge.present)"
-						:aria-label="badgeLabel(badge.code, badge.present)"
-						class="rounded px-1.5 py-0.5 font-mono text-[10.5px] font-medium uppercase transition-colors"
-						:class="
-							badge.present
-								? 'bg-elevated text-toned hover:bg-accented'
-								: 'text-warning border-warning/50 hover:bg-warning/10 border border-dashed'
-						"
-						@click.stop="emit('open-locale', badge.code)"
+						:title="chipLabel(chip.code, chip.present)"
+						:aria-label="chipLabel(chip.code, chip.present)"
+						:class="localeChipClass(chip.present)"
+						class="focus-visible:outline-primary transition-colors hover:brightness-125 focus-visible:outline-2"
+						@click.stop="emit('open-locale', chip.code)"
 					>
-						{{ badge.code }}
+						{{ chip.code }}
 					</button>
-				</div>
+				</span>
+			</div>
+			<div
+				class="border-default text-muted mt-1 flex items-center gap-3 border-t pt-2 font-mono text-[11.5px]"
+			>
+				<template v-if="footer.kind === 'stats'">
+					<span>
+						<b class="text-highlighted font-semibold">{{ sendsLabel }}</b>
+						{{ t('dms_mailing.templates.card.sends', footer.sends) }}
+					</span>
+					<span>
+						<b class="text-highlighted font-semibold">{{ openRateLabel }}%</b>
+						{{ t('dms_mailing.templates.card.open') }}
+					</span>
+					<span class="ml-auto">{{ footerDate }}</span>
+				</template>
+				<span v-else class="truncate">{{ footerText }}</span>
 			</div>
 		</div>
 	</DmsCard>

@@ -24,6 +24,81 @@ export function serializeCategories(categories: TemplateCategory[]): string {
 	return JSON.stringify(categories)
 }
 
+/** The value written back in the shape the field handed in (array or JSON). */
+export function formatCategoriesLike(
+	original: TemplateCategory[] | string | null | undefined,
+	categories: TemplateCategory[],
+): TemplateCategory[] | string {
+	return Array.isArray(original) ? categories : serializeCategories(categories)
+}
+
+/** The icons the categories editor offers ("Pick an icon"). */
+export const CATEGORY_ICONS = [
+	'i-ph-package',
+	'i-ph-lock',
+	'i-ph-user-circle',
+	'i-ph-key',
+	'i-ph-file-text',
+	'i-ph-newspaper',
+	'i-ph-sparkle',
+	'i-ph-textbox',
+	'i-ph-truck',
+	'i-ph-shopping-cart',
+	'i-ph-bell',
+	'i-ph-megaphone',
+	'i-ph-gift',
+	'i-ph-users',
+	'i-ph-calendar',
+	'i-ph-chat-circle',
+]
+
+export const DEFAULT_CATEGORY_ICON = 'i-ph-folder'
+
+/**
+ * A row of the categories editor. `isNew` rows were added in this edit: their
+ * id follows the label until the form is saved, then stays fixed for good.
+ */
+export interface EditableCategory extends TemplateCategory {
+	key: string
+	isNew: boolean
+}
+
+const UNIQUE_SUFFIX_START = 2
+const FALLBACK_ID_BASE = 'category'
+
+/** `base`, or `base-2`, `base-3`… the first one `taken` does not hold. */
+export function uniqueId(base: string, taken: Set<string>): string {
+	if (!taken.has(base)) return base
+	let suffix = UNIQUE_SUFFIX_START
+	while (taken.has(`${base}${ID_SEPARATOR}${suffix}`)) suffix++
+	return `${base}${ID_SEPARATOR}${suffix}`
+}
+
+/**
+ * The categories an edit stores: rows without a label are left out (they are
+ * not categories yet), saved rows keep their id, new rows get one derived from
+ * their label, unique among the others.
+ */
+export function toStoredCategories(
+	rows: EditableCategory[],
+): TemplateCategory[] {
+	const labelled = rows.filter((row) => row.label.trim())
+	const taken = new Set(
+		labelled.filter((row) => !row.isNew).map((row) => row.id),
+	)
+	return labelled.map((row) => {
+		const id = row.isNew
+			? uniqueId(slugifyId(row.label) || FALLBACK_ID_BASE, taken)
+			: row.id
+		taken.add(id)
+		return {
+			id,
+			label: row.label.trim(),
+			icon: row.icon || DEFAULT_CATEGORY_ICON,
+		}
+	})
+}
+
 /**
  * The id a new category gets from its label. Ids are stored on every template,
  * so they stay ASCII and stable rather than following a later rename.
@@ -58,6 +133,8 @@ export function fromCategoryOption(value: string): string {
  * omitted: from interface-data-api 0.2.0 on, the edit route leaves an absent
  * key unchanged, so only an explicit `null` clears it.
  */
-export function toStoredCategory(value: string | null | undefined): string | null {
+export function toStoredCategory(
+	value: string | null | undefined,
+): string | null {
 	return value || null
 }

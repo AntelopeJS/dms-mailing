@@ -7,17 +7,33 @@
 </div>
 
 Mailing module for the AntelopeJS DMS: a template library with a block-based
-e-mail editor, a send log, an overview dashboard and
-settings. It owns the data (tenant-scoped Mongo tables), renders e-mails
-through the DMS html-render chain and sends them through
+e-mail editor, drafts and published versions, a send log, an overview
+dashboard and settings. It owns the data (tenant-scoped Mongo tables), renders
+e-mails through the DMS html-render chain and sends them through
 `@antelopejs/interface-email`.
+
+The module targets `@antelopejs/dms` 0.7 (0.7.4 or later) and `@antelopejs/dms-frontend` 0.5.
+Like every DMS module, its pages live in the module's own sidebar (Mailing:
+Overview, Templates, Sends; Configure: Settings) and are reserved to the
+platform owner. The design decisions behind the v2 screens are recorded in
+[`docs/design-v2-grill-me.md`](../../docs/design-v2-grill-me.md).
+
+## Drafts and versions
+
+The editor never changes what customers receive. It saves a draft next to the
+published content; **Publish** turns the draft into the next version, keeps
+it in `mailing_template_versions` and makes it what `SendTemplate` sends.
+**Discard** drops the draft. Test sends use the draft (their subject starts
+with `[TEST]`), real sends always use the published version, and every send
+records the version it used and the locale the caller asked for, so the log
+can render exactly what went out and show `DE → EN` fallbacks.
 
 ## Layout
 
 | Path | What it holds |
 | --- | --- |
 | `src/index.ts` | Module lifecycle (`construct`/`start`/`stop`/`destroy`); registers the Vue frontend module, the automation nodes, the tenant-export contributor, the realtime topics and the retention cron. |
-| `src/pages/` | The DMS pages: `overview`, `templates`, `editor`, `sends` and the settings form. |
+| `src/pages/` | The DMS pages: `overview`, `templates`, the editor (`templates/:id`), `sends` and `settings`, all inside the module sidebar. Every custom block carries a `.meta()` with i18n keys. |
 | `src/data/` | The `TableView` data controllers behind `/api/mailing/tables/*`. |
 | `src/routes/` | The HTTP API under `/api/mailing` (templates, sends, events, metrics, settings, provider). |
 | `src/engine/` | The pure-TS rendering engine: block tree + variables → resolved e-mail. |
@@ -25,7 +41,7 @@ through the DMS html-render chain and sends them through
 | `src/automation/` | The `dms-automation` action and trigger. |
 | `src/crons/` | The daily, replay-safe send-log retention job. |
 | `src/hooks/` | The tenant data export contributor. |
-| `frontend-vue/` | Vue Inertia module: gallery display, detail drawers, block editor, `dms.email.ts` server template entry and the `mailing-*.json` i18n catalogs. |
+| `frontend-vue/` | Vue module registered under the `Mailing` component prefix: gallery display, template and send drawers, test / real send dialogs, the three-pane block editor, the overview and settings blocks, `dms.email.ts` server template entry and the `mailing-*.json` i18n catalogs. Its own composables and utils are imported by path, not auto-imported. |
 | `playground/` | Standalone AntelopeJS project wiring this module to the DMS, Mongo, the API server and the mailer, for local development. |
 
 ## Public interface
@@ -133,7 +149,8 @@ pnpm frontend:dev   # the DMS front-end, in another terminal
 
 The backend listens on `http://localhost:5010` and needs a MongoDB on
 `mongodb://localhost:27017` (database `playground_dms_mailing`); set
-`MONGO_URL` to point the playground at another instance.
+`MONGO_URL` to point the playground at another instance. E-mails go to an
+Ethereal account, or to a local SMTP server when `SMTP_PORT` is set.
 
 Both packages are public on npm, published under the `@antelopejs` scope with
 npm trusted publishing and provenance. The interface package must be released

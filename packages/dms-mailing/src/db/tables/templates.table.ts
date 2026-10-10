@@ -40,9 +40,36 @@ export class MailingTemplate extends Table {
   @Field("string")
   declare status: TemplateStatus;
 
-  /** JSON-serialized TemplateContent, replaced in place on every save. */
+  /**
+   * JSON-serialized TemplateContent customers receive: the last published
+   * version. Only a publish writes it.
+   */
   @Field("string")
   declare json_content: string;
+
+  /**
+   * JSON-serialized TemplateContent the editor saves while drafting. Blank when
+   * nothing is waiting to be published.
+   */
+  @Field("string")
+  declare json_draft?: string;
+
+  /** Whether `json_draft` holds changes customers do not receive yet. */
+  @Field("boolean")
+  declare isDraftPending?: boolean;
+
+  @Field("date")
+  declare draftUpdatedAt?: Date;
+
+  @Field("string")
+  declare draftUpdatedBy?: string;
+
+  /** Version customers receive; absent on rows written before versions. */
+  @Field("number")
+  declare publishedVersion?: number;
+
+  @Field("string")
+  declare publishedBy?: string;
 
   /** JSON-serialized VariableDefinition[] declared for this template. */
   @Field("string")
@@ -53,7 +80,8 @@ export class MailingTemplate extends Table {
   declare json_test_data: string;
 
   /**
-   * Locale codes present in the current version's content, comma-separated.
+   * Locale codes present in the content customers receive (the draft's until
+   * a first publish), comma-separated.
    * Denormalised so a template row can show its coverage without loading the
    * version. Blank on rows written before this field existed: unknown, not
    * "none".

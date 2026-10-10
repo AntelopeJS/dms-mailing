@@ -37,6 +37,19 @@ const COUNTERS: Partial<Record<SendEventType, CounterKey>> = {
 
 const MAX_ACTIVITY_ATTEMPTS = 5;
 
+const PROBLEM_EVENTS = new Set<SendEventType>(["bounced", "failed", "spam"]);
+
+/**
+ * The provider's own words for a problem event (`550 5.1.1 Mailbox does not
+ * exist`), kept on the send so the log shows why it failed. Other events
+ * leave the stored error alone.
+ */
+export function problemReason(event: EmailEvent): string | undefined {
+  if (!PROBLEM_EVENTS.has(event.type)) return undefined;
+  const reason = event.details?.reason;
+  return typeof reason === "string" && reason ? reason : undefined;
+}
+
 export function applyEvent(
   current: SendCounters,
   type: SendEventType,
@@ -69,6 +82,7 @@ async function acceptEmailActivity(
       ),
       lastEventAt: event.at ?? new Date(),
       provider: event.provider,
+      error: problemReason(event),
     });
     if (accepted) return send;
   }

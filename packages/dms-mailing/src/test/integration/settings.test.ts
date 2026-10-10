@@ -9,6 +9,59 @@ const DEFAULT_RETENTION_DAYS = 90;
 const UPDATED_RETENTION_DAYS = 30;
 const INVALID_RETENTION_DAYS = 0;
 
+describe("[integration] settings form", () => {
+  it("applies a partial post without touching the other fields", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const initial = await client.get("/api/mailing/settings");
+    expect(initial.data.webhookUrl).to.match(/\/api\/mailing\/events\//);
+    expect(initial.data.missingVariables).to.be.oneOf(["refuse", "send"]);
+
+    const partial = await client.post("/api/mailing/settings", {
+      senderName: "Acme Supplies",
+      missingVariables: "refuse",
+    });
+    expect(partial.status, JSON.stringify(partial.data)).to.equal(HTTP_OK);
+    const after = await client.get("/api/mailing/settings");
+    expect(after.data.senderName).to.equal("Acme Supplies");
+    expect(after.data.blockOnMissingVariables).to.equal(true);
+    expect(after.data.categories).to.deep.equal(initial.data.categories);
+    expect(after.data.fallbackLocale).to.equal(initial.data.fallbackLocale);
+
+    const restored = await client.post("/api/mailing/settings", {
+      senderName: initial.data.senderName,
+      blockOnMissingVariables: initial.data.blockOnMissingVariables,
+    });
+    expect(restored.status).to.equal(HTTP_OK);
+  });
+
+  it("rotates the webhook secret and previews the retention", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const before = await client.get("/api/mailing/settings");
+    const rotated = await client.post(
+      "/api/mailing/settings/webhook-secret/rotate",
+      {},
+    );
+    expect(rotated.status).to.equal(HTTP_OK);
+    expect(rotated.data.value).to.have.length(48);
+    expect(rotated.data.value).to.not.equal(before.data.webhookSecret);
+    const after = await client.get("/api/mailing/settings");
+    expect(after.data.webhookSecret).to.equal(rotated.data.value);
+
+    const preview = await client.get(
+      "/api/mailing/settings/retention-preview?days=30",
+    );
+    expect(preview.status).to.equal(HTTP_OK);
+    expect(preview.data.days).to.equal(30);
+    expect(preview.data.count).to.be.a("number");
+
+    const usage = await client.get("/api/mailing/settings/category-usage");
+    expect(usage.status).to.equal(HTTP_OK);
+    expect(usage.data.counts).to.be.an("object");
+  });
+});
+
 describe("[integration] settings", () => {
   it("returns defaults, accepts an update and rejects an invalid retention", async () => {
     const session = await ensureOwnerSession();

@@ -18,6 +18,8 @@ export const createTemplateSchema = z.object({
   category: z.string().optional(),
   /** Absent or empty starts blank; otherwise the template to copy. */
   sourceTemplateId: z.string().optional(),
+  /** A starter template to start from, when no template is copied. */
+  starterId: z.string().optional(),
 });
 
 export const conditionSchema = z.object({
@@ -118,9 +120,20 @@ export const variablesSchema = z.object({ variables: z.array(variableSchema) });
 
 export const testDataSchema = z.object({ data: z.record(z.unknown()) });
 
+/**
+ * Which content a preview renders when it carries none: the working draft
+ * (the default), what customers receive, or a published version number.
+ */
+export const previewVersionSchema = z.union([
+  z.literal("draft"),
+  z.literal("published"),
+  z.number().int().min(1),
+]);
+
 export const previewSchema = z.object({
   /** Absent lets the server pick the tenant fallback (see `pickLocale`). */
   locale: z.string().min(1).optional(),
+  version: previewVersionSchema.optional(),
   content: templateContentSchema.optional(),
   data: z.record(z.unknown()).optional(),
 });
@@ -142,4 +155,13 @@ export const testSendSchema = previewSchema.extend({
 export const duplicateSchema = z.object({
   slug: slugSchema,
   name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+});
+
+/** A send again; `to` corrects the address of a bounced send. */
+export const replaySchema = z.object({
+  to: z.string().trim().email().optional(),
+});
+
+export const replayFailedSchema = z.object({
+  since: z.coerce.date().optional(),
 });

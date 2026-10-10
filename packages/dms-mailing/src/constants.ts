@@ -1,6 +1,12 @@
 export const MODULE_ID = "mailing";
 export const API_BASE_PATH = "/api/mailing";
 export const TABLES_BASE_PATH = `${API_BASE_PATH}/tables`;
+export const MODULE_BASE_PATH = `/modules/${MODULE_ID}`;
+export const TEMPLATES_PATH = `${MODULE_BASE_PATH}/templates`;
+export const SENDS_PATH = `${MODULE_BASE_PATH}/sends`;
+export const SETTINGS_PATH = `${MODULE_BASE_PATH}/settings`;
+export const NEW_TEMPLATE_BUTTON_ID = "create";
+export const NEW_TEMPLATE_ACTION_ID = "mailing.new-template";
 export const FRONTEND_MODULE_NAME = "@antelopejs/dms-mailing-frontend-vue";
 export const EMAIL_TEMPLATE_NAME = "EmailMailingTemplate";
 

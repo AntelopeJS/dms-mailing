@@ -13,7 +13,7 @@ defineProps<Props>()
 		<span
 			class="inline-flex h-10 items-center rounded-md bg-gray-900 px-5 text-sm font-semibold text-white"
 		>
-			<DmsMailingTokenText :text="block.text" />
+			<MailingTokenText :text="block.text" />
 		</span>
 	</div>
 </template>

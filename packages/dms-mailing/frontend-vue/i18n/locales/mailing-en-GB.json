@@ -6,26 +6,41 @@
 			"missing_locales_description": "Incomplete templates — {names}. Sends fall back to the default locale.",
 			"missing_locales_title": "{count} missing translations",
 			"problem_sends": {
-				"description": "Bounced, rejected or failed — open the problems tab to clear them.",
-				"title": "{count} send needs attention | {count} sends need attention"
+				"description": "{bounced} bounce · {failed} provider failure · {spam} spam report.",
+				"title": "{count} send has a problem | {count} sends have a problem",
+				"action": "Review problems",
+				"parts": {
+					"bounced": "{count} bounce | {count} bounces",
+					"failed": "{count} provider failure | {count} provider failures",
+					"spam": "{count} spam report | {count} spam reports"
+				}
 			},
 			"stale_drafts": {
 				"description": "Never published and unchanged for over a week — publish them or archive them.",
-				"title": "{count} draft left untouched | {count} drafts left untouched"
+				"title": "{count} draft left untouched | {count} drafts left untouched",
+				"action": "Publish or archive"
 			},
 			"stale_drafts_description": "Never published since their last edit — publish them or archive them.",
 			"stale_drafts_title": "{count} drafts left untouched",
 			"test_only_window": {
 				"description": "These figures count real traffic only. Every send in this window was a test — see them in the send log.",
-				"title": "{count} test sends excluded"
+				"title": "{count} test sends excluded",
+				"action": "Open the send log"
 			},
 			"untracked_rates": {
 				"title": "Opens and clicks are not tracked",
-				"description": "{provider} reports neither, so those rates stay at 0 %. Delivery, opens and clicks need a provider that sends events back."
+				"description": "{provider} reports neither, so those rates stay at 0 %. Delivery, opens and clicks need a provider that sends events back.",
+				"action": "Provider settings"
 			},
 			"unused_live": {
-				"description": "Published but no code calls them yet — check the slug used at the call site.",
-				"title": "{count} live template never sent | {count} live templates never sent"
+				"description": "{names}: live, but no code calls them yet. Check the slug at the call site.",
+				"title": "{count} live template never sent | {count} live templates never sent",
+				"action": "Check the slugs"
+			},
+			"missing_locales": {
+				"title": "{count} template misses a translation | {count} templates miss a translation",
+				"description": "Missing in {names}. Those customers get the fallback locale.",
+				"action": "See the templates"
 			}
 		},
 		"blocks": {
@@ -86,7 +101,18 @@
 				"remove_else": "Remove the \"else\" branch",
 				"simulate_false": "false",
 				"simulate_true": "true",
-				"value": "Value"
+				"value": "Value",
+				"sim_locked": "Evaluated with the test data",
+				"sim_hint": "Simulate the branch the e-mail takes",
+				"no_value": "no value",
+				"eval_branch_true": "With test data: true → first branch",
+				"eval_branch_false": "With test data: false → else branch",
+				"eval_visibility_true": "With test data: true → shown",
+				"eval_visibility_false": "With test data: false → hidden",
+				"first_branch_if": "Show the first branch if",
+				"else_branch": "Else branch",
+				"else_count": "{count} block shown when the rule is false | {count} blocks shown when the rule is false",
+				"else_off": "Nothing is shown when the rule is false"
 			},
 			"data": {
 				"block_on_missing": "Block sends on missing variables",
@@ -119,7 +145,9 @@
 				"blank": "Start from an empty page",
 				"duplicate": "Duplicate from {fallback}",
 				"hint": "Sends in {locale} fall back to {fallback}. Duplicate it to translate, or start from an empty page.",
-				"title": "The {locale} version does not exist"
+				"title": "The {locale} version does not exist",
+				"title_short": "No {locale} version yet",
+				"affected": "{count} recipient asked for {locale} in the last 30 days and got {fallback}. Duplicate it to translate, or start from an empty page. | {count} recipients asked for {locale} in the last 30 days and got {fallback}. Duplicate it to translate, or start from an empty page."
 			},
 			"mobile": "Mobile",
 			"open_template_settings": "Template settings",
@@ -132,7 +160,14 @@
 				"truthy": "is true"
 			},
 			"palette": {
-				"hint": "Drag a tile into the preview to insert it where you want — including inside a condition. Drag an existing block to move it."
+				"hint": "Drag a tile into the preview to insert it where you want — including inside a condition. Drag an existing block to move it.",
+				"search": "Search blocks",
+				"no_match": "No block matches “{query}”.",
+				"help": "Drag a tile onto the e-mail, or click it to add it under the selected block. Press / on the canvas to search blocks.",
+				"tiles": {
+					"footer": "Footer · unsubscribe",
+					"if": "Condition · if / else"
+				}
 			},
 			"preheader": "Preheader",
 			"preview_mode": {
@@ -174,7 +209,179 @@
 				"path": "Path",
 				"required": "Required",
 				"type": "Type",
-				"unused": "unused"
+				"unused": "unused",
+				"insert_hint": "Click to insert at the cursor",
+				"undeclared": "undeclared",
+				"declare_one": "Declare",
+				"edit": "Edit this variable",
+				"remove": "Remove this variable",
+				"save": "Save"
+			},
+			"states": {
+				"back": "Back to templates",
+				"retry": "Try again",
+				"error_title": "This template couldn’t be loaded",
+				"error_description": "It may have been deleted, or the content is invalid."
+			},
+			"toolbar": {
+				"test": "Test",
+				"test_hint": "Send a test",
+				"publish": "Publish changes",
+				"uncategorised": "Uncategorised",
+				"locale": "Locale",
+				"locale_missing": "Missing: falls back to {fallback}",
+				"device": "Device",
+				"desktop": "Desktop · 600 px",
+				"mobile": "Mobile · 380 px",
+				"mode": "Preview",
+				"mode_variables": "Variables",
+				"mode_data": "Data"
+			},
+			"save_state": {
+				"saving": "Saving…",
+				"saved": "Saved",
+				"unpublished": "{count} unpublished | {count} unpublished",
+				"error": "Not saved",
+				"retry": "The draft couldn’t be saved. Click to try again.",
+				"hint": "Your edits are saved automatically as a draft.",
+				"undo": "Undo",
+				"redo": "Redo",
+				"saved_toast": "Draft saved",
+				"leave_failed": "The latest changes couldn’t be saved and will be lost."
+			},
+			"notice": {
+				"live_changes": "Customers still receive v{version}, published {date} at {time}. Your {count} change goes out only when you publish. | Customers still receive v{version}, published {date} at {time}. Your {count} changes go out only when you publish.",
+				"live_clean": "Customers receive v{version}, published {date} at {time}. Your edits are saved as a draft until you publish.",
+				"never_published": "Not published yet: nothing reaches customers until you publish v1.",
+				"draft_changes": "Your change is kept as a draft; v{version} is not live. | Your {count} changes are kept as a draft; v{version} is not live.",
+				"compare": "Compare with live",
+				"discard": "Discard draft"
+			},
+			"left": {
+				"blocks": "Blocks",
+				"outline": "Outline",
+				"variables": "Variables",
+				"shortcut_save": "save",
+				"shortcut_publish": "publish",
+				"shortcut_test": "test"
+			},
+			"outline": {
+				"empty": "No block yet. Add one from the Blocks tab."
+			},
+			"envelope": {
+				"subject": "Subject",
+				"preheader": "Preheader",
+				"subject_empty": "No subject yet",
+				"preheader_empty": "No preheader",
+				"subject_length": "Mail clients show about {max} characters of a subject."
+			},
+			"canvas": {
+				"add_here": "Add a block here",
+				"insert": "Add a block here"
+			},
+			"inspector": {
+				"block": "Block",
+				"data": "Test data",
+				"template": "Template",
+				"empty_title": "No block selected",
+				"empty_description": "Click a block on the e-mail to edit it here.",
+				"position": "block {index} of {total}",
+				"position_branches": "{position} · {then} + {else} blocks",
+				"duplicate": "Duplicate",
+				"delete": "Delete"
+			},
+			"autocomplete": {
+				"hint": "Type {'{{'} to insert a variable.",
+				"undeclared": "undeclared",
+				"system": "system"
+			},
+			"visibility": {
+				"label": "Visibility",
+				"always": "Always show",
+				"only_if": "Only if…",
+				"help": "A condition hides the block when its rule is false."
+			},
+			"test_data": {
+				"label": "Test data",
+				"invalid": "Invalid JSON: fix it to preview with data and run the checks.",
+				"valid_unsaved": "Valid JSON · not saved yet",
+				"valid_saved": "Valid JSON · saved with the template",
+				"fix_json": "Fix the JSON to run the checks.",
+				"saved": "Test data saved",
+				"save": "Save",
+				"reset": "Reset",
+				"checks": "Checks",
+				"block_on_missing": "Block sends with missing variables",
+				"block_on_missing_help": "Workspace setting · refuse rather than send an e-mail with blanks."
+			},
+			"checks": {
+				"undeclared": "{path} isn’t declared: calls that don’t pass it send the e-mail with a blank, or fail when sends with missing variables are blocked.",
+				"required_missing": "{path} is required but missing from the test data.",
+				"required_covered": "{count} required variable covered | {count} required variables covered",
+				"missing": "{path} is used but missing from the test data.",
+				"missing_undeclared": "{path} is used but missing from the data and not declared.",
+				"condition_true": "Condition {path} evaluates to true: the first branch shows.",
+				"condition_false": "Condition {path} evaluates to false: the else branch shows."
+			},
+			"template_tab": {
+				"name": "Name",
+				"slug": "Slug",
+				"locked": "locked",
+				"slug_help": "Code sends this template by its slug, so it can’t change.",
+				"category": "Category",
+				"no_category": "No category",
+				"saved": "Template updated",
+				"envelope": "Envelope · {locale}"
+			},
+			"lifecycle": {
+				"title": "Lifecycle",
+				"status": "Status",
+				"version": "Version",
+				"sends": "Sends 30 d",
+				"unpublish": "Unpublish",
+				"archive": "Archive…",
+				"restore": "Restore",
+				"unpublish_title": "Unpublish this template?",
+				"archive_title": "Archive this template?",
+				"refuse_warning": "Unpublished or archived templates refuse sends: code calling {slug} would get an error.",
+				"unpublish_done": "Template unpublished",
+				"archive_done": "Template archived",
+				"restore_done": "Template restored"
+			},
+			"publish_review": {
+				"title": "Publish {count} change to {name}? | Publish {count} changes to {name}?",
+				"title_first": "Publish {name}?",
+				"description": "Every send of {slug} uses v{next} right after. v{version} stays in the history.",
+				"description_first": "Code calling {slug} can send it as soon as v{next} is published.",
+				"done": "v{version} published",
+				"no_changes": "No content change since v{version}.",
+				"checks": "{count} check to look at | {count} checks to look at",
+				"test_first": "Test first",
+				"keep_editing": "Keep editing",
+				"confirm": "Publish v{version}"
+			},
+			"discard_dialog": {
+				"title": "Discard the draft?",
+				"description": "Your {count} change is lost and the editor goes back to live v{version}. | Your {count} changes are lost and the editor goes back to live v{version}.",
+				"confirm": "Discard {count} change | Discard {count} changes",
+				"cancel": "Keep the draft"
+			},
+			"compare": {
+				"title": "Compare with live",
+				"description": "What customers receive today (v{version}) next to your draft.",
+				"live": "Live",
+				"draft": "Draft",
+				"error": "The previews couldn’t be rendered."
+			},
+			"changes": {
+				"locale_added": "Locale added",
+				"locale_removed": "Locale removed",
+				"subject": "Subject changed",
+				"preheader": "Preheader changed",
+				"block_added": "{block} added",
+				"block_removed": "{block} removed",
+				"block_changed": "{block} changed",
+				"blocks_reordered": "Blocks reordered"
 			}
 		},
 		"errors": {
@@ -191,7 +398,12 @@
 			"template_not_found": "This template does not exist.",
 			"template_not_live": "This template is not live.",
 			"unknown_metric": "Unknown metric.",
-			"version_not_found": "This template version does not exist."
+			"version_not_found": "This template version does not exist.",
+			"invalid_transition": "This template cannot go to that status from its current one.",
+			"no_replay_after_spam": "The recipient reported this e-mail as spam: it is not sent again.",
+			"nothing_to_publish": "This template has no content to publish yet.",
+			"replay_needs_new_address": "This address bounced. Send to a corrected address instead.",
+			"starter_not_found": "This starter template does not exist."
 		},
 		"funnel": {
 			"clicked": "Clicked",
@@ -204,13 +416,13 @@
 			"bounces": "Bounces",
 			"click_rate": "Click rate",
 			"deliverability": "Deliverability",
-			"domain_sends": "open rate",
-			"domains": "By recipient domain",
+			"domain_sends": "Of the period",
+			"domains": "Open rate by domain",
 			"latency": "Median latency",
 			"open_rate": "Open rate",
 			"previous": "Previous period",
 			"queued": "Queued",
-			"ranking": "Template ranking",
+			"ranking": "Best opened templates",
 			"sends": "Sends",
 			"unsubscribes": "Unsubscribes",
 			"volume": "Send volume"
@@ -222,9 +434,23 @@
 		"overview": {
 			"attention_empty": "Nothing to report: every locale is covered and no delivery was rejected.",
 			"attention_title": "Needs attention",
-			"description": "The provider carries the mail, this module keeps the memory — every figure below is aggregated locally.",
+			"description": "Delivery and engagement for every e-mail your workspace sends. Test sends are left out of these figures.",
 			"funnel_title": "Funnel",
-			"title": "Overview"
+			"title": "Overview",
+			"groups": {
+				"reach": {
+					"title": "Reach",
+					"description": "Compared with the previous period"
+				},
+				"engagement": {
+					"title": "Engagement",
+					"description": "Of delivered e-mails"
+				},
+				"health": {
+					"title": "List health",
+					"description": "Lower is better"
+				}
+			}
 		},
 		"provider": {
 			"connected": "{name} connected",
@@ -246,27 +472,64 @@
 				"template": "Template",
 				"templateSlug": "Template",
 				"test": "Test",
-				"when": "When"
+				"when": "When",
+				"stage": "Stage",
+				"requestedLocale": "Requested locale",
+				"templateVersion": "Version"
 			},
 			"confirm": {
-				"replay_description": "The same template version and variables are sent again to the same recipient.",
-				"replay_title": "Replay this send?"
+				"replay_description": "The same version and data go to {recipientEmail}. It is a real send.",
+				"replay_title": "Send this e-mail again?",
+				"replay_confirm": "Send again"
 			},
-			"description": "Every send is logged here with its payload and its provider events — the history stays local.",
+			"description": "Every e-mail your workspace sent: to whom, with which data, and what the provider reported back.",
 			"drawer": {
 				"invalid_address": "Invalid address",
 				"latency": "API latency",
 				"locale": "Locale",
-				"payload": "Payload sent",
-				"replay": "Replay this send",
+				"payload": "Data sent",
+				"replay": {
+					"to": "To",
+					"template": "Template",
+					"last_try": "Last try",
+					"cancel": "Cancel"
+				},
 				"replayed": "Send replayed",
 				"status": "Status",
 				"template": "Template",
 				"timeline": "Timeline",
 				"transport_error": "Transport error",
-				"view_html": "View the received rendering"
+				"view_html": "View the received rendering",
+				"eyebrow": "Send · {id}",
+				"previous": "Previous send",
+				"next": "Next send",
+				"copy_link": "Copy link",
+				"link_copied": "Link copied",
+				"address_copied": "Address copied",
+				"json_copied": "Data copied",
+				"test": "Test",
+				"version": "v{version}",
+				"draft_version": "draft",
+				"fallback_used": "{locale} used: no version in this locale",
+				"as_requested": "As requested",
+				"slow_latency": "The provider was slow to answer",
+				"latency_hint": "API call to the provider",
+				"pending": "Waiting for the provider",
+				"origin": "Origin",
+				"source": "source",
+				"copy_json": "Copy JSON",
+				"actions": {
+					"rendering": "Rendering",
+					"see_received": "See what they received",
+					"fix_address": "Fix the address",
+					"send_again": "Send again…",
+					"copy_address": "Copy the address"
+				}
 			},
-			"empty": "No send matches this filter.",
+			"empty": {
+				"title": "No e-mail sent yet",
+				"description": "Sends appear here the moment your code or an automation calls a live template."
+			},
 			"status": {
 				"bounced": "Bounced",
 				"clicked": "Clicked",
@@ -290,9 +553,132 @@
 				"queued": "Queued",
 				"sent": "Handed to the provider",
 				"spam": "Marked as spam",
+				"unsubscribed": "Unsubscribed",
+				"sent_to": "Handed to {provider}"
+			},
+			"title": "Sends",
+			"caption": "Send log",
+			"search": "Recipient, slug or send id",
+			"test_badge": "TEST",
+			"views": {
+				"all": "All",
+				"problem": "Problems",
+				"in_progress": "In progress",
+				"delivered": "Delivered",
+				"engaged": "Opened or clicked",
 				"unsubscribed": "Unsubscribed"
 			},
-			"title": "Sends"
+			"filters": {
+				"tests": "Test sends",
+				"template": "Template"
+			},
+			"footer": {
+				"count": "{count} send | {count} sends"
+			},
+			"actions": {
+				"details": "Details",
+				"rendering": "See what they received",
+				"send_again": "Send again…",
+				"sent_again": "Sent again"
+			},
+			"stats": {
+				"label": "Send figures",
+				"sends": "Sends",
+				"delivered": "Delivered",
+				"problems": "Problems",
+				"queued": "Queued",
+				"latency": "Median latency",
+				"tests_excluded": "+ {count} test, not counted | + {count} tests, not counted",
+				"no_tests": "Test sends are never counted",
+				"delivered_of": "{delivered} of {sends}",
+				"breakdown": {
+					"bounced": "{count} bounce | {count} bounces",
+					"failed": "{count} failed | {count} failed",
+					"spam": "{count} spam | {count} spam"
+				},
+				"no_problems": "No bounce, failure or spam",
+				"oldest_waiting": "Oldest queued {time}",
+				"nothing_waiting": "Nothing waiting",
+				"latency_detail": "API call to {provider}",
+				"latency_detail_generic": "API call to the provider",
+				"joined": "{left} · {right}",
+				"delta_up": "▲ {delta}",
+				"delta_down": "▼ {delta}",
+				"rate": "{rate}",
+				"latency_ms": "{value} ms",
+				"latency_s": "{value} s"
+			},
+			"banner": {
+				"the_provider": "The provider",
+				"unreachable_title": "{provider} isn't answering",
+				"failures_title": "Sends to {provider} are failing",
+				"unreachable_description": "No e-mail can leave until it answers again. Check the provider settings.",
+				"missing_title": "No provider is connected",
+				"missing_description": "No e-mail can leave until the workspace's e-mail interface has a provider.",
+				"failures_description": "{count} send failed in the last hour. It is listed under Problems; you can send it again once {provider} is back. | {count} sends failed in the last hour. They're listed under Problems; you can send them again once {provider} is back.",
+				"settings": "Provider settings",
+				"send_again": "Send the failures again…",
+				"replayed": "The failures were sent again",
+				"confirm": {
+					"title": "Send {count} e-mail again? | Send {count} e-mails again?",
+					"description": "The same version and data go to the same recipients. These are real sends; bounces and spam reports are never part of them. | The same version and data go to the same recipients. These are real sends; bounces and spam reports are never part of them.",
+					"confirm": "Send {count} again | Send {count} again",
+					"cancel": "Cancel"
+				}
+			},
+			"empty_log": {
+				"title": "No e-mail sent yet",
+				"description": "Sends appear here the moment your code or an automation calls a live template.",
+				"test_instead": "Send a test instead"
+			},
+			"problems": {
+				"address_missing": {
+					"title": "This address doesn't exist",
+					"description": "The server of {domain} refused it. Future sends to it will bounce too."
+				},
+				"mailbox_full": {
+					"title": "The mailbox is full",
+					"description": "{domain} knows the address but has no room left for it. A later send may get through."
+				},
+				"rejected_spam": {
+					"title": "Rejected as spam",
+					"description": "The server of {domain} refused it as unwanted mail. Check the content and the sender domain's setup."
+				},
+				"spam_report": {
+					"title": "Marked as spam",
+					"description": "The recipient flagged this e-mail. Nothing more is sent to them from here."
+				},
+				"provider_timeout": {
+					"title": "{provider} didn't answer in time",
+					"description": "Nothing was delivered. Sending again is safe."
+				},
+				"rejected": {
+					"title": "The recipient's server refused it",
+					"description": "{domain} sent it back: {error}"
+				},
+				"provider_error": {
+					"title": "{provider} couldn't send it",
+					"description": "Nothing was delivered: {error}. Sending again is safe once the cause is fixed."
+				}
+			},
+			"fix_address": {
+				"title": "Fix the address",
+				"description": "{email} doesn't receive e-mail. The same version and data go to the corrected address; it is a real send.",
+				"label": "Corrected address",
+				"previous": "Bounced address",
+				"template": "Template",
+				"version": "v{version}",
+				"draft_version": "draft",
+				"cancel": "Cancel",
+				"submit": "Send to this address",
+				"sent": "Sent to {email}",
+				"errors": {
+					"required": "Enter the corrected address.",
+					"invalid": "This isn't an e-mail address.",
+					"same": "This is the address that bounced: enter a different one."
+				}
+			},
+			"locale_fallback": "{requested} asked"
 		},
 		"settings": {
 			"categories": {
@@ -300,20 +686,99 @@
 				"empty": "No category. Templates can stay uncategorised.",
 				"hint": "Deleting a category leaves the templates that used it uncategorised. The icon is a Phosphor name, like i-ph-package.",
 				"label": "Category name",
-				"remove": "Remove"
+				"remove": "Remove",
+				"usage": "no template | {count} template | {count} templates",
+				"drag": "Drag to reorder",
+				"change_icon": "Change the icon",
+				"pick_icon": "Pick an icon",
+				"drag_hint": "Drag to reorder the gallery"
 			},
-			"description": "Sender, retention and delivery guards for the mailing module.",
+			"description": "Who e-mails come from, how sends are guarded, how long the log is kept and how templates are grouped.",
 			"fields": {
 				"blockOnMissingVariables": "Block the send when a variable is missing",
-				"categories": "Template categories",
-				"fallbackLocale": "Fallback locale",
-				"logRetentionDays": "Log retention (days)",
-				"replyTo": "Reply-to address",
-				"senderEmail": "Sender address",
-				"senderName": "Sender name",
-				"webhookSecret": "Webhook secret"
+				"categories": {
+					"label": "Categories",
+					"description": "Drag to reorder the gallery."
+				},
+				"fallbackLocale": {
+					"label": "Fallback locale",
+					"description": "Sent when a template has no version in the recipient's language."
+				},
+				"logRetentionDays": {
+					"label": "Keep sends for",
+					"description": "Between 1 day and 10 years. Deleted sends can't be sent again."
+				},
+				"replyTo": {
+					"label": "Reply-to address",
+					"description": "Where answers go. Leave empty to use the sender."
+				},
+				"senderEmail": {
+					"label": "Sender address",
+					"description": "Must belong to a domain verified with your provider."
+				},
+				"senderName": {
+					"label": "Sender name",
+					"description": "Your brand, not a person: it's used for every template."
+				},
+				"webhookSecret": {
+					"label": "Webhook secret",
+					"description": "Sent by the provider in the x-mailing-webhook-secret header. Events without it are refused."
+				},
+				"missingVariables": {
+					"label": "Missing variables",
+					"description": "When code calls a template without a required variable.",
+					"refuse": "Refuse the send",
+					"refuse_hint": "The call fails, nothing goes out",
+					"send": "Send anyway",
+					"send_hint": "Blanks where the value is missing"
+				},
+				"provider": {
+					"label": "Provider",
+					"description": "Set by the e-mail interface of the workspace."
+				},
+				"webhookUrl": {
+					"label": "Webhook URL",
+					"description": "Paste it in your provider's webhook settings."
+				}
 			},
-			"title": "Settings"
+			"title": "Settings",
+			"saved": "Settings saved",
+			"sections": {
+				"sender": {
+					"title": "Sender",
+					"description": "What recipients see in their inbox. A template can't override it."
+				},
+				"guards": {
+					"title": "Delivery guards",
+					"description": "What happens when a send isn't quite right."
+				},
+				"provider": {
+					"title": "Provider & webhook",
+					"description": "The provider carries the mail. Its webhook tells us about deliveries, opens, clicks and bounces."
+				},
+				"retention": {
+					"title": "Log retention",
+					"description": "A daily job deletes sends and their events once they're older than this. Templates are never deleted."
+				},
+				"categories": {
+					"title": "Template categories",
+					"description": "Group the gallery. Removing a category leaves its templates uncategorised."
+				}
+			},
+			"locale": {
+				"workspace": "Workspace locales: {locales}",
+				"placeholder": "Pick a locale"
+			},
+			"retention": {
+				"label": "Keep sends for",
+				"days": "{count} day | {count} days",
+				"one_year": "1 year",
+				"custom": "Custom",
+				"days_unit": "days",
+				"tonight": "tonight",
+				"preview": "Next run {when} at {time} · {count} send older than {days} days will be deleted. | Next run {when} at {time} · {count} sends older than {days} days will be deleted.",
+				"preview_none": "Next run {when} at {time} · no send is older than {days} days yet."
+			}
 		},
 		"templates": {
 			"actions": {
@@ -330,13 +795,23 @@
 				"send": "Send",
 				"test_send": "Test send",
 				"unpublish": "Unpublish",
-				"unpublished": "Template unpublished"
+				"unpublished": "Template unpublished",
+				"real_send": "Send to real recipients",
+				"restore": "Restore",
+				"restored": "Template restored"
 			},
 			"card": {
 				"add_locale": "Add the {locale} version — missing",
 				"edit_locale": "Edit the {locale} version",
 				"open": "open",
-				"sends": "sends"
+				"sends": "send | sends",
+				"test": "Test",
+				"draft_changes": "Draft changes",
+				"edited": "Edited {date}",
+				"edited_by": "Edited {date} by {name}",
+				"no_send_since": "No send yet · live since {date}",
+				"stale_days": "{days} d",
+				"never_sent": "never sent"
 			},
 			"cols": {
 				"category": "Category",
@@ -345,13 +820,17 @@
 				"slug": "Slug",
 				"status": "Status",
 				"updatedAt": "Updated",
-				"updatedBy": "Updated by"
+				"updatedBy": "Updated by",
+				"updated_by": "{date} · by {name}",
+				"publishedVersion": "Version",
+				"isDraftPending": "Unpublished changes",
+				"publishedAt": "Published"
 			},
 			"confirm": {
 				"archive_description": "Archived templates can no longer be sent. The versions are kept.",
 				"archive_title": "Archive this template?"
 			},
-			"description": "One slug, typed variables, one version per save. The rendering is compiled on save and sent through the configured provider.",
+			"description": "Each template has a slug your code calls, typed variables and one version per locale. Edits stay in draft until you publish.",
 			"display": {
 				"gallery": "Gallery",
 				"table": "Table"
@@ -366,12 +845,43 @@
 				"stats_open": "Open rate",
 				"stats_sends": "Sends",
 				"unused": "unused",
-				"variables": "Variables"
+				"variables": "Variables",
+				"eyebrow": "Template",
+				"previous": "Previous template",
+				"next": "Next template",
+				"more": "More actions",
+				"edited": "edited {date} by {name}",
+				"never_published": "never published",
+				"tab_preview": "Preview",
+				"tab_performance": "Performance",
+				"subject": "Subject · {subject}",
+				"missing_title": "No {locale} version",
+				"missing_description": "{locale} recipients get the {fallback} e-mail.",
+				"create_short": "Create {locale}",
+				"declared_detected": "Declared and detected",
+				"not_declared": "not declared",
+				"declare": "Declare",
+				"call_from_code": "Call it from code",
+				"last_30_days": "Last 30 days",
+				"open_send_log": "Open in send log",
+				"stats_problems": "Problems",
+				"problems_detail": "Review them in the send log",
+				"called_from": "Called from",
+				"no_sources": "No real send in the last 30 days.",
+				"unknown_source": "Unknown caller",
+				"sends_count": "{count} send | {count} sends",
+				"fallbacks": "Locale fallbacks",
+				"no_fallbacks": "Every recipient got the locale they asked for."
 			},
 			"empty": {
 				"hint": "No template matches this filter.",
-				"reset": "Reset the filters",
-				"title": "No template"
+				"reset": "Reset filters",
+				"title": "No template",
+				"no_match_title": "No template matches “{search}”",
+				"no_match_description": "Search looks at names and slugs. Try another word, or reset the filters.",
+				"view_title": "No template in this view",
+				"view_description": "Try another tab, or reset the filters.",
+				"create_named": "Create “{name}”"
 			},
 			"send_modal": {
 				"confirm": "I understand this is a real send",
@@ -383,7 +893,9 @@
 			},
 			"start_from": {
 				"blank": "Blank",
-				"label": "Start from"
+				"label": "Start from",
+				"blank_hint": "empty page",
+				"starter": "starter"
 			},
 			"status": {
 				"archived": "Archived",
@@ -391,8 +903,268 @@
 				"live": "Live"
 			},
 			"title": "Templates",
-			"uncategorised": "Uncategorised"
+			"uncategorised": "Uncategorised",
+			"caption": "Templates",
+			"search": "Search name or slug",
+			"tabs": {
+				"all": "All",
+				"live": "Live",
+				"draft": "Drafts",
+				"archived": "Archived"
+			},
+			"filters": {
+				"category": "Category"
+			},
+			"footer": {
+				"count": "{count} template | {count} templates",
+				"hint": "Click a card to edit · ↵ open · T test send"
+			},
+			"attention": {
+				"chip": "Needs attention",
+				"hint": "Drafts left aside, live templates never sent in 30 days, missing locales",
+				"none_title": "Nothing needs attention here",
+				"none_description": "Every template on this page is published, sent and translated.",
+				"show_all": "Show all templates"
+			},
+			"gallery": {
+				"new_tile": "New template",
+				"new_tile_hint": "or press N",
+				"load_more": "Load more templates"
+			},
+			"starters": {
+				"title": "Start with the e-mails every shop needs",
+				"description": "Pick a starter: it arrives as a draft with its variables declared and test data filled in.",
+				"blank": "Blank template"
+			},
+			"slug_errors": {
+				"required": "Give the template a slug.",
+				"format": "Lowercase letters, digits and dashes only, starting with a letter or a digit.",
+				"too_long": "Keep the slug under 64 characters.",
+				"taken": "Another template already uses this slug."
+			},
+			"name_errors": {
+				"required": "Give the template a name.",
+				"too_long": "Keep the name under 120 characters."
+			},
+			"lifecycle": {
+				"publish": "Publish the draft",
+				"publish_title": "Publish “{name}”?",
+				"publish_description": "Customers receive this version from the next send. The previous one stays in the history.",
+				"publish_confirm": "Publish",
+				"publish_done": "Template published",
+				"unpublish": "Unpublish",
+				"unpublish_title": "Unpublish “{name}”?",
+				"unpublish_description": "It goes back to draft. Every call from your code gets an error until you publish it again.",
+				"unpublish_confirm": "Unpublish",
+				"unpublish_done": "Template unpublished",
+				"archive": "Archive",
+				"archive_title": "Archive “{name}”?",
+				"archive_description": "Archived templates can no longer be sent. Calls from your code get an error. The versions are kept.",
+				"archive_confirm": "Archive",
+				"archive_done": "Template archived",
+				"restore": "Restore",
+				"restore_done": "Template restored as a draft"
+			}
 		},
-		"title": "Mailing"
+		"title": "Mailing",
+		"catalog_category": "Communication",
+		"nav": {
+			"mailing": "Mailing",
+			"configure": "Configure"
+		},
+		"permissions": {
+			"send": {
+				"name": "Send e-mails and tests",
+				"description": "Send test e-mails, send a template to real recipients and send a logged e-mail again."
+			},
+			"editor": {
+				"name": "Template editor",
+				"description": "Edit a template's blocks, variables and test data, publish or discard its draft."
+			},
+			"funnel": {
+				"name": "Delivery funnel",
+				"description": "Sent, delivered, opened and clicked e-mails of the period."
+			},
+			"overview_gate": {
+				"name": "Mailing dashboard",
+				"description": "The overview dashboard, or the setup steps until the workspace can send."
+			},
+			"page_header": {
+				"name": "Provider and period",
+				"description": "The provider state and the period switch in the page header."
+			},
+			"settings_form": {
+				"name": "Mailing settings",
+				"description": "Sender, delivery guards, provider webhook, log retention and template categories."
+			},
+			"template_drawer": {
+				"name": "Template details",
+				"description": "Preview, variables and performance of a template."
+			},
+			"test_send": {
+				"name": "Test send dialog",
+				"description": "Send a template to up to five test recipients."
+			},
+			"real_send": {
+				"name": "Real send dialog",
+				"description": "Send a live template to up to five real recipients."
+			},
+			"new_template": {
+				"name": "New template dialog",
+				"description": "Create a template from a blank page, a starter or another template."
+			},
+			"send_drawer": {
+				"name": "Send details",
+				"description": "Timeline, origin and data of one send, with the next step it needs."
+			},
+			"rendering": {
+				"name": "Received rendering",
+				"description": "The e-mail as the recipient received it."
+			}
+		},
+		"new_template": {
+			"title": "New template",
+			"description": "Code sends it by its slug. You can publish once the content is ready.",
+			"name_placeholder": "Quote accepted",
+			"slug_auto": "auto from name",
+			"slug_help": "Can’t be changed later: it’s the id your code calls.",
+			"shortcut": "create",
+			"submit": "Create and open the editor"
+		},
+		"test_send": {
+			"title": "Send a test",
+			"current_draft": "current draft",
+			"unsaved_draft": "unsaved draft",
+			"recipients": "Recipients",
+			"add_address": "Add an address",
+			"recipients_hint": "Press Enter or comma to add",
+			"locale": "Locale",
+			"data": "Data",
+			"data_test": "Test data set",
+			"data_none": "No data",
+			"info_title": "Tests stay out of your figures",
+			"info_description": "The subject gets a {prefix} prefix and the send is flagged as a test in the log.",
+			"shortcut": "send",
+			"submit": "Send a test | Send {count} test | Send {count} tests",
+			"sent": "{count} test sent | {count} tests sent"
+		},
+		"real_send": {
+			"title": "Send to real recipients",
+			"heading": "Send “{name}” to real recipients",
+			"warning": "It reaches their inbox and counts in the statistics. There is no undo.",
+			"recipients_hint": "Up to 5. For a list, use an automation.",
+			"from": "From",
+			"subject": "Subject",
+			"version": "Version",
+			"published_on": "published {date}",
+			"data_names": "Recipient names only",
+			"data_test": "Test data set",
+			"acknowledge": "Add a recipient first | I understand this sends a real e-mail to {count} person | I understand this sends a real e-mail to {count} people",
+			"submit": "Send to recipients | Send to {count} recipient | Send to {count} recipients",
+			"sent": "Sent to {count} recipient | Sent to {count} recipients",
+			"refused_title": "“{name}” can’t be sent yet",
+			"refused_draft": "It’s a draft. Only a live template can go to real recipients.",
+			"refused_archived": "It’s archived. Restore and publish it before sending it to real recipients.",
+			"refused_live": "Only a live template can go to real recipients.",
+			"check_status": "Status is {status} · last edited {date} by {name}",
+			"check_variables_ok": "Variables declared and covered by test data",
+			"check_variables_warn": "Some variables are not declared or have no test value",
+			"check_locales_ok": "Every workspace locale exists",
+			"check_locales_warn": "No {missing} version. Those recipients would get {fallback}.",
+			"test_instead": "Send a test instead",
+			"review_publish": "Review and publish"
+		},
+		"rendering": {
+			"title": "What the recipient received",
+			"received_by": "What {name} received",
+			"description": "Rendered from the version and the data stored with the send ·",
+			"views": {
+				"desktop": "Desktop",
+				"mobile": "Mobile",
+				"html": "HTML"
+			},
+			"view_label": "Rendering view",
+			"version": "v{version}",
+			"draft_version": "draft",
+			"frame_title": "Received e-mail",
+			"error_title": "The rendering can't be shown",
+			"error_description": "The template behind this send was deleted, or its version can't be read any more."
+		},
+		"period": {
+			"short": {
+				"last_hour": "1H",
+				"last_24h": "24H",
+				"today": "1D",
+				"last_7_days": "7D",
+				"last_30_days": "30D",
+				"last_90_days": "90D"
+			}
+		},
+		"page_header": {
+			"provider_connected": "{name} connected",
+			"no_provider": "No provider",
+			"provider_hint": "Deliveries, opens, clicks and bounces come back from the provider by webhook."
+		},
+		"setup": {
+			"title": "Send your first e-mail",
+			"description": "Mailing keeps your templates, renders them in every locale and logs each send. The provider (Brevo, Postmark, SMTP…) only carries the mail.",
+			"create_template": "Create a template",
+			"how_it_works": "How sending works",
+			"how_it_works_body": "Your code calls SendTemplate with a template's slug and its data. Mailing renders the published version in the recipient's locale, hands it to the provider and logs the send; the provider's webhook then reports deliveries, opens, clicks and bounces.",
+			"steps": {
+				"install": {
+					"title": "Install the Mailing module",
+					"description": "Done: the module is active in this workspace.",
+					"action": "Settings",
+					"done": "Done: the module is active in this workspace."
+				},
+				"provider": {
+					"title": "Connect a provider",
+					"description": "No e-mail can leave until one is configured.",
+					"action": "Connect",
+					"done": "Done: a provider is connected, e-mails can leave."
+				},
+				"sender": {
+					"title": "Set the sender",
+					"description": "Name and address customers see.",
+					"action": "Set sender",
+					"done": "Done: customers see your sender name and address."
+				},
+				"template": {
+					"title": "Create and test a template",
+					"description": "Start from a starter template or a blank page.",
+					"action": "Templates",
+					"done": "Done: your first template is ready."
+				}
+			}
+		},
+		"attention_card": {
+			"title": "Needs attention",
+			"empty": {
+				"title": "Nothing needs you",
+				"description": "No failed send in this period, every live template has all its locales and was used."
+			}
+		},
+		"funnel_card": {
+			"title": "Funnel · delivered to clicked",
+			"kinds": {
+				"all": "All",
+				"transactional": "Transactional",
+				"marketing": "Marketing"
+			},
+			"kind_label": "Kind of e-mail",
+			"takeaway": "Biggest drop: {from} → {to}.",
+			"no_drop": "Nothing to compare yet: no e-mail was sent in this period."
+		},
+		"common": {
+			"cancel": "Cancel"
+		},
+		"duplicate": {
+			"title": "Duplicate template",
+			"description": "Copies every locale, variables and test data into a new draft.",
+			"source": "Copy of {name} ·",
+			"copy_name": "{name} (copy)",
+			"submit": "Duplicate as draft"
+		}
 	}
 }

@@ -18,7 +18,7 @@ export class TemplateCategoriesType extends DataType {
   }
 
   protected defaultInputComponent() {
-    return CustomComponent("DmsMailingCategoriesInput")
+    return CustomComponent("MailingCategoriesInput")
       .options(this.options)
       .serializeSync();
   }

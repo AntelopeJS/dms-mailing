@@ -28,19 +28,28 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { DefaultDisplays } from "@antelopejs/interface-dms/base/table-view";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import { HTTP_CONFLICT, HTTP_NOT_FOUND, TABLES_BASE_PATH } from "../constants";
 import { TemplateCategoryType } from "../data-types";
 import { MailingTemplate, TemplateModel } from "../db";
 import { getSettings } from "../services/settings";
-import { displayName, initializeTemplate } from "../services/templates";
+import { findStarter, starterFields } from "../services/starters";
+import {
+  blankTemplateFields,
+  contentFieldsOf,
+  displayName,
+  initializeTemplate,
+} from "../services/templates";
 
 import { createTemplateSchema } from "../validation/templates.schema";
 import { parseBody } from "./body";
+import { LocaleChipsDisplay } from "./displays";
 
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
 const SOURCE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
+const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
 const CREATE_ONLY = { edit: ReadonlyBehaviorType.disabled };
 // Read-only columns render as empty dashes on the create form; the four fields
 // a template is actually created from are the only ones worth asking for.
@@ -62,6 +71,25 @@ async function resolveSource(
   return source;
 }
 
+interface TemplateSeed {
+  sourceTemplateId?: string;
+  starterId?: string;
+}
+
+/** The content fields a creation starts from: a copy, a starter or a blank page. */
+async function seedFields(
+  tenantId: string,
+  seed: TemplateSeed,
+  fallbackLocale: string,
+): Promise<Partial<MailingTemplate>> {
+  const source = await resolveSource(tenantId, seed.sourceTemplateId);
+  if (source) return contentFieldsOf(source);
+  if (!seed.starterId) return blankTemplateFields(fallbackLocale);
+  const starter = findStarter(seed.starterId);
+  if (!starter) throw new HTTPResult(HTTP_NOT_FOUND, STARTER_NOT_FOUND);
+  return starterFields(starter);
+}
+
 function withSeeding(base: DataControllerCallback): DataControllerCallback {
   return {
     ...base,
@@ -78,7 +106,8 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
         seed.slug,
       );
       if (existing) throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
-      const source = await resolveSource(tenantId, seed.sourceTemplateId);
+      const settings = await getSettings(tenantId);
+      const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
       const ids = (await base.func.call(
         this,
         ctx,
@@ -87,13 +116,11 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
         ...rest,
       )) as string[];
       const user = await authenticateTenantRequest(ctx);
-      const settings = await getSettings(tenantId);
       await initializeTemplate(
         tenantId,
         ids[0] as string,
-        settings.fallbackLocale,
         displayName(user),
-        source,
+        fields,
       );
       return ids;
     },
@@ -107,8 +134,7 @@ interface EditParams {
 /**
  * The body an edit may apply. Sends resolve templates by slug and nothing
  * enforces its uniqueness but the create checks, so a slug never changes once
- * set: a different one is refused, a missing one (which the data-api edit
- * would null) is kept.
+ * set: a different one is refused, and the stored one is always written back.
  */
 async function withStoredSlug(
   tenantId: string,
@@ -190,6 +216,7 @@ export class TemplatesTableAPI extends DataController(
     name: "$dms_mailing.templates.cols.slug",
     type: new DefaultDataTypes.StringType({}),
     readonlyBehavior: CREATE_ONLY,
+    display: new DefaultDisplays.MonoDisplay({ copy: true }),
   })
   declare slug: string;
 
@@ -212,6 +239,9 @@ export class TemplatesTableAPI extends DataController(
     type: new DefaultDataTypes.SelectType({ items: STATUS_ITEMS }),
     filterable: true,
     readonlyBehavior: NEVER_ON_CREATE,
+    display: new DefaultDisplays.StatusPillDisplay({
+      tones: { live: "success", draft: "neutral", archived: "warning" },
+    }),
   })
   declare status: string;
 
@@ -223,6 +253,11 @@ export class TemplatesTableAPI extends DataController(
     name: "$dms_mailing.templates.cols.updatedAt",
     type: new DefaultDataTypes.DateType({}),
     readonlyBehavior: NEVER_ON_CREATE,
+    display: new DefaultDisplays.RelativeDateDisplay({
+      style: "day",
+      byField: "updatedBy",
+      byLabel: "$dms_mailing.templates.cols.updated_by",
+    }),
   })
   declare updatedAt: Date;
 
@@ -233,6 +268,7 @@ export class TemplatesTableAPI extends DataController(
     name: "$dms_mailing.templates.cols.locales",
     type: new DefaultDataTypes.StringType({}),
     readonlyBehavior: NEVER_ON_CREATE,
+    display: new LocaleChipsDisplay({}),
   })
   declare locales: string;
 
@@ -245,4 +281,34 @@ export class TemplatesTableAPI extends DataController(
     readonlyBehavior: NEVER_ON_CREATE,
   })
   declare updatedBy: string;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  @Column({
+    name: "$dms_mailing.templates.cols.publishedVersion",
+    type: new DefaultDataTypes.NumberType({}),
+    readonlyBehavior: NEVER_ON_CREATE,
+    isVisible: false,
+  })
+  declare publishedVersion: number;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  @Column({
+    name: "$dms_mailing.templates.cols.isDraftPending",
+    type: new DefaultDataTypes.BooleanType({}),
+    readonlyBehavior: NEVER_ON_CREATE,
+    isVisible: false,
+  })
+  declare isDraftPending: boolean;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  @Column({
+    name: "$dms_mailing.templates.cols.publishedAt",
+    type: new DefaultDataTypes.DateType({}),
+    readonlyBehavior: NEVER_ON_CREATE,
+    isVisible: false,
+  })
+  declare publishedAt: Date;
 }

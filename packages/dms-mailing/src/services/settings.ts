@@ -11,7 +11,7 @@ import {
   type TemplateCategory,
 } from "../types";
 
-const SECRET_BYTES = 24;
+export const WEBHOOK_SECRET_BYTES = 24;
 
 function defaults(): MailingSettingsValues {
   return {
@@ -21,7 +21,7 @@ function defaults(): MailingSettingsValues {
     senderName: "",
     senderEmail: "",
     replyTo: "",
-    webhookSecret: randomBytes(SECRET_BYTES).toString("hex"),
+    webhookSecret: randomBytes(WEBHOOK_SECRET_BYTES).toString("hex"),
     categories: DEFAULT_CATEGORIES,
   };
 }
@@ -100,4 +100,42 @@ export function findCategory(
   id: string,
 ): TemplateCategory | undefined {
   return categories.find((category) => category.id === id);
+}
+
+/** What a send does when a variable it needs is missing. */
+export type MissingVariablesPolicy = "refuse" | "send";
+
+const REFUSE_POLICY: MissingVariablesPolicy = "refuse";
+const SEND_POLICY: MissingVariablesPolicy = "send";
+
+export function missingVariablesPolicy(
+  values: MailingSettingsValues,
+): MissingVariablesPolicy {
+  return values.blockOnMissingVariables ? REFUSE_POLICY : SEND_POLICY;
+}
+
+const DERIVED_KEYS = new Set(["webhookUrl", "provider", "missingVariables"]);
+const CLEARED_VALUE = "";
+
+/**
+ * The settings once `patch` (the fields a form changed, `null` for a cleared
+ * one) is laid over the stored ones. Read-only derived fields are ignored and
+ * the missing-variables choice is folded back into its boolean.
+ */
+export function mergeSettingsPatch(
+  current: MailingSettingsValues,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const written = Object.fromEntries(
+    Object.entries(patch)
+      .filter(([key]) => !DERIVED_KEYS.has(key))
+      .map(([key, value]) => [key, value ?? CLEARED_VALUE]),
+  );
+  const policy = patch.missingVariables;
+  const isChoice = policy === REFUSE_POLICY || policy === SEND_POLICY;
+  const guard =
+    isChoice && !("blockOnMissingVariables" in patch)
+      ? { blockOnMissingVariables: policy === REFUSE_POLICY }
+      : {};
+  return { ...current, ...written, ...guard };
 }

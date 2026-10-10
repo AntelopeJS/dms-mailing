@@ -285,18 +285,106 @@ export interface TemplateRow {
 	locales?: string
 	updatedAt: string
 	updatedBy: string
+	/** Version customers receive; 0 or absent when never published. */
+	publishedVersion?: number
+	publishedAt?: string | null
+	/** Whether a draft holds changes customers do not receive yet. */
+	isDraftPending?: boolean
+}
+
+export type TemplateChangeKind =
+	| 'locale_added'
+	| 'locale_removed'
+	| 'subject'
+	| 'preheader'
+	| 'block_added'
+	| 'block_removed'
+	| 'block_changed'
+	| 'blocks_reordered'
+
+/** One difference between what customers receive and the draft. */
+export interface TemplateChange {
+	locale: string
+	kind: TemplateChangeKind
+	blockId?: string
+	blockType?: BlockType
+}
+
+export interface TemplateSender {
+	name: string
+	email: string
+	replyTo: string
 }
 
 export interface TemplateContentResponse {
-	template: TemplateRow
+	template: TemplateRow & {
+		json_variables?: string
+		draftUpdatedAt?: string
+		draftUpdatedBy?: string
+		publishedBy?: string
+	}
+	/** The content the editor works on: the draft, else the published one. */
 	content: TemplateContent
+	/** What customers receive; `null` when the template was never published. */
+	publishedContent: TemplateContent | null
+	hasDraft: boolean
+	/** Version customers receive; 0 when never published. */
+	version: number
+	changes: TemplateChange[]
 	variables: VariableDefinition[]
 	/** Paths the content actually references, across every locale. */
 	detectedVariables: string[]
 	testData: Record<string, unknown>
 	fallbackLocale: string
 	categories: TemplateCategory[]
+	sender: TemplateSender
 }
+
+export interface TemplateVersionSummary {
+	version: number
+	publishedAt: string
+	publishedBy: string
+	locales: string
+	changes: TemplateChange[]
+}
+
+/** Last 30 days of real sends of one template. */
+export interface TemplateStats {
+	id: string
+	slug: string
+	sends: number
+	openRate: number
+	problems: number
+	lastSentAt: string | null
+}
+
+export interface SourceCount {
+	source: string
+	count: number
+}
+
+/** Recipients who asked for a locale the template did not carry. */
+export interface FallbackCount {
+	requested: string
+	used: string
+	count: number
+}
+
+export interface TemplatePerformance extends TemplateStats {
+	sources: SourceCount[]
+	fallbacks: FallbackCount[]
+}
+
+export interface StarterSummary {
+	id: string
+	name: string
+	slug: string
+	category: string
+	locales: string[]
+}
+
+/** Which content a preview renders when it carries none. */
+export type PreviewVersion = 'draft' | 'published' | number
 
 export interface PreviewResponse {
 	html: string
@@ -306,11 +394,19 @@ export interface PreviewResponse {
 	hiddenBlockIds: string[]
 }
 
+export type SendStage =
+	'problem' | 'in_progress' | 'delivered' | 'engaged' | 'unsubscribed'
+
 export interface SendRow {
 	_id: string
 	templateId: string
 	templateSlug: string
 	locale: string
+	/** Locale the caller asked for; differs from `locale` on a fallback. */
+	requestedLocale?: string
+	/** Template version the send used; 0 for a test send of a draft. */
+	templateVersion?: number
+	stage?: SendStage
 	recipientEmail: string
 	recipientName?: string
 	status: SendStatus
@@ -334,21 +430,27 @@ export interface SendEventRow {
 	json_details: string
 }
 
+export interface SendTemplateSummary {
+	id: string
+	name: string
+	status: TemplateStatus
+	publishedVersion: number
+}
+
 export interface SendDetailResponse {
 	send: SendRow
 	events: SendEventRow[]
+	/** `null` when the template was deleted since. */
+	template: SendTemplateSummary | null
 }
 
-export type AttentionTone = 'warning' | 'error' | 'neutral'
-
-export interface AttentionItem {
-	id: string
-	tone: AttentionTone
-	icon: string
-	title: string
-	description: string
-	to?: string
-	params?: Record<string, string | number>
+export interface SendHtmlResponse {
+	html: string
+	subject: string
+	locale: string
+	version: number
+	from: string
+	fromName: string
 }
 
 export interface FunnelStep {
@@ -363,3 +465,13 @@ export interface ProviderInfo {
 	connected: boolean
 	features: Record<string, boolean> | null
 }
+
+export type MissingVariablesPolicy = 'refuse' | 'send'
+
+export interface RetentionPreview {
+	days: number
+	count: number
+	nextRunAt: string
+}
+
+export type FunnelKind = 'all' | 'marketing' | 'transactional'

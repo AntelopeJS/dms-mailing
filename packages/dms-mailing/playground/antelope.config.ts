@@ -2,6 +2,8 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 import { SHARED_MODULE_SOURCES } from "../src/antelope-modules";
 
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
+// A local SMTP server (`SMTP_PORT`) instead of Ethereal, for working offline.
+const smtpPort = process.env.SMTP_PORT;
 // The dev frontend is a separate CLI process, not a module: it publishes no
 // config variable, so its port stays written here, once.
 const dmsClientPort = 3001;
@@ -39,14 +41,6 @@ export default defineConfig({
         },
       },
     },
-    "dms-automation": {
-      source: {
-        type: "package",
-        package: "@antelopejs/dms-automation",
-        version: ">=0.1.5 <1.0.0",
-      },
-      config: {},
-    },
     mongodb: {
       source: SHARED_MODULE_SOURCES.mongodb,
       config: {
@@ -72,9 +66,14 @@ export default defineConfig({
     },
     nodemailer: {
       source: SHARED_MODULE_SOURCES.nodemailer,
-      config: {
-        ethereal: true,
-      },
+      config: smtpPort
+        ? {
+            host: "127.0.0.1",
+            port: Number(smtpPort),
+            secure: false,
+            defaults: { from: "playground@dms-mailing.local" },
+          }
+        : { ethereal: true },
     },
     api: {
       source: SHARED_MODULE_SOURCES.api,

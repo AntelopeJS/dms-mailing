@@ -2,15 +2,21 @@ import type { Block, LocaleContent, TemplateContent } from '../types/mailing'
 import { splitTokens } from './tokens'
 
 const TOKEN_FIELDS = ['text', 'value', 'href', 'label', 'alt', 'imageUrl']
+const PATH_SEPARATOR = '.'
+const ARRAY_SUFFIX = '[]'
+const RESERVED_SEGMENTS = ['__proto__', 'constructor', 'prototype']
+
+/**
+ * Paths the runtime fills in itself, so an author never declares them. The
+ * backend drops these before answering; this list mirrors it.
+ */
+export const SYSTEM_PATHS = ['unsubscribeUrl', 'preferencesUrl']
 
 function tokenPaths(block: Block): string[] {
 	const record = block as unknown as Record<string, unknown>
 	return TOKEN_FIELDS.flatMap((key) => {
 		const value = record[key]
-		if (typeof value !== 'string') return []
-		return splitTokens(value)
-			.filter((part) => part.kind === 'token')
-			.map((part) => part.value)
+		return typeof value === 'string' ? textPaths(value) : []
 	})
 }
 
@@ -46,13 +52,8 @@ export function collectPaths(
 	return [...new Set(all.filter(Boolean))].sort()
 }
 
-/**
- * Paths the runtime fills in itself, so an author never declares them. The
- * backend drops these before answering; this list mirrors it.
- */
-const SYSTEM_PATHS = ['unsubscribeUrl', 'preferencesUrl']
-
-function textPaths(text: string): string[] {
+/** The variable paths a text references through `{{path}}` tokens. */
+export function textPaths(text: string): string[] {
 	return splitTokens(text)
 		.filter((part) => part.kind === 'token')
 		.map((part) => part.value)
@@ -69,10 +70,6 @@ function pathsInLocale(locale: LocaleContent): string[] {
 /**
  * Every variable path the content references, across all of its locales — the
  * live equivalent of what the backend returns as `detectedVariables`.
- *
- * The panel needs this because the server's list only refreshes on save: until
- * then a path wired into a display condition reads as unused, which is exactly
- * the moment an author looks at it.
  */
 export function collectContentPaths(
 	content: Pick<TemplateContent, 'locales'>,
@@ -81,4 +78,27 @@ export function collectContentPaths(
 	return [
 		...new Set(paths.filter((path) => path && !SYSTEM_PATHS.includes(path))),
 	].sort()
+}
+
+function readSegment(current: unknown, segment: string): unknown {
+	if (current === null || typeof current !== 'object') return undefined
+	if (RESERVED_SEGMENTS.includes(segment)) return undefined
+	return (current as Record<string, unknown>)[segment]
+}
+
+/**
+ * Reads `path` (`order.total`, `order.lines[]`) in `data`, the way the backend
+ * engine does; `undefined` when any segment is missing.
+ */
+export function readPath(data: unknown, path: string): unknown {
+	const trimmed = path.trim()
+	const normalized = trimmed.endsWith(ARRAY_SUFFIX)
+		? trimmed.slice(0, -ARRAY_SUFFIX.length)
+		: trimmed
+	return normalized.split(PATH_SEPARATOR).reduce<unknown>(readSegment, data)
+}
+
+/** Whether `value` counts as provided: neither `undefined` nor `null`. */
+export function isPresent(value: unknown): boolean {
+	return value !== undefined && value !== null
 }

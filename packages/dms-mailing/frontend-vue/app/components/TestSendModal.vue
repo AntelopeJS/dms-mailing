@@ -1,104 +1,153 @@
 <script setup lang="ts">
+import FormFieldRow from '../build/components/FormFieldRow.vue'
+import FormRows from '../build/components/FormRows.vue'
+import { useMailingApi } from '../composables/useMailingApi'
 import type { SendResult } from '../composables/useMailingApi'
+import { apiErrorMessage } from '../utils/api-error'
+import {
+	isSendableRecipients,
+	localeOptions,
+	type NamedLocale,
+} from '../utils/recipients'
 import type {
 	TemplateContent,
+	TemplateContentResponse,
 	TemplateRow,
-	TemplateStatus,
 } from '../types/mailing'
 
 interface TestSendModalProps {
-	templateId?: string
 	rowData?: TemplateRow
+	templateId?: string
+	/** Locale preselected; the tenant fallback otherwise. */
 	locale?: string
+	/** The editor's unsaved draft, sent instead of the saved one. */
 	content?: TemplateContent
+	/** The editor's data set, sent instead of the saved test data. */
 	data?: Record<string, unknown>
-	/** `real` reaches actual recipients and counts in the business figures. */
-	mode?: SendMode
 	onSuccessCallback?: () => void
 }
 
-type SendMode = 'test' | 'real'
+type DataChoice = 'test' | 'none'
 
-const REAL_MODE: SendMode = 'real'
-const LIVE_STATUS: TemplateStatus = 'live'
+/** The part of the session user the dialog reads. */
+interface SignedInUser {
+	email?: string
+}
 
-const MAX_RECIPIENTS = 5
-const RECIPIENT_SEPARATOR = ','
+const DATA_CHOICES: DataChoice[] = ['test', 'none']
+const TEST_PREFIX = '[TEST]'
 
 const props = defineProps<TestSendModalProps>()
-
-const emit = defineEmits<{ success: [] }>()
+const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
 const { t } = useI18n()
+const { processApiMessage } = useTranslation()
 const { user } = useCurrentUser()
 const { uniqueLocales } = useUniqueLocales()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
+const detail = ref<TemplateContentResponse | null>(null)
+const ownEmail = (user.value as SignedInUser | null)?.email
+const recipients = ref<string[]>(ownEmail ? [ownEmail] : [])
+const locale = ref(props.locale ?? '')
+const dataChoice = ref<DataChoice>('test')
+const sending = ref(false)
+
+onMounted(async () => {
+	if (!templateId.value) return
+	try {
+		detail.value = await api.templateContent(templateId.value)
+		locale.value ||= detail.value.fallbackLocale
+	} catch (error) {
+		toast.add({
+			color: 'error',
+			title: processApiMessage(apiErrorMessage(error)),
+		})
+	}
+})
+
+const template = computed(() => detail.value?.template ?? props.rowData ?? null)
+const content = computed(() => props.content ?? detail.value?.content)
 
 const localeItems = computed(() =>
-	uniqueLocales.value.map((entry) => ({
-		label: entry.name ?? entry.code,
-		value: entry.code,
+	localeOptions(
+		Object.keys(content.value?.locales ?? {}),
+		uniqueLocales.value as NamedLocale[],
+	),
+)
+
+const dataItems = computed(() =>
+	DATA_CHOICES.map((choice) => ({
+		label: t(`dms_mailing.test_send.data_${choice}`),
+		value: choice,
 	})),
 )
 
-const isReal = computed(() => props.mode === REAL_MODE)
-const isDraft = computed(
-	() => Boolean(props.rowData) && props.rowData?.status !== LIVE_STATUS,
-)
-const confirmed = ref(false)
-
-const recipients = ref<string>(isReal.value ? '' : (user.value?.email ?? ''))
-const locale = ref<string>(props.locale ?? localeItems.value[0]?.value ?? '')
-const sending = ref(false)
-
-const addresses = computed(() =>
-	recipients.value
-		.split(RECIPIENT_SEPARATOR)
-		.map((address) => address.trim())
-		.filter(Boolean)
-		.slice(0, MAX_RECIPIENTS),
-)
+const DATA_SETS: Record<DataChoice, () => Record<string, unknown>> = {
+	test: () => props.data ?? detail.value?.testData ?? {},
+	none: () => ({}),
+}
 
 const canSend = computed(
 	() =>
-		addresses.value.length > 0 &&
-		!sending.value &&
-		!isDraft.value &&
-		(!isReal.value || confirmed.value),
+		isSendableRecipients(recipients.value) &&
+		Boolean(content.value) &&
+		!sending.value,
 )
 
-function report(result: SendResult, index: number): void {
-	toast.add({
-		color: result.error ? 'error' : 'success',
-		title: addresses.value[index] ?? result.sendId,
-		description: result.error ?? t(`dms_mailing.sends.status.${result.status}`),
+const draftLabel = computed(() =>
+	props.content
+		? t('dms_mailing.test_send.unsaved_draft')
+		: t('dms_mailing.test_send.current_draft'),
+)
+
+function reportFailures(results: SendResult[], to: string[]): void {
+	results.forEach((result, index) => {
+		if (!result.error) return
+		toast.add({
+			color: 'error',
+			title: to[index] ?? result.sendId,
+			description: processApiMessage(result.error),
+		})
 	})
+	const sent = results.filter((result) => !result.error).length
+	if (sent) {
+		toast.add({
+			color: 'success',
+			icon: 'i-ph-flask',
+			title: t('dms_mailing.test_send.sent', { count: sent }, sent),
+		})
+	}
+}
+
+function close(sent: boolean): void {
+	if (sent && props.onSuccessCallback) {
+		props.onSuccessCallback()
+		return
+	}
+	emit('success', sent)
 }
 
 async function submit(): Promise<void> {
-	if (!canSend.value || !templateId.value) return
+	if (!canSend.value) return
 	sending.value = true
+	const to = [...recipients.value]
 	try {
-		const response = isReal.value
-			? await api.realSend(templateId.value, {
-					to: addresses.value,
-					locale: locale.value,
-					data: props.data,
-				})
-			: await api.testSend(templateId.value, {
-					to: addresses.value,
-					locale: locale.value,
-					content: props.content,
-					data: props.data,
-				})
-		response.results.forEach(report)
-		props.onSuccessCallback?.()
-		emit('success')
+		const response = await api.testSend(templateId.value, {
+			to,
+			locale: locale.value || undefined,
+			content: content.value,
+			data: DATA_SETS[dataChoice.value](),
+		})
+		reportFailures(response.results, to)
+		close(true)
 	} catch (error) {
-		toast.add({ color: 'error', title: String(error) })
+		toast.add({
+			color: 'error',
+			title: processApiMessage(apiErrorMessage(error)),
+		})
 	} finally {
 		sending.value = false
 	}
@@ -106,57 +155,90 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-	<UForm
-		:state="{ recipients, locale }"
+	<form
 		class="flex flex-col gap-4"
-		@submit="submit"
+		novalidate
+		@submit.prevent="submit"
+		@keydown.meta.enter.prevent="submit"
+		@keydown.ctrl.enter.prevent="submit"
 	>
-		<DmsBanner
-			v-if="isDraft"
-			color="warning"
-			icon="i-ph-warning"
-			:title="t('dms_mailing.errors.template_not_live')"
-			:description="t('dms_mailing.templates.send_modal.draft_hint')"
-		/>
+		<p v-if="template" class="text-muted text-[13px]">
+			{{ template.name }} ·
+			<span class="font-mono">{{ template.slug }}</span>
+			· {{ draftLabel }}
+		</p>
+		<USkeleton v-else class="h-4 w-2/3" />
+
+		<FormRows has-required>
+			<MailingRecipientsField
+				v-model="recipients"
+				:hint="t('dms_mailing.test_send.recipients_hint')"
+			/>
+
+			<FormFieldRow :label="t('dms_mailing.test_send.locale')">
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="locale"
+						:items="localeItems"
+						value-key="value"
+						:deselectable="false"
+						class="w-full"
+						:disabled="!localeItems.length"
+					/>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow :label="t('dms_mailing.test_send.data')">
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="dataChoice"
+						:items="dataItems"
+						value-key="value"
+						:deselectable="false"
+						icon="i-ph-database"
+						class="w-full"
+					/>
+				</template>
+			</FormFieldRow>
+		</FormRows>
 
 		<DmsBanner
-			v-else-if="isReal"
-			color="error"
-			icon="i-ph-paper-plane-tilt"
-			:title="t('dms_mailing.templates.send_modal.real_title')"
-			:description="t('dms_mailing.templates.send_modal.real_hint')"
+			tone="info"
+			icon="i-ph-info"
+			:title="t('dms_mailing.test_send.info_title')"
+			:description="
+				t('dms_mailing.test_send.info_description', { prefix: TEST_PREFIX })
+			"
 		/>
 
-		<UFormField
-			:label="t('dms_mailing.editor.test_send_modal.recipients')"
-			name="recipients"
-		>
-			<UInput v-model="recipients" class="w-full" autofocus />
-		</UFormField>
-
-		<UFormField :label="t('dms_mailing.sends.cols.locale')" name="locale">
-			<USelect v-model="locale" :items="localeItems" class="w-full" />
-		</UFormField>
-
-		<UCheckbox
-			v-if="isReal && !isDraft"
-			v-model="confirmed"
-			:label="t('dms_mailing.templates.send_modal.confirm')"
-		/>
-
-		<div class="flex justify-end">
+		<div class="border-default flex items-center gap-2 border-t pt-4">
+			<span class="text-dimmed hidden items-center gap-1 text-xs sm:flex">
+				<UKbd value="meta" size="sm" />
+				<UKbd value="enter" size="sm" />
+				{{ t('dms_mailing.test_send.shortcut') }}
+			</span>
+			<UButton
+				class="ml-auto"
+				color="neutral"
+				variant="outline"
+				:label="t('dms_mailing.common.cancel')"
+				@click="close(false)"
+			/>
 			<UButton
 				type="submit"
-				:color="isReal ? 'error' : 'primary'"
-				:label="
-					isReal
-						? t('dms_mailing.templates.send_modal.send')
-						: t('dms_mailing.editor.test_send_modal.send')
-				"
 				icon="i-ph-paper-plane-tilt"
+				:label="
+					t(
+						'dms_mailing.test_send.submit',
+						{ count: recipients.length },
+						recipients.length,
+					)
+				"
 				:loading="sending"
 				:disabled="!canSend"
 			/>
 		</div>
-	</UForm>
+	</form>
 </template>
