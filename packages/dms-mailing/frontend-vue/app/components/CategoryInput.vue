@@ -67,10 +67,11 @@ onMounted(async () => {
 </script>
 
 <template>
-	<USelect
+	<DmsSelect
 		v-model="selected"
 		:items="items"
 		value-key="value"
+		:deselectable="false"
 		:icon="selectedIcon"
 		:disabled="disabled"
 		class="w-full"

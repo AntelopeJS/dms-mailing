@@ -61,10 +61,11 @@ const hint = computed(() =>
 
 <template>
 	<div class="flex flex-col gap-1.5">
-		<USelect
+		<DmsSelect
 			:model-value="selected || undefined"
 			:items="items"
 			value-key="value"
+			:deselectable="false"
 			icon="i-ph-translate"
 			:disabled="disabled"
 			:placeholder="t('dms_mailing.settings.locale.placeholder')"

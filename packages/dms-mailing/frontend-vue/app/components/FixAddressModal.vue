@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FormFieldRow from '../build/components/FormFieldRow.vue'
+import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
 import { correctedAddressError } from '../utils/send-actions'
 import type { SendRow } from '../types/mailing'
@@ -72,17 +74,20 @@ async function submit(): Promise<void> {
 			{{ key('description', { email: previous }) }}
 		</p>
 
-		<UFormField :label="key('label')" :error="visibleError" required>
-			<UInput
-				v-model="address"
-				type="email"
-				icon="i-ph-at"
-				class="w-full"
-				autofocus
-				:placeholder="previous"
-				@blur="isTouched = true"
-			/>
-		</UFormField>
+		<FormRows has-required>
+			<FormFieldRow :label="key('label')" :error="visibleError" required>
+				<template #default="{ id }">
+					<DmsInputEmail
+						:id="id"
+						v-model="address"
+						class="w-full"
+						autofocus
+						:placeholder="previous"
+						@blur="isTouched = true"
+					/>
+				</template>
+			</FormFieldRow>
+		</FormRows>
 
 		<DmsKeyValueList
 			dense

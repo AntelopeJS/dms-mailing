@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FormFieldRow from '../build/components/FormFieldRow.vue'
+import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
 import {
 	HTTP_CONFLICT,
@@ -239,104 +241,120 @@ async function submit(): Promise<void> {
 		@keydown.meta.enter.prevent="submit"
 		@keydown.ctrl.enter.prevent="submit"
 	>
-		<UFormField
-			:label="t('dms_mailing.templates.cols.name')"
-			:error="nameError"
-			required
-		>
-			<UInput
-				v-model="name"
-				class="w-full"
-				autofocus
-				:placeholder="t('dms_mailing.new_template.name_placeholder')"
-			/>
-		</UFormField>
-
-		<UFormField
-			:label="t('dms_mailing.templates.cols.slug')"
-			:hint="t('dms_mailing.new_template.slug_auto')"
-			:help="slugError ? undefined : t('dms_mailing.new_template.slug_help')"
-			:error="slugError"
-			required
-		>
-			<UFieldGroup class="w-full">
-				<UBadge
-					color="neutral"
-					variant="outline"
-					size="lg"
-					class="text-dimmed font-mono"
-					label="SendTemplate("
-				/>
-				<UInput
-					:model-value="slug"
-					class="w-full"
-					:ui="{ base: 'font-mono' }"
-					:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
-					:aria-invalid="Boolean(slugError)"
-					@update:model-value="(value) => onSlugInput(String(value))"
-				/>
-			</UFieldGroup>
-		</UFormField>
-
-		<UFormField :label="t('dms_mailing.templates.cols.category')">
-			<USelect
-				v-model="category"
-				:items="categoryItems"
-				value-key="value"
-				class="w-full"
-			/>
-		</UFormField>
-
-		<div class="flex flex-col gap-2">
-			<span class="text-highlighted text-sm font-medium">
-				{{ t('dms_mailing.templates.start_from.label') }}
-			</span>
-			<div
-				role="radiogroup"
-				:aria-label="t('dms_mailing.templates.start_from.label')"
-				class="grid max-h-[320px] grid-cols-2 gap-3 overflow-y-auto p-0.5 sm:grid-cols-3"
+		<FormRows has-required>
+			<FormFieldRow
+				:label="t('dms_mailing.templates.cols.name')"
+				:error="nameError"
+				required
 			>
-				<button
-					v-for="tile in tiles"
-					:key="tile.key"
-					type="button"
-					role="radio"
-					:aria-checked="isPicked(tile.choice)"
-					class="flex min-w-0 flex-col gap-1.5 rounded-lg border p-2 text-left transition-colors"
-					:class="
-						isPicked(tile.choice)
-							? 'border-primary ring-primary/30 ring-2'
-							: 'border-default hover:border-accented'
-					"
-					@click="tile.pick()"
-				>
-					<span
-						v-if="tile.choice.kind === 'blank'"
-						class="border-default text-dimmed flex h-[72px] items-center justify-center rounded border border-dashed"
-					>
-						<UIcon name="i-ph-plus" class="size-5" />
+				<template #default="{ id }">
+					<DmsInputText
+						:id="id"
+						v-model="name"
+						class="w-full"
+						autofocus
+						:placeholder="t('dms_mailing.new_template.name_placeholder')"
+					/>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow
+				:label="t('dms_mailing.templates.cols.slug')"
+				:help="slugError ? undefined : t('dms_mailing.new_template.slug_help')"
+				:error="slugError"
+				required
+			>
+				<template #label-extra>
+					<span class="text-dimmed text-xs font-normal">
+						{{ t('dms_mailing.new_template.slug_auto') }}
 					</span>
-					<span
-						v-else
-						class="bg-elevated/40 pointer-events-none flex h-[72px] justify-center overflow-hidden rounded"
-					>
-						<MailingTemplatePreviewFrame
-							v-bind="tile.preview"
-							:width="PREVIEW_WIDTH"
-							:scale="PREVIEW_SCALE"
-							:label="tile.title"
-							lazy
+				</template>
+				<template #default="{ id }">
+					<UFieldGroup class="w-full">
+						<UBadge
+							color="neutral"
+							variant="outline"
+							size="lg"
+							class="text-dimmed font-mono"
+							label="SendTemplate("
 						/>
-					</span>
-					<span class="text-highlighted truncate text-[12.5px] font-medium">
-						{{ tile.title }}
-					</span>
-					<span class="text-dimmed truncate font-mono text-[11px]">
-						{{ tile.subtitle }}
-					</span>
-				</button>
-			</div>
-		</div>
+						<UInput
+							:id="id"
+							:model-value="slug"
+							class="w-full"
+							:ui="{ base: 'font-mono' }"
+							:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
+							:aria-invalid="Boolean(slugError)"
+							@update:model-value="(value) => onSlugInput(String(value))"
+						/>
+					</UFieldGroup>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow :label="t('dms_mailing.templates.cols.category')">
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="category"
+						:items="categoryItems"
+						value-key="value"
+						:deselectable="false"
+						class="w-full"
+					/>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow
+				:label="t('dms_mailing.templates.start_from.label')"
+				:labels-control="false"
+			>
+				<div
+					role="radiogroup"
+					:aria-label="t('dms_mailing.templates.start_from.label')"
+					class="grid max-h-[320px] grid-cols-2 gap-3 overflow-y-auto p-0.5 sm:grid-cols-3"
+				>
+					<button
+						v-for="tile in tiles"
+						:key="tile.key"
+						type="button"
+						role="radio"
+						:aria-checked="isPicked(tile.choice)"
+						class="flex min-w-0 flex-col gap-1.5 rounded-lg border p-2 text-left transition-colors"
+						:class="
+							isPicked(tile.choice)
+								? 'border-primary ring-primary/30 ring-2'
+								: 'border-default hover:border-accented'
+						"
+						@click="tile.pick()"
+					>
+						<span
+							v-if="tile.choice.kind === 'blank'"
+							class="border-default text-dimmed flex h-[72px] items-center justify-center rounded border border-dashed"
+						>
+							<UIcon name="i-ph-plus" class="size-5" />
+						</span>
+						<span
+							v-else
+							class="bg-elevated/40 pointer-events-none flex h-[72px] justify-center overflow-hidden rounded"
+						>
+							<MailingTemplatePreviewFrame
+								v-bind="tile.preview"
+								:width="PREVIEW_WIDTH"
+								:scale="PREVIEW_SCALE"
+								:label="tile.title"
+								lazy
+							/>
+						</span>
+						<span class="text-highlighted truncate text-[12.5px] font-medium">
+							{{ tile.title }}
+						</span>
+						<span class="text-dimmed truncate font-mono text-[11px]">
+							{{ tile.subtitle }}
+						</span>
+					</button>
+				</div>
+			</FormFieldRow>
+		</FormRows>
 
 		<div class="border-default -mx-1 flex items-center gap-2 border-t pt-4">
 			<span class="text-dimmed hidden items-center gap-1 text-xs sm:flex">

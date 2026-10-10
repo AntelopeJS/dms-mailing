@@ -208,9 +208,12 @@ export const TagsStub = defineComponent({
 /** Global stand-ins every form test mounts with. */
 export const FORM_STUBS: Record<string, Component> = {
 	UInput: InputStub,
+	DmsInputText: InputStub,
+	DmsInputEmail: InputStub,
 	UCheckbox: CheckboxStub,
 	DmsInputTags: TagsStub,
 	UFormField: slotStub('UFormField'),
+	DmsFieldRow: slotStub('DmsFieldRow'),
 	UFieldGroup: slotStub('UFieldGroup'),
 }
 

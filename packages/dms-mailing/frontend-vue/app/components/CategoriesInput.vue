@@ -175,7 +175,7 @@ onMounted(async () => {
 							</div>
 						</template>
 					</UPopover>
-					<UInput
+					<DmsInputText
 						v-model="element.label"
 						:placeholder="t('dms_mailing.settings.categories.label')"
 						:disabled="disabled"

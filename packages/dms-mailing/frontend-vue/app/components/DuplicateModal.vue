@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FormFieldRow from '../build/components/FormFieldRow.vue'
+import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
 import {
 	HTTP_CONFLICT,
@@ -129,29 +131,46 @@ async function submit(): Promise<void> {
 		</p>
 		<USkeleton v-else-if="loading" class="h-4 w-2/3" />
 
-		<UFormField
-			:label="t('dms_mailing.templates.cols.name')"
-			:error="nameError"
-			required
-		>
-			<UInput v-model="name" class="w-full" autofocus :disabled="loading" />
-		</UFormField>
+		<FormRows has-required>
+			<FormFieldRow
+				:label="t('dms_mailing.templates.cols.name')"
+				:error="nameError"
+				required
+			>
+				<template #default="{ id }">
+					<DmsInputText
+						:id="id"
+						v-model="name"
+						class="w-full"
+						autofocus
+						:disabled="loading"
+					/>
+				</template>
+			</FormFieldRow>
 
-		<UFormField
-			:label="t('dms_mailing.templates.cols.slug')"
-			:hint="t('dms_mailing.new_template.slug_auto')"
-			:error="slugError"
-			required
-		>
-			<UInput
-				:model-value="slug"
-				class="w-full"
-				:ui="{ base: 'font-mono' }"
-				:disabled="loading"
-				:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
-				@update:model-value="(value) => onSlugInput(String(value))"
-			/>
-		</UFormField>
+			<FormFieldRow
+				:label="t('dms_mailing.templates.cols.slug')"
+				:error="slugError"
+				required
+			>
+				<template #label-extra>
+					<span class="text-dimmed text-xs font-normal">
+						{{ t('dms_mailing.new_template.slug_auto') }}
+					</span>
+				</template>
+				<template #default="{ id }">
+					<DmsInputText
+						:id="id"
+						:model-value="slug"
+						class="w-full"
+						:ui="{ base: 'font-mono' }"
+						:disabled="loading"
+						:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
+						@update:model-value="(value) => onSlugInput(String(value))"
+					/>
+				</template>
+			</FormFieldRow>
+		</FormRows>
 
 		<div
 			class="border-default flex items-center justify-end gap-2 border-t pt-4"

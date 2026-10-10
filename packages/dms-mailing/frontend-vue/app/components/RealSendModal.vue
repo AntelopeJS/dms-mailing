@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FormFieldRow from '../build/components/FormFieldRow.vue'
+import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
 import type { SendResult } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
@@ -276,30 +278,39 @@ async function submit(): Promise<void> {
 			:description="t('dms_mailing.real_send.warning')"
 		/>
 
-		<MailingRecipientsField
-			v-model="recipients"
-			:hint="t('dms_mailing.real_send.recipients_hint')"
-		/>
+		<FormRows has-required>
+			<MailingRecipientsField
+				v-model="recipients"
+				:hint="t('dms_mailing.real_send.recipients_hint')"
+			/>
 
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-			<UFormField :label="t('dms_mailing.test_send.locale')">
-				<USelect
-					v-model="locale"
-					:items="localeItems"
-					value-key="value"
-					class="w-full"
-				/>
-			</UFormField>
-			<UFormField :label="t('dms_mailing.test_send.data')">
-				<USelect
-					v-model="dataChoice"
-					:items="dataItems"
-					value-key="value"
-					icon="i-ph-database"
-					class="w-full"
-				/>
-			</UFormField>
-		</div>
+			<FormFieldRow :label="t('dms_mailing.test_send.locale')">
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="locale"
+						:items="localeItems"
+						value-key="value"
+						:deselectable="false"
+						class="w-full"
+					/>
+				</template>
+			</FormFieldRow>
+
+			<FormFieldRow :label="t('dms_mailing.test_send.data')">
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="dataChoice"
+						:items="dataItems"
+						value-key="value"
+						:deselectable="false"
+						icon="i-ph-database"
+						class="w-full"
+					/>
+				</template>
+			</FormFieldRow>
+		</FormRows>
 
 		<div class="border-default rounded-lg border px-3">
 			<DmsKeyValueList
