@@ -610,10 +610,10 @@
 				"unreachable_description": "No e-mail can leave until it answers again. Check the provider settings.",
 				"missing_title": "No provider is connected",
 				"missing_description": "No e-mail can leave until the workspace's e-mail interface has a provider.",
-				"failures_description": "{count} send failed in the last hour, since {time}. It is listed under Problems; you can send it again once {provider} is back. | {count} sends failed in the last hour, since {time}. They're listed under Problems; you can send them again once {provider} is back.",
+				"failures_description": "{count} send failed in the last hour. It is listed under Problems; you can send it again once {provider} is back. | {count} sends failed in the last hour. They're listed under Problems; you can send them again once {provider} is back.",
 				"settings": "Provider settings",
-				"send_again": "Send {count} again… | Send {count} again…",
-				"replayed": "{count} send sent again | {count} sends sent again",
+				"send_again": "Send the failures again…",
+				"replayed": "The failures were sent again",
 				"confirm": {
 					"title": "Send {count} e-mail again? | Send {count} e-mails again?",
 					"description": "The same version and data go to the same recipients. These are real sends; bounces and spam reports are never part of them. | The same version and data go to the same recipients. These are real sends; bounces and spam reports are never part of them.",
@@ -976,10 +976,6 @@
 				"name": "Template editor",
 				"description": "Edit a template's blocks, variables and test data, publish or discard its draft."
 			},
-			"attention": {
-				"name": "Needs attention card",
-				"description": "Lists what needs a look: failed sends, missing translations, drafts and unused templates."
-			},
 			"funnel": {
 				"name": "Delivery funnel",
 				"description": "Sent, delivered, opened and clicked e-mails of the period."
@@ -1011,18 +1007,6 @@
 			"new_template": {
 				"name": "New template dialog",
 				"description": "Create a template from a blank page, a starter or another template."
-			},
-			"provider_banner": {
-				"name": "Provider alert",
-				"description": "Warns when the provider stops answering and offers to send the failures again."
-			},
-			"sends_stats": {
-				"name": "Send log figures",
-				"description": "Sends, deliveries, problems, queue and latency of the period."
-			},
-			"sends_empty": {
-				"name": "Empty send log",
-				"description": "How to make a first send, shown while the log is empty."
 			},
 			"send_drawer": {
 				"name": "Send details",
@@ -1151,7 +1135,6 @@
 		},
 		"attention_card": {
 			"title": "Needs attention",
-			"updated": "updated {time}",
 			"empty": {
 				"title": "Nothing needs you",
 				"description": "No failed send in this period, every live template has all its locales and was used."

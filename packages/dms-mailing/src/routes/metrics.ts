@@ -20,6 +20,7 @@ import {
 import { OverviewPageController } from "../pages/overview";
 import { readCapabilities } from "../services/provider";
 import {
+  attentionFeedItem,
   buildAttentionItems,
   type ProviderTracking,
 } from "../services/attention";
@@ -211,7 +212,9 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     const excluded = rows.filter((row) => !sends.includes(row));
     const tracking = await readTracking();
     return {
-      items: buildAttentionItems({ templates, sends, excluded, tracking }),
+      items: buildAttentionItems({ templates, sends, excluded, tracking }).map(
+        attentionFeedItem,
+      ),
     };
   }
 }

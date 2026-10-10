@@ -14,7 +14,10 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { SendTemplateResult } from "@antelopejs/interface-dms-mailing";
-import type { StatGroupItem } from "@antelopejs/interface-dms/base";
+import type {
+  BannerContent,
+  StatGroupItem,
+} from "@antelopejs/interface-dms/base";
 import {
   API_BASE_PATH,
   HTTP_CONFLICT,
@@ -32,6 +35,7 @@ import {
 import { resolveEmail } from "../engine";
 import { SendsPageController } from "../pages/sends";
 import { readCapabilities } from "../services/provider";
+import { buildProviderBanner } from "../services/provider-banner";
 import { renderEmailHtml } from "../services/render";
 import {
   type ModuleSendParams,
@@ -97,14 +101,6 @@ export interface SendDetailResponse {
 
 export interface SendStatsResponse extends SendStats {
   items: StatGroupItem[];
-}
-
-export interface SendHealthResponse {
-  providerName: string;
-  providerReachable: boolean;
-  /** Provider failures of the last hour, the ones a send again may fix. */
-  recentFailures: number;
-  since: string;
 }
 
 /** Problem statuses whose address is at fault: repeating the send cannot help. */
@@ -215,20 +211,23 @@ export class SendsController extends Controller(API_BASE_PATH) {
     };
   }
 
-  /** Whether the provider answers, and the failures a send again may fix. */
-  @Get("/sends/health")
-  async health(): Promise<SendHealthResponse> {
+  /**
+   * The provider banner of the send log: what is wrong with the provider and
+   * the failures of the last hour a send again may fix, or nothing.
+   */
+  @Get("/sends/banner")
+  async banner(): Promise<BannerContent | null> {
     const since = new Date(Date.now() - HOUR_MS);
     const [capabilities, recent] = await Promise.all([
       readCapabilities(),
       this.sends.listBetween(since, new Date()),
     ]);
-    return {
+    return buildProviderBanner({
       providerName: capabilities?.name ?? "",
       providerReachable: capabilities !== null,
       recentFailures: recent.filter(isProviderFailure).length,
-      since: since.toISOString(),
-    };
+      since,
+    });
   }
 
   @Get("/sends/:id")

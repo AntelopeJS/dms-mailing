@@ -1,5 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import {
+  ActivityFeed,
   ChartArea,
   ChartCard,
   Grid,
@@ -27,6 +28,7 @@ const OVERVIEW_ORDER = 0;
 const GRID_GAP = "1rem";
 const CHART_HEIGHT = "260px";
 const WIDE_SPAN = 2;
+const ATTENTION_SKELETON_ROWS = 3;
 
 const kpi = (
   id: string,
@@ -116,10 +118,18 @@ const activity = Grid({ gap: GRID_GAP }).child(
     )
     .child(
       "attention",
-      CustomComponent("MailingAttentionCard").meta({
-        name: "$dms_mailing.permissions.attention.name",
-        description: "$dms_mailing.permissions.attention.description",
-        icon: "i-ph-warning-circle",
+      ActivityFeed({
+        title: "$dms_mailing.attention_card.title",
+        fetchUrl: `${API_BASE_PATH}/metrics/attention`,
+        periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
+        groupByDay: false,
+        fillHeight: true,
+        skeletonCount: ATTENTION_SKELETON_ROWS,
+        empty: {
+          title: "$dms_mailing.attention_card.empty.title",
+          description: "$dms_mailing.attention_card.empty.description",
+        },
       }),
     ),
 );

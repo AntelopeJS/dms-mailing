@@ -166,20 +166,16 @@ describe("[integration] send lifecycle", () => {
     expect(JSON.stringify(refused.data)).to.contain("no_replay_after_spam");
   });
 
-  it("answers the stat strip and the provider health", async () => {
+  it("answers the stat strip and the provider banner", async () => {
     const api = await client();
     const stats = await api.get(`${SENDS}/stats`);
     expect(stats.status, JSON.stringify(stats.data)).to.equal(HTTP_OK);
     expect(stats.data.sends).to.be.a("number");
     expect(stats.data.tests).to.be.a("number");
-    const health = await api.get(`${SENDS}/health`);
-    expect(health.status).to.equal(HTTP_OK);
-    expect(health.data).to.have.keys([
-      "providerName",
-      "providerReachable",
-      "recentFailures",
-      "since",
-    ]);
+    expect(stats.data.items).to.be.an("array");
+    const banner = await api.get(`${SENDS}/banner`);
+    expect(banner.status).to.equal(HTTP_OK);
+    expect(banner.data || null).to.equal(null);
     const bulk = await api.post(`${SENDS}/replay-failed`, {});
     expect(bulk.status, JSON.stringify(bulk.data)).to.equal(HTTP_OK);
     expect(bulk.data.count).to.be.a("number");

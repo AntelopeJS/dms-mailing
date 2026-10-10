@@ -2,6 +2,7 @@ import { expect } from "chai";
 import type { MailingSend, MailingTemplate } from "../../db";
 import {
   type AttentionItem,
+  attentionFeedItem,
   buildAttentionItems,
 } from "../../services/attention";
 
@@ -125,5 +126,44 @@ describe("[unit] services/attention untracked rates", () => {
       tracking: null,
     });
     expect(findUntracked(items)).to.equal(undefined);
+  });
+});
+
+describe("[unit] services/attention as a feed entry", () => {
+  const problems: AttentionItem = {
+    id: "problem-sends",
+    tone: "error",
+    icon: "i-ph-warning-octagon",
+    title: "$dms_mailing.attention.problem_sends.title",
+    description: "$dms_mailing.attention.problem_sends.description",
+    action: "$dms_mailing.attention.problem_sends.action",
+    to: "/modules/mailing/sends?view=problems",
+    count: 3,
+    params: { count: 3, bounced: 1, failed: 2, spam: 0 },
+  };
+
+  it("puts the explanation under the title and the next step on the right", () => {
+    expect(attentionFeedItem(problems)).to.deep.include({
+      id: "problem-sends",
+      tone: "error",
+      title: problems.title,
+      meta: [problems.description],
+      time: problems.action,
+      to: problems.to,
+    });
+  });
+
+  it("types the count so the title picks its plural form", () => {
+    expect(attentionFeedItem(problems).params).to.deep.equal({
+      count: { type: "count", value: 3 },
+      bounced: 1,
+      failed: 2,
+      spam: 0,
+    });
+  });
+
+  it("leaves an item without values without params", () => {
+    const { count: _count, params: _params, ...plain } = problems;
+    expect(attentionFeedItem(plain).params).to.equal(undefined);
   });
 });

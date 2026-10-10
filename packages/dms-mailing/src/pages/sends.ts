@@ -1,5 +1,10 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import type { TableViewView } from "@antelopejs/interface-dms/base";
+import {
+  Banner,
+  EmptyState,
+  StatGroup,
+  type TableViewView,
+} from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
@@ -7,7 +12,12 @@ import type { Tone } from "@antelopejs/interface-dms/base/types";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { NavBadgeCount } from "@antelopejs/interface-dms";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import { API_BASE_PATH, MODULE_ID, SENDS_PERIOD_SCOPE } from "../constants";
+import {
+  API_BASE_PATH,
+  MAILING_SENDS_TOPIC,
+  MODULE_ID,
+  SENDS_PERIOD_SCOPE,
+} from "../constants";
 import { SendModel } from "../db";
 import { SendsTableAPI } from "../data/sends-table";
 import type { SendStage } from "../types";
@@ -15,6 +25,14 @@ import { mailingNavCategory } from "./module";
 
 const SENDS_ORDER = 3;
 const DAY_MS = 86_400_000;
+const STAT_COLUMNS = 5;
+const TEMPLATES_PAGE = "/modules/mailing/templates";
+const FIRST_SEND_SNIPPET = [
+  'await SendTemplate("order-confirmed", {',
+  '  to: "margaux@northwind.co",',
+  "  variables: { order },",
+  "});",
+].join("\n");
 
 interface StageView {
   stage: SendStage;
@@ -83,13 +101,20 @@ export class SendsPageController extends PageController(
     })
     .meta(permissionMeta("page_header", "i-ph-plugs-connected"));
 
-  static health = CustomComponent("MailingProviderBanner").meta(
-    permissionMeta("provider_banner", "i-ph-plugs"),
-  );
+  static health = Banner({
+    fetchUrl: `${API_BASE_PATH}/sends/banner`,
+    realtimeTopic: MAILING_SENDS_TOPIC,
+  });
 
-  static stats = CustomComponent("MailingSendsStats")
-    .options({ periodScope: SENDS_PERIOD_SCOPE })
-    .meta(permissionMeta("sends_stats", "i-ph-chart-bar"));
+  static stats = StatGroup({
+    layout: "joined",
+    columns: STAT_COLUMNS,
+    skeletonCount: STAT_COLUMNS,
+    label: "$dms_mailing.sends.stats.label",
+    fetchUrl: `${API_BASE_PATH}/sends/stats`,
+    periodScope: SENDS_PERIOD_SCOPE,
+    realtimeTopic: MAILING_SENDS_TOPIC,
+  });
 
   static table = TableView(SendsTableAPI, {
     caption: "$dms_mailing.sends.caption",
@@ -128,9 +153,24 @@ export class SendsPageController extends PageController(
         title: "$dms_mailing.sends.empty.title",
         description: "$dms_mailing.sends.empty.description",
         icon: "i-ph-paper-plane-tilt",
-        component: CustomComponent("MailingSendsEmpty").meta(
-          permissionMeta("sends_empty", "i-ph-paper-plane-tilt"),
-        ),
+        component: EmptyState({
+          title: "$dms_mailing.sends.empty_log.title",
+          description: "$dms_mailing.sends.empty_log.description",
+          icon: "i-ph-paper-plane-tilt",
+          size: "lg",
+          hatched: true,
+          card: false,
+          code: { content: FIRST_SEND_SNIPPET, language: "typescript" },
+          actions: [
+            {
+              label: "$dms_mailing.sends.empty_log.test_instead",
+              to: TEMPLATES_PAGE,
+              icon: "i-ph-flask",
+              variant: "outline",
+              color: "neutral",
+            },
+          ],
+        }),
       },
     },
     rowActions: {

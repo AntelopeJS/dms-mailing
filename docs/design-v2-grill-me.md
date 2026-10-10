@@ -33,19 +33,19 @@ resolves:
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-dms` | `>=0.5.0 <1.0.0` (module and playground) |
+| `@antelopejs/interface-dms` | `>=0.5.1 <1.0.0` (module and playground) |
 | `@antelopejs/interface-data-api` | `>=0.2.0 <1.0.0` |
 | `@antelopejs/interface-database` | `>=0.1.8 <1.0.0` |
 | `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.7.1 <0.8.0` (0.7.0 shipped without its interface) |
+| `@antelopejs/dms` (shared module sources) | `>=0.7.2 <0.8.0` (0.7.2 ships the blocks this module reads) |
 | `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
-| `@antelopejs/dms-frontend` (playground) | `0.5.1` |
-| `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.0 <0.6.0` |
+| `@antelopejs/dms-frontend` (playground) | `0.5.2` |
+| `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.2 <0.6.0` |
 
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
 keeps `<1.0.0` with its floor raised to 0.4. What pins the runtime is the
-`@antelopejs/dms` module range (`>=0.7.1 <0.8.0`) in the shared module
+`@antelopejs/dms` module range (`>=0.7.2 <0.8.0`) in the shared module
 sources, which the tests and the playground both boot.
 
 ### Q1.2 What breaks at compile time or at registration?
@@ -322,8 +322,8 @@ column with the `DE → EN` fallback is the one custom column display
 
 ### Q5.3 Stat strip?
 
-**Answer.** A small custom block over `DmsStatGroup` (`MailingSendsStats`):
-the built-in `StatGroup` block does not follow a period scope. Sends (with
+**Answer.** A stock `StatGroup` reading `/sends/stats` with the page's
+`periodScope` and the sends realtime topic (dms 0.7.2). Sends (with
 "+N tests, not counted"), Delivered, Problems (breakdown), Queued ("oldest
 waiting …"), Median latency. One route answers the five figures.
 
@@ -458,6 +458,34 @@ dependency, and adding one is a product decision, not a redesign detail.
 - dms 0.7's stricter permissions change nothing here: module pages stay
   owner-only, and `mailing.send` keeps its dependency on the sends page for
   the day module pages become grantable.
+
+## 8c. DMS 0.7.2 follow-up
+
+dms 0.7.2 (interface-dms 0.5.1, dms-frontend 0.5.2) lets four custom blocks go:
+
+- Send log stat strip: a stock `StatGroup` with `periodScope` and
+  `realtimeTopic` instead of `MailingSendsStats`.
+- Provider banner: `Banner({ fetchUrl: "/sends/banner" })`. The route answers
+  the banner (composed title and description, a settings link, a "send the
+  failures again" button with its confirmation) or `null`, and the banner
+  re-reads it on the sends topic instead of polling. `/sends/health` is gone.
+  The description no longer quotes the clock time of the first failure: a
+  composed text has no time-only format.
+- Send log first run: an `EmptyState` block with its `code` snippet, given as
+  the table's `emptyStates.firstRun.component`, instead of `MailingSendsEmpty`.
+- Overview "Needs attention": an `ActivityFeed` reading `/metrics/attention`,
+  whose items are now feed entries (composed title with a typed count, the
+  explanation as meta, the next step's verb as the trailing text). The card
+  loses the count pill in its head, the bold figure in the title and the
+  "updated at" time: `ActivityFeed` has none of them.
+
+Still custom, and why:
+
+- `mailing:locale-chips`: the workspace locales live in the front end's i18n
+  config, so the server cannot word the missing ones as `PillItem`s.
+- `MailingFunnelCard`, `MailingOverviewGate`, `MailingPageHeader`: they need
+  the larger additions (enriched `TopListCard`, a first-run guard, a
+  record-driven page header) that 0.7.2 does not ship.
 
 ## 9. Out of scope, recorded as DMS gaps
 

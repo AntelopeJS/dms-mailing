@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { needsSetup, setupSteps } from '../app/utils/overview-setup'
-import { splitCount, translationKeyOf } from '../app/utils/attention'
 
 describe('setupSteps', () => {
 	it('marks the first step left as current', () => {
@@ -54,24 +53,5 @@ describe('needsSetup', () => {
 				templateCount: 1,
 			}),
 		).toBe(false)
-	})
-})
-
-describe('attention titles', () => {
-	it('splits a title around its figure', () => {
-		expect(splitCount('3 sends failed today', 3, '3')).toEqual({
-			before: '',
-			count: '3',
-			after: ' sends failed today',
-		})
-		expect(splitCount('Back in stock is live', undefined, '')).toBeNull()
-		expect(splitCount('No figure here', 4, '4')).toBeNull()
-	})
-
-	it('reads the i18n key a backend string carries', () => {
-		expect(translationKeyOf('$dms_mailing.attention.x')).toBe(
-			'dms_mailing.attention.x',
-		)
-		expect(translationKeyOf('Plain text')).toBeNull()
 	})
 })

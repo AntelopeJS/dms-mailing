@@ -610,10 +610,10 @@
 				"unreachable_description": "Aucun e-mail ne peut partir tant qu’il ne répond pas. Vérifiez les réglages du fournisseur.",
 				"missing_title": "Aucun fournisseur connecté",
 				"missing_description": "Aucun e-mail ne peut partir tant que l’interface e-mail de l’espace de travail n’a pas de fournisseur.",
-				"failures_description": "{count} envoi a échoué dans la dernière heure, depuis {time}. Il figure dans Problèmes ; vous pourrez le renvoyer quand {provider} sera de retour. | {count} envois ont échoué dans la dernière heure, depuis {time}. Ils figurent dans Problèmes ; vous pourrez les renvoyer quand {provider} sera de retour.",
+				"failures_description": "{count} envoi a échoué dans la dernière heure. Il figure dans Problèmes ; vous pourrez le renvoyer quand {provider} sera de retour. | {count} envois ont échoué dans la dernière heure. Ils figurent dans Problèmes ; vous pourrez les renvoyer quand {provider} sera de retour.",
 				"settings": "Réglages du fournisseur",
-				"send_again": "Renvoyer {count}… | Renvoyer les {count}…",
-				"replayed": "{count} envoi renvoyé | {count} envois renvoyés",
+				"send_again": "Renvoyer les échecs…",
+				"replayed": "Les échecs ont été renvoyés",
 				"confirm": {
 					"title": "Renvoyer {count} e-mail ? | Renvoyer {count} e-mails ?",
 					"description": "La même version et les mêmes données partent aux mêmes destinataires. Ce sont de vrais envois ; les rebonds et signalements de spam n’en font jamais partie. | La même version et les mêmes données partent aux mêmes destinataires. Ce sont de vrais envois ; les rebonds et signalements de spam n’en font jamais partie.",
@@ -976,10 +976,6 @@
 				"name": "Éditeur de modèle",
 				"description": "Modifier les blocs, les variables et les données de test d'un modèle, publier ou abandonner son brouillon."
 			},
-			"attention": {
-				"name": "Carte « À traiter »",
-				"description": "Liste ce qui demande un coup d'œil : envois en échec, traductions manquantes, brouillons et modèles inutilisés."
-			},
 			"funnel": {
 				"name": "Entonnoir de délivrabilité",
 				"description": "E-mails envoyés, délivrés, ouverts et cliqués sur la période."
@@ -1011,18 +1007,6 @@
 			"new_template": {
 				"name": "Fenêtre de nouveau modèle",
 				"description": "Créer un modèle depuis une page vierge, un modèle de départ ou un autre modèle."
-			},
-			"provider_banner": {
-				"name": "Alerte fournisseur",
-				"description": "Prévient quand le fournisseur ne répond plus et propose de renvoyer les échecs."
-			},
-			"sends_stats": {
-				"name": "Chiffres du journal",
-				"description": "Envois, délivrances, problèmes, file d'attente et latence de la période."
-			},
-			"sends_empty": {
-				"name": "Journal vide",
-				"description": "Comment faire un premier envoi, tant que le journal est vide."
 			},
 			"send_drawer": {
 				"name": "Détails d'un envoi",
@@ -1151,7 +1135,6 @@
 		},
 		"attention_card": {
 			"title": "À traiter",
-			"updated": "mis à jour à {time}",
 			"empty": {
 				"title": "Rien à traiter",
 				"description": "Aucun envoi en échec sur la période, chaque modèle en ligne a toutes ses langues et a été utilisé."

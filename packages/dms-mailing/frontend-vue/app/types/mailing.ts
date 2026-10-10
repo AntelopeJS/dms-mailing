@@ -453,45 +453,6 @@ export interface SendHtmlResponse {
 	fromName: string
 }
 
-/** The figures of the send log's stat strip, for one period. */
-export interface SendStats {
-	sends: number
-	sendsDelta: number
-	tests: number
-	delivered: number
-	deliverability: number
-	problems: number
-	bounced: number
-	failed: number
-	spam: number
-	queued: number
-	oldestQueuedAt: string | null
-	latencyMedian: number
-}
-
-export interface SendHealth {
-	providerName: string
-	providerReachable: boolean
-	recentFailures: number
-	since: string
-}
-
-export type AttentionTone = 'warning' | 'error' | 'neutral'
-
-export interface AttentionItem {
-	id: string
-	tone: AttentionTone
-	icon: string
-	title: string
-	description: string
-	/** The verb of the next step, an i18n key ("Review problems"). */
-	action?: string
-	to?: string
-	/** The figure the title leads with, shown bold. */
-	count?: number
-	params?: Record<string, string | number>
-}
-
 export interface FunnelStep {
 	id: string
 	label: string

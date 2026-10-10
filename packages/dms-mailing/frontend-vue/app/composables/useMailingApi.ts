@@ -1,14 +1,11 @@
 import type {
-	AttentionItem,
 	FunnelStep,
 	PreviewResponse,
 	PreviewVersion,
 	ProviderInfo,
 	RetentionPreview,
 	SendDetailResponse,
-	SendHealth,
 	SendHtmlResponse,
-	SendStats,
 	StarterSummary,
 	TemplateChange,
 	TemplateContent,
@@ -20,9 +17,6 @@ import type {
 	TemplateVersionSummary,
 	VariableDefinition,
 } from '../types/mailing'
-
-/** A text slot of a DMS block: a string, an i18n key or a composed text. */
-export type ComposableText = string | number | Record<string, unknown>
 
 const BASE = '/api/mailing'
 
@@ -63,10 +57,6 @@ export interface SendResult {
 	error?: string
 }
 
-export interface AttentionResponse {
-	items: AttentionItem[]
-}
-
 export interface FunnelResponse {
 	steps: FunnelStep[]
 }
@@ -98,27 +88,6 @@ export interface StartersResponse {
 
 export interface TemplateOverviewResponse {
 	items: TemplateStats[]
-}
-
-export interface ReplayFailedResponse {
-	count: number
-	results: SendResult[]
-}
-
-/** A stat cell as the server words it, texts composed by the DMS. */
-export interface SendStatItem {
-	id?: string
-	icon?: string
-	tone?: string
-	eyebrow: ComposableText
-	value: ComposableText
-	detail?: ComposableText
-	detailTone?: string
-	to?: string
-}
-
-export interface SendStatsResponse extends SendStats {
-	items: SendStatItem[]
 }
 
 export interface CategoryUsageResponse {
@@ -200,10 +169,6 @@ export function useMailingApi() {
 
 	return {
 		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
-		attention: (query: Record<string, string>) =>
-			$authFetch<AttentionResponse>(mailingPath('metrics', 'attention'), {
-				query,
-			}),
 		funnel: (query: Record<string, string>) =>
 			$authFetch<FunnelResponse>(mailingPath('metrics', 'funnel'), { query }),
 		templateContent: (id: string) =>
@@ -282,14 +247,6 @@ export function useMailingApi() {
 			$authFetch<SendHtmlResponse>(mailingPath('sends', id, 'html')),
 		replay: (id: string, to?: string) =>
 			post<SendResult>(mailingPath('sends', id, 'replay'), to ? { to } : {}),
-		replayFailed: (since?: string) =>
-			post<ReplayFailedResponse>(
-				mailingPath('sends', 'replay-failed'),
-				since ? { since } : {},
-			),
-		sendStats: (query: Record<string, string>) =>
-			$authFetch<SendStatsResponse>(mailingPath('sends', 'stats'), { query }),
-		sendHealth: () => $authFetch<SendHealth>(mailingPath('sends', 'health')),
 		settings: () => $authFetch<MailingSettings>(mailingPath('settings')),
 		saveSettings: (settings: MailingSettings) =>
 			post<MailingSettings>(mailingPath('settings'), settings),
