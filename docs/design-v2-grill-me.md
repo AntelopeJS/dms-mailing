@@ -37,7 +37,7 @@ resolves:
 | `@antelopejs/interface-data-api` | `>=0.2.0 <1.0.0` |
 | `@antelopejs/interface-database` | `>=0.1.8 <1.0.0` |
 | `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.7.2 <0.8.0` (0.7.2 ships the blocks this module reads) |
+| `@antelopejs/dms` (shared module sources) | `>=0.7.4 <0.8.0` (0.7.2 ships the blocks this module reads, 0.7.4 fixes table search) |
 | `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
 | `@antelopejs/dms-frontend` (playground) | `0.5.2` |
 | `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.2 <0.6.0` |
@@ -45,7 +45,7 @@ resolves:
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
 keeps `<1.0.0` with its floor raised to 0.4. What pins the runtime is the
-`@antelopejs/dms` module range (`>=0.7.2 <0.8.0`) in the shared module
+`@antelopejs/dms` module range (`>=0.7.4 <0.8.0`) in the shared module
 sources, which the tests and the playground both boot.
 
 ### Q1.2 What breaks at compile time or at registration?
