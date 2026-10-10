@@ -142,15 +142,24 @@ describe("[unit] services/attention as a feed entry", () => {
     params: { count: 3, bounced: 1, failed: 2, spam: 0 },
   };
 
-  it("puts the explanation under the title and the next step on the right", () => {
+  it("puts the explanation under the title and links to the next step", () => {
     expect(attentionFeedItem(problems)).to.deep.include({
       id: "problem-sends",
       tone: "error",
       title: problems.title,
       meta: [problems.description],
-      time: problems.action,
       to: problems.to,
     });
+  });
+
+  it("lists the counted details in place of the explanation", () => {
+    const detail = {
+      key: "$dms_mailing.attention.problem_sends.parts.failed",
+      params: { count: { type: "count" as const, value: 2 } },
+    };
+    expect(
+      attentionFeedItem({ ...problems, details: [detail] }).meta,
+    ).to.deep.equal([detail]);
   });
 
   it("types the count so the title picks its plural form", () => {

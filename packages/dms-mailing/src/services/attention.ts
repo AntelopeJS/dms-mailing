@@ -1,5 +1,8 @@
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base";
-import type { ComposedTextParam } from "@antelopejs/interface-dms/base/types";
+import type {
+  ComposedText,
+  ComposedTextParam,
+} from "@antelopejs/interface-dms/base/types";
 import type { SendSummary, MailingTemplate } from "../db";
 import { PROBLEM_STATUSES } from "../types";
 
@@ -17,6 +20,8 @@ export interface AttentionItem {
   /** The figure the title leads with, shown bold. */
   count?: number;
   params?: Record<string, string | number>;
+  /** Details shown in place of `description` where a feed lists them. */
+  details?: ComposedText[];
 }
 
 const TEMPLATES_PAGE = "/modules/mailing/templates";
@@ -48,6 +53,7 @@ function problemsItem(sends: SendSummary[]): AttentionItem[] {
       to: SENDS_PROBLEMS_PAGE,
       count: problems.length,
       params: problemBreakdown(problems),
+      details: problemDetails(problems),
     },
   ];
 }
@@ -178,6 +184,22 @@ function problemBreakdown(problems: SendSummary[]): Record<string, number> {
   };
 }
 
+const PROBLEM_PARTS = ["bounced", "failed", "spam"] as const;
+const PROBLEM_PART_KEY = "$dms_mailing.attention.problem_sends.parts.";
+
+/** One counted detail per problem kind present ("2 provider failures"). */
+function problemDetails(problems: SendSummary[]): ComposedText[] {
+  return PROBLEM_PARTS.map((status) => ({
+    status,
+    count: problems.filter((send) => send.status === status).length,
+  }))
+    .filter((part) => part.count > 0)
+    .map((part) => ({
+      key: `${PROBLEM_PART_KEY}${part.status}`,
+      params: { count: { type: "count", value: part.count } },
+    }));
+}
+
 const localeCodes = (template: MailingTemplate): string[] =>
   (template.locales || "").split(",").filter(Boolean);
 
@@ -240,8 +262,8 @@ function feedParams(
 }
 
 /**
- * An attention item as an `ActivityFeed` entry: the explanation under the
- * title, the next step's verb on the right, the whole entry linking to it.
+ * An attention item as an `ActivityFeed` entry: the explanation (or its
+ * counted details) under the title, the whole entry linking to the next step.
  */
 export function attentionFeedItem(item: AttentionItem): ActivityFeedItem {
   return {
@@ -249,9 +271,8 @@ export function attentionFeedItem(item: AttentionItem): ActivityFeedItem {
     icon: item.icon,
     tone: item.tone,
     title: item.title,
-    meta: [item.description],
+    meta: item.details?.length ? item.details : [item.description],
     params: feedParams(item),
-    time: item.action,
     to: item.to,
   };
 }

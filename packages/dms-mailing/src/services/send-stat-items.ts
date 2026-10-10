@@ -26,7 +26,7 @@ const count = (value: number) => ({ type: "count" as const, value });
 
 const percent = (rate: number) => ({
   type: "number" as const,
-  value: rate / PERCENT,
+  value: Math.round(rate) / PERCENT,
   format: "percent" as const,
 });
 

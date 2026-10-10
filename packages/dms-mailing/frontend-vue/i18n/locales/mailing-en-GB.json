@@ -7,8 +7,13 @@
 			"missing_locales_title": "{count} missing translations",
 			"problem_sends": {
 				"description": "{bounced} bounce · {failed} provider failure · {spam} spam report.",
-				"title": "{count} send failed | {count} sends failed",
-				"action": "Review problems"
+				"title": "{count} send has a problem | {count} sends have a problem",
+				"action": "Review problems",
+				"parts": {
+					"bounced": "{count} bounce | {count} bounces",
+					"failed": "{count} provider failure | {count} provider failures",
+					"spam": "{count} spam report | {count} spam reports"
+				}
 			},
 			"stale_drafts": {
 				"description": "Never published and unchanged for over a week — publish them or archive them.",

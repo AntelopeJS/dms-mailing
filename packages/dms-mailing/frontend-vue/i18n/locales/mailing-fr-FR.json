@@ -7,8 +7,13 @@
 			"missing_locales_title": "{count} traductions manquantes",
 			"problem_sends": {
 				"description": "{bounced} rebond · {failed} échec fournisseur · {spam} signalement spam.",
-				"title": "{count} envoi en échec | {count} envois en échec",
-				"action": "Voir les problèmes"
+				"title": "{count} envoi en problème | {count} envois en problème",
+				"action": "Voir les problèmes",
+				"parts": {
+					"bounced": "{count} rebond | {count} rebonds",
+					"failed": "{count} échec fournisseur | {count} échecs fournisseur",
+					"spam": "{count} signalement spam | {count} signalements spam"
+				}
 			},
 			"stale_drafts": {
 				"description": "Jamais publiés et inchangés depuis plus d’une semaine — publiez-les ou archivez-les.",
