@@ -123,6 +123,7 @@ export class SendsPageController extends PageController(
     defaultSort: { field: "createdAt", desc: true },
     searchPlaceholder: "$dms_mailing.sends.search",
     pageSize: 50,
+    rowClick: "single",
     views: {
       layout: "tabs",
       items: [
@@ -187,15 +188,15 @@ export class SendsPageController extends PageController(
           icon: "i-ph-info",
           // A send is an append-only record: it cannot be edited, so the
           // built-in `edit`/`details` row click has nothing to open. This
-          // action takes the row click and opens the module's own drawer.
+          // action takes the row click and opens the send in the side panel.
           isDefault: true,
-          deepLink: true,
           target: {
-            type: "drawer",
+            type: "sidePanel",
             component: CustomComponent("MailingSendDrawer").meta(
               permissionMeta("send_drawer", "i-ph-info"),
             ),
             title: "$dms_mailing.sends.actions.details",
+            positionLabel: "$dms_mailing.sends.drawer.position",
           },
         },
         {

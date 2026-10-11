@@ -33,19 +33,19 @@ resolves:
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-dms` | `>=0.5.1 <1.0.0` (module and playground) |
+| `@antelopejs/interface-dms` | `>=0.5.4 <1.0.0` (module and playground) |
 | `@antelopejs/interface-data-api` | `>=0.2.0 <1.0.0` |
 | `@antelopejs/interface-database` | `>=0.1.8 <1.0.0` |
 | `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.7.4 <0.8.0` (0.7.2 ships the blocks this module reads, 0.7.4 fixes table search) |
+| `@antelopejs/dms` (shared module sources) | `>=0.7.8 <0.8.0` (0.7.8 ships the side panel row target) |
 | `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
-| `@antelopejs/dms-frontend` (playground) | `0.5.2` |
+| `@antelopejs/dms-frontend` (playground) | `0.5.3` |
 | `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.2 <0.6.0` |
 
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
 keeps `<1.0.0` with its floor raised to 0.4. What pins the runtime is the
-`@antelopejs/dms` module range (`>=0.7.4 <0.8.0`) in the shared module
+`@antelopejs/dms` module range (`>=0.7.8 <0.8.0`) in the shared module
 sources, which the tests and the playground both boot.
 
 ### Q1.2 What breaks at compile time or at registration?
@@ -486,6 +486,19 @@ Still custom, and why:
 - `MailingFunnelCard`, `MailingOverviewGate`, `MailingPageHeader`: they need
   the larger additions (enriched `TopListCard`, a first-run guard, a
   record-driven page header) that 0.7.2 does not ship.
+
+## 8d. DMS 0.7.8 follow-up
+
+- A send opens in the DMS side panel (`sidePanel` target, `rowClick:
+  "single"`): the DMS draws its header, the "Send 3 of 50 shown" position,
+  J / K and Esc, and keeps the row in the URL. The drawer's own previous and
+  next buttons are gone.
+- Template details stay in a drawer: the gallery is the module's own table
+  display, and a display can only run the row's default action (open the
+  editor), not open another action's side panel.
+- The period selectors keep their period in the URL by themselves; the module
+  had no code of its own for it. No cell is coloured by custom code, so the
+  column tones change nothing here.
 
 ## 9. Out of scope, recorded as DMS gaps
 

@@ -501,8 +501,6 @@
 				"transport_error": "Erreur de transport",
 				"view_html": "Voir le rendu reçu",
 				"eyebrow": "Envoi · {id}",
-				"previous": "Envoi précédent",
-				"next": "Envoi suivant",
 				"copy_link": "Copier le lien",
 				"link_copied": "Lien copié",
 				"address_copied": "Adresse copiée",
@@ -524,7 +522,8 @@
 					"fix_address": "Corriger l’adresse",
 					"send_again": "Renvoyer…",
 					"copy_address": "Copier l’adresse"
-				}
+				},
+				"position": "Envoi {index} sur {total} affichés"
 			},
 			"empty": {
 				"title": "Aucun e-mail envoyé",

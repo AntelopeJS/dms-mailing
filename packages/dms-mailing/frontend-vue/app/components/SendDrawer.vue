@@ -15,18 +15,10 @@ import { buildTimeline, type TimelineItem } from '../utils/timeline'
 import type { Component } from 'vue'
 import type { SendDetailResponse, SendRow } from '../types/mailing'
 
-interface RowNavigation {
-	hasPrev: boolean
-	hasNext: boolean
-	prev: () => void
-	next: () => void
-}
-
 interface SendDrawerProps {
 	sendId?: string
 	rowData?: SendRow
 	onSuccessCallback?: () => void
-	navigation?: RowNavigation
 }
 
 interface StatTrioItem {
@@ -298,26 +290,6 @@ onMounted(load)
 						truncate
 						:label="key('eyebrow', { id: shortSendId(send._id) })"
 					/>
-					<template v-if="navigation">
-						<UButton
-							icon="i-ph-caret-up"
-							color="neutral"
-							variant="ghost"
-							size="sm"
-							:disabled="!navigation.hasPrev"
-							:aria-label="key('previous')"
-							@click="navigation.prev()"
-						/>
-						<UButton
-							icon="i-ph-caret-down"
-							color="neutral"
-							variant="ghost"
-							size="sm"
-							:disabled="!navigation.hasNext"
-							:aria-label="key('next')"
-							@click="navigation.next()"
-						/>
-					</template>
 					<UButton
 						icon="i-ph-link"
 						color="neutral"

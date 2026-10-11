@@ -501,8 +501,6 @@
 				"transport_error": "Transport error",
 				"view_html": "View the received rendering",
 				"eyebrow": "Send · {id}",
-				"previous": "Previous send",
-				"next": "Next send",
 				"copy_link": "Copy link",
 				"link_copied": "Link copied",
 				"address_copied": "Address copied",
@@ -524,7 +522,8 @@
 					"fix_address": "Fix the address",
 					"send_again": "Send again…",
 					"copy_address": "Copy the address"
-				}
+				},
+				"position": "Send {index} of {total} shown"
 			},
 			"empty": {
 				"title": "No e-mail sent yet",
