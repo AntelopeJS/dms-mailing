@@ -361,7 +361,7 @@ async function submit(): Promise<void> {
 			</DmsKeyValueList>
 		</div>
 
-		<UCheckbox
+		<DmsCheckbox
 			v-model="isAcknowledged"
 			:disabled="!recipients.length"
 			:label="

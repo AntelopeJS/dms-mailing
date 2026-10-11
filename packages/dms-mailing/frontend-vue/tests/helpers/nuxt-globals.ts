@@ -211,6 +211,7 @@ export const FORM_STUBS: Record<string, Component> = {
 	DmsInputText: InputStub,
 	DmsInputEmail: InputStub,
 	UCheckbox: CheckboxStub,
+	DmsCheckbox: CheckboxStub,
 	DmsInputTags: TagsStub,
 	UFormField: slotStub('UFormField'),
 	DmsFieldRow: slotStub('DmsFieldRow'),
