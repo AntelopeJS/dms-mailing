@@ -750,8 +750,7 @@
 					"users": "Personnes",
 					"calendar": "Calendrier",
 					"chat_circle": "Bulle de discussion"
-				},
-				"rows_invalid": "{count} catégorie est à corriger. | {count} catégorie est à corriger. | {count} catégories sont à corriger."
+				}
 			},
 			"description": "De qui partent les e-mails, comment les envois sont protégés, combien de temps le journal est gardé et comment les modèles sont rangés.",
 			"fields": {

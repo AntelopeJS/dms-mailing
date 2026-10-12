@@ -750,8 +750,7 @@
 					"users": "People",
 					"calendar": "Calendar",
 					"chat_circle": "Chat bubble"
-				},
-				"rows_invalid": "{count} category needs a fix. | {count} categories need a fix."
+				}
 			},
 			"description": "Who e-mails come from, how sends are guarded, how long the log is kept and how templates are grouped.",
 			"fields": {

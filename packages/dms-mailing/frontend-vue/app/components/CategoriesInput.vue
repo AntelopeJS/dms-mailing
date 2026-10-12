@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { defineComponent, h, type Component, type Ref } from 'vue'
-import { formFieldInjectionKey } from '@nuxt/ui/composables/useFormField'
+import { h, type Component, type Ref } from 'vue'
 import draggable from 'vuedraggable'
-import { useControlError } from '#dms-ui/app/build/composables/form/useControlError'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import { isMarketingCategory } from '../utils/system-variables'
 import {
 	CATEGORY_ICONS,
-	categoryRowErrors,
 	DEFAULT_CATEGORY_ICON,
 	fromCategoryOption,
 	iconName,
@@ -50,13 +47,14 @@ const NEW_ICON = CATEGORY_ICONS[0] ?? DEFAULT_CATEGORY_ICON
 const HANDLE_SELECTOR = '[data-drag-handle]'
 const MOVE_UP = -1
 const MOVE_DOWN = 1
+const FIELD_NAME = 'categories'
+const LABEL_PART = 'label'
+const ROW_FIELD_UI = { error: 'mt-1 ps-9 text-[12px]' }
 
 const api = useMailingApi()
 const { t } = useI18n()
 const localized = useLocalizedDefaults()
 const { confirm } = useConfirm()
-const { report } = useControlError()
-const field = inject(formFieldInjectionKey, undefined)
 const Select = resolveComponent('DmsSelect') as Component
 
 let nextKey = 0
@@ -76,27 +74,12 @@ const key = (
 	plural = 1,
 ): string => t(`${KEY_PREFIX}${path}`, params, plural)
 
-const rowErrors = computed(() => categoryRowErrors(rows.value))
-
 /**
- * The field as one row's input reads it: with that row's error only, or every
- * row would turn red with the field.
+ * The form field of a row's label: the server names a refused row by its
+ * place in the list, and only that row shows the error.
  */
-const RowField = defineComponent({
-	props: { error: { type: String, default: undefined } },
-	setup(rowProps, { slots }) {
-		provide(
-			formFieldInjectionKey,
-			field && computed(() => ({ ...field.value, error: rowProps.error })),
-		)
-		return () => slots.default?.()
-	},
-})
-
-function rowError(row: EditableCategory): string | undefined {
-	const error = rowErrors.value[row.key]
-	return error ? key(error) : undefined
-}
+const labelFieldName = (index: number): string =>
+	`${FIELD_NAME}.${index}.${LABEL_PART}`
 
 function toRows(value: CategoryEntry[]): EditableCategory[] {
 	return localized
@@ -118,9 +101,8 @@ function currentEntries(): CategoryEntry[] {
 
 function onEdit(): void {
 	const stored = toStoredCategories(rows.value)
-	const labelled = rows.value.filter((row) => row.label.trim())
 	stored.forEach((category, index) => {
-		const row = labelled[index]
+		const row = rows.value[index]
 		if (row) row.id = category.id
 	})
 	const entries = withMoves(stored, removed.value)
@@ -250,15 +232,6 @@ watch(
 	},
 )
 
-watch(
-	rowErrors,
-	(errors) => {
-		const count = Object.keys(errors).length
-		report(count ? key('rows_invalid', { count }, count) : undefined)
-	},
-	{ immediate: true },
-)
-
 onMounted(loadUsage)
 </script>
 
@@ -276,7 +249,11 @@ onMounted(loadUsage)
 			@end="onEdit"
 		>
 			<template #item="{ element, index }">
-				<div class="flex flex-col gap-1 px-3 py-2">
+				<UFormField
+					:name="labelFieldName(index)"
+					:ui="ROW_FIELD_UI"
+					class="px-3 py-2"
+				>
 					<div class="flex items-center gap-2.5">
 						<UButton
 							v-if="!disabled"
@@ -328,16 +305,14 @@ onMounted(loadUsage)
 								</div>
 							</template>
 						</UPopover>
-						<RowField :error="rowError(element)">
-							<DmsInputText
-								v-model="element.label"
-								:placeholder="key('label')"
-								:disabled="disabled"
-								size="sm"
-								class="min-w-0 flex-1"
-								@update:model-value="onEdit"
-							/>
-						</RowField>
+						<DmsInputText
+							v-model="element.label"
+							:placeholder="key('label')"
+							:disabled="disabled"
+							size="sm"
+							class="min-w-0 flex-1"
+							@update:model-value="onEdit"
+						/>
 						<span
 							class="text-dimmed w-24 shrink-0 text-right font-mono text-[11px]"
 						>
@@ -357,14 +332,10 @@ onMounted(loadUsage)
 							<span v-else class="size-6 shrink-0" aria-hidden="true" />
 						</template>
 					</div>
-					<p
-						v-if="rowErrors[element.key]"
-						class="text-error ps-9 text-[12px]"
-						role="alert"
-					>
-						{{ rowError(element) }}
-					</p>
-				</div>
+					<template #error="{ error }">
+						<span role="alert">{{ error }}</span>
+					</template>
+				</UFormField>
 			</template>
 		</draggable>
 

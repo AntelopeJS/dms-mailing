@@ -42,39 +42,69 @@ const categoryEntrySchema = categorySchema.extend({
 
 export type CategoryEntry = z.infer<typeof categoryEntrySchema>;
 
+/** Why a category list is refused, and the part of it at fault. */
+interface CategoryIssue {
+  message: string;
+  path: Array<string | number>;
+}
+
+const isKept = (entry: CategoryEntry): boolean => entry.moveTo === undefined;
+
+/**
+ * A kept entry repeating the label (whatever its case) or the id of an
+ * earlier one, under the row it belongs to.
+ */
+function duplicateIssues(entries: CategoryEntry[]): CategoryIssue[] {
+  const labels = new Set<string>();
+  const ids = new Set<string>();
+  const issues: CategoryIssue[] = [];
+  entries.forEach((entry, index) => {
+    if (!isKept(entry)) return;
+    const label = entry.label.toLocaleLowerCase();
+    if (labels.has(label))
+      issues.push({ message: CATEGORY_DUPLICATE, path: [index, "label"] });
+    else if (ids.has(entry.id))
+      issues.push({ message: CATEGORY_DUPLICATE, path: [index, "id"] });
+    labels.add(label);
+    ids.add(entry.id);
+  });
+  return issues;
+}
+
+function marketingIssues(kept: Set<string>): CategoryIssue[] {
+  return kept.has(MARKETING_CATEGORY)
+    ? []
+    : [{ message: MARKETING_REQUIRED, path: [] }];
+}
+
+function moveIssues(
+  entries: CategoryEntry[],
+  kept: Set<string>,
+): CategoryIssue[] {
+  return entries.flatMap((entry, index) =>
+    isKept(entry) || kept.has(entry.moveTo as string)
+      ? []
+      : [{ message: UNKNOWN_MOVE_TARGET, path: [index, "moveTo"] }],
+  );
+}
+
 function refineCategoryEntries(
   entries: CategoryEntry[],
   context: z.RefinementCtx,
 ): void {
-  const kept = new Set<string>();
-  entries.forEach((entry, index) => {
-    if (entry.moveTo !== undefined) return;
-    if (kept.has(entry.id))
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: CATEGORY_DUPLICATE,
-        path: [index, "id"],
-      });
-    kept.add(entry.id);
-  });
-  if (!kept.has(MARKETING_CATEGORY))
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: MARKETING_REQUIRED,
-    });
-  entries.forEach((entry, index) => {
-    if (entry.moveTo === undefined || kept.has(entry.moveTo)) return;
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: UNKNOWN_MOVE_TARGET,
-      path: [index, "moveTo"],
-    });
-  });
+  const kept = new Set(entries.filter(isKept).map((entry) => entry.id));
+  [
+    ...duplicateIssues(entries),
+    ...marketingIssues(kept),
+    ...moveIssues(entries, kept),
+  ].forEach((issue) =>
+    context.addIssue({ code: z.ZodIssueCode.custom, ...issue }),
+  );
 }
 
 /**
- * The category list of the settings: kept ids are unique, every move names a
- * kept one, and the marketing category stays.
+ * The category list of the settings: kept labels and ids are unique, every
+ * move names a kept one, and the marketing category stays.
  */
 export const categoriesSchema = z
   .array(categoryEntrySchema)

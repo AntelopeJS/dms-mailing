@@ -58,18 +58,15 @@ export function uniqueId(base: string, taken: Set<string>): string {
 }
 
 /**
- * The categories an edit stores: rows without a label are left out (they are
- * not categories yet), saved rows keep their id, new rows get one derived from
- * their label, unique among the others.
+ * The categories an edit stores, one per row in its order: saved rows keep
+ * their id, new rows get one derived from their label, unique among the
+ * others. A row without a label is sent too, for the server to name it.
  */
 export function toStoredCategories(
 	rows: EditableCategory[],
 ): TemplateCategory[] {
-	const labelled = rows.filter((row) => row.label.trim())
-	const taken = new Set(
-		labelled.filter((row) => !row.isNew).map((row) => row.id),
-	)
-	return labelled.map((row) => {
+	const taken = new Set(rows.filter((row) => !row.isNew).map((row) => row.id))
+	return rows.map((row) => {
 		const id = row.isNew
 			? uniqueId(slugifyId(row.label) || FALLBACK_ID_BASE, taken)
 			: row.id
@@ -130,29 +127,6 @@ export function redirectMoves(
 			entry.moveTo === id ? { ...entry, moveTo: target } : entry,
 		)
 		.filter((entry) => entry.moveTo)
-}
-
-/** Why a row of the editor cannot be saved. */
-export type CategoryRowError = 'label_required' | 'label_duplicate'
-
-const labelKey = (label: string): string => label.trim().toLocaleLowerCase()
-
-/**
- * The rows that cannot be saved, by row key: a row without a label, or one
- * whose label (whatever its case) an earlier row already has.
- */
-export function categoryRowErrors(
-	rows: EditableCategory[],
-): Record<string, CategoryRowError> {
-	const seen = new Set<string>()
-	const errors: Record<string, CategoryRowError> = {}
-	for (const row of rows) {
-		const label = labelKey(row.label)
-		if (!label) errors[row.key] = 'label_required'
-		else if (seen.has(label)) errors[row.key] = 'label_duplicate'
-		seen.add(label)
-	}
-	return errors
 }
 
 /** Rows after a move, and where the moved row now sits. */

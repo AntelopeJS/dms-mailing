@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
 	CATEGORY_ICONS,
 	categoryMoves,
-	categoryRowErrors,
 	iconName,
 	keptCategories,
 	moveRow,
@@ -111,13 +110,14 @@ describe('toStoredCategories', () => {
 		])
 	})
 
-	it('leaves out rows without a label and fills a missing icon', () => {
+	it('keeps a row without a label, for the server to name, and fills a missing icon', () => {
 		const stored = toStoredCategories([
 			row({ label: '   ', isNew: true }),
 			row({ label: '!!!', isNew: true, icon: '' }),
 		])
 		expect(stored).toEqual([
-			{ id: 'category', label: '!!!', icon: 'i-ph-folder' },
+			{ id: 'category', label: '', icon: 'i-ph-package' },
+			{ id: 'category-2', label: '!!!', icon: 'i-ph-folder' },
 		])
 	})
 })
@@ -126,24 +126,6 @@ describe('CATEGORY_ICONS', () => {
 	it('offers sixteen distinct Phosphor icons', () => {
 		expect(new Set(CATEGORY_ICONS).size).toBe(16)
 		expect(CATEGORY_ICONS.every((icon) => icon.startsWith('i-ph-'))).toBe(true)
-	})
-})
-
-describe('categoryRowErrors', () => {
-	it('flags a row without a label', () => {
-		expect(
-			categoryRowErrors([row({ key: 'a', label: '  ', isNew: true })]),
-		).toEqual({ a: 'label_required' })
-	})
-
-	it('flags a label an earlier row already has, whatever its case', () => {
-		expect(
-			categoryRowErrors([
-				row({ key: 'a', id: 'orders', label: 'Orders' }),
-				row({ key: 'b', label: ' orders ', isNew: true }),
-				row({ key: 'c', label: 'Billing', isNew: true }),
-			]),
-		).toEqual({ b: 'label_duplicate' })
 	})
 })
 

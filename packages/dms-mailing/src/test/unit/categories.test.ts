@@ -84,6 +84,15 @@ describe("[unit] validation categoriesSchema", () => {
     expect(parse([category({ icon: "not-an-icon" })])).to.equal(false);
   });
 
+  it("names the row whose label repeats an earlier one, whatever its case", () => {
+    const result = categoriesSchema.safeParse([
+      ...CATEGORIES,
+      { id: "orders-2", label: "ORDERS", icon: "i-ph-gift" },
+    ]);
+    expect(result.success).to.equal(false);
+    expect(result.error?.issues[0]?.path).to.deep.equal([3, "label"]);
+  });
+
   it("refuses a list without the marketing category", () => {
     expect(parse(CATEGORIES.slice(0, 2))).to.equal(false);
     expect(
