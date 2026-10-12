@@ -3,7 +3,6 @@ import {
   clearedToEmpty,
   mergeSettingsPatch,
   missingVariablesPolicy,
-  settingsRevision,
 } from "../../services/settings";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
 import { settingsPatchSchema } from "../../validation/settings.schema";
@@ -67,26 +66,15 @@ describe("[unit] services/settings mergeSettingsPatch", () => {
   });
 });
 
-describe("[unit] services/settings settingsRevision", () => {
-  it("changes with any stored value and only then", () => {
-    expect(settingsRevision(CURRENT)).to.equal(
-      settingsRevision({ ...CURRENT }),
-    );
-    expect(settingsRevision(CURRENT)).to.not.equal(
-      settingsRevision({ ...CURRENT, webhookSecret: "t".repeat(48) }),
-    );
-  });
-});
-
 describe("[unit] validation settingsPatchSchema", () => {
   const accepts = (patch: Record<string, unknown>) =>
     settingsPatchSchema.safeParse(clearedToEmpty(patch)).success;
 
   it("accepts a partial patch and the fields a full read echoes back", () => {
     expect(accepts({ senderName: "Acme" })).to.equal(true);
-    expect(
-      accepts({ ...CURRENT, webhookUrl: "x", provider: "y", revision: "z" }),
-    ).to.equal(true);
+    expect(accepts({ ...CURRENT, webhookUrl: "x", provider: "y" })).to.equal(
+      true,
+    );
     expect(accepts({ replyTo: null })).to.equal(true);
   });
 

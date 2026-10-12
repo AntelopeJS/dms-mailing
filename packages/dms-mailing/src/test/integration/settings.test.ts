@@ -5,7 +5,6 @@ import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
-const HTTP_CONFLICT = 409;
 const SETTINGS = "/api/mailing/settings";
 const TEMPLATES_TABLE = "/api/mailing/tables/templates";
 const JSON_HEADERS = { "content-type": "application/json" };
@@ -235,28 +234,6 @@ describe("[integration] settings writes (partial, checked)", () => {
     );
     expect(after.data.categories).to.deep.equal(staleTab.data.categories);
     await restore(client, staleTab.data);
-  });
-
-  it("refuses a write whose If-Match revision is stale", async () => {
-    const client = await ownerClient();
-    const initial = await client.get(SETTINGS);
-    const revision = initial.data.revision as string;
-    expect(revision).to.be.a("string");
-
-    const current = await client.put(
-      SETTINGS,
-      { senderName: "fix-L7 first" },
-      { headers: { "if-match": `"${revision}"` } },
-    );
-    expect(current.status, JSON.stringify(current.data)).to.equal(HTTP_OK);
-    const stale = await client.put(
-      SETTINGS,
-      { senderName: "fix-L7 second" },
-      { headers: { "if-match": `"${revision}"` } },
-    );
-    expect(stale.status).to.equal(HTTP_CONFLICT);
-    expect(JSON.stringify(stale.data)).to.contain("settings_conflict");
-    await restore(client, initial.data);
   });
 
   it("answers 400, never 500, to a body that is not a settings patch", async () => {

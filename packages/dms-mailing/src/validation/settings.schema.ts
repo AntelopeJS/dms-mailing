@@ -145,7 +145,6 @@ export const settingsPatchSchema = settingsSchema
     missingVariables: z.enum(MISSING_VARIABLES_POLICIES).optional(),
     webhookUrl: z.unknown().optional(),
     provider: z.unknown().optional(),
-    revision: z.string().optional(),
   })
   .strict();
 

@@ -419,7 +419,6 @@
 			"nothing_to_discard": "Nothing to discard: this template was never published.",
 			"empty_subject": "A language has no subject.",
 			"invalid_recipient": "One of the addresses is invalid.",
-			"settings_conflict": "The settings changed elsewhere since you opened them. Reload the page.",
 			"suppressed": {
 				"hard_bounce": "Not sent: this address bounced for good and is on the suppression list.",
 				"complaint": "Not sent: this recipient reported an earlier e-mail as spam.",

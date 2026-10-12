@@ -3,7 +3,6 @@ import {
   Context,
   Controller,
   Get,
-  Parameter,
   Post,
   Put,
   RawBody,
@@ -16,7 +15,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { z } from "zod";
-import { API_BASE_PATH, HTTP_BAD_REQUEST, HTTP_CONFLICT } from "../constants";
+import { API_BASE_PATH, HTTP_BAD_REQUEST } from "../constants";
 import { parseBody } from "../data/body";
 import { SendModel, TemplateModel } from "../db";
 import { MailingSettingsPage } from "../pages/settings/page";
@@ -33,7 +32,6 @@ import {
   mergeSettingsPatch,
   missingVariablesPolicy,
   saveSettings,
-  settingsRevision,
   WEBHOOK_SECRET_BYTES,
 } from "../services/settings";
 import {
@@ -51,7 +49,6 @@ import {
 import { retentionLimit } from "../crons/retention";
 
 const INVALID_SETTINGS = "$dms_mailing.errors.invalid_settings";
-const SETTINGS_CONFLICT = "$dms_mailing.errors.settings_conflict";
 const CATEGORIES_REASSIGNED = "$dms_mailing.settings.categories.reassigned";
 const SENDER_NAME_IGNORED = "$dms_mailing.settings.sender_name_ignored";
 const WARNING_COLOR = "warning";
@@ -62,8 +59,6 @@ const NEXT_RUN_HOUR = 3;
 const NEXT_RUN_MINUTE = 15;
 const RETENTION_DAYS_PARAM = "days";
 const ARCHIVED_STATUS = "archived";
-const IF_MATCH_HEADER = "if-match";
-const ETAG_QUOTES = /^(?:W\/)?"|"$/g;
 
 /** A settings field the form shows under another name. */
 const FORM_FIELD_OF: Record<string, string> = {
@@ -84,11 +79,6 @@ export interface MailingSettingsResponse extends MailingSettingsValues {
   provider: string;
   /** `blockOnMissingVariables` as the two choices the form offers. */
   missingVariables: MissingVariablesPolicy;
-  /**
-   * Fingerprint of the values read. A write sending it back in `If-Match` is
-   * refused (409) once the settings changed since.
-   */
-  revision: string;
 }
 
 /** A toast the settings form shows next to its success one. */
@@ -211,45 +201,28 @@ export class MailingSettingsController extends Controller(
       webhookUrl: await this.providerWebhookUrl(capabilities?.name),
       provider: capabilities?.name ?? "",
       missingVariables: missingVariablesPolicy(values),
-      revision: settingsRevision(values),
     };
   }
 
   /**
    * Applies what the form changed. The DMS form puts only the changed fields,
    * `null` for a cleared one, so the body is a patch over the stored settings:
-   * each field sent is checked, the others are left as stored. An `If-Match`
-   * revision must still be the stored one.
+   * each field sent is checked, the others are left as stored.
    */
   @Put("")
-  async update(
-    @RawBody() raw: Buffer,
-    @Parameter(IF_MATCH_HEADER, "header") revision: string | undefined,
-  ): Promise<SettingsWriteResponse> {
-    return this.write(raw, revision);
+  async update(@RawBody() raw: Buffer): Promise<SettingsWriteResponse> {
+    return this.write(raw);
   }
 
   /** The same write, for callers posting their changes (`saveSettings`). */
   @Post("")
-  async save(
-    @RawBody() raw: Buffer,
-    @Parameter(IF_MATCH_HEADER, "header") revision: string | undefined,
-  ): Promise<SettingsWriteResponse> {
-    return this.write(raw, revision);
+  async save(@RawBody() raw: Buffer): Promise<SettingsWriteResponse> {
+    return this.write(raw);
   }
 
-  private async write(
-    raw: Buffer,
-    revision: string | undefined,
-  ): Promise<SettingsWriteResponse> {
+  private async write(raw: Buffer): Promise<SettingsWriteResponse> {
     const patch = this.readPatch(raw);
     const current = await getSettings(this.tenantId);
-    assert(
-      !revision ||
-        revision.replace(ETAG_QUOTES, "") === settingsRevision(current),
-      HTTP_CONFLICT,
-      SETTINGS_CONFLICT,
-    );
     const merged = mergeSettingsPatch(current, patch);
     const entries = patch.categories ?? current.categories;
     const values = { ...merged, categories: keptCategories(entries) };

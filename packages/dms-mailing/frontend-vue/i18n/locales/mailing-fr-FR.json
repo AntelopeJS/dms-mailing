@@ -419,7 +419,6 @@
 			"nothing_to_discard": "Rien à abandonner : ce modèle n’a jamais été publié.",
 			"empty_subject": "Une langue n’a pas d’objet.",
 			"invalid_recipient": "Une des adresses est invalide.",
-			"settings_conflict": "Les réglages ont changé ailleurs depuis leur ouverture. Rechargez la page.",
 			"suppressed": {
 				"hard_bounce": "Non envoyé : cette adresse a rebondi définitivement et figure dans la liste d’exclusion.",
 				"complaint": "Non envoyé : ce destinataire a signalé un e-mail précédent comme spam.",

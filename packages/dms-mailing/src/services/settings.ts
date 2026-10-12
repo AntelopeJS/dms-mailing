@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   DEFAULT_FALLBACK_LOCALE,
@@ -114,27 +114,8 @@ export function missingVariablesPolicy(
   return values.blockOnMissingVariables ? REFUSE_POLICY : SEND_POLICY;
 }
 
-const DERIVED_KEYS = new Set([
-  "webhookUrl",
-  "provider",
-  "missingVariables",
-  "revision",
-]);
+const DERIVED_KEYS = new Set(["webhookUrl", "provider", "missingVariables"]);
 const CLEARED_VALUE = "";
-const REVISION_ALGORITHM = "sha256";
-const REVISION_LENGTH = 16;
-
-/**
- * A fingerprint of the stored settings: a writer sending back the one it read
- * is refused once someone else saved in between.
- */
-export function settingsRevision(values: MailingSettingsValues): string {
-  return createHash(REVISION_ALGORITHM)
-    .update(JSON.stringify(values))
-    .digest("hex")
-    .slice(0, REVISION_LENGTH);
-}
-
 /** The patch with each cleared field (`null`) as the empty value it stores. */
 export function clearedToEmpty(
   patch: Record<string, unknown>,
