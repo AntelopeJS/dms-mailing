@@ -196,8 +196,6 @@ export function useMailingApi() {
 
 	return {
 		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
-		funnel: (query: Record<string, string>) =>
-			$authFetch<FunnelResponse>(mailingPath('metrics', 'funnel'), { query }),
 		templateContent: (id: string) =>
 			$authFetch<TemplateContentResponse>(
 				mailingPath('templates', id, 'content'),

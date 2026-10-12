@@ -1,13 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { computed, defineComponent, h, onBeforeUnmount } from 'vue'
+import { defineComponent, h, ref, type Ref } from 'vue'
 import FunnelCard from '../app/components/FunnelCard.vue'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
-
-const api = { funnel: vi.fn() }
-
-vi.mock('../app/composables/useMailingApi', () => ({
-	useMailingApi: () => api,
-}))
 
 interface EmptyStateAction {
 	label: string
@@ -37,16 +31,22 @@ const GLOBALS = {
 	UIcon: slotStub('UIcon'),
 }
 
-const PERIOD = {
-	range: {
-		from: new Date('2026-09-01T00:00:00.000Z'),
-		to: new Date('2026-09-30T00:00:00.000Z'),
-	},
-	compareRange: null,
+interface ChartFetchOptions {
+	fetchUrl: string
+	routeParams: () => Record<string, string>
+	periodScope: string
+	realtimeTopic: string
 }
 
-type RealtimeHandler = (event: object) => void
-let realtimeHandlers: RealtimeHandler[] = []
+interface ChartFetchStub {
+	data: Ref<unknown>
+	isLoading: Ref<boolean>
+	error: Ref<unknown>
+	refresh: ReturnType<typeof vi.fn>
+	options?: ChartFetchOptions
+}
+
+let chart: ChartFetchStub
 
 const funnelStep = (id: string, count: number, isMeasured = true) => ({
 	id,
@@ -58,13 +58,16 @@ const funnelStep = (id: string, count: number, isMeasured = true) => ({
 
 beforeEach(() => {
 	stubNuxtGlobals()
-	vi.stubGlobal('onBeforeUnmount', onBeforeUnmount)
-	vi.stubGlobal('usePeriodScope', () => computed(() => PERIOD))
-	realtimeHandlers = []
-	vi.stubGlobal('useRealtimeTopic', (_: string, handler: RealtimeHandler) => {
-		realtimeHandlers.push(handler)
+	chart = {
+		data: ref(null),
+		isLoading: ref(false),
+		error: ref(null),
+		refresh: vi.fn(),
+	}
+	vi.stubGlobal('useChartFetch', (options: ChartFetchOptions) => {
+		chart.options = options
+		return chart
 	})
-	api.funnel.mockReset()
 })
 
 afterEach(() => {
@@ -73,9 +76,16 @@ afterEach(() => {
 })
 
 describe('FunnelCard', () => {
+	it('reads the funnel of the overview period, again on each sent e-mail', () => {
+		mount(FunnelCard, {}, GLOBALS)
+		expect(chart.options?.fetchUrl).toContain('/metrics/funnel?kind=')
+		expect(chart.options?.periodScope).toBe('mailing-overview')
+		expect(chart.options?.realtimeTopic).toBe('mailing:sends')
+		expect(chart.options?.routeParams()).toEqual({ kind: 'all' })
+	})
+
 	it('says the funnel failed to load and offers a retry', async () => {
-		api.funnel.mockRejectedValueOnce(new Error('500'))
-		api.funnel.mockResolvedValueOnce({ steps: [funnelStep('sent', 3)] })
+		chart.error.value = new Error('500')
 		const { host } = mount(FunnelCard, {}, GLOBALS)
 		await flush()
 
@@ -84,14 +94,11 @@ describe('FunnelCard', () => {
 		expect(host.textContent).not.toContain('dms_mailing.funnel_card.no_drop')
 
 		empty?.querySelector('button')?.click()
-		await flush()
-		expect(api.funnel).toHaveBeenCalledTimes(2)
-		expect(host.querySelector('[data-empty-state]')).toBeNull()
-		expect(host.querySelectorAll('[data-funnel-step]')).toHaveLength(1)
+		expect(chart.refresh).toHaveBeenCalledTimes(1)
 	})
 
 	it('writes "not tracked" in place of the figures nothing measures', async () => {
-		api.funnel.mockResolvedValue({
+		chart.data.value = {
 			steps: [
 				funnelStep('sent', 32),
 				funnelStep('delivered', 0, false),
@@ -99,22 +106,11 @@ describe('FunnelCard', () => {
 				funnelStep('clicked', 0, false),
 				funnelStep('unsubscribed', 0),
 			],
-		})
+		}
 		const { host } = mount(FunnelCard, {}, GLOBALS)
 		await flush()
 
 		expect(host.querySelectorAll('[data-funnel-untracked]')).toHaveLength(3)
 		expect(host.textContent).toContain('dms_mailing.funnel_card.untracked')
-	})
-
-	it('reloads on each event of the sends topic', async () => {
-		api.funnel.mockResolvedValue({ steps: [funnelStep('sent', 1)] })
-		mount(FunnelCard, {}, GLOBALS)
-		await flush()
-		expect(api.funnel).toHaveBeenCalledTimes(1)
-
-		realtimeHandlers.forEach((handler) => handler({ type: 'insert' }))
-		await flush()
-		expect(api.funnel).toHaveBeenCalledTimes(2)
 	})
 })

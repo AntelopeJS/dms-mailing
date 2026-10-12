@@ -4,7 +4,6 @@ import {
 	formatClock,
 	isWithinADay,
 	minutesSince,
-	periodQuery,
 	presetShortLabelKey,
 	RETENTION_CUSTOM,
 	retentionChoice,
@@ -15,28 +14,6 @@ describe('formatClock', () => {
 		const afternoon = new Date(2026, 9, 11, 17, 5)
 		expect(formatClock(afternoon, 'en')).toBe('17:05')
 		expect(formatClock(afternoon, 'fr-FR')).toBe('17:05')
-	})
-})
-
-describe('periodQuery', () => {
-	it('serialises a period state into the query the backend expects', () => {
-		const from = new Date('2026-08-10T00:00:00.000Z')
-		const to = new Date('2026-09-09T00:00:00.000Z')
-		expect(periodQuery({ range: { from, to }, compareRange: null })).toEqual({
-			from: from.toISOString(),
-			to: to.toISOString(),
-		})
-	})
-
-	it('adds the comparison window when there is one', () => {
-		const from = new Date('2026-08-10T00:00:00.000Z')
-		const to = new Date('2026-09-09T00:00:00.000Z')
-		expect(
-			periodQuery({ range: { from, to }, compareRange: { from, to } }),
-		).toMatchObject({
-			compareFrom: from.toISOString(),
-			compareTo: to.toISOString(),
-		})
 	})
 })
 

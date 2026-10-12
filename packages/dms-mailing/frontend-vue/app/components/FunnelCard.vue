@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-	useMailingApi,
-	type FunnelResponse,
-} from '../composables/useMailingApi'
-import { useMailingPeriodData } from '../composables/useMailingPeriodData'
+import { mailingPath, type FunnelResponse } from '../composables/useMailingApi'
 import {
 	biggestDrop,
 	formatRate,
@@ -19,6 +15,8 @@ import type { FunnelKind } from '../types/mailing'
 
 const OVERVIEW_PERIOD_SCOPE = 'mailing-overview'
 const MAILING_SENDS_TOPIC = 'mailing:sends'
+/** The funnel route, its `kind` filled from the card's own switch. */
+const FUNNEL_URL = `${mailingPath('metrics', 'funnel')}?kind={{params.kind}}`
 const SKELETON_ROWS = 5
 const KEY_PREFIX = 'dms_mailing.funnel_card.'
 const NOT_TRACKED_KEY = 'dms_mailing.metrics.not_tracked'
@@ -32,20 +30,22 @@ const TAKEAWAY_KEYS: Record<FunnelTakeaway, string> = {
 
 defineProps<MailingComponentProps>()
 
-const api = useMailingApi()
 const { t, locale } = useI18n()
 const { processI18n } = useTranslation()
 
 const kind = ref<FunnelKind>('all')
 
-const { data, loading, error, refresh } = useMailingPeriodData<FunnelResponse>(
-	OVERVIEW_PERIOD_SCOPE,
-	(query) => api.funnel(query),
-	{
-		extraQuery: () => ({ kind: kind.value }),
-		realtimeTopic: MAILING_SENDS_TOPIC,
-	},
-)
+const {
+	data,
+	isLoading: loading,
+	error,
+	refresh,
+} = useChartFetch<FunnelResponse>({
+	fetchUrl: FUNNEL_URL,
+	routeParams: () => ({ kind: kind.value }),
+	periodScope: OVERVIEW_PERIOD_SCOPE,
+	realtimeTopic: MAILING_SENDS_TOPIC,
+})
 
 const steps = computed<FunnelStepReading[]>(() => data.value?.steps ?? [])
 const total = computed(() => steps.value[0]?.count ?? 0)
