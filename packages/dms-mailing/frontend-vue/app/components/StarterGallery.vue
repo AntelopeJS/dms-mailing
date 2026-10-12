@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTemplateCategories } from '../composables/useTemplateCategories'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
@@ -8,7 +9,7 @@ import {
 	apiErrorStatus,
 } from '../utils/api-error'
 import { editorRoute } from '../utils/editor-route'
-import type { StarterSummary, TemplateCategory } from '../types/mailing'
+import type { StarterSummary } from '../types/mailing'
 
 const PREVIEW_WIDTH = 600
 const PREVIEW_SCALE = 0.32
@@ -24,19 +25,14 @@ const overlays = useTemplateDrawer()
 
 const localized = useLocalizedDefaults()
 const storedStarters = ref<StarterSummary[]>([])
-const storedCategories = ref<TemplateCategory[]>([])
 const starters = computed(() => localized.starters(storedStarters.value))
-const categories = computed(() => localized.categories(storedCategories.value))
+const { categories } = useTemplateCategories()
 const loading = ref(true)
 const creatingId = ref<string | null>(null)
 
 onMounted(async () => {
-	const [starterList, categoryList] = await Promise.all([
-		api.starters().catch(() => ({ starters: [] })),
-		api.listCategories().catch(() => ({ categories: [] })),
-	])
+	const starterList = await api.starters().catch(() => ({ starters: [] }))
 	storedStarters.value = starterList.starters
-	storedCategories.value = categoryList.categories
 	loading.value = false
 })
 

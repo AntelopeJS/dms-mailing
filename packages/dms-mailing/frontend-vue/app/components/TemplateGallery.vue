@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { useTemplateCategories } from '../composables/useTemplateCategories'
 import { useEventListener } from '@vueuse/core'
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import {
@@ -47,16 +47,9 @@ const api = useMailingApi()
 const { t } = useI18n()
 const overlays = useTemplateDrawer()
 
-const localized = useLocalizedDefaults()
-const storedCategories = ref<TemplateCategory[]>([])
-const categories = computed(() => localized.categories(storedCategories.value))
+const { categories } = useTemplateCategories()
 const statsById = ref(new Map<string, TemplateStats>())
 const templateCount = ref<number | null>(null)
-
-async function loadCategories(): Promise<void> {
-	const response = await api.listCategories().catch(() => ({ categories: [] }))
-	storedCategories.value = response.categories
-}
 
 async function loadStats(): Promise<void> {
 	const response = await api.templatesOverview().catch(() => ({ items: [] }))
@@ -69,7 +62,6 @@ async function loadTemplates(): Promise<void> {
 }
 
 onMounted(() => {
-	void loadCategories()
 	void loadStats()
 	void loadTemplates()
 })

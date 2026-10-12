@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
-import { useMailingApi } from '../composables/useMailingApi'
+import { useTemplateCategories } from '../composables/useTemplateCategories'
 import {
 	DEFAULT_CATEGORY_ICON,
 	fromCategoryOption,
 	NO_CATEGORY,
 	toCategoryOption,
 } from '../utils/categories'
-import type { TemplateCategory } from '../types/mailing'
 
 interface CategoryInputProps {
 	modelValue?: string | null
@@ -23,12 +21,9 @@ const props = withDefaults(defineProps<CategoryInputProps>(), {
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
-const api = useMailingApi()
 const { t } = useI18n()
 
-const localized = useLocalizedDefaults()
-const storedCategories = ref<TemplateCategory[]>([])
-const categories = computed(() => localized.categories(storedCategories.value))
+const { categories } = useTemplateCategories()
 const selected = ref<string>(
 	toCategoryOption(props.modelValue ?? props.initialValue),
 )
@@ -54,15 +49,6 @@ watch(
 		selected.value = toCategoryOption(value)
 	},
 )
-
-onMounted(async () => {
-	try {
-		const response = await api.listCategories()
-		storedCategories.value = response.categories
-	} catch {
-		storedCategories.value = []
-	}
-})
 </script>
 
 <template>

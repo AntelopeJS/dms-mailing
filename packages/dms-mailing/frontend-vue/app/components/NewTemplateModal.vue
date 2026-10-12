@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTemplateCategories } from '../composables/useTemplateCategories'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import NewTemplateSourceTile from './NewTemplateSourceTile.vue'
@@ -15,7 +16,6 @@ import { slugify, validateName, validateSlug } from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
 import type {
 	StarterSummary,
-	TemplateCategory,
 	TemplateRow,
 } from '../types/mailing'
 import type { CreateTemplateInput } from '../composables/useMailingApi'
@@ -90,21 +90,18 @@ const saving = ref(false)
 const templates = ref<TemplateRow[]>([])
 const localized = useLocalizedDefaults()
 const storedStarters = ref<StarterSummary[]>([])
-const storedCategories = ref<TemplateCategory[]>([])
 const starters = computed(() => localized.starters(storedStarters.value))
-const categories = computed(() => localized.categories(storedCategories.value))
+const { categories } = useTemplateCategories()
 const refusedSlugs = ref(new Set<string>())
 const templateSearch = ref('')
 
 onMounted(async () => {
-	const [templateList, starterList, categoryList] = await Promise.all([
+	const [templateList, starterList] = await Promise.all([
 		api.listTemplates().catch(() => ({ results: [] as TemplateRow[] })),
 		api.starters().catch(() => ({ starters: [] as StarterSummary[] })),
-		api.listCategories().catch(() => ({ categories: [] })),
 	])
 	templates.value = templateList.results
 	storedStarters.value = starterList.starters
-	storedCategories.value = categoryList.categories
 })
 
 watch(name, (value) => {
