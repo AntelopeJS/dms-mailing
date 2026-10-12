@@ -7,6 +7,7 @@ import type {
 	SendDetailResponse,
 	SendHtmlResponse,
 	StarterSummary,
+	SuppressionSummary,
 	TemplateChange,
 	TemplateContent,
 	TemplateCategory,
@@ -63,12 +64,35 @@ export interface FunnelResponse {
 
 export interface SavedResponse {
 	saved: boolean
+	/** The draft revision the next save or publish carries. */
+	revision: number
 	detectedVariables: string[]
 	changes: TemplateChange[]
 }
 
 export interface ChangesResponse {
 	version: number
+	revision: number
+	changes: TemplateChange[]
+}
+
+/**
+ * A draft save: the content and the variable declarations, which follow the
+ * draft. `revision` is the one the editor last saw: the server refuses the
+ * save (409) when the draft moved on since. `keepalive` lets the request
+ * outlive the page being closed.
+ */
+export interface SaveContentInput {
+	content: TemplateContent
+	variables?: VariableDefinition[]
+	revision?: number
+	keepalive?: boolean
+}
+
+/** A version copied into the draft; the review then publishes it. */
+export interface RestoreVersionResponse {
+	restored: number
+	revision: number
 	changes: TemplateChange[]
 }
 
@@ -135,6 +159,8 @@ export interface DuplicateResponse {
 
 export interface VariablesResponse {
 	variables: VariableDefinition[]
+	/** The draft revision the declarations were written at. */
+	revision: number
 }
 
 export interface TestDataResponse {
@@ -143,6 +169,11 @@ export interface TestDataResponse {
 
 export interface TestSendResponse {
 	results: SendResult[]
+	/**
+	 * The sender's own address is on the suppression list: the test went out
+	 * anyway, with this entry to warn about.
+	 */
+	ownAddressSuppressed?: SuppressionSummary
 }
 
 export interface HtmlResponse {
@@ -190,14 +221,25 @@ export function useMailingApi() {
 			),
 		createTemplate: (input: CreateTemplateInput) =>
 			post<string[]>(mailingPath('tables', 'templates', 'new'), input),
-		saveContent: (id: string, content: TemplateContent) =>
-			post<SavedResponse>(mailingPath('templates', id, 'content'), {
-				content,
+		saveContent: (id: string, input: SaveContentInput) =>
+			$authFetch<SavedResponse>(mailingPath('templates', id, 'content'), {
+				method: 'POST',
+				body: {
+					content: input.content,
+					variables: input.variables,
+					revision: input.revision,
+				},
+				keepalive: input.keepalive,
 			}),
 		changes: (id: string) =>
 			$authFetch<ChangesResponse>(mailingPath('templates', id, 'changes')),
 		versions: (id: string) =>
 			$authFetch<VersionsResponse>(mailingPath('templates', id, 'versions')),
+		restoreVersion: (id: string, version: number, revision?: number) =>
+			post<RestoreVersionResponse>(
+				mailingPath('templates', id, 'versions', String(version), 'restore'),
+				{ revision },
+			),
 		performance: (id: string) =>
 			$authFetch<TemplatePerformance>(
 				mailingPath('templates', id, 'performance'),
@@ -208,12 +250,15 @@ export function useMailingApi() {
 			),
 		starters: () =>
 			$authFetch<StartersResponse>(mailingPath('templates', 'starters')),
-		starterPreview: (starterId: string) =>
+		starterPreview: (starterId: string, locale?: string) =>
 			$authFetch<StarterPreviewResponse>(
 				mailingPath('templates', 'starters', starterId, 'preview'),
+				{ query: locale ? { locale } : {} },
 			),
-		publish: (id: string) =>
-			post<PublishResponse>(mailingPath('templates', id, 'publish'), {}),
+		publish: (id: string, revision?: number) =>
+			post<PublishResponse>(mailingPath('templates', id, 'publish'), {
+				revision,
+			}),
 		discard: (id: string) =>
 			post<unknown>(mailingPath('templates', id, 'discard'), {}),
 		unpublish: (id: string) =>
@@ -227,9 +272,14 @@ export function useMailingApi() {
 				slug,
 				name,
 			}),
-		saveVariables: (id: string, variables: VariableDefinition[]) =>
+		saveVariables: (
+			id: string,
+			variables: VariableDefinition[],
+			revision?: number,
+		) =>
 			post<VariablesResponse>(mailingPath('templates', id, 'variables'), {
 				variables,
+				revision,
 			}),
 		saveTestData: (id: string, data: Record<string, unknown>) =>
 			post<TestDataResponse>(mailingPath('templates', id, 'test-data'), {

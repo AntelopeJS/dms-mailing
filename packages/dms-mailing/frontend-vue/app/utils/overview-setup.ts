@@ -1,46 +1,55 @@
-export type SetupStepId = 'install' | 'provider' | 'sender' | 'template'
+export type SetupStepId = 'provider' | 'sender' | 'publish' | 'test'
 
 export type SetupStepState = 'done' | 'current' | 'todo'
 
+/** What `GET /metrics/setup` answers. */
 export interface SetupFacts {
 	isProviderConnected: boolean
 	isSenderSet: boolean
-	templateCount: number
+	liveTemplateCount: number
+	hasTestSend: boolean
 }
 
 export interface SetupStepDefinition {
 	id: SetupStepId
-	/** Where the step is done. */
-	to: string
+	/**
+	 * Where the step is done; absent when it is not done in the app (the
+	 * provider is set in the project's configuration).
+	 */
+	to?: string
 	isDone: (facts: SetupFacts) => boolean
 }
 
 export interface SetupStep {
 	id: SetupStepId
 	number: number
-	to: string
+	to?: string
 	state: SetupStepState
 }
 
-const SETTINGS_PAGE = '/modules/mailing/settings'
+/** A settings form section, by the id the DMS form gives its anchor. */
+const SETTINGS_SECTION = '/modules/mailing/settings#dms-form-content-section-'
 const TEMPLATES_PAGE = '/modules/mailing/templates'
 
 export const SETUP_STEPS: SetupStepDefinition[] = [
-	{ id: 'install', to: SETTINGS_PAGE, isDone: () => true },
 	{
 		id: 'provider',
-		to: `${SETTINGS_PAGE}#provider`,
 		isDone: (facts) => facts.isProviderConnected,
 	},
 	{
 		id: 'sender',
-		to: `${SETTINGS_PAGE}#sender`,
+		to: `${SETTINGS_SECTION}sender`,
 		isDone: (facts) => facts.isSenderSet,
 	},
 	{
-		id: 'template',
+		id: 'publish',
 		to: TEMPLATES_PAGE,
-		isDone: (facts) => facts.templateCount > 0,
+		isDone: (facts) => facts.liveTemplateCount > 0,
+	},
+	{
+		id: 'test',
+		to: TEMPLATES_PAGE,
+		isDone: (facts) => facts.hasTestSend,
 	},
 ]
 
@@ -59,7 +68,15 @@ export function setupSteps(facts: SetupFacts): SetupStep[] {
 	}))
 }
 
-/** The dashboard only makes sense once e-mail can leave and has a template. */
+/**
+ * The dashboard only makes sense once e-mail can leave and a template is live:
+ * a draft alone sends nothing.
+ */
 export function needsSetup(facts: SetupFacts): boolean {
-	return !facts.isProviderConnected || facts.templateCount === 0
+	return !facts.isProviderConnected || facts.liveTemplateCount === 0
+}
+
+/** Every step of the checklist is done: nothing left to resume. */
+export function isSetupComplete(facts: SetupFacts): boolean {
+	return SETUP_STEPS.every((step) => step.isDone(facts))
 }

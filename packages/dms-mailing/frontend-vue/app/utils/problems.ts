@@ -8,6 +8,7 @@ export type ProblemKind =
 	| 'provider_timeout'
 	| 'rejected'
 	| 'provider_error'
+	| 'unsubscribed'
 
 export interface ProblemDescription {
 	kind: ProblemKind
@@ -70,7 +71,45 @@ const PROBLEM_RULES: ProblemRule[] = [
 	},
 	{ kind: 'rejected', icon: 'i-ph-arrow-u-up-left', statuses: ['bounced'] },
 	{ kind: 'provider_error', icon: 'i-ph-warning', statuses: ['failed'] },
+	{ kind: 'unsubscribed', icon: 'i-ph-user-minus', statuses: ['unsubscribed'] },
 ]
+
+/** Problems the recipient chose rather than suffered: told in amber. */
+const WARNING_KINDS = new Set<ProblemKind>(['spam_report', 'unsubscribed'])
+
+/** The banner tone a problem is told in. */
+export function problemTone(kind: ProblemKind): 'warning' | 'error' {
+	return WARNING_KINDS.has(kind) ? 'warning' : 'error'
+}
+
+/**
+ * Problems whose explanation quotes the provider's words; without them, a
+ * sentence that stops short of the colon.
+ */
+const KINDS_QUOTING_ERROR = new Set<ProblemKind>(['rejected', 'provider_error'])
+const NO_REASON_SUFFIX = '_no_reason'
+/**
+ * Problems whose explanation ends on the advice to send again; when sending
+ * again is not possible (the address is on the suppression list), a sentence
+ * without that advice.
+ */
+const KINDS_ADVISING_SEND_AGAIN = new Set<ProblemKind>([
+	'provider_timeout',
+	'provider_error',
+])
+const NO_ADVICE_SUFFIX = '_no_advice'
+
+function descriptionKey(
+	kind: ProblemKind,
+	error: string | undefined,
+	canSendAgain: boolean,
+): string {
+	let key = `${KEY_PREFIX}${kind}.description`
+	if (KINDS_QUOTING_ERROR.has(kind) && !error?.trim()) key += NO_REASON_SUFFIX
+	if (!canSendAgain && KINDS_ADVISING_SEND_AGAIN.has(kind))
+		key += NO_ADVICE_SUFFIX
+	return key
+}
 
 function matches(rule: ProblemRule, send: ProblemSend): boolean {
 	if (!rule.statuses.includes(send.status)) return false
@@ -84,11 +123,13 @@ function domainOf(email: string): string {
 /**
  * What went wrong with a send, in the words of the person reading the log:
  * the title and explanation keys plus the icon of the banner. `null` when the
- * send has no problem. `provider` names the provider when the send does not.
+ * send has no problem. `provider` names the provider when the send does not;
+ * `canSendAgain` is false when the address can no longer be sent to.
  */
 export function describeProblem(
 	send: ProblemSend,
 	provider = '',
+	canSendAgain = true,
 ): ProblemDescription | null {
 	const rule = PROBLEM_RULES.find((candidate) => matches(candidate, send))
 	if (!rule) return null
@@ -96,7 +137,7 @@ export function describeProblem(
 		kind: rule.kind,
 		icon: rule.icon,
 		titleKey: `${KEY_PREFIX}${rule.kind}.title`,
-		descriptionKey: `${KEY_PREFIX}${rule.kind}.description`,
+		descriptionKey: descriptionKey(rule.kind, send.error, canSendAgain),
 		params: {
 			provider: send.provider || provider,
 			domain: domainOf(send.recipientEmail),

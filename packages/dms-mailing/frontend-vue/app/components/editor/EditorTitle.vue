@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TemplateStatus } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { useLocalizedDefaults } from '../../composables/useLocalizedDefaults'
 import { TEMPLATES_PATH } from '../../utils/editor-route'
+import type { StatusKey } from '../../utils/lifecycle'
 
-const STATUS_TONES: Record<TemplateStatus, string> = {
+const STATUS_TONES: Record<StatusKey, string> = {
 	live: 'success',
 	draft: 'neutral',
+	unpublished: 'warning',
 	archived: 'warning',
 }
 const SEPARATOR = ' · '
 
 const { t } = useI18n()
+const localized = useLocalizedDefaults()
 const { editor, session } = useEditorContext()
 
 const template = computed(() => session.state.template)
@@ -20,16 +23,26 @@ function goBack(): void {
 	void navigateDms(TEMPLATES_PATH)
 }
 
+/**
+ * "Live · v3", "Draft" before a first publish, "Unpublished" once taken
+ * offline: the version only reads on what customers receive.
+ */
 const statusLabel = computed(() => {
-	const label = t(`dms_mailing.templates.status.${template.value.status}`)
+	const label = t(`dms_mailing.templates.status.${session.statusKey}`)
 	const { version } = session.state
-	return version > 0 ? `${label}${SEPARATOR}v${version}` : label
+	return session.statusKey === 'live' && version > 0
+		? `${label}${SEPARATOR}v${version}`
+		: label
 })
 
 const categoryLabel = computed(() => {
 	const id = template.value.category
 	if (!id) return t('dms_mailing.editor.toolbar.uncategorised')
-	return session.state.categories.find((entry) => entry.id === id)?.label ?? id
+	return (
+		localized
+			.categories(session.state.categories)
+			.find((entry) => entry.id === id)?.label ?? id
+	)
 })
 </script>
 
@@ -57,7 +70,7 @@ const categoryLabel = computed(() => {
 				</span>
 				<DmsStatusPill
 					size="sm"
-					:tone="STATUS_TONES[template.status]"
+					:tone="STATUS_TONES[session.statusKey]"
 					:label="statusLabel"
 				/>
 			</span>

@@ -7,10 +7,23 @@ const ARRAY_SUFFIX = '[]'
 const RESERVED_SEGMENTS = ['__proto__', 'constructor', 'prototype']
 
 /**
- * Paths the runtime fills in itself, so an author never declares them. The
- * backend drops these before answering; this list mirrors it.
+ * The footer links' URLs, passed by the caller at send time. The content
+ * declares them itself (`utils/system-variables.ts`), so they never show as
+ * undeclared; the backend keeps them out of `detectedVariables` the same way.
  */
 export const SYSTEM_PATHS = ['unsubscribeUrl', 'preferencesUrl']
+
+/**
+ * A path cut after each separator ("order." + "number"): where a narrow
+ * column may wrap it, rather than in the middle of a name.
+ */
+export function pathBreakSegments(path: string): string[] {
+	return path
+		.split(PATH_SEPARATOR)
+		.map((segment, index, segments) =>
+			index < segments.length - 1 ? `${segment}${PATH_SEPARATOR}` : segment,
+		)
+}
 
 function tokenPaths(block: Block): string[] {
 	const record = block as unknown as Record<string, unknown>

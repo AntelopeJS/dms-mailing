@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import {
 	DEFAULT_CATEGORY_ICON,
@@ -25,7 +26,9 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const api = useMailingApi()
 const { t } = useI18n()
 
-const categories = ref<TemplateCategory[]>([])
+const localized = useLocalizedDefaults()
+const storedCategories = ref<TemplateCategory[]>([])
+const categories = computed(() => localized.categories(storedCategories.value))
 const selected = ref<string>(
 	toCategoryOption(props.modelValue ?? props.initialValue),
 )
@@ -45,10 +48,6 @@ const items = computed(() => [
 	})),
 ])
 
-const selectedIcon = computed(
-	() => items.value.find((item) => item.value === selected.value)?.icon,
-)
-
 watch(
 	() => props.modelValue,
 	(value) => {
@@ -59,9 +58,9 @@ watch(
 onMounted(async () => {
 	try {
 		const response = await api.listCategories()
-		categories.value = response.categories
+		storedCategories.value = response.categories
 	} catch {
-		categories.value = []
+		storedCategories.value = []
 	}
 })
 </script>
@@ -72,7 +71,6 @@ onMounted(async () => {
 		:items="items"
 		value-key="value"
 		:deselectable="false"
-		:icon="selectedIcon"
 		:disabled="disabled"
 		class="w-full"
 		@update:model-value="

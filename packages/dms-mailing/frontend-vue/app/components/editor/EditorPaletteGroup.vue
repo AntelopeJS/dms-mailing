@@ -5,18 +5,26 @@ import {
 	cloneFromPalette,
 	paletteLabelKey,
 } from '../../utils/blocks'
-import type { PaletteEntry } from '../../utils/blocks'
+import type { BlockContext, PaletteEntry } from '../../utils/blocks'
 
 interface Props {
 	title: string
 	entries: PaletteEntry[]
 	disabled?: boolean
+	/** What a tile dropped on the canvas borrows from the template. */
+	blockContext?: () => BlockContext
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+	disabled: false,
+	blockContext: () => ({}),
+})
 const emit = defineEmits<{ add: [PaletteEntry] }>()
 
 const { t } = useI18n()
+
+const clone = (entry: PaletteEntry) =>
+	cloneFromPalette(entry, props.blockContext())
 </script>
 
 <template>
@@ -25,7 +33,7 @@ const { t } = useI18n()
 		<draggable
 			:list="entries"
 			:group="PALETTE_GROUP"
-			:clone="cloneFromPalette"
+			:clone="clone"
 			:sort="false"
 			:disabled="disabled"
 			item-key="type"
@@ -34,7 +42,7 @@ const { t } = useI18n()
 			<template #item="{ element }">
 				<button
 					type="button"
-					class="border-default bg-default text-toned hover:border-primary/60 hover:text-highlighted group flex h-9 cursor-grab items-center gap-2 rounded-md border px-2.5 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-50"
+					class="border-default bg-default text-toned hover:border-primary/60 hover:text-highlighted group flex min-h-9 cursor-grab items-center gap-2 rounded-md border px-2.5 py-1 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-50"
 					:class="{ 'col-span-2': element.isWide }"
 					:disabled="disabled"
 					@click="emit('add', element)"
@@ -48,7 +56,9 @@ const { t } = useI18n()
 								: 'text-dimmed group-hover:text-primary'
 						"
 					/>
-					<span class="truncate">{{ t(paletteLabelKey(element.type)) }}</span>
+					<span class="line-clamp-2 min-w-0 leading-tight">
+						{{ t(paletteLabelKey(element.type)) }}
+					</span>
 				</button>
 			</template>
 		</draggable>

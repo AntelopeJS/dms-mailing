@@ -7,7 +7,13 @@ import {
 	apiErrorMessage,
 	apiErrorStatus,
 } from '../utils/api-error'
-import { freeSlug, slugify, validateName, validateSlug } from '../utils/slug'
+import {
+	fitName,
+	freeSlug,
+	slugify,
+	validateName,
+	validateSlug,
+} from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
 import type { TemplateRow } from '../types/mailing'
 
@@ -36,7 +42,9 @@ const saving = ref(false)
 const loading = ref(true)
 
 function prefill(template: TemplateRow): void {
-	name.value = t('dms_mailing.duplicate.copy_name', { name: template.name })
+	name.value = fitName(template.name, (inner) =>
+		t('dms_mailing.duplicate.copy_name', { name: inner }),
+	)
 	slug.value = freeSlug(slugify(name.value), takenSlugs.value)
 }
 
@@ -65,12 +73,12 @@ const nameIssue = computed(() => validateName(name.value))
 const slugError = computed(() =>
 	slugIssue.value && (slug.value || isSubmitted.value)
 		? t(`dms_mailing.templates.slug_errors.${slugIssue.value}`)
-		: false,
+		: null,
 )
 const nameError = computed(() =>
 	nameIssue.value && isSubmitted.value
 		? t(`dms_mailing.templates.name_errors.${nameIssue.value}`)
-		: false,
+		: null,
 )
 
 function onSlugInput(value: string): void {
@@ -125,7 +133,7 @@ async function submit(): Promise<void> {
 		@keydown.meta.enter.prevent="submit"
 		@keydown.ctrl.enter.prevent="submit"
 	>
-		<p v-if="source" class="text-muted text-[13px]">
+		<p v-if="source" class="text-muted text-[13px] [overflow-wrap:anywhere]">
 			{{ t('dms_mailing.duplicate.source', { name: source.name }) }}
 			<span class="font-mono">{{ source.slug }}</span>
 		</p>

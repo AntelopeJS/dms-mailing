@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import type { Condition, IfBlock } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
-import { compileCondition } from '../../utils/conditions'
 
 interface Props {
 	block: IfBlock
@@ -11,22 +10,11 @@ interface Props {
 const props = defineProps<Props>()
 
 const KEY = 'dms_mailing.editor.condition'
-const ELSE_TAG = '{{else}}'
-const CLOSING_TAG = '{{/if}}'
-const GAP = ' … '
 
 const { t } = useI18n()
 const { editor } = useEditorContext()
 
 const elseCount = computed(() => props.block.elseChildren?.length ?? 0)
-
-const compiled = computed(() =>
-	[
-		compileCondition(props.block.condition),
-		...(props.block.elseChildren ? [ELSE_TAG] : []),
-		CLOSING_TAG,
-	].join(GAP),
-)
 
 const hasElse = computed({
 	get: () => Boolean(props.block.elseChildren),
@@ -62,14 +50,5 @@ function update(condition: Condition): void {
 					: t(`${KEY}.else_off`)
 			"
 		/>
-
-		<details>
-			<summary class="text-dimmed cursor-pointer font-mono text-[11px]">
-				{{ t(`${KEY}.compiled`) }}
-			</summary>
-			<pre
-				class="bg-elevated text-muted mt-1.5 overflow-x-auto rounded-md px-2 py-1.5 font-mono text-[10.5px]"
-				>{{ compiled }}</pre>
-		</details>
 	</div>
 </template>

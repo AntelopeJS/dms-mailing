@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useControlError } from '#dms-ui/app/build/composables/form/useControlError'
+import { languageLabel } from '../utils/locales'
+
 interface LocaleSelectProps {
 	modelValue?: string | null
 	initialValue?: string | null
@@ -25,8 +28,9 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const LIST_SEPARATOR = ', '
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { uniqueLocales } = useUniqueLocales()
+const { report } = useControlError()
 
 const selected = computed(() => props.modelValue ?? props.initialValue ?? '')
 
@@ -35,10 +39,9 @@ const workspaceLocales = computed<LocaleDefinition[]>(
 )
 
 function optionOf(entry: LocaleDefinition): LocaleOption {
-	const code = entry.code.toUpperCase()
 	return {
 		value: entry.code,
-		label: entry.name ? `${entry.name} (${code})` : code,
+		label: languageLabel(entry.code, locale.value, entry.name),
 	}
 }
 
@@ -49,6 +52,23 @@ const items = computed<LocaleOption[]>(() => {
 		? options
 		: [...options, optionOf({ code: selected.value })]
 })
+
+/** A stored locale the workspace does not write in: it cannot be saved. */
+const isForeign = computed(
+	() =>
+		!!selected.value &&
+		workspaceLocales.value.length > 0 &&
+		!workspaceLocales.value.some((entry) => entry.code === selected.value),
+)
+
+watch(
+	isForeign,
+	(value) =>
+		report(
+			value ? t('dms_mailing.settings.locale.not_in_workspace') : undefined,
+		),
+	{ immediate: true },
+)
 
 const hint = computed(() =>
 	t('dms_mailing.settings.locale.workspace', {

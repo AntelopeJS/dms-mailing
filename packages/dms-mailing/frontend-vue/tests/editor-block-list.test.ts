@@ -10,8 +10,10 @@ import {
 import EditorBlockList from '../app/components/editor/EditorBlockList.vue'
 import type { Block } from '../app/types/mailing'
 
+const editor = vi.hoisted(() => ({ touch: vi.fn(), select: vi.fn() }))
+
 vi.mock('../app/composables/useEditorContext', () => ({
-	useEditorContext: () => ({ editor: { touch: vi.fn() } }),
+	useEditorContext: () => ({ editor }),
 }))
 
 vi.mock('../app/components/editor/EditorInsertPoint.vue', () => ({
@@ -51,6 +53,22 @@ describe('editor draggable items', () => {
 					item.getAttribute('data-block'),
 				),
 			).toEqual(['first', 'second'])
+		} finally {
+			app.unmount()
+		}
+	})
+	it('selects a block dropped into the list', async () => {
+		vi.stubGlobal('useI18n', () => ({ t: (key: string) => key }))
+		const list = reactive<Block[]>([])
+		const app = createApp(EditorBlockList, { list })
+		app.mount(document.createElement('div'))
+		try {
+			const draggable = app._instance?.subTree.props as Record<string, unknown>
+			const onChange = draggable.onChange as (change: unknown) => void
+			onChange({ added: { element: { id: 'dropped' }, newIndex: 0 } })
+			onChange({ moved: { element: { id: 'other' } } })
+			expect(editor.touch).toHaveBeenCalledTimes(2)
+			expect(editor.select).toHaveBeenCalledExactlyOnceWith('dropped')
 		} finally {
 			app.unmount()
 		}

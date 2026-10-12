@@ -2,13 +2,14 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { useBlockContext } from '../../composables/useBlockContext'
 import {
 	BLOCK_PALETTE,
 	LOGIC_PALETTE,
 	filterPalette,
 	paletteLabelKey,
 } from '../../utils/blocks'
-import type { PaletteEntry } from '../../utils/blocks'
+import type { BlockContext, PaletteEntry } from '../../utils/blocks'
 
 interface PaletteGroup {
 	id: string
@@ -23,6 +24,7 @@ const KEY = 'dms_mailing.editor.palette'
 
 const { t } = useI18n()
 const { editor } = useEditorContext()
+const blockContext = useBlockContext()
 
 const query = ref('')
 const search = ref<(ComponentPublicInstance & FocusableInput) | null>(null)
@@ -42,9 +44,15 @@ const groups = computed<PaletteGroup[]>(() =>
 	].filter((group) => group.entries.length > 0),
 )
 
+/** A tile dropped on the canvas gets what a clicked one gets. */
+const dropContext = (): BlockContext => ({
+	...blockContext(),
+	locale: editor.locale,
+})
+
 function add(entry: PaletteEntry): void {
 	if (!editor.current) return
-	editor.addBlockUnderSelected(entry.type)
+	editor.addBlockUnderSelected(entry.type, blockContext())
 	query.value = ''
 }
 
@@ -73,6 +81,7 @@ watch(
 			size="sm"
 			icon="i-ph-magnifying-glass"
 			:placeholder="t(`${KEY}.search`)"
+			:aria-label="t(`${KEY}.search`)"
 			class="w-full"
 			@keydown.enter.prevent="addFirstMatch()"
 			@keydown.escape.stop="query = ''"
@@ -88,6 +97,7 @@ watch(
 			:title="t(`dms_mailing.editor.groups.${group.id}`)"
 			:entries="group.entries"
 			:disabled="!editor.current"
+			:block-context="dropContext"
 			@add="add"
 		/>
 

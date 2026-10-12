@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
-import { canPublish } from '../../utils/lifecycle'
-
-const LIVE_STATUS = 'live'
+import { isPublishable } from '../../utils/lifecycle'
 
 const { t } = useI18n()
 const { editor, session, actions } = useEditorContext()
 
-const isPublishable = computed(() => {
-	const { status } = session.state.template
-	if (!canPublish(status)) return false
-	if (status !== LIVE_STATUS) return true
-	return session.state.changes.length > 0 || editor.dirty > 0
-})
+const canPublishNow = computed(() =>
+	isPublishable({
+		status: session.state.template.status,
+		changeCount: session.state.changes.length,
+		dirty: editor.dirty,
+	}),
+)
 </script>
 
 <template>
@@ -42,7 +41,7 @@ const isPublishable = computed(() => {
 			<UButton
 				size="sm"
 				icon="i-ph-rocket-launch"
-				:disabled="!isPublishable"
+				:disabled="!canPublishNow"
 				@click="actions.publish()"
 			>
 				{{ t('dms_mailing.editor.toolbar.publish') }}

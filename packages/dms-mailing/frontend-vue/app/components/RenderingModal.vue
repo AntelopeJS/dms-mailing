@@ -4,6 +4,11 @@ import type { SendHtmlResponse, SendRow } from '../types/mailing'
 
 type RenderingView = 'desktop' | 'mobile' | 'html'
 
+/** The rendering as the API answers it now: a draft test is approximate. */
+interface SendRendering extends SendHtmlResponse {
+	approximate?: boolean
+}
+
 interface RenderingModalProps {
 	rowData?: SendRow
 	sendId?: string
@@ -24,6 +29,7 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
 	hour: '2-digit',
 	minute: '2-digit',
 	second: '2-digit',
+	hourCycle: 'h23',
 }
 
 const VIEW_ICONS: Record<RenderingView, string> = {
@@ -42,7 +48,7 @@ const api = useMailingApi()
 const { t, locale } = useI18n()
 
 const view = ref<RenderingView>('desktop')
-const rendering = ref<SendHtmlResponse | null>(null)
+const rendering = ref<SendRendering | null>(null)
 const send = ref<SendRow | null>(props.rowData ?? null)
 const loading = ref(false)
 const failed = ref(false)
@@ -132,32 +138,52 @@ onMounted(load)
 			:description="key('error_description')"
 		/>
 
-		<div v-else class="border-default overflow-hidden rounded-lg border">
-			<div class="border-default flex flex-col gap-0.5 border-b px-4 py-3">
-				<b class="text-highlighted text-sm">{{ rendering.subject }}</b>
-				<span class="text-muted truncate text-[12.5px]">
-					{{ from }} → {{ send?.recipientEmail }}
-				</span>
-				<span class="text-dimmed font-mono text-[11px]">{{ meta }}</span>
-			</div>
+		<template v-else>
+			<DmsBanner
+				v-if="rendering.approximate"
+				tone="warning"
+				size="sm"
+				icon="i-ph-warning"
+				:title="key('approximate')"
+			/>
 
-			<div v-if="view === 'html'" class="bg-elevated/40 relative">
-				<pre
-					class="text-toned overflow-auto p-4 font-mono text-[11.5px] leading-relaxed"
-					:style="{ maxHeight: `${FRAME_HEIGHT_PX}px` }"
-					>{{ rendering.html }}</pre>
-				<DmsCopyButton :value="rendering.html" class="absolute right-2 top-2" />
-			</div>
+			<div class="border-default overflow-hidden rounded-lg border">
+				<div class="border-default flex flex-col gap-0.5 border-b px-4 py-3">
+					<b class="text-highlighted text-sm">{{ rendering.subject }}</b>
+					<span class="text-muted truncate text-[12.5px]">
+						{{ from }}
+						→ {{ send?.recipientEmail }}
+					</span>
+					<span class="text-dimmed text-[11px]">
+						{{ key('current_sender') }}
+					</span>
+					<span class="text-dimmed font-mono text-[11px]">{{ meta }}</span>
+				</div>
 
-			<div v-else class="bg-elevated/40 flex justify-center p-4">
-				<iframe
-					:srcdoc="rendering.html"
-					:sandbox="FRAME_SANDBOX"
-					:title="key('frame_title')"
-					class="block rounded-md border-0 bg-white shadow-sm transition-[width]"
-					:style="{ width: FRAME_WIDTHS[view], height: `${FRAME_HEIGHT_PX}px` }"
-				/>
+				<div v-if="view === 'html'" class="bg-elevated/40 relative">
+					<pre
+						class="text-toned overflow-auto p-4 font-mono text-[11.5px] leading-relaxed"
+						:style="{ maxHeight: `${FRAME_HEIGHT_PX}px` }"
+						>{{ rendering.html }}</pre>
+					<DmsCopyButton
+						:value="rendering.html"
+						class="absolute right-2 top-2"
+					/>
+				</div>
+
+				<div v-else class="bg-elevated/40 flex justify-center p-4">
+					<iframe
+						:srcdoc="rendering.html"
+						:sandbox="FRAME_SANDBOX"
+						:title="key('frame_title')"
+						class="block rounded-md border-0 bg-white shadow-sm transition-[width]"
+						:style="{
+							width: FRAME_WIDTHS[view],
+							height: `${FRAME_HEIGHT_PX}px`,
+						}"
+					/>
+				</div>
 			</div>
-		</div>
+		</template>
 	</div>
 </template>

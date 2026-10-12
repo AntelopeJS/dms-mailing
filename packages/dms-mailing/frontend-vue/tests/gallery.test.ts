@@ -3,9 +3,12 @@ import {
 	UNCATEGORISED_GROUP_ID,
 	firstName,
 	formatCardDate,
+	formatCardSince,
 	groupByCategory,
 	isNarrowed,
+	matchesQuery,
 	searchTermOf,
+	sortLikeQuery,
 	userFilterKeys,
 } from '../app/utils/gallery'
 
@@ -88,10 +91,89 @@ describe('formatCardDate', () => {
 	})
 })
 
+describe('matchesQuery', () => {
+	const live = { name: 'Order confirmation', slug: 'order', status: 'live' }
+	const draft = { name: 'Refund', slug: 'refund', status: 'draft' }
+	const archived = { name: 'Old', slug: 'old', status: 'archived' }
+
+	it('applies the tab, the quick filters and the search', () => {
+		const tab = { filter_status: 'is_not:archived' }
+		expect(
+			[live, draft, archived].filter((row) =>
+				matchesQuery(row, tab, ['name', 'slug']),
+			),
+		).toEqual([live, draft])
+		expect(
+			matchesQuery(live, { ...tab, search: ' ORDER ' }, ['name', 'slug']),
+		).toBe(true)
+		expect(matchesQuery(draft, { search: 'order' }, ['name', 'slug'])).toBe(
+			false,
+		)
+		expect(matchesQuery(live, { filter_category: 'is_empty:' }, [])).toBe(true)
+		expect(matchesQuery(live, { filter_status: 'between:a' }, [])).toBe(true)
+	})
+})
+
+describe('sortLikeQuery', () => {
+	const rows = [{ name: 'b' }, { name: 'c' }, { name: 'a' }]
+
+	it('orders like the table, and keeps the order without a sort', () => {
+		expect(
+			sortLikeQuery(rows, { sortKey: 'name', sortDirection: 'desc' }),
+		).toEqual([{ name: 'c' }, { name: 'b' }, { name: 'a' }])
+		expect(sortLikeQuery(rows, {})).toBe(rows)
+	})
+})
+
 describe('firstName', () => {
 	it('keeps the first word of a name', () => {
 		expect(firstName('Hugo Bernard')).toBe('Hugo')
 		expect(firstName('')).toBe('')
 		expect(firstName(undefined)).toBe('')
+	})
+})
+
+describe('formatCardDate with words around the date', () => {
+	const now = new Date('2026-10-07T12:00:00Z')
+	const onDate = (date: string) => `le ${date}`
+	it('dresses an absolute date only', () => {
+		expect(formatCardDate('2026-09-27T09:00:00Z', now, 'en', onDate)).toBe(
+			'le Sep 27',
+		)
+		expect(formatCardDate('2026-10-07T11:55:00Z', now, 'en', onDate)).toBe(
+			'5 min. ago',
+		)
+		expect(formatCardDate('', now, 'en', onDate)).toBe('')
+	})
+})
+
+describe('formatCardSince', () => {
+	const now = new Date('2026-10-07T12:00:00Z')
+
+	it('reads a recent start as a duration, without "ago"', () => {
+		expect(formatCardSince('2026-10-07T11:00:00Z', now, 'en')).toEqual({
+			kind: 'duration',
+			text: '1 hr',
+		})
+		expect(
+			formatCardSince('2026-10-07T11:55:00Z', now, 'fr')?.text.replace(
+				/\s/g,
+				' ',
+			),
+		).toBe('5 min')
+		expect(
+			formatCardSince('2026-10-07T11:00:00Z', now, 'fr')?.text.replace(
+				/\s/g,
+				' ',
+			),
+		).toBe('1 h')
+	})
+
+	it('reads an older start as a date', () => {
+		expect(formatCardSince('2026-09-27T10:00:00Z', now, 'en')).toEqual({
+			kind: 'date',
+			text: 'Sep 27',
+		})
+		expect(formatCardSince('bad', now, 'en')).toBe(null)
 	})
 })

@@ -11,7 +11,7 @@ const { editor, session } = useEditorContext()
 
 const checks = computed(() =>
 	testDataChecks({
-		variables: session.state.variables,
+		variables: editor.variables,
 		detected: session.detected,
 		data: session.testData ?? {},
 		blocks: editor.current?.blocks ?? [],

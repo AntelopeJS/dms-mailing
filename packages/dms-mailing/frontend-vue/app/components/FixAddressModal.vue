@@ -2,6 +2,7 @@
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
+import { useReplayToast } from '../composables/useReplayToast'
 import { correctedAddressError } from '../utils/send-actions'
 import type { SendRow } from '../types/mailing'
 
@@ -23,7 +24,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 const KEY_PREFIX = 'dms_mailing.sends.fix_address.'
 
 const api = useMailingApi()
-const toast = useToast()
+const reportReplay = useReplayToast()
 const { t } = useI18n()
 
 const previous = computed(() => props.rowData?.recipientEmail ?? '')
@@ -49,16 +50,20 @@ const versionLabel = computed(() =>
 
 const sendIdValue = computed(() => props.rowData?._id ?? props.sendId ?? '')
 
+/** A test sent to another address stays a test: the text says so. */
+const descriptionKey = computed(() =>
+	props.rowData?.isTest ? 'description_test' : 'description',
+)
+
 async function submit(): Promise<void> {
+	if (sending.value) return
 	isTouched.value = true
 	if (errorKey.value || !sendIdValue.value) return
 	sending.value = true
 	try {
-		await api.replay(sendIdValue.value, address.value.trim())
-		toast.add({
-			color: 'success',
-			title: key('sent', { email: address.value.trim() }),
-		})
+		const email = address.value.trim()
+		const result = await api.replay(sendIdValue.value, email)
+		reportReplay(result, email, key('sent', { email }))
 		emit('success', true)
 	} catch (error) {
 		useApiError(error)
@@ -71,7 +76,8 @@ async function submit(): Promise<void> {
 <template>
 	<form class="flex flex-col gap-4" @submit.prevent="submit">
 		<p class="text-muted text-[13px] leading-relaxed">
-			{{ key('description', { email: previous }) }}
+			{{ key(descriptionKey, { email: previous }) }}
+			{{ key('app_reminder') }}
 		</p>
 
 		<FormRows has-required>

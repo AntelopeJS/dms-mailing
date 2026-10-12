@@ -12,6 +12,10 @@ export interface ChangeLine {
 	key: string
 	icon: string
 	text: string
+	/** The text customers receive today, when the change rewrote one. */
+	before?: string
+	/** The draft's text in its place. */
+	after?: string
 }
 
 export type ChangeTranslator = (
@@ -38,17 +42,63 @@ const CHANGE_ICONS: Record<TemplateChangeKind, string> = {
 	block_removed: 'i-ph-minus-circle',
 	block_changed: 'i-ph-pencil-simple',
 	blocks_reordered: 'i-ph-arrows-down-up',
+	variable_added: 'i-ph-brackets-curly',
+	variable_removed: 'i-ph-brackets-curly',
+	variable_changed: 'i-ph-brackets-curly',
+}
+
+function blockIn(
+	content: TemplateContent | null,
+	change: TemplateChange,
+): Block | null {
+	const blocks = content?.locales[change.locale]?.blocks
+	return blocks && change.blockId ? findBlock(blocks, change.blockId) : null
 }
 
 function blockOf(change: TemplateChange, sources: ChangeSources): Block | null {
-	if (!change.blockId) return null
-	const contents = [sources.draft, sources.published]
-	for (const content of contents) {
-		const blocks = content?.locales[change.locale]?.blocks
-		const found = blocks ? findBlock(blocks, change.blockId) : null
-		if (found) return found
+	return blockIn(sources.draft, change) ?? blockIn(sources.published, change)
+}
+
+/** The fields a reader recognises a block by, in the order they are tried. */
+const TEXT_FIELDS = ['text', 'label', 'alt'] as const
+
+function textOf(block: Block | null): string | undefined {
+	if (!block) return undefined
+	const fields = block as unknown as Record<string, unknown>
+	const field = TEXT_FIELDS.find((name) => typeof fields[name] === 'string')
+	return field ? (fields[field] as string) : undefined
+}
+
+type EnvelopeKind = Extract<TemplateChangeKind, 'subject' | 'preheader'>
+
+const ENVELOPE_KINDS: TemplateChangeKind[] = ['subject', 'preheader']
+
+function textsOf(
+	change: TemplateChange,
+	sources: ChangeSources,
+): Pick<ChangeLine, 'before' | 'after'> {
+	if (ENVELOPE_KINDS.includes(change.kind)) {
+		const field = change.kind as EnvelopeKind
+		return {
+			before: sources.published?.locales[change.locale]?.[field],
+			after: sources.draft.locales[change.locale]?.[field],
+		}
 	}
-	return null
+	if (change.kind !== 'block_changed') return {}
+	return {
+		before: textOf(blockIn(sources.published, change)),
+		after: textOf(blockIn(sources.draft, change)),
+	}
+}
+
+/** Before / after texts worth showing: both known and actually different. */
+function rewriteOf(
+	change: TemplateChange,
+	sources: ChangeSources,
+): Pick<ChangeLine, 'before' | 'after'> {
+	const { before, after } = textsOf(change, sources)
+	if (before === undefined || after === undefined || before === after) return {}
+	return { before, after }
 }
 
 function blockName(
@@ -64,9 +114,22 @@ function blockName(
 		: label
 }
 
+/** "EN · " for a change of the content; nothing for a declaration's. */
+function scopeOf(change: TemplateChange): string {
+	return change.locale
+		? `${change.locale.toUpperCase()}${LOCALE_SEPARATOR}`
+		: ''
+}
+
+/** Contents to name blocks from when only the change list is known. */
+export const NO_SOURCES: ChangeSources = {
+	draft: { locales: {} },
+	published: null,
+}
+
 /**
  * The publish review's reading of the server's change list, one line per
- * change, prefixed with its locale.
+ * change, prefixed with its locale (a variable declaration has none).
  */
 export function describeChanges(
 	changes: TemplateChange[],
@@ -76,11 +139,14 @@ export function describeChanges(
 	return changes.map((change, index) => {
 		const sentence = t(`${CHANGE_KEY_PREFIX}.${change.kind}`, {
 			block: blockName(change, sources, t),
+			variable: change.variable ?? '',
 		})
+		const subject = change.blockId ?? change.variable ?? index
 		return {
-			key: `${change.locale}-${change.kind}-${change.blockId ?? index}`,
+			key: `${change.locale}-${change.kind}-${subject}`,
 			icon: CHANGE_ICONS[change.kind],
-			text: `${change.locale.toUpperCase()}${LOCALE_SEPARATOR}${sentence}`,
+			text: `${scopeOf(change)}${sentence}`,
+			...rewriteOf(change, sources),
 		}
 	})
 }

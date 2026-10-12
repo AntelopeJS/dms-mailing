@@ -12,7 +12,16 @@ interface Props {
 
 const props = defineProps<Props>()
 
+interface DraggableChange {
+	added?: { element: Block }
+}
+
 const { editor } = useEditorContext()
+
+function onChange(change: DraggableChange): void {
+	editor.touch()
+	if (change.added) editor.select(change.added.element.id)
+}
 </script>
 
 <template>
@@ -23,7 +32,7 @@ const { editor } = useEditorContext()
 		item-key="id"
 		ghost-class="opacity-30"
 		class="flex flex-col"
-		@change="editor.touch()"
+		@change="onChange"
 	>
 		<template #item="{ element, index }">
 			<div>

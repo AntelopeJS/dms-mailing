@@ -5,8 +5,12 @@ import {
 	localeChipClass,
 	localeChips,
 	localeCoverage,
+	localeLanguage,
 	missingLocales,
 	parseLocaleList,
+	pickLocale,
+	languageLabel,
+	languageName,
 } from '../app/utils/locales'
 
 describe('parseLocaleList', () => {
@@ -64,5 +68,31 @@ describe('localeChipClass', () => {
 	it('dashes a missing locale', () => {
 		expect(localeChipClass(false)).toContain(LOCALE_CHIP_MISSING_CLASS)
 		expect(localeChipClass(true)).not.toContain('border-dashed')
+	})
+})
+
+describe('pickLocale', () => {
+	it('matches a regional or upper-case request to its base language', () => {
+		expect(pickLocale(['en', 'fr'], 'fr-BE', 'en')).toBe('fr')
+		expect(pickLocale(['en', 'fr'], 'FR', 'en')).toBe('fr')
+		expect(localeLanguage('fr_CA')).toBe('fr')
+	})
+	it('falls back like the server: tenant locale, English, then the first', () => {
+		expect(pickLocale(['en', 'fr'], 'de', 'fr')).toBe('fr')
+		expect(pickLocale(['en', 'fr'], 'de', 'nl')).toBe('en')
+		expect(pickLocale(['fr', 'de'], 'nl', 'en')).toBe('fr')
+	})
+})
+
+describe('languageLabel', () => {
+	it('names a language in the interface language, capitalised', () => {
+		expect(languageLabel('en', 'fr')).toBe('Anglais (EN)')
+		expect(languageLabel('fr', 'fr')).toBe('Français (FR)')
+		expect(languageLabel('fr', 'en')).toBe('French (FR)')
+	})
+	it('falls back to the given name, then to the code', () => {
+		expect(languageLabel('zz', 'en', 'Zed')).toBe('Zed (ZZ)')
+		expect(languageLabel('zz', 'en')).toBe('ZZ')
+		expect(languageName('en', 'not a locale')).toBeUndefined()
 	})
 })

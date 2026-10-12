@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
-import { describeProblem, problemEventReason } from '../utils/problems'
+import { useReplayToast } from '../composables/useReplayToast'
 import {
+	describeProblem,
+	problemEventReason,
+	problemTone,
+} from '../utils/problems'
+import {
+	type DrawerSend,
 	formatPayload,
 	SEND_STATUS_TONES,
 	sendFooterActions,
@@ -10,8 +16,19 @@ import {
 	type SendAction,
 	type SendActionId,
 } from '../utils/send-actions'
+import { renderingTitleKey } from '../utils/rendering-title'
 import { formatLatency, isSlowLatency } from '../utils/send-stats'
-import { buildTimeline, type TimelineItem } from '../utils/timeline'
+import {
+	isSuppressedStatus,
+	reasonKey,
+	suppressionNotice,
+	suppressionRoute,
+} from '../utils/suppression'
+import {
+	buildTimeline,
+	type TimelineItem,
+	type TimelineTracking,
+} from '../utils/timeline'
 import type { Component } from 'vue'
 import type { SendDetailResponse, SendRow } from '../types/mailing'
 
@@ -29,29 +46,41 @@ interface StatTrioItem {
 	detailTone?: 'warning' | 'error'
 }
 
+/** A send linked to this one: the send again of it, or the one it repeats. */
+interface LinkedSend {
+	id: string
+	text: string
+}
+
 const EDITOR_PATH = '/modules/mailing/templates'
 const RENDERING_MODAL = 'MailingRenderingModal'
 const RENDERING_MODAL_SIZE = '3xl'
 const FIX_ADDRESS_MODAL = 'MailingFixAddressModal'
 const FIX_ADDRESS_MODAL_SIZE = 'md'
 const KEY_PREFIX = 'dms_mailing.sends.drawer.'
+const RECORD_QUERY_KEY = 'record'
+const RESOLVED_STAGE = 'resolved'
+const NO_VALUE = '—'
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
 	month: 'short',
 	day: 'numeric',
 	hour: '2-digit',
 	minute: '2-digit',
 	second: '2-digit',
+	hourCycle: 'h23',
 }
 const TIME_FORMAT: Intl.DateTimeFormatOptions = {
 	hour: '2-digit',
 	minute: '2-digit',
 	second: '2-digit',
+	hourCycle: 'h23',
 }
 
 const props = defineProps<SendDrawerProps>()
 
 const api = useMailingApi()
 const toast = useToast()
+const reportReplay = useReplayToast()
 const { confirm } = useConfirm()
 const { open: openModal } = useModal()
 const { t, locale } = useI18n()
@@ -59,13 +88,18 @@ const { copy } = useClipboard()
 
 const KeyValueList = resolveComponent('DmsKeyValueList') as Component
 
-const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
+/** A linked send opened from this drawer, in place of the row's. */
+const openedId = ref<string | null>(null)
+const sendId = computed(
+	() => openedId.value ?? props.rowData?._id ?? props.sendId ?? '',
+)
 const detail = ref<SendDetailResponse | null>(null)
+const tracking = ref<TimelineTracking | null>(null)
 const loading = ref(false)
 const sending = ref(false)
 
-const send = computed<SendRow | null>(
-	() => detail.value?.send ?? props.rowData ?? null,
+const send = computed<DrawerSend | null>(
+	() => detail.value?.send ?? (openedId.value ? null : props.rowData) ?? null,
 )
 const key = (path: string, params: Record<string, unknown> = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
@@ -82,12 +116,51 @@ const problem = computed(() =>
 						send.value.error || problemEventReason(detail.value?.events ?? []),
 				},
 				t('dms_mailing.sends.banner.the_provider'),
+				!detail.value?.suppression,
 			)
 		: null,
 )
-const actions = computed<SendAction[]>(() =>
-	send.value ? sendFooterActions(send.value.status) : [],
+const suppression = computed(() =>
+	send.value
+		? suppressionNotice(send.value, detail.value?.suppression, {
+				date: (iso) => dateOf(iso, DATE_FORMAT),
+				reason: (reason) => t(reasonKey(reason)),
+			})
+		: null,
 )
+const actions = computed<SendAction[]>(() =>
+	send.value
+		? sendFooterActions({
+				...send.value,
+				isAddressSuppressed: detail.value
+					? !!detail.value.suppression
+					: undefined,
+			})
+		: [],
+)
+const isDraftTest = computed(() => !send.value?.templateVersion)
+/**
+ * A problem someone already dealt with: its banner only recalls what went
+ * wrong, the advice to send it again no longer applies.
+ */
+const isResolved = computed(
+	() => send.value?.stage === RESOLVED_STAGE || !!send.value?.replayedBy,
+)
+
+const linkedSends = computed<LinkedSend[]>(() => {
+	const row = send.value
+	if (!row) return []
+	const links: LinkedSend[] = []
+	if (row.replayedBy)
+		links.push({
+			id: row.replayedBy,
+			text: key('replayed_by', {
+				date: row.resolvedAt ? dateOf(row.resolvedAt, DATE_FORMAT) : '',
+			}),
+		})
+	if (row.replayOf) links.push({ id: row.replayOf, text: key('replay_of') })
+	return links
+})
 const payload = computed(() => formatPayload(send.value?.json_variables))
 const versionLabel = computed(() =>
 	send.value?.templateVersion
@@ -96,13 +169,18 @@ const versionLabel = computed(() =>
 )
 
 const timeline = computed(() =>
-	send.value ? buildTimeline(detail.value?.events ?? [], send.value) : [],
+	send.value
+		? buildTimeline(detail.value?.events ?? [], send.value, tracking.value)
+		: [],
 )
 
 const stats = computed<StatTrioItem[]>(() => {
 	const row = send.value
 	if (!row) return []
 	const isFallback = !!row.requestedLocale && row.requestedLocale !== row.locale
+	// A suppressed send never reached the provider: no call, no latency.
+	const isNotHanded = isSuppressedStatus(row.status)
+	const isSlow = !isNotHanded && isSlowLatency(row.latencyMs)
 	return [
 		{
 			id: 'template',
@@ -122,11 +200,13 @@ const stats = computed<StatTrioItem[]>(() => {
 		{
 			id: 'latency',
 			eyebrow: key('latency'),
-			value: formatLatency(row.latencyMs, locale.value),
-			detail: isSlowLatency(row.latencyMs)
-				? key('slow_latency')
-				: key('latency_hint'),
-			detailTone: isSlowLatency(row.latencyMs) ? 'error' : undefined,
+			value: isNotHanded
+				? NO_VALUE
+				: formatLatency(row.latencyMs, locale.value),
+			detail: isNotHanded
+				? key('not_handed')
+				: key(isSlow ? 'slow_latency' : 'latency_hint'),
+			detailTone: isSlow ? 'error' : undefined,
 		},
 	]
 })
@@ -148,7 +228,7 @@ function stepTitle(item: TimelineItem): string {
 }
 
 function stepTime(item: TimelineItem): string {
-	return item.at ? dateOf(item.at, TIME_FORMAT) : '—'
+	return item.at ? dateOf(item.at, TIME_FORMAT) : NO_VALUE
 }
 
 async function load(): Promise<void> {
@@ -161,6 +241,31 @@ async function load(): Promise<void> {
 	} finally {
 		loading.value = false
 	}
+}
+
+/** The provider's tracking, so the timeline waits only for what it reports. */
+async function loadTracking(): Promise<void> {
+	try {
+		const provider = await api.provider()
+		tracking.value = provider.features
+			? {
+					openTracking: !!provider.features.openTracking,
+					clickTracking: !!provider.features.clickTracking,
+				}
+			: null
+	} catch {
+		tracking.value = null
+	}
+}
+
+/** Opens a linked send in this drawer, and in the URL so a reload keeps it. */
+function showSend(id: string): void {
+	openedId.value = id
+	detail.value = null
+	const url = new URL(window.location.href)
+	url.searchParams.set(RECORD_QUERY_KEY, id)
+	window.history.replaceState(window.history.state, '', url)
+	void load()
 }
 
 function settle(): void {
@@ -180,7 +285,7 @@ function openRendering(): void {
 	const row = send.value
 	if (!row) return
 	openModal({
-		title: t('dms_mailing.rendering.received_by', {
+		title: t(renderingTitleKey(row.status), {
 			name: row.recipientName || row.recipientEmail,
 		}),
 		component: resolveComponent(RENDERING_MODAL) as Component,
@@ -203,8 +308,7 @@ function openFixAddress(): void {
 	})
 }
 
-function replayBody() {
-	const row = send.value as SendRow
+function replayDetails(row: SendRow) {
 	const lastTry = row.error || t(`dms_mailing.sends.status.${row.status}`)
 	return h(KeyValueList, {
 		dense: true,
@@ -230,15 +334,35 @@ function replayBody() {
 	})
 }
 
+/** What goes again, and a warning when a draft test sends today's draft. */
+function replayBody() {
+	const row = send.value as SendRow
+	const warning = isDraftTest.value
+		? h(
+				'p',
+				{ class: 'text-warning text-[12.5px]' },
+				key('replay.draft_warning'),
+			)
+		: null
+	return h('div', { class: 'flex flex-col gap-3' }, [
+		replayDetails(row),
+		warning,
+	])
+}
+
 async function replay(): Promise<void> {
+	if (sending.value) return
 	sending.value = true
 	try {
-		await api.replay(sendId.value)
-		toast.add({
-			color: 'success',
-			title: t('dms_mailing.sends.actions.sent_again'),
-		})
+		const result = await api.replay(sendId.value)
+		reportReplay(
+			result,
+			send.value?.recipientEmail ?? '',
+			t('dms_mailing.sends.actions.sent_again'),
+		)
 		settle()
+	} catch (error) {
+		useApiError(error)
 	} finally {
 		sending.value = false
 	}
@@ -247,11 +371,12 @@ async function replay(): Promise<void> {
 function confirmSendAgain(): void {
 	const row = send.value
 	if (!row) return
+	const description = row.isTest
+		? 'dms_mailing.sends.confirm.replay_description_test'
+		: 'dms_mailing.sends.confirm.replay_description'
 	void confirm({
 		title: t('dms_mailing.sends.confirm.replay_title'),
-		description: t('dms_mailing.sends.confirm.replay_description', {
-			recipientEmail: row.recipientEmail,
-		}),
+		description: t(description, { recipientEmail: row.recipientEmail }),
 		color: 'warning',
 		icon: 'i-ph-arrow-clockwise',
 		confirmIcon: 'i-ph-arrow-clockwise',
@@ -270,10 +395,18 @@ const ACTION_HANDLERS: Record<SendActionId, () => void> = {
 	send_again: confirmSendAgain,
 }
 
+function openSuppressionList(): void {
+	const email = detail.value?.suppression?.email ?? send.value?.recipientEmail
+	if (email) void navigateDms(suppressionRoute(email))
+}
+
 const copyLink = () => void copyText(window.location.href, 'link_copied')
 const copyPayload = () => void copyText(payload.value, 'json_copied')
 
-onMounted(load)
+onMounted(() => {
+	void load()
+	void loadTracking()
+})
 </script>
 
 <template>
@@ -329,11 +462,53 @@ onMounted(load)
 					<DmsStatGroup layout="joined" :columns="3" :items="stats" />
 					<DmsBanner
 						v-if="problem"
-						:tone="send.status === 'spam' ? 'warning' : 'error'"
+						:tone="isResolved ? 'info' : problemTone(problem.kind)"
+						:size="isResolved ? 'sm' : undefined"
 						:icon="problem.icon"
 						:title="t(problem.titleKey, problem.params)"
-						:description="t(problem.descriptionKey, problem.params)"
+						:description="
+							isResolved ? undefined : t(problem.descriptionKey, problem.params)
+						"
+						data-problem-banner
 					/>
+					<DmsBanner
+						v-if="suppression"
+						:tone="suppression.tone"
+						size="sm"
+						:icon="suppression.icon"
+						:title="t(suppression.titleKey, suppression.params)"
+						:description="t(suppression.descriptionKey, suppression.params)"
+					>
+						<template v-if="suppression.hasListLink" #actions>
+							<UButton
+								size="xs"
+								color="neutral"
+								variant="outline"
+								trailing-icon="i-ph-arrow-right"
+								:label="t('dms_mailing.suppressions.notice.open_list')"
+								@click="openSuppressionList"
+							/>
+						</template>
+					</DmsBanner>
+					<DmsBanner
+						v-for="link in linkedSends"
+						:key="link.id"
+						tone="info"
+						size="sm"
+						icon="i-ph-arrow-clockwise"
+						:title="link.text"
+					>
+						<template #actions>
+							<UButton
+								size="xs"
+								color="neutral"
+								variant="outline"
+								trailing-icon="i-ph-arrow-right"
+								:label="key('see_send')"
+								@click="showSend(link.id)"
+							/>
+						</template>
+					</DmsBanner>
 				</section>
 
 				<section class="flex flex-col gap-2">

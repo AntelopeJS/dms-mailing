@@ -60,7 +60,11 @@ export function stubNuxtGlobals(email = 'camille@acme.com'): NuxtStubs {
 		h,
 		nextTick,
 	}).forEach(([name, value]) => vi.stubGlobal(name, value))
-	vi.stubGlobal('useI18n', () => ({ t: translate, locale: ref('en') }))
+	vi.stubGlobal('useI18n', () => ({
+		t: translate,
+		te: () => false,
+		locale: ref('en'),
+	}))
 	vi.stubGlobal('useTranslation', () => ({
 		processApiMessage: (message: unknown) => String(message),
 		processI18n: (message: string) => message,

@@ -10,15 +10,12 @@ import {
 	useEditorShortcuts,
 } from '../../composables/useEditorShortcuts'
 import { createEditorState } from '../../composables/useTemplateEditor'
+import { apiErrorMessage } from '../../utils/api-error'
 
 interface Props {
 	loaded: TemplateContentResponse
 	templateId: string
 	reload: () => Promise<void>
-}
-
-interface ApiFailure {
-	data?: { message?: string }
 }
 
 const props = defineProps<Props>()
@@ -41,12 +38,14 @@ const editor = createEditorState(
 	props.loaded.content,
 	locale.value ?? props.loaded.fallbackLocale,
 	localeCodes,
+	Date.now,
+	props.loaded.variables ?? [],
 )
 
 function reportFailure(error: unknown): void {
 	toast.add({
 		color: 'error',
-		title: processApiMessage((error as ApiFailure)?.data?.message ?? error),
+		title: processApiMessage(apiErrorMessage(error)),
 	})
 }
 

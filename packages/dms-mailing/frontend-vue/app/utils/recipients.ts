@@ -1,3 +1,5 @@
+import { languageLabel } from './locales'
+
 /** A manual send reaches at most this many addresses; a list needs an automation. */
 export const MAX_RECIPIENTS = 5
 
@@ -27,14 +29,20 @@ export interface NamedLocale {
 	name?: string
 }
 
-/** Select items for `codes`, named after the workspace locales ("Français (FR)"). */
+/**
+ * Select items for `codes`, named in the interface's language when `uiLocale`
+ * is given ("Anglais (EN)" in French), else after the workspace locales.
+ */
 export function localeOptions(
 	codes: string[],
 	workspace: NamedLocale[],
+	uiLocale?: string,
 ): LocaleOption[] {
 	const names = new Map(workspace.map((entry) => [entry.code, entry.name]))
 	return codes.map((code) => {
 		const name = names.get(code)
+		if (uiLocale)
+			return { label: languageLabel(code, uiLocale, name), value: code }
 		const upper = code.toUpperCase()
 		return { label: name ? `${name} (${upper})` : upper, value: code }
 	})

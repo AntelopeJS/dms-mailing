@@ -3,7 +3,24 @@ import { computed } from 'vue'
 import type { LeftTab } from '../../composables/useTemplateEditor'
 import { useEditorContext } from '../../composables/useEditorContext'
 
+interface ShortcutEntry {
+	keys: string[]
+	label: string
+}
+
 const KEY = 'dms_mailing.editor.left'
+
+const SHORTCUTS: ShortcutEntry[] = [
+	{ keys: ['meta', 's'], label: 'shortcut_save' },
+	{ keys: ['meta', 'enter'], label: 'shortcut_publish' },
+	{ keys: ['T'], label: 'shortcut_test' },
+	{ keys: ['/'], label: 'shortcut_search' },
+	{ keys: ['backspace'], label: 'shortcut_delete' },
+	{ keys: ['meta', 'D'], label: 'shortcut_duplicate' },
+	{ keys: ['meta', 'Z'], label: 'shortcut_undo' },
+	{ keys: ['meta', 'shift', 'Z'], label: 'shortcut_redo' },
+	{ keys: ['escape'], label: 'shortcut_escape' },
+]
 
 const { t } = useI18n()
 const { editor, session } = useEditorContext()
@@ -11,7 +28,7 @@ const { editor, session } = useEditorContext()
 const variableCount = computed(
 	() =>
 		new Set([
-			...session.state.variables.map((variable) => variable.path),
+			...editor.variables.map((variable) => variable.path),
 			...session.detected,
 		]).size,
 )
@@ -51,24 +68,36 @@ const tab = computed({
 			<MailingEditorOutline v-else-if="editor.leftTab === 'outline'" />
 			<MailingEditorVariablesPane v-else />
 		</div>
-		<footer
-			class="border-default text-dimmed flex shrink-0 items-center gap-1.5 overflow-hidden whitespace-nowrap border-t px-3.5 py-2.5 font-mono text-[11px]"
-		>
-			<UIcon name="i-ph-keyboard" class="size-3.5 shrink-0" />
-			<MailingEditorShortcutHint
-				:keys="['meta', 's']"
-				:label="t(`${KEY}.shortcut_save`)"
-			/>
-			<span>·</span>
-			<MailingEditorShortcutHint
-				:keys="['meta', 'enter']"
-				:label="t(`${KEY}.shortcut_publish`)"
-			/>
-			<span>·</span>
-			<MailingEditorShortcutHint
-				:keys="['T']"
-				:label="t(`${KEY}.shortcut_test`)"
-			/>
+		<footer class="border-default shrink-0 border-t px-2 py-1.5">
+			<UPopover :content="{ side: 'top', align: 'start' }">
+				<UButton
+					icon="i-ph-keyboard"
+					size="xs"
+					color="neutral"
+					variant="ghost"
+					block
+					class="justify-start"
+				>
+					{{ t(`${KEY}.shortcuts`) }}
+				</UButton>
+				<template #content>
+					<ul
+						class="flex flex-col gap-1.5 p-3 text-xs"
+						:aria-label="t(`${KEY}.shortcuts`)"
+					>
+						<li
+							v-for="shortcut in SHORTCUTS"
+							:key="shortcut.label"
+							class="flex items-center justify-between gap-6"
+						>
+							<span class="text-muted">
+								{{ t(`${KEY}.${shortcut.label}`) }}
+							</span>
+							<MailingEditorShortcutHint :keys="shortcut.keys" />
+						</li>
+					</ul>
+				</template>
+			</UPopover>
 		</footer>
 	</aside>
 </template>

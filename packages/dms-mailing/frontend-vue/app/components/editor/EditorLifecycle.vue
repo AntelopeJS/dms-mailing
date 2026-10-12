@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TemplateStatus } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
+import type { StatusKey } from '../../utils/lifecycle'
 import { lifecycleActions } from '../../utils/lifecycle'
 
 const KEY = 'dms_mailing.editor.lifecycle'
-const STATUS_TONES: Record<TemplateStatus, 'success' | 'neutral' | 'warning'> =
-	{
-		live: 'success',
-		draft: 'neutral',
-		archived: 'warning',
-	}
+const STATUS_TONES: Record<StatusKey, 'success' | 'neutral' | 'warning'> = {
+	live: 'success',
+	draft: 'neutral',
+	unpublished: 'warning',
+	archived: 'warning',
+}
 const NO_VALUE = '—'
 
 const { t, locale } = useI18n()
@@ -23,8 +23,8 @@ const stats = computed(() => {
 	return [
 		{
 			eyebrow: t(`${KEY}.status`),
-			value: t(`dms_mailing.templates.status.${status.value}`),
-			detailTone: STATUS_TONES[status.value],
+			value: t(`dms_mailing.templates.status.${session.statusKey}`),
+			detailTone: STATUS_TONES[session.statusKey],
 		},
 		{
 			eyebrow: t(`${KEY}.version`),

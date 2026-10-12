@@ -34,3 +34,14 @@ describe('localeOptions', () => {
 		])
 	})
 })
+
+describe('localeOptions in the interface language', () => {
+	it('names every locale in the language the interface speaks', () => {
+		expect(
+			localeOptions(['en', 'fr'], [{ code: 'fr', name: 'français' }], 'fr'),
+		).toEqual([
+			{ label: 'Anglais (EN)', value: 'en' },
+			{ label: 'Français (FR)', value: 'fr' },
+		])
+	})
+})

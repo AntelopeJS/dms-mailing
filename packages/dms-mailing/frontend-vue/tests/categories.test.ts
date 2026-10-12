@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
 	CATEGORY_ICONS,
+	categoryMoves,
+	categoryRowErrors,
 	formatCategoriesLike,
+	iconName,
+	keptCategories,
+	moveRow,
+	redirectMoves,
+	withMoves,
 	fromCategoryOption,
 	NO_CATEGORY,
 	parseCategories,
@@ -147,5 +154,72 @@ describe('CATEGORY_ICONS', () => {
 	it('offers sixteen distinct Phosphor icons', () => {
 		expect(new Set(CATEGORY_ICONS).size).toBe(16)
 		expect(CATEGORY_ICONS.every((icon) => icon.startsWith('i-ph-'))).toBe(true)
+	})
+})
+
+describe('categoryRowErrors', () => {
+	it('flags a row without a label', () => {
+		expect(
+			categoryRowErrors([row({ key: 'a', label: '  ', isNew: true })]),
+		).toEqual({ a: 'label_required' })
+	})
+
+	it('flags a label an earlier row already has, whatever its case', () => {
+		expect(
+			categoryRowErrors([
+				row({ key: 'a', id: 'orders', label: 'Orders' }),
+				row({ key: 'b', label: ' orders ', isNew: true }),
+				row({ key: 'c', label: 'Billing', isNew: true }),
+			]),
+		).toEqual({ b: 'label_duplicate' })
+	})
+})
+
+describe('moveRow', () => {
+	it('moves a row up or down and says where it went', () => {
+		expect(moveRow(['a', 'b', 'c'], 1, -1)).toEqual({
+			rows: ['b', 'a', 'c'],
+			index: 0,
+		})
+		expect(moveRow(['a', 'b', 'c'], 1, 1)).toEqual({
+			rows: ['a', 'c', 'b'],
+			index: 2,
+		})
+	})
+
+	it('stays put at either end', () => {
+		const rows = ['a', 'b']
+		expect(moveRow(rows, 0, -1)).toEqual({ rows, index: 0 })
+		expect(moveRow(rows, 1, 1)).toEqual({ rows, index: 1 })
+	})
+})
+
+describe('category moves', () => {
+	const gone = { id: 'gone', label: 'Gone', icon: 'i-ph-gift' }
+
+	it('hands the form the kept categories, then the moved ones', () => {
+		const entries = withMoves(CATEGORIES, [
+			{ ...gone, moveTo: 'orders' },
+			{ ...gone, id: 'dropped', moveTo: '' },
+		])
+		expect(entries).toEqual([...CATEGORIES, { ...gone, moveTo: 'orders' }])
+		expect(keptCategories(entries)).toEqual(CATEGORIES)
+		expect([...categoryMoves(entries)]).toEqual([['gone', 'orders']])
+	})
+
+	it('follows a removed target, or drops the move when it goes nowhere', () => {
+		const moves = [{ ...gone, moveTo: 'orders' }]
+		expect(redirectMoves(moves, 'orders', 'billing')).toEqual([
+			{ ...gone, moveTo: 'billing' },
+		])
+		expect(redirectMoves(moves, 'orders', '')).toEqual([])
+		expect(redirectMoves(moves, 'other', '')).toEqual(moves)
+	})
+})
+
+describe('iconName', () => {
+	it('names an icon for its i18n label', () => {
+		expect(iconName('i-ph-megaphone')).toBe('megaphone')
+		expect(iconName('i-ph-shopping-cart')).toBe('shopping_cart')
 	})
 })

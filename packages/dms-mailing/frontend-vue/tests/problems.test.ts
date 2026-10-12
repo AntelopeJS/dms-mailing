@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	describeProblem,
 	problemEventReason,
+	problemTone,
 	type ProblemSend,
 } from '../app/utils/problems'
 
@@ -51,6 +52,44 @@ describe('describeProblem', () => {
 
 	it('reports a spam complaint', () => {
 		expect(describeProblem(send({ status: 'spam' }))?.kind).toBe('spam_report')
+	})
+
+	it('explains an unsubscription, in amber like a spam report', () => {
+		const problem = describeProblem(send({ status: 'unsubscribed' }))
+		expect(problem?.kind).toBe('unsubscribed')
+		expect(problem?.titleKey).toBe(
+			'dms_mailing.sends.problems.unsubscribed.title',
+		)
+		expect(problemTone('unsubscribed')).toBe('warning')
+		expect(problemTone('spam_report')).toBe('warning')
+		expect(problemTone('address_missing')).toBe('error')
+	})
+
+	it('stops short of the colon when the provider gave no reason', () => {
+		expect(describeProblem(send({ error: '' }))?.descriptionKey).toBe(
+			'dms_mailing.sends.problems.rejected.description_no_reason',
+		)
+		expect(
+			describeProblem(send({ status: 'failed', error: ' ' }))?.descriptionKey,
+		).toBe('dms_mailing.sends.problems.provider_error.description_no_reason')
+		expect(describeProblem(send({ error: '421 Later' }))?.descriptionKey).toBe(
+			'dms_mailing.sends.problems.rejected.description',
+		)
+	})
+
+	it('drops the advice to send again when the address is suppressed', () => {
+		const failed = send({ status: 'failed', error: 'Invalid API key' })
+		expect(describeProblem(failed, '', false)?.descriptionKey).toBe(
+			'dms_mailing.sends.problems.provider_error.description_no_advice',
+		)
+		expect(
+			describeProblem({ ...failed, error: '' }, '', false)?.descriptionKey,
+		).toBe(
+			'dms_mailing.sends.problems.provider_error.description_no_reason_no_advice',
+		)
+		expect(
+			describeProblem(send({ error: '' }), '', false)?.descriptionKey,
+		).toBe('dms_mailing.sends.problems.rejected.description_no_reason')
 	})
 
 	it('names the domain and the fallback provider', () => {

@@ -38,7 +38,10 @@ const PUBLISHED_CONTENT = {
 	},
 }
 
-function detail(status: TemplateStatus): TemplateContentResponse {
+function detail(
+	status: TemplateStatus,
+	overrides: Partial<TemplateContentResponse> = {},
+): TemplateContentResponse {
 	return {
 		template: {
 			_id: 't1',
@@ -60,6 +63,7 @@ function detail(status: TemplateStatus): TemplateContentResponse {
 		fallbackLocale: 'en',
 		categories: [],
 		sender: { name: 'Acme Supplies', email: 'hello@acme.com', replyTo: '' },
+		...overrides,
 	}
 }
 
@@ -135,7 +139,7 @@ const submit = async (host: HTMLElement) => {
 
 describe('TestSendModal', () => {
 	it('tests a draft too, prefilled with the current user', async () => {
-		api.templateContent.mockResolvedValue(detail('draft'))
+		api.templateContent.mockResolvedValue(detail('draft', { hasDraft: false }))
 		const view = mount(TestSendModal, { templateId: 't1' }, globals)
 		await flush()
 		expect(
@@ -147,10 +151,53 @@ describe('TestSendModal', () => {
 		expect(api.testSend).toHaveBeenCalledWith('t1', {
 			to: ['camille@acme.com'],
 			locale: 'en',
-			content: DRAFT_CONTENT,
 			data: { customer: { firstName: 'Margaux' } },
 		})
+		expect(view.host.textContent).toContain(
+			'dms_mailing.test_send.current_draft',
+		)
 		expect(stubs.toasts.at(-1)?.color).toBe('success')
+		view.unmount()
+	})
+
+	it('tests the published version of a live template without a draft', async () => {
+		api.templateContent.mockResolvedValue(detail('live', { hasDraft: false }))
+		const view = mount(TestSendModal, { templateId: 't1' }, globals)
+		await flush()
+		expect(view.host.textContent).toContain(
+			'dms_mailing.test_send.published_version version=4',
+		)
+		expect(view.host.querySelector('[data-version-choice]')).toBeNull()
+		await submit(view.host)
+		const input = api.testSend.mock.calls.at(-1)?.[1]
+		expect(input).not.toHaveProperty('content')
+		expect(input).not.toHaveProperty('version')
+		view.unmount()
+	})
+
+	it('offers the published version beside a saved draft', async () => {
+		api.templateContent.mockResolvedValue(detail('live'))
+		const view = mount(TestSendModal, { templateId: 't1' }, globals)
+		await flush()
+		expect(view.host.querySelector('[data-version-choice]')).not.toBeNull()
+		await submit(view.host)
+		expect(api.testSend.mock.calls.at(-1)?.[1]).not.toHaveProperty('content')
+		view.unmount()
+	})
+
+	it('links the success toast to the send in the log', async () => {
+		api.templateContent.mockResolvedValue(detail('draft'))
+		const view = mount(TestSendModal, { templateId: 't1' }, globals)
+		await flush()
+		await submit(view.host)
+		const actions = stubs.toasts.at(-1)?.actions as {
+			onClick: () => void
+		}[]
+		actions[0]!.onClick()
+		expect(stubs.navigations.at(-1)).toEqual({
+			path: '/modules/mailing/sends',
+			query: { record: 's1' },
+		})
 		view.unmount()
 	})
 
@@ -207,7 +254,7 @@ describe('RealSendModal', () => {
 		expect(api.realSend).toHaveBeenCalledWith('t1', {
 			to: ['margaux@northwind.co'],
 			locale: 'en',
-			data: undefined,
+			data: { customer: { firstName: 'Margaux' } },
 		})
 		expect(stubs.toasts.map((toast) => toast.color)).toEqual([
 			'error',
@@ -223,6 +270,7 @@ describe('RealSendModal', () => {
 		expect(api.preview).toHaveBeenCalledWith('t1', {
 			locale: 'en',
 			version: 'published',
+			data: { customer: { firstName: 'Margaux' } },
 		})
 		const value = (id: string) =>
 			view.host
@@ -232,7 +280,99 @@ describe('RealSendModal', () => {
 		expect(value('subject')).toBe('20% off every chair')
 		expect(value('version')).toContain('v4')
 		expect(value('version')).toContain('fr')
-		expect(value('data')).toBe('dms_mailing.real_send.data_names')
+		expect(view.host.querySelector('[data-no-sender]')).toBeNull()
+		view.unmount()
+	})
+
+	it('asks the values of the send and waits for the required ones', async () => {
+		api.templateContent.mockResolvedValue(detail('live'))
+		const view = mount(RealSendModal, { templateId: 't1' }, globals)
+		await flush()
+		const field = view.host.querySelector(
+			'[data-path="customer.firstName"]',
+		) as HTMLInputElement
+		expect(field.value).toBe('Margaux')
+		await typeInto(view.host.querySelector('[data-tags]')!, 'a@acme.com')
+		const ack = view.host.querySelector(
+			'input[type="checkbox"]',
+		) as HTMLInputElement
+		ack.checked = true
+		ack.dispatchEvent(new Event('change'))
+		await flush()
+		expect(isDisabled(view.host)).toBe(false)
+		await typeInto(field, '')
+		expect(isDisabled(view.host)).toBe(true)
+		expect(
+			view.host.querySelector('[data-missing-required]')?.textContent,
+		).toContain('paths=customer.firstName')
+		await typeInto(field, 'Julie')
+		expect(isDisabled(view.host)).toBe(false)
+		await submit(view.host)
+		expect(api.realSend.mock.calls.at(-1)?.[1].data).toEqual({
+			customer: { firstName: 'Julie' },
+		})
+		view.unmount()
+	})
+
+	it('sends the typed child value when the content also prints its object', async () => {
+		api.templateContent.mockResolvedValue(
+			detail('live', {
+				variables: [{ path: 'order.number', type: 'string', required: true }],
+				detectedVariables: ['order', 'order.number', 'meta'],
+				testData: { order: { number: 'A-42', total: 3 }, meta: { a: 1 } },
+			}),
+		)
+		const view = mount(RealSendModal, { templateId: 't1' }, globals)
+		await flush()
+		const values = view.host.querySelector('[data-send-values]')!
+		expect(values.textContent).not.toContain('list_missing')
+		expect(values.textContent).toContain('dms_mailing.real_send.object_value')
+		expect(view.host.querySelector('[data-path="order"]')).toBeNull()
+		await typeInto(
+			view.host.querySelector('[data-path="order.number"]')!,
+			'B-7',
+		)
+		await typeInto(view.host.querySelector('[data-tags]')!, 'a@acme.com')
+		const ack = view.host.querySelector(
+			'input[type="checkbox"]',
+		) as HTMLInputElement
+		ack.checked = true
+		ack.dispatchEvent(new Event('change'))
+		await flush()
+		await submit(view.host)
+		expect(api.realSend.mock.calls.at(-1)?.[1].data).toEqual({
+			order: { number: 'B-7' },
+			meta: { a: 1 },
+		})
+		view.unmount()
+	})
+
+	it('reviews the subject a recipient reads, blanks included', async () => {
+		api.preview.mockResolvedValue({
+			html: '',
+			subject: 'Order {{order.number}} shipped',
+			locale: 'en',
+			missing: ['order.number'],
+			hiddenBlockIds: [],
+		})
+		api.templateContent.mockResolvedValue(detail('live'))
+		const view = mount(RealSendModal, { templateId: 't1' }, globals)
+		await flush()
+		expect(
+			view.host
+				.querySelector('[data-review] [data-id="subject"]')
+				?.textContent?.trim(),
+		).toBe('Order  shipped')
+		view.unmount()
+	})
+
+	it('warns when no sender is set', async () => {
+		api.templateContent.mockResolvedValue(
+			detail('live', { sender: { name: '', email: '', replyTo: '' } }),
+		)
+		const view = mount(RealSendModal, { templateId: 't1' }, globals)
+		await flush()
+		expect(view.host.querySelector('[data-no-sender]')).not.toBeNull()
 		view.unmount()
 	})
 

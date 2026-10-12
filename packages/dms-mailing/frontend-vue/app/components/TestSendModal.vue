@@ -2,8 +2,10 @@
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
-import type { SendResult } from '../composables/useMailingApi'
+import type { SendResult, TestSendInput } from '../composables/useMailingApi'
 import { apiErrorMessage } from '../utils/api-error'
+import { sendLogRoute } from '../utils/send-link'
+import { reasonKey, type SuppressionSummary } from '../utils/suppression'
 import {
 	isSendableRecipients,
 	localeOptions,
@@ -29,12 +31,16 @@ interface TestSendModalProps {
 
 type DataChoice = 'test' | 'none'
 
+/** Which saved content a test sends when a draft sits on a live template. */
+type VersionChoice = 'draft' | 'published'
+
 /** The part of the session user the dialog reads. */
 interface SignedInUser {
 	email?: string
 }
 
 const DATA_CHOICES: DataChoice[] = ['test', 'none']
+const VERSION_CHOICES: VersionChoice[] = ['draft', 'published']
 const TEST_PREFIX = '[TEST]'
 
 const props = defineProps<TestSendModalProps>()
@@ -42,7 +48,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale: uiLocale } = useI18n()
 const { processApiMessage } = useTranslation()
 const { user } = useCurrentUser()
 const { uniqueLocales } = useUniqueLocales()
@@ -53,6 +59,7 @@ const ownEmail = (user.value as SignedInUser | null)?.email
 const recipients = ref<string[]>(ownEmail ? [ownEmail] : [])
 const locale = ref(props.locale ?? '')
 const dataChoice = ref<DataChoice>('test')
+const versionChoice = ref<VersionChoice>('draft')
 const sending = ref(false)
 
 onMounted(async () => {
@@ -69,12 +76,39 @@ onMounted(async () => {
 })
 
 const template = computed(() => detail.value?.template ?? props.rowData ?? null)
-const content = computed(() => props.content ?? detail.value?.content)
+const publishedVersion = computed(() => detail.value?.version ?? 0)
+const isPublished = computed(() => publishedVersion.value > 0)
+/** A saved draft beside a published version: the test can try either. */
+const canChooseVersion = computed(
+	() => !props.content && isPublished.value && Boolean(detail.value?.hasDraft),
+)
+const testsPublished = computed(
+	() =>
+		!props.content &&
+		isPublished.value &&
+		(!detail.value?.hasDraft || versionChoice.value === 'published'),
+)
+const content = computed(() => {
+	if (props.content) return props.content
+	return testsPublished.value
+		? (detail.value?.publishedContent ?? undefined)
+		: detail.value?.content
+})
+
+const versionItems = computed(() =>
+	VERSION_CHOICES.map((choice) => ({
+		label: t(`dms_mailing.test_send.choose_${choice}`, {
+			version: publishedVersion.value,
+		}),
+		value: choice,
+	})),
+)
 
 const localeItems = computed(() =>
 	localeOptions(
 		Object.keys(content.value?.locales ?? {}),
 		uniqueLocales.value as NamedLocale[],
+		uiLocale.value,
 	),
 )
 
@@ -97,11 +131,26 @@ const canSend = computed(
 		!sending.value,
 )
 
-const draftLabel = computed(() =>
-	props.content
-		? t('dms_mailing.test_send.unsaved_draft')
-		: t('dms_mailing.test_send.current_draft'),
-)
+const draftLabel = computed(() => {
+	if (props.content) return t('dms_mailing.test_send.unsaved_draft')
+	return testsPublished.value
+		? t('dms_mailing.test_send.published_version', {
+				version: publishedVersion.value,
+			})
+		: t('dms_mailing.test_send.current_draft')
+})
+
+/**
+ * The content override of the request. Only the editor's unsaved draft and a
+ * chosen published version travel; otherwise the server picks the saved
+ * content and records the version it belongs to.
+ */
+function contentOverride(): Pick<TestSendInput, 'content' | 'version'> {
+	if (props.content) return { content: props.content }
+	if (canChooseVersion.value && versionChoice.value === 'published')
+		return { content: content.value, version: publishedVersion.value }
+	return {}
+}
 
 function reportFailures(results: SendResult[], to: string[]): void {
 	results.forEach((result, index) => {
@@ -118,8 +167,29 @@ function reportFailures(results: SendResult[], to: string[]): void {
 			color: 'success',
 			icon: 'i-ph-flask',
 			title: t('dms_mailing.test_send.sent', { count: sent }, sent),
+			actions: [
+				{
+					label: t('dms_mailing.sends.open_in_log'),
+					onClick: () => void navigateDms(sendLogRoute(results)),
+				},
+			],
 		})
 	}
+}
+
+/** Warns that the editor's own address receives nothing but tests. */
+function warnOwnSuppression(entry: SuppressionSummary | undefined): void {
+	if (!entry) return
+	toast.add({
+		color: 'warning',
+		icon: 'i-ph-prohibit',
+		title: t('dms_mailing.test_send.own_suppressed.title', {
+			email: entry.email,
+		}),
+		description: t('dms_mailing.test_send.own_suppressed.description', {
+			reason: t(reasonKey(entry.reason)),
+		}),
+	})
 }
 
 function close(sent: boolean): void {
@@ -138,10 +208,11 @@ async function submit(): Promise<void> {
 		const response = await api.testSend(templateId.value, {
 			to,
 			locale: locale.value || undefined,
-			content: content.value,
+			...contentOverride(),
 			data: DATA_SETS[dataChoice.value](),
 		})
 		reportFailures(response.results, to)
+		warnOwnSuppression(response.ownAddressSuppressed)
 		close(true)
 	} catch (error) {
 		toast.add({
@@ -174,6 +245,24 @@ async function submit(): Promise<void> {
 				v-model="recipients"
 				:hint="t('dms_mailing.test_send.recipients_hint')"
 			/>
+
+			<FormFieldRow
+				v-if="canChooseVersion"
+				:label="t('dms_mailing.real_send.version')"
+			>
+				<template #default="{ id }">
+					<DmsSelect
+						:id="id"
+						v-model="versionChoice"
+						:items="versionItems"
+						value-key="value"
+						:deselectable="false"
+						icon="i-ph-git-commit"
+						class="w-full"
+						data-version-choice
+					/>
+				</template>
+			</FormFieldRow>
 
 			<FormFieldRow :label="t('dms_mailing.test_send.locale')">
 				<template #default="{ id }">

@@ -22,42 +22,56 @@ function openEnvelope(): void {
 
 <template>
 	<div
-		class="border-default bg-default shadow-xs mb-3.5 overflow-hidden rounded-md border text-sm"
+		class="border-default bg-default shadow-xs mb-3.5 grid grid-cols-[max-content_minmax(0,1fr)] overflow-hidden rounded-md border text-sm"
 	>
 		<button
 			type="button"
-			class="hover:bg-elevated/50 flex min-h-[38px] w-full items-center gap-2.5 px-3 text-left"
+			class="hover:bg-elevated/50 col-span-2 grid min-h-[38px] w-full grid-cols-subgrid items-center gap-x-2.5 px-3 text-left"
 			@click.stop="openEnvelope()"
 		>
-			<DmsEyebrow :label="t(`${KEY}.subject`)" class="w-[78px] shrink-0" />
-			<MailingTokenText
-				v-if="subject"
-				:text="subject"
-				variant="ui"
-				class="text-highlighted min-w-0 truncate"
+			<DmsEyebrow
+				:label="t(`${KEY}.subject`)"
+				class="min-w-[78px] whitespace-nowrap"
 			/>
-			<span v-else class="text-dimmed">{{ t(`${KEY}.subject_empty`) }}</span>
-			<span
-				class="ml-auto shrink-0 font-mono text-[11px]"
-				:class="isTooLong ? 'text-warning' : 'text-dimmed'"
-				:title="t(`${KEY}.subject_length`, { max: SUBJECT_RECOMMENDED_LENGTH })"
-			>
-				{{ subject.length }} / {{ SUBJECT_RECOMMENDED_LENGTH }}
+			<span class="flex min-w-0 items-center gap-2.5">
+				<MailingTokenText
+					v-if="subject"
+					:text="subject"
+					variant="ui"
+					class="text-highlighted min-w-0 truncate"
+				/>
+				<span v-else class="text-dimmed">{{ t(`${KEY}.subject_empty`) }}</span>
+				<span
+					class="ml-auto shrink-0 font-mono text-[11px]"
+					:class="isTooLong ? 'text-warning' : 'text-dimmed'"
+					:title="
+						t(`${KEY}.subject_length`, { max: SUBJECT_RECOMMENDED_LENGTH })
+					"
+				>
+					{{ subject.length }} / {{ SUBJECT_RECOMMENDED_LENGTH }}
+				</span>
 			</span>
 		</button>
 		<button
 			type="button"
-			class="border-default hover:bg-elevated/50 flex min-h-[38px] w-full items-center gap-2.5 border-t px-3 text-left"
+			class="border-default hover:bg-elevated/50 col-span-2 grid min-h-[38px] w-full grid-cols-subgrid items-center gap-x-2.5 border-t px-3 text-left"
 			@click.stop="openEnvelope()"
 		>
-			<DmsEyebrow :label="t(`${KEY}.preheader`)" class="w-[78px] shrink-0" />
-			<MailingTokenText
-				v-if="preheader"
-				:text="preheader"
-				variant="ui"
-				class="text-muted min-w-0 truncate"
+			<DmsEyebrow
+				:label="t(`${KEY}.preheader`)"
+				class="min-w-[78px] whitespace-nowrap"
 			/>
-			<span v-else class="text-dimmed">{{ t(`${KEY}.preheader_empty`) }}</span>
+			<span class="flex min-w-0 items-center">
+				<MailingTokenText
+					v-if="preheader"
+					:text="preheader"
+					variant="ui"
+					class="text-muted min-w-0 truncate"
+				/>
+				<span v-else class="text-dimmed">
+					{{ t(`${KEY}.preheader_empty`) }}
+				</span>
+			</span>
 		</button>
 	</div>
 </template>

@@ -16,18 +16,24 @@ export function createHistory(snapshot: string): EditorHistory {
 	return { past: [], future: [], present: snapshot, lastChangeAt: 0 }
 }
 
+/** No change merges into a step closed with this timestamp. */
+const CLOSED_STEP = Number.NEGATIVE_INFINITY
+
 /**
  * Records the content after a change. A change within the coalescing window
  * of the previous one extends its step instead of opening a new one; the
- * oldest steps fall off past the limit.
+ * oldest steps fall off past the limit. A discrete change (a deletion, a
+ * move) always is a step of its own, so one undo reverts exactly it.
  */
 export function recordChange(
 	history: EditorHistory,
 	snapshot: string,
 	now: number,
+	isDiscrete = false,
 ): void {
 	if (snapshot === history.present) return
 	const isNewStep =
+		isDiscrete ||
 		now - history.lastChangeAt >= HISTORY_COALESCE_MS ||
 		history.past.length === 0
 	if (isNewStep) {
@@ -36,7 +42,7 @@ export function recordChange(
 	}
 	history.present = snapshot
 	history.future = []
-	history.lastChangeAt = now
+	history.lastChangeAt = isDiscrete ? CLOSED_STEP : now
 }
 
 /** Steps back; the snapshot to restore, or `null` at the oldest one. */

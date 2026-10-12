@@ -4,6 +4,7 @@ import type {
 	BlockType,
 	LocaleContent,
 	TemplateContent,
+	VariableDefinition,
 } from '../types/mailing'
 import {
 	cloneWithNewIds,
@@ -11,11 +12,16 @@ import {
 	duplicateBlock,
 	findBlock,
 	findParentList,
+	flattenBlocks,
 	insertionAfter,
+	localizeFooters,
 	moveBlock,
+	neighbourOf,
 	removeBlock,
 } from '../utils/blocks'
+import type { BlockContext } from '../utils/blocks'
 import { deepClone } from '../utils/clone'
+import { renameVariablePath } from '../utils/variables'
 import {
 	createHistory,
 	recordChange,
@@ -40,8 +46,30 @@ export type LocalePatch = Partial<Pick<LocaleContent, 'subject' | 'preheader'>>
 /** A clock, injectable so the history's coalescing is testable. */
 export type EditorClock = () => number
 
+export type AnnouncementKind =
+	'block_removed' | 'undone_in_locale' | 'redone_in_locale'
+
+/**
+ * Something the editor tells the author after the fact (a toast): a block
+ * deleted, an undo that landed in another locale. `serial` grows with each.
+ */
+export interface EditorAnnouncement {
+	serial: number
+	kind: AnnouncementKind
+	blockType?: BlockType
+	count?: number
+	locale?: string
+	/** The history state an "Undo" action reverts, when the toast offers one. */
+	undoable?: string
+}
+
+export type AnnouncementInput = Omit<EditorAnnouncement, 'serial'>
+export type Announce = (announcement: AnnouncementInput) => void
+
 interface EditorCore {
 	content: TemplateContent
+	/** The draft's variable declarations: saved, undone and published with it. */
+	variables: VariableDefinition[]
 	locale: string
 	locales: string[]
 	revision: number
@@ -54,23 +82,59 @@ interface EditorCore {
 	simulation: Record<string, boolean>
 	isSearchRequested: boolean
 	history: EditorHistory
+	announcement: EditorAnnouncement | null
 }
 
-const emptyLocale = (): LocaleContent => ({
+/**
+ * A new page in `locale`: blank, but with the footer every e-mail needs, its
+ * links following the template's category like a footer from the palette.
+ */
+const blankLocale = (
+	locale: string,
+	context: BlockContext = {},
+): LocaleContent => ({
 	subject: '',
 	preheader: '',
-	blocks: [],
+	blocks: [createBlock('footer', { ...context, locale })],
 })
 
-const snapshotOf = (content: TemplateContent): string => JSON.stringify(content)
+function copyLocale(
+	source: LocaleContent,
+	from: string,
+	to: string,
+): LocaleContent {
+	const copy = {
+		...deepClone(source),
+		blocks: source.blocks.map(cloneWithNewIds),
+	}
+	localizeFooters(copy.blocks, from, to)
+	return copy
+}
+
+/** What one undo step restores: the content and the declarations. */
+interface DraftSnapshot {
+	content: TemplateContent
+	variables: VariableDefinition[]
+}
+
+const snapshotOf = (draft: DraftSnapshot): string =>
+	JSON.stringify({ content: draft.content, variables: draft.variables })
+
+/** A declared variable renamed in the content too, as one change. */
+export interface VariableRename {
+	from: string
+	to: string
+}
 
 function createCore(
 	content: TemplateContent,
+	variables: VariableDefinition[],
 	locale: string,
 	locales: string[],
 ): EditorCore {
 	return reactive({
 		content: deepClone(content),
+		variables: deepClone(variables),
 		locale,
 		locales,
 		revision: 0,
@@ -82,7 +146,8 @@ function createCore(
 		previewMode: 'variables',
 		simulation: {},
 		isSearchRequested: false,
-		history: createHistory(snapshotOf(content)),
+		history: createHistory(snapshotOf({ content, variables })),
+		announcement: null,
 	}) as EditorCore
 }
 
@@ -113,7 +178,8 @@ interface MutationDeps {
 	core: EditorCore
 	views: EditorViews
 	select: (id: string | null) => void
-	touch: () => void
+	touch: (isDiscrete?: boolean) => void
+	announce: Announce
 }
 
 function blocksOf(views: EditorViews): Block[] | null {
@@ -149,11 +215,16 @@ function listFor(views: EditorViews, target?: InsertTarget): Block[] | null {
 }
 
 function createInsertActions({ views, select, touch, core }: MutationDeps) {
-	function insertInto(list: Block[], index: number, type: BlockType): Block {
-		const block = createBlock(type)
+	function insertInto(
+		list: Block[],
+		index: number,
+		type: BlockType,
+		context: BlockContext = {},
+	): Block {
+		const block = createBlock(type, { ...context, locale: core.locale })
 		list.splice(Math.min(index, list.length), 0, block)
 		select(block.id)
-		touch()
+		touch(true)
 		return block
 	}
 	return {
@@ -162,23 +233,45 @@ function createInsertActions({ views, select, touch, core }: MutationDeps) {
 			const list = listFor(views, target) ?? []
 			return insertInto(list, index ?? list.length, type)
 		},
-		addBlockUnderSelected(type: BlockType): Block | null {
+		addBlockUnderSelected(
+			type: BlockType,
+			context?: BlockContext,
+		): Block | null {
 			const blocks = blocksOf(views)
 			if (!blocks) return null
-			const point = insertionAfter(blocks, core.selectedId)
-			return insertInto(point.list, point.index, type)
+			const point = insertionAfter(blocks, core.selectedId, type)
+			return insertInto(point.list, point.index, type, context)
 		},
 	}
 }
 
-function createBlockActions({ views, select, touch, core }: MutationDeps) {
+function createRemoval({ views, select, touch, core, announce }: MutationDeps) {
+	return (id: string): void => {
+		const blocks = blocksOf(views)
+		const block = blocks ? findBlock(blocks, id) : null
+		if (!blocks || !block) return
+		const neighbour = neighbourOf(blocks, id)
+		removeBlock(blocks, id)
+		touch(true)
+		if (core.selectedId === id) select(neighbour)
+		announce({
+			kind: 'block_removed',
+			blockType: block.type,
+			count: flattenBlocks([block]).length - 1,
+			undoable: core.history.present,
+		})
+	}
+}
+
+function createBlockActions(deps: MutationDeps) {
+	const { views, select, touch } = deps
 	const find = (id: string): Block | null => {
 		const blocks = blocksOf(views)
 		return blocks ? findBlock(blocks, id) : null
 	}
 	const mutateTree = (change: (blocks: Block[]) => unknown): void => {
 		const blocks = blocksOf(views)
-		if (blocks && change(blocks)) touch()
+		if (blocks && change(blocks)) touch(true)
 	}
 	return {
 		findBlock: find,
@@ -192,10 +285,7 @@ function createBlockActions({ views, select, touch, core }: MutationDeps) {
 			Object.assign(block, patch)
 			touch()
 		},
-		removeBlockById(id: string): void {
-			if (core.selectedId === id) select(null)
-			mutateTree((blocks) => removeBlock(blocks, id))
-		},
+		removeBlockById: createRemoval(deps),
 		duplicateBlockById(id: string): void {
 			mutateTree((blocks) => {
 				const copy = duplicateBlock(blocks, id)
@@ -209,7 +299,7 @@ function createBlockActions({ views, select, touch, core }: MutationDeps) {
 	}
 }
 
-function createBranchActions({ views, touch }: MutationDeps) {
+function createBranchActions({ views, touch, core }: MutationDeps) {
 	const findIf = (id: string) => {
 		const blocks = blocksOf(views)
 		const block = blocks ? findBlock(blocks, id) : null
@@ -219,7 +309,9 @@ function createBranchActions({ views, touch }: MutationDeps) {
 		setElse(id: string, isEnabled: boolean): void {
 			const block = findIf(id)
 			if (!block || Boolean(block.elseChildren) === isEnabled) return
-			block.elseChildren = isEnabled ? [createBlock('paragraph')] : null
+			block.elseChildren = isEnabled
+				? [createBlock('paragraph', { locale: core.locale })]
+				: null
 			touch()
 		},
 		updateLocale(patch: LocalePatch): void {
@@ -230,41 +322,92 @@ function createBranchActions({ views, touch }: MutationDeps) {
 	}
 }
 
+/** The locales whose content differs between two versions of it. */
+function changedLocales(
+	before: TemplateContent,
+	after: TemplateContent,
+): string[] {
+	const codes = new Set([
+		...Object.keys(before.locales),
+		...Object.keys(after.locales),
+	])
+	return [...codes].filter(
+		(code) =>
+			JSON.stringify(before.locales[code]) !==
+			JSON.stringify(after.locales[code]),
+	)
+}
+
+/**
+ * An undo or redo that only touches another locale switches to it, so the
+ * author sees what changed; `true` when it did.
+ */
+function followChangedLocale(core: EditorCore, changed: string[]): boolean {
+	if (changed.length === 0 || changed.includes(core.locale)) return false
+	const target = changed.find((code) => core.content.locales[code])
+	if (!target) return false
+	core.locale = target
+	return true
+}
+
 function createHistoryActions(
 	core: EditorCore,
 	select: (id: string | null) => void,
+	announce: Announce,
 ) {
-	function restore(snapshot: string | null): void {
+	function restore(snapshot: string | null, kind: AnnouncementKind): void {
 		if (snapshot === null) return
-		core.content = JSON.parse(snapshot) as TemplateContent
+		const next = JSON.parse(snapshot) as DraftSnapshot
+		const changed = changedLocales(core.content, next.content)
+		core.content = next.content
+		core.variables = next.variables
 		core.revision += 1
+		if (followChangedLocale(core, changed))
+			announce({ kind, locale: core.locale })
 		const blocks = core.content.locales[core.locale]?.blocks ?? []
 		if (core.selectedId && !findBlock(blocks, core.selectedId)) select(null)
 	}
+	const undo = (): void => restore(undoChange(core.history), 'undone_in_locale')
 	return {
-		undo: () => restore(undoChange(core.history)),
-		redo: () => restore(redoChange(core.history)),
+		undo,
+		redo: () => restore(redoChange(core.history), 'redone_in_locale'),
+		/** Undoes only when nothing changed since `present` was recorded. */
+		undoIfLatest(present: string): void {
+			if (core.history.present === present) undo()
+		},
 	}
 }
 
 function createLifecycleActions({ core, select, touch }: MutationDeps) {
 	return {
 		touch,
-		createLocale(code: string, from?: string): void {
+		/** Adds `code`, copied from `from` or blank in the template's `context`. */
+		createLocale(code: string, from?: string, context?: BlockContext): void {
 			const source = from ? core.content.locales[from] : undefined
-			core.content.locales[code] = source
-				? { ...deepClone(source), blocks: source.blocks.map(cloneWithNewIds) }
-				: emptyLocale()
+			core.content.locales[code] =
+				source && from
+					? copyLocale(source, from, code)
+					: blankLocale(code, context)
 			core.locale = code
-			touch()
+			touch(true)
+		},
+		/**
+		 * Replaces the draft's declarations; a rename also points every
+		 * reference to `from` at `to`, all locales. One undoable step either way.
+		 */
+		setVariables(next: VariableDefinition[], rename?: VariableRename): void {
+			if (rename) renameVariablePath(core.content, rename.from, rename.to)
+			core.variables = deepClone(next)
+			touch(true)
 		},
 		/** Marks the content up to `revision` as saved (the latest by default). */
 		markSaved(revision?: number): void {
 			core.savedRevision = revision ?? core.revision
 		},
-		reset(content: TemplateContent): void {
+		reset(content: TemplateContent, variables = core.variables): void {
 			core.content = deepClone(content)
-			core.history = createHistory(snapshotOf(content))
+			core.variables = deepClone(variables)
+			core.history = createHistory(snapshotOf(core))
 			core.savedRevision = core.revision
 			select(null)
 		},
@@ -272,24 +415,36 @@ function createLifecycleActions({ core, select, touch }: MutationDeps) {
 }
 
 /**
- * The editor's state: the content being edited, the selection and panes, and
- * the history. Every mutation goes through `touch()`, which bumps the revision
- * autosave watches and records an undo step.
+ * The editor's state: the draft being edited (content and variable
+ * declarations), the selection and panes, and the history. Every mutation
+ * goes through `touch()`, which bumps the revision autosave watches and
+ * records an undo step.
  */
 export function createEditorState(
 	content: TemplateContent,
 	locale: string,
 	locales: string[],
 	clock: EditorClock = Date.now,
+	variables: VariableDefinition[] = [],
 ) {
-	const core = createCore(content, locale, locales)
+	const core = createCore(content, variables, locale, locales)
 	const views = createViews(core)
 	const selection = createSelectionActions(core)
-	const touch = (): void => {
+	const touch = (isDiscrete = false): void => {
 		core.revision += 1
-		recordChange(core.history, snapshotOf(core.content), clock())
+		recordChange(core.history, snapshotOf(core), clock(), isDiscrete)
 	}
-	const deps: MutationDeps = { core, views, select: selection.select, touch }
+	const announce: Announce = (announcement) => {
+		const serial = (core.announcement?.serial ?? 0) + 1
+		core.announcement = { ...announcement, serial }
+	}
+	const deps: MutationDeps = {
+		core,
+		views,
+		select: selection.select,
+		touch,
+		announce,
+	}
 	return reactive({
 		...toRefs(core),
 		...views,
@@ -297,7 +452,7 @@ export function createEditorState(
 		...createInsertActions(deps),
 		...createBlockActions(deps),
 		...createBranchActions(deps),
-		...createHistoryActions(core, selection.select),
+		...createHistoryActions(core, selection.select, announce),
 		...createLifecycleActions(deps),
 	})
 }

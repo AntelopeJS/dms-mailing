@@ -11,10 +11,11 @@ const DAY_MS = 86_400_000
 const PRESET_KEY_SEPARATOR = /-/g
 const KEY_SEPARATOR = '_'
 
-/** Hour and minute, the way the cards stamp "updated 14:32". */
+/** Hour and minute on a 24-hour clock, the way the cards stamp "updated 14:32". */
 export const CLOCK_FORMAT: Intl.DateTimeFormatOptions = {
 	hour: '2-digit',
 	minute: '2-digit',
+	hourCycle: 'h23',
 }
 
 /**

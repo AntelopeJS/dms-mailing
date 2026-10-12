@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import {
@@ -21,8 +22,11 @@ const { t } = useI18n()
 const { processApiMessage } = useTranslation()
 const overlays = useTemplateDrawer()
 
-const starters = ref<StarterSummary[]>([])
-const categories = ref<TemplateCategory[]>([])
+const localized = useLocalizedDefaults()
+const storedStarters = ref<StarterSummary[]>([])
+const storedCategories = ref<TemplateCategory[]>([])
+const starters = computed(() => localized.starters(storedStarters.value))
+const categories = computed(() => localized.categories(storedCategories.value))
 const loading = ref(true)
 const creatingId = ref<string | null>(null)
 
@@ -31,8 +35,8 @@ onMounted(async () => {
 		api.starters().catch(() => ({ starters: [] })),
 		api.listCategories().catch(() => ({ categories: [] })),
 	])
-	starters.value = starterList.starters
-	categories.value = categoryList.categories
+	storedStarters.value = starterList.starters
+	storedCategories.value = categoryList.categories
 	loading.value = false
 })
 
@@ -117,6 +121,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 								:width="PREVIEW_WIDTH"
 								:scale="PREVIEW_SCALE"
 								:label="starter.name"
+								decorative
 							/>
 						</div>
 						<div

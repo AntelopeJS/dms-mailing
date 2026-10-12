@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onBeforeUnmount } from 'vue'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -12,7 +13,19 @@ import {
 	localeOptions,
 	type NamedLocale,
 } from '../utils/recipients'
+import { sendLogRoute } from '../utils/send-link'
+import {
+	buildSendData,
+	initialSendValues,
+	missingRequiredPaths,
+	sendFields,
+	type SendField,
+	type SendValues,
+} from '../utils/send-values'
+import { systemVariables } from '../utils/system-variables'
+import { interpolateText } from '../utils/tokens'
 import { variablesCovered } from '../utils/template-attention'
+import { publishedContract } from '../utils/variables'
 import { editorRoute } from '../utils/editor-route'
 import type {
 	TemplateContentResponse,
@@ -26,8 +39,6 @@ interface RealSendModalProps {
 	onSuccessCallback?: () => void
 }
 
-type DataChoice = 'names' | 'test'
-
 type CheckState = 'ok' | 'warn'
 
 interface ReadinessCheck {
@@ -36,7 +47,9 @@ interface ReadinessCheck {
 	state: CheckState
 }
 
-const DATA_CHOICES: DataChoice[] = ['names', 'test']
+const SETTINGS_PATH = '/modules/mailing/settings'
+const SUBJECT_DELAY_MS = 300
+const PATH_LIST_SEPARATOR = ', '
 
 const props = defineProps<RealSendModalProps>()
 const emit = defineEmits<{ success: [sent?: boolean] }>()
@@ -44,6 +57,8 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 const api = useMailingApi()
 const toast = useToast()
 const { t, locale: uiLocale } = useI18n()
+const onDate = (date: string): string =>
+	t('dms_mailing.common.on_date', { date })
 const { processApiMessage } = useTranslation()
 const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
@@ -53,16 +68,44 @@ const detail = ref<TemplateContentResponse | null>(null)
 const loading = ref(true)
 const recipients = ref<string[]>([])
 const locale = ref('')
-const dataChoice = ref<DataChoice>('names')
+const values = ref<SendValues>({})
 const subject = ref('')
 const isSubjectLoading = ref(false)
 const isAcknowledged = ref(false)
 const sending = ref(false)
 
+/** The footer links' URLs a real send carries, from the published content. */
+const systemVars = computed(() => {
+	const content = detail.value?.publishedContent ?? detail.value?.content
+	return content
+		? systemVariables(content, detail.value?.template.category)
+		: []
+})
+
+/** A real send goes out against the published declarations, not the draft's. */
+const contract = computed(() =>
+	detail.value
+		? publishedContract(detail.value)
+		: { variables: [], detected: [] },
+)
+
+const fields = computed<SendField[]>(() =>
+	sendFields(
+		[...contract.value.variables, ...systemVars.value],
+		contract.value.detected,
+		detail.value?.testData ?? {},
+	),
+)
+const sendData = computed(() => buildSendData(fields.value, values.value))
+const missingRequired = computed(() =>
+	missingRequiredPaths(fields.value, values.value),
+)
+
 onMounted(async () => {
 	if (!templateId.value) return
 	try {
 		detail.value = await api.templateContent(templateId.value)
+		values.value = initialSendValues(fields.value, detail.value.testData)
 		locale.value = detail.value.fallbackLocale
 	} catch (error) {
 		toast.add({
@@ -92,6 +135,10 @@ const absentLocales = computed(() =>
 	missingLocales(sentLocales.value, workspaceCodes.value),
 )
 
+/**
+ * The subject as the recipient reads it: resolved with the values of this
+ * send, a variable left without one printed blank as a real send does.
+ */
 async function loadSubject(): Promise<void> {
 	if (!isLive.value || !locale.value) return
 	isSubjectLoading.value = true
@@ -99,8 +146,9 @@ async function loadSubject(): Promise<void> {
 		const preview = await api.preview(templateId.value, {
 			locale: locale.value,
 			version: 'published',
+			data: sendData.value,
 		})
-		subject.value = preview.subject
+		subject.value = interpolateText(preview.subject, {}, 'send')
 	} catch {
 		subject.value = ''
 	} finally {
@@ -108,40 +156,51 @@ async function loadSubject(): Promise<void> {
 	}
 }
 
+let subjectTimer: ReturnType<typeof setTimeout> | undefined
+
+function scheduleSubject(): void {
+	clearTimeout(subjectTimer)
+	subjectTimer = setTimeout(() => void loadSubject(), SUBJECT_DELAY_MS)
+}
+
 watch([locale, isLive], () => void loadSubject())
+watch(sendData, scheduleSubject, { deep: true })
+onBeforeUnmount(() => clearTimeout(subjectTimer))
 watch(
 	() => recipients.value.length,
 	() => (isAcknowledged.value = false),
 )
 
 const localeItems = computed(() =>
-	localeOptions(sentLocales.value, uniqueLocales.value as NamedLocale[]),
+	localeOptions(
+		sentLocales.value,
+		uniqueLocales.value as NamedLocale[],
+		uiLocale.value,
+	),
 )
 
-const dataItems = computed(() =>
-	DATA_CHOICES.map((choice) => ({
-		label: t(`dms_mailing.real_send.data_${choice}`),
-		value: choice,
-	})),
-)
-
-const DATA_SETS: Record<DataChoice, () => Record<string, unknown> | undefined> =
-	{
-		names: () => undefined,
-		test: () => detail.value?.testData ?? {},
-	}
-
-const dataPaths = computed(() =>
-	(detail.value?.variables ?? []).map((entry) => entry.path).join(', '),
-)
-
+const hasSender = computed(() => Boolean(detail.value?.sender?.email))
 const sender = computed(() => {
 	const from = detail.value?.sender
-	return from ? `${from.name} <${from.email}>` : ''
+	if (!from?.email) return ''
+	return from.name ? `${from.name} <${from.email}>` : from.email
 })
 
+const missingRequiredText = computed(() =>
+	missingRequired.value.length
+		? t('dms_mailing.real_send.missing_required', {
+				paths: missingRequired.value.join(PATH_LIST_SEPARATOR),
+			})
+		: '',
+)
+
 const publishedOn = computed(() =>
-	formatCardDate(template.value?.publishedAt, new Date(), uiLocale.value),
+	formatCardDate(
+		template.value?.publishedAt,
+		new Date(),
+		uiLocale.value,
+		onDate,
+	),
 )
 
 const canSend = computed(
@@ -149,6 +208,7 @@ const canSend = computed(
 		isLive.value &&
 		isAcknowledged.value &&
 		isSendableRecipients(recipients.value) &&
+		!missingRequired.value.length &&
 		!sending.value,
 )
 
@@ -161,8 +221,8 @@ const checks = computed<ReadinessCheck[]>(() => {
 	const response = detail.value
 	if (!row || !response) return []
 	const covered = variablesCovered(
-		response.variables,
-		response.detectedVariables,
+		contract.value.variables,
+		contract.value.detected,
 		response.testData,
 	)
 	return [
@@ -171,7 +231,7 @@ const checks = computed<ReadinessCheck[]>(() => {
 			state: 'warn',
 			label: t('dms_mailing.real_send.check_status', {
 				status: t(`dms_mailing.templates.status.${row.status}`),
-				date: formatCardDate(row.updatedAt, new Date(), uiLocale.value),
+				date: formatCardDate(row.updatedAt, new Date(), uiLocale.value, onDate),
 				name: firstName(row.updatedBy) || row.updatedBy,
 			}),
 		},
@@ -197,6 +257,20 @@ const checks = computed<ReadinessCheck[]>(() => {
 	]
 })
 
+function listLabel(field: SendField, value: unknown): string {
+	if (field.kind === 'object') return t('dms_mailing.real_send.object_value')
+	if (!Array.isArray(value)) return t('dms_mailing.real_send.list_missing')
+	return t(
+		'dms_mailing.real_send.list_value',
+		{ count: value.length },
+		value.length,
+	)
+}
+
+function setValue(path: string, value: unknown): void {
+	values.value = { ...values.value, [path]: value }
+}
+
 function close(sent: boolean): void {
 	if (sent && props.onSuccessCallback) {
 		props.onSuccessCallback()
@@ -215,6 +289,11 @@ function reviewAndPublish(): void {
 	void navigateDms(editorRoute(templateId.value))
 }
 
+function openSettings(): void {
+	close(false)
+	void navigateDms({ path: SETTINGS_PATH })
+}
+
 function report(results: SendResult[], to: string[]): void {
 	results
 		.filter((result) => result.error)
@@ -231,6 +310,12 @@ function report(results: SendResult[], to: string[]): void {
 		color: 'success',
 		icon: 'i-ph-paper-plane-right',
 		title: t('dms_mailing.real_send.sent', { count: sent }, sent),
+		actions: [
+			{
+				label: t('dms_mailing.sends.open_in_log'),
+				onClick: () => void navigateDms(sendLogRoute(results)),
+			},
+		],
 	})
 }
 
@@ -242,7 +327,7 @@ async function submit(): Promise<void> {
 		const response = await api.realSend(templateId.value, {
 			to,
 			locale: locale.value || undefined,
-			data: DATA_SETS[dataChoice.value](),
+			data: sendData.value,
 		})
 		report(response.results, to)
 		close(true)
@@ -296,21 +381,72 @@ async function submit(): Promise<void> {
 					/>
 				</template>
 			</FormFieldRow>
-
-			<FormFieldRow :label="t('dms_mailing.test_send.data')">
-				<template #default="{ id }">
-					<DmsSelect
-						:id="id"
-						v-model="dataChoice"
-						:items="dataItems"
-						value-key="value"
-						:deselectable="false"
-						icon="i-ph-database"
-						class="w-full"
-					/>
-				</template>
-			</FormFieldRow>
 		</FormRows>
+
+		<section v-if="fields.length" class="flex flex-col gap-1" data-send-values>
+			<h3 class="text-highlighted text-sm font-semibold">
+				{{ t('dms_mailing.real_send.values_title') }}
+			</h3>
+			<FormRows>
+				<FormFieldRow
+					v-for="field in fields"
+					:key="field.path"
+					:label="field.path"
+					:required="field.required"
+				>
+					<template #default="{ id }">
+						<USwitch
+							v-if="field.kind === 'boolean'"
+							:id="id"
+							:model-value="Boolean(values[field.path])"
+							@update:model-value="setValue(field.path, Boolean($event))"
+						/>
+						<span
+							v-else-if="field.kind === 'list' || field.kind === 'object'"
+							:id="id"
+							class="text-muted text-sm"
+						>
+							{{ listLabel(field, values[field.path]) }}
+						</span>
+						<DmsInputText
+							v-else
+							:id="id"
+							:model-value="String(values[field.path] ?? '')"
+							:data-path="field.path"
+							class="w-full"
+							@update:model-value="setValue(field.path, String($event ?? ''))"
+						/>
+					</template>
+				</FormFieldRow>
+			</FormRows>
+			<p
+				v-if="missingRequiredText"
+				class="text-error text-xs"
+				role="alert"
+				data-missing-required
+			>
+				{{ missingRequiredText }}
+			</p>
+		</section>
+
+		<DmsBanner
+			v-if="detail && !hasSender"
+			tone="warning"
+			icon="i-ph-at"
+			size="sm"
+			:description="t('dms_mailing.real_send.no_sender')"
+			data-no-sender
+		>
+			<template #actions>
+				<UButton
+					size="xs"
+					color="neutral"
+					variant="outline"
+					:label="t('dms_mailing.real_send.settings_link')"
+					@click="openSettings"
+				/>
+			</template>
+		</DmsBanner>
 
 		<div class="border-default rounded-lg border px-3">
 			<DmsKeyValueList
@@ -324,7 +460,6 @@ async function submit(): Promise<void> {
 						loading: isSubjectLoading,
 					},
 					{ id: 'version', label: t('dms_mailing.real_send.version') },
-					{ id: 'data', label: t('dms_mailing.test_send.data') },
 				]"
 			>
 				<template #value="{ item, formatted }">
@@ -345,15 +480,6 @@ async function submit(): Promise<void> {
 							:class="localeChipClass(true)"
 						>
 							{{ code }}
-						</span>
-					</span>
-					<span v-else-if="item.id === 'data'">
-						{{ t(`dms_mailing.real_send.data_${dataChoice}`) }}
-						<span
-							v-if="dataChoice === 'test' && dataPaths"
-							class="text-muted font-mono"
-						>
-							· {{ dataPaths }}
 						</span>
 					</span>
 					<span v-else>{{ formatted }}</span>

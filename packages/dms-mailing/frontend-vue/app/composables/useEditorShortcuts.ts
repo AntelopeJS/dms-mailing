@@ -56,21 +56,26 @@ export function useEditorShortcuts(
 }
 
 /**
- * Leaving the page with a draft not yet written saves it first; only a failed
- * save asks before leaving.
+ * Leaving the editor never loses work silently. A draft waiting for its
+ * autosave is written on the way out (on unmount, or by a request outliving
+ * a closed tab, after the browser's own prompt); a save that failed, a
+ * conflict or unsaved test data ask the DMS "Discard unsaved changes?" first,
+ * whether the user follows a link, goes back or reloads.
  */
 export function useEditorLeaveGuard(session: EditorSession): void {
-	if (typeof usePageLeaveGuard !== 'function') return
-	const { t } = useI18n()
-	const { confirm } = useConfirm()
-	const { registerGuard } = usePageLeaveGuard()
-	registerGuard(async () => {
-		if (!session.isSaving) return true
-		if (await session.save()) return true
-		return confirm({
-			title: t('dms_mailing.editor.leave_guard'),
-			description: t('dms_mailing.editor.save_state.leave_failed'),
-			color: 'error',
-		})
+	useUnsavedChanges({ dirty: () => session.hasUnsavedWork })
+	function onBeforeUnload(event: BeforeUnloadEvent): void {
+		if (!session.isSaving) return
+		event.preventDefault()
+		event.returnValue = ''
+	}
+	const onPageHide = (): void => session.flush()
+	onMounted(() => {
+		window.addEventListener('beforeunload', onBeforeUnload)
+		window.addEventListener('pagehide', onPageHide)
+	})
+	onBeforeUnmount(() => {
+		window.removeEventListener('beforeunload', onBeforeUnload)
+		window.removeEventListener('pagehide', onPageHide)
 	})
 }

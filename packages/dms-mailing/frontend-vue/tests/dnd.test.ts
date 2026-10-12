@@ -9,3 +9,13 @@ describe('dnd', () => {
 		expect(DRAG_GROUP.name).toBe('mailing-blocks')
 	})
 })
+
+describe('cloneFromPalette', () => {
+	it('shapes a dropped tile like a clicked one', () => {
+		const block = cloneFromPalette(
+			{ type: 'heading', icon: 'x' },
+			{ locale: 'fr' },
+		)
+		expect(block).toMatchObject({ type: 'heading', text: 'Nouveau titre' })
+	})
+})

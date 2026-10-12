@@ -1,7 +1,9 @@
 import { h, type VNode } from 'vue'
+import CategoryLabel from '../components/CategoryLabel.vue'
 import { localeChipClass, localeChips } from '../utils/locales'
 
 export const LOCALE_CHIPS_DISPLAY_ID = 'mailing:locale-chips'
+export const CATEGORY_DISPLAY_ID = 'mailing:category'
 
 const EMPTY_CELL = '—'
 const CHIP_ROW_CLASS = 'inline-flex items-center gap-1'
@@ -34,14 +36,19 @@ export function renderLocaleChips(
 	)
 }
 
+/** A template's category as its settings label and icon. */
+export function renderCategory(value: unknown): VNode {
+	return h(CategoryLabel, { value: typeof value === 'string' ? value : null })
+}
+
 function workspaceCodes(): string[] {
 	const { uniqueLocales } = useUniqueLocales()
 	return uniqueLocales.value.map((entry: WorkspaceLocale) => entry.code)
 }
 
 /**
- * Frontend renderer of the backend column display `mailing:locale-chips`
- * (`src/data/displays.ts`).
+ * Frontend renderers of the backend column displays `mailing:locale-chips`
+ * and `mailing:category` (`src/data/displays.ts`).
  */
 export default defineDmsPlugin(() => {
 	const { registerDataType } = useDataTypes()
@@ -50,5 +57,9 @@ export default defineDmsPlugin(() => {
 		formatter: {
 			default: (value: unknown) => renderLocaleChips(value, workspaceCodes()),
 		},
+	})
+	registerDataType({
+		id: CATEGORY_DISPLAY_ID,
+		formatter: { default: renderCategory },
 	})
 })

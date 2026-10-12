@@ -40,7 +40,10 @@ const CARET_KEYS = ['ArrowLeft', 'ArrowRight', 'Home', 'End']
 const FIELD_CLASS =
 	'whitespace-pre-wrap break-words px-2.5 py-1.5 font-sans text-sm leading-6'
 
-const { session } = useEditorContext()
+const INVALID_CLASS = 'bg-error/15 text-error underline decoration-wavy'
+
+const { editor, session } = useEditorContext()
+const { t } = useI18n()
 
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const query = ref<TokenQuery | null>(null)
@@ -49,15 +52,18 @@ const highlighted = ref(0)
 const declared = computed(
 	() =>
 		new Set([
-			...session.state.variables.map((variable) => variable.path),
+			...editor.variables.map((variable) => variable.path),
 			...SYSTEM_PATHS,
 		]),
 )
 const segments = computed(() => splitRawSegments(props.modelValue))
+const hasInvalidToken = computed(() =>
+	segments.value.some((segment) => segment.kind === 'invalid'),
+)
 const suggestions = computed<PathSuggestion[]>(() =>
 	query.value
 		? suggestPaths(query.value.query, {
-				variables: session.state.variables,
+				variables: editor.variables,
 				detected: session.detected,
 				system: SYSTEM_PATHS,
 			})
@@ -177,6 +183,13 @@ onBeforeUnmount(() => {
 					>
 						{{ segment.raw }}
 					</span>
+					<span
+						v-else-if="segment.kind === 'invalid'"
+						class="rounded-sm box-decoration-clone"
+						:class="INVALID_CLASS"
+					>
+						{{ segment.raw }}
+					</span>
 					<template v-else>{{ segment.raw }}</template>
 				</template>
 				<span>&#8203;</span>
@@ -197,6 +210,9 @@ onBeforeUnmount(() => {
 				@blur="query = null"
 			/>
 		</div>
+		<p v-if="hasInvalidToken" class="text-error mt-1 text-xs">
+			{{ t('dms_mailing.editor.token_invalid') }}
+		</p>
 		<MailingEditorAutocompleteMenu
 			v-if="isOpen"
 			:items="suggestions"

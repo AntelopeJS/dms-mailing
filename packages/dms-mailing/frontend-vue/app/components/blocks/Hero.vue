@@ -12,11 +12,11 @@ interface Props {
 const props = defineProps<Props>()
 const data = inject(TOKEN_DATA_KEY, null)
 
-const imageUrl = computed(() =>
-	data?.value
-		? interpolateText(props.block.imageUrl, data.value)
-		: props.block.imageUrl,
-)
+const interpolated = (text: string): string =>
+	data?.value ? interpolateText(text, data.value) : text
+
+const imageUrl = computed(() => interpolated(props.block.imageUrl))
+const alt = computed(() => interpolated(props.block.alt))
 const hasImage = computed(
 	() => Boolean(imageUrl.value) && !imageUrl.value.includes(TOKEN_OPEN),
 )
@@ -26,7 +26,7 @@ const hasImage = computed(
 	<img
 		v-if="hasImage"
 		:src="imageUrl"
-		:alt="block.alt"
+		:alt="alt"
 		class="mb-4 w-full rounded-lg object-cover"
 	/>
 	<div

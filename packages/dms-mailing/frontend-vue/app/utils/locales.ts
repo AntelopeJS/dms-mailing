@@ -78,3 +78,69 @@ export function missingLocales(present: string[], codes: string[]): string[] {
 export function localeChipClass(present: boolean): string {
 	return `${LOCALE_CHIP_CLASS} ${present ? LOCALE_CHIP_PRESENT_CLASS : LOCALE_CHIP_MISSING_CLASS}`
 }
+
+const DEFAULT_FALLBACK_LOCALE = 'en'
+const LOCALE_PART_SEPARATOR = /[-_]/
+
+/** The base language of a locale code: "fr-BE" and "FR" both read "fr". */
+export function localeLanguage(code: string): string {
+	const [language = code] = code.split(LOCALE_PART_SEPARATOR)
+	return language.toLowerCase()
+}
+
+/**
+ * The locale a send renders, as the server picks it: the requested one
+ * (regardless of case, or by its base language), else the tenant fallback,
+ * else English, else the first locale the content carries.
+ */
+export function pickLocale(
+	available: string[],
+	wanted: string | undefined,
+	fallback: string,
+): string {
+	const byCode = new Map(available.map((code) => [code.toLowerCase(), code]))
+	const requested = wanted ? [wanted, localeLanguage(wanted)] : []
+	const candidates = [
+		...requested,
+		fallback,
+		DEFAULT_FALLBACK_LOCALE,
+		available[0],
+	]
+	const match = candidates
+		.map((code) => (code ? byCode.get(code.toLowerCase()) : undefined))
+		.find((code): code is string => Boolean(code))
+	return match ?? DEFAULT_FALLBACK_LOCALE
+}
+
+const LANGUAGE_NAMES: Intl.DisplayNamesOptions = { type: 'language' }
+
+/**
+ * A language named in the interface's language, capitalised like a label
+ * ("Anglais" for `en` in French); absent when the runtime does not know it.
+ */
+export function languageName(
+	code: string,
+	uiLocale: string,
+): string | undefined {
+	try {
+		const name = new Intl.DisplayNames([uiLocale], LANGUAGE_NAMES).of(code)
+		if (!name || name.toLowerCase() === code.toLowerCase()) return undefined
+		return name.charAt(0).toLocaleUpperCase(uiLocale) + name.slice(1)
+	} catch {
+		return undefined
+	}
+}
+
+/**
+ * A locale as a picker lists it, in the interface's language: "French (FR)".
+ * `fallbackName` stands in for a language the runtime cannot name.
+ */
+export function languageLabel(
+	code: string,
+	uiLocale: string,
+	fallbackName?: string,
+): string {
+	const upper = code.toUpperCase()
+	const name = languageName(code, uiLocale) ?? fallbackName
+	return name ? `${name} (${upper})` : upper
+}

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Block, TextAlign } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
-import { fieldsFor } from '../../utils/blocks'
+import { fieldsFor, isFieldValueValid } from '../../utils/blocks'
+import type { BlockField } from '../../utils/blocks'
 
 interface Props {
 	block: Block
@@ -25,11 +26,12 @@ const { t } = useI18n()
 const { editor, session } = useEditorContext()
 
 const fields = computed(() => fieldsFor(props.block.type))
+const rejected = ref<Record<string, string>>({})
 const values = computed(() => props.block as unknown as Record<string, unknown>)
 const pathItems = computed(() =>
 	[
 		...new Set([
-			...session.state.variables.map((variable) => variable.path),
+			...editor.variables.map((variable) => variable.path),
 			...session.detected,
 		]),
 	].sort(),
@@ -41,12 +43,35 @@ const alignItems = ALIGNMENTS.map((value) => ({
 	icon: ALIGN_ICONS[value],
 }))
 
+watch(
+	() => props.block.id,
+	() => (rejected.value = {}),
+)
+
 function text(key: string): string {
-	return String(values.value[key] ?? '')
+	return rejected.value[key] ?? String(values.value[key] ?? '')
+}
+
+function errorOf(field: BlockField): string | undefined {
+	return field.key in rejected.value
+		? t('dms_mailing.editor.fields.required')
+		: undefined
 }
 
 function patch(key: string, value: unknown): void {
 	editor.updateBlock(props.block.id, { [key]: value } as Partial<Block>)
+}
+
+function patchChecked(field: BlockField, value: unknown): void {
+	const typed = String(value ?? '')
+	if (!isFieldValueValid(field, typed)) {
+		rejected.value = { ...rejected.value, [field.key]: typed }
+		return
+	}
+	rejected.value = Object.fromEntries(
+		Object.entries(rejected.value).filter(([key]) => key !== field.key),
+	)
+	patch(field.key, typed)
 }
 </script>
 
@@ -56,6 +81,8 @@ function patch(key: string, value: unknown): void {
 			v-for="field in fields"
 			:key="field.key"
 			:label="t(field.label)"
+			:required="field.isRequired"
+			:error="errorOf(field)"
 			size="sm"
 		>
 			<MailingEditorTokenField
@@ -92,14 +119,14 @@ function patch(key: string, value: unknown): void {
 				create-item
 				class="w-full font-mono"
 				icon="i-ph-brackets-curly"
-				@update:model-value="patch(field.key, $event)"
-				@create="patch(field.key, $event)"
+				@update:model-value="patchChecked(field, $event)"
+				@create="patchChecked(field, $event)"
 			/>
 			<UInput
 				v-else
 				:model-value="text(field.key)"
 				class="w-full"
-				@update:model-value="patch(field.key, $event)"
+				@update:model-value="patchChecked(field, $event)"
 			/>
 			<template v-if="field.help || TOKEN_KINDS.includes(field.kind)" #help>
 				{{

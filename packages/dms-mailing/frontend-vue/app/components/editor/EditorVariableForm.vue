@@ -1,28 +1,59 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { VariableDefinition } from '../../types/mailing'
-import { VARIABLE_TYPES } from '../../types/mailing'
+import { variableTypeItems } from '../../utils/variable-types'
+import { isValidVariablePath, suggestVariablePath } from '../../utils/variables'
+import type { VariableSubmission } from '../../utils/variables'
 
 interface Props {
 	value: VariableDefinition
 	isNew: boolean
 	saving?: boolean
+	/** The path the content uses now, which a new path may replace. */
+	usedPath?: string | null
+	/** How many places of the content use `usedPath`. */
+	usageCount?: number
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<{ save: [VariableDefinition]; cancel: [] }>()
+const props = withDefaults(defineProps<Props>(), {
+	saving: false,
+	usedPath: null,
+	usageCount: 0,
+})
+const emit = defineEmits<{ save: [VariableSubmission]; cancel: [] }>()
 
 const KEY = 'dms_mailing.editor.variables'
-const PATH_PATTERN = /^[A-Za-z0-9_.[\]]+$/
 
 const { t } = useI18n()
 
+const typeItems = computed(() => variableTypeItems((key) => t(key)))
+
 const draft = ref<VariableDefinition>({ ...props.value })
+const shouldReplace = ref(true)
+
+const path = computed(() => draft.value.path.trim())
+const isPathValid = computed(() => isValidVariablePath(path.value))
+const pathError = computed(() =>
+	path.value && !isPathValid.value
+		? t(`${KEY}.invalid_path`, {
+				suggestion: suggestVariablePath(path.value),
+			})
+		: undefined,
+)
+const canReplace = computed(
+	() =>
+		isPathValid.value &&
+		props.usageCount > 0 &&
+		Boolean(props.usedPath) &&
+		path.value !== props.usedPath,
+)
 
 function submit(): void {
-	const path = draft.value.path.trim()
-	if (!PATH_PATTERN.test(path)) return
-	emit('save', { ...draft.value, path })
+	if (!isPathValid.value) return
+	emit('save', {
+		value: { ...draft.value, path: path.value },
+		shouldReplaceInContent: canReplace.value && shouldReplace.value,
+	})
 }
 </script>
 
@@ -31,7 +62,7 @@ function submit(): void {
 		class="border-default bg-default mt-1 flex flex-col gap-2.5 rounded-md border p-2.5"
 		@submit.prevent="submit()"
 	>
-		<UFormField :label="t(`${KEY}.path`)" size="xs">
+		<UFormField :label="t(`${KEY}.path`)" :error="pathError" size="xs">
 			<UInput
 				v-model="draft.path"
 				class="w-full font-mono"
@@ -39,8 +70,19 @@ function submit(): void {
 				autofocus
 			/>
 		</UFormField>
+		<UCheckbox
+			v-if="canReplace"
+			v-model="shouldReplace"
+			size="sm"
+			:label="t(`${KEY}.rename_in_blocks`, { count: usageCount }, usageCount)"
+		/>
 		<UFormField :label="t(`${KEY}.type`)" size="xs">
-			<USelect v-model="draft.type" class="w-full" :items="VARIABLE_TYPES" />
+			<USelect
+				v-model="draft.type"
+				class="w-full"
+				:items="typeItems"
+				value-key="value"
+			/>
 		</UFormField>
 		<USwitch v-model="draft.required" size="sm" :label="t(`${KEY}.required`)" />
 		<div class="flex items-center gap-2">
@@ -48,7 +90,7 @@ function submit(): void {
 				type="submit"
 				size="xs"
 				:loading="saving"
-				:disabled="!draft.path.trim()"
+				:disabled="!isPathValid"
 			>
 				{{ isNew ? t(`${KEY}.add`) : t(`${KEY}.save`) }}
 			</UButton>

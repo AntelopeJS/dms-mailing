@@ -10,8 +10,16 @@ const { t } = useI18n()
 const { editor } = useEditorContext()
 
 const deviceItems = computed(() => [
-	{ value: 'desktop', label: '', icon: 'i-ph-desktop' },
-	{ value: 'mobile', label: '', icon: 'i-ph-device-mobile' },
+	{
+		value: 'desktop',
+		label: t('dms_mailing.editor.desktop'),
+		icon: 'i-ph-desktop',
+	},
+	{
+		value: 'mobile',
+		label: t('dms_mailing.editor.mobile'),
+		icon: 'i-ph-device-mobile',
+	},
 ])
 
 const modeItems = computed(() => [

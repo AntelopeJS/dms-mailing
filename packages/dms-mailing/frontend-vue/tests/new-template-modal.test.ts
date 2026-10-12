@@ -81,6 +81,50 @@ describe('NewTemplateModal', () => {
 		view.unmount()
 	})
 
+	it('asks for a slug when the name gives none, and derives it again once cleared', async () => {
+		const view = mount(NewTemplateModal, {}, globals)
+		await flush()
+		const [name, slug] = inputs(view.host)
+		await typeInto(name!, '日本語のテンプレート')
+		expect(fields(view.host)[1]!.getAttribute('error')).toBe(
+			'dms_mailing.new_template.slug_from_name_empty',
+		)
+		await typeInto(name!, 'Quote accepted')
+		await typeInto(slug!, 'quote-ok')
+		await typeInto(slug!, '')
+		expect((slug as HTMLInputElement).value).toBe('quote-accepted')
+		await typeInto(name!, 'Quote refused')
+		expect((slug as HTMLInputElement).value).toBe('quote-refused')
+		view.unmount()
+	})
+
+	it('lists the starters apart from the templates to copy, archived ones left out', async () => {
+		api.listTemplates.mockResolvedValue({
+			results: [
+				{ _id: 't1', name: 'Welcome', slug: 'welcome', status: 'live' },
+				{ _id: 't2', name: 'Invoice', slug: 'invoice', status: 'draft' },
+				{ _id: 't3', name: 'Old', slug: 'old', status: 'archived' },
+			],
+			total: 3,
+		})
+		const view = mount(NewTemplateModal, {}, globals)
+		await flush()
+		const titles = () =>
+			[...view.host.querySelectorAll('section')].map((section) =>
+				[...section.querySelectorAll('button[role="radio"]')].map(
+					(tile) => tile.querySelector('span:nth-of-type(2)')?.textContent,
+				),
+			)
+		expect(titles()).toEqual([
+			['dms_mailing.templates.start_from.blank', 'Invoice available'],
+			['Welcome', 'Invoice'],
+		])
+		const search = inputs(view.host)[2]!
+		await typeInto(search, 'welc')
+		expect(titles()[1]).toEqual(['Welcome'])
+		view.unmount()
+	})
+
 	it('refuses a taken slug inline, before the server does', async () => {
 		const view = mount(NewTemplateModal, { initialName: 'Welcome' }, globals)
 		await flush()

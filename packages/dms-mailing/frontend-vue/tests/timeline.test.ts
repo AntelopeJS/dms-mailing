@@ -118,6 +118,56 @@ describe('buildTimeline', () => {
 		expect(items.some((item) => item.isPending)).toBe(false)
 	})
 
+	it('draws no step to come after an unsubscription', () => {
+		const items = buildTimeline(
+			[
+				event('1', 'delivered', '2026-09-09T10:00:30.000Z'),
+				event('2', 'unsubscribed', '2026-09-09T10:05:00.000Z'),
+			],
+			{ ...SEND, status: 'unsubscribed' },
+		)
+		expect(items.some((item) => item.isPending)).toBe(false)
+	})
+
+	it('calls a 4.x.x bounce temporary', () => {
+		const bounce = buildTimeline(
+			[
+				event(
+					'2',
+					'bounced',
+					'2026-09-09T10:01:00.000Z',
+					'{"reason":"452 4.2.2 The recipient mailbox is full"}',
+				),
+			],
+			SEND,
+		).at(-1)
+		expect(bounce?.titleKey).toBe('dms_mailing.sends.timeline.soft_bounce')
+		const typed = buildTimeline(
+			[
+				event(
+					'2',
+					'bounced',
+					'2026-09-09T10:01:00.000Z',
+					'{"bounceType":"hard","reason":"452 4.2.2"}',
+				),
+			],
+			SEND,
+		).at(-1)
+		expect(typed?.titleKey).toBe('dms_mailing.sends.timeline.bounced')
+	})
+
+	it('waits only for what the provider reports', () => {
+		const sent = { ...SEND, status: 'sent' as const }
+		const events = [event('1', 'sent', '2026-09-09T10:00:00.000Z')]
+		const pendingOf = (openTracking: boolean, clickTracking: boolean) =>
+			buildTimeline(events, sent, { openTracking, clickTracking })
+				.filter((item) => item.isPending)
+				.map((item) => item.type)
+		expect(pendingOf(false, false)).toEqual([])
+		expect(pendingOf(false, true)).toEqual(['delivered'])
+		expect(pendingOf(true, true)).toEqual(['delivered', 'opened'])
+	})
+
 	it('does not repeat the queued step when an event records it', () => {
 		const items = buildTimeline(
 			[event('0', 'queued', '2026-09-09T10:00:00.000Z')],

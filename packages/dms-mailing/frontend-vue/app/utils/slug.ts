@@ -49,9 +49,16 @@ export function validateName(name: string): NameIssue | null {
 	return trimmed.length > MAX_NAME_LENGTH ? 'too_long' : null
 }
 
+/** `base` with a `-N` suffix, the base cut so the whole fits the slug limit. */
+function suffixedSlug(base: string, suffix: number): string {
+	const ending = `${SLUG_SEPARATOR}${suffix}`
+	const kept = base.slice(0, MAX_SLUG_LENGTH - ending.length).replace(/-+$/, '')
+	return `${kept}${ending}`
+}
+
 /**
- * The first free slug from `base`: itself, else `base-2`, `base-3`… so a
- * duplicate of "welcome (copy)" never starts out refused.
+ * The first free slug from `base`: itself, else `base-2`, `base-3`… cut to
+ * the slug limit, so a duplicate of "welcome (copy)" never starts out refused.
  */
 export function freeSlug(
 	base: string,
@@ -59,6 +66,17 @@ export function freeSlug(
 ): string {
 	if (!takenSlugs.has(base)) return base
 	let suffix = FIRST_FREE_SUFFIX
-	while (takenSlugs.has(`${base}${SLUG_SEPARATOR}${suffix}`)) suffix += 1
-	return `${base}${SLUG_SEPARATOR}${suffix}`
+	while (takenSlugs.has(suffixedSlug(base, suffix))) suffix += 1
+	return suffixedSlug(base, suffix)
+}
+
+/**
+ * A name wrapped by `wrap` ("{name} (copy)"), the inner name cut so the whole
+ * stays within the name limit.
+ */
+export function fitName(name: string, wrap: (inner: string) => string): string {
+	const wrapped = wrap(name)
+	if (wrapped.length <= MAX_NAME_LENGTH) return wrapped
+	const room = Math.max(0, MAX_NAME_LENGTH - wrap('').length)
+	return wrap(name.slice(0, room).trimEnd())
 }

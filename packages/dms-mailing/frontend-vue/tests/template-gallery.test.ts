@@ -1,3 +1,4 @@
+import { reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplateGallery from '../app/components/TemplateGallery.vue'
 import TemplateCard from '../app/components/TemplateCard.vue'
@@ -55,6 +56,20 @@ const DRAFT = row({
 	publishedVersion: 0,
 	category: 'billing',
 })
+const STALE_DRAFT = row({
+	_id: 'stale',
+	name: 'Account closed',
+	status: 'draft',
+	publishedVersion: 0,
+	category: 'billing',
+	updatedAt: '2026-01-01T00:00:00Z',
+})
+const ARCHIVED = row({
+	_id: 'archived',
+	name: 'Old receipt',
+	status: 'archived',
+	locales: 'en',
+})
 
 const stats = (id: string, sends: number): TemplateStats => ({
 	id,
@@ -95,9 +110,12 @@ const globals = {
 }
 
 let stubs: NuxtStubs
+let routeQuery: Record<string, unknown> = {}
 
 beforeEach(() => {
 	stubs = stubNuxtGlobals()
+	routeQuery = {}
+	vi.stubGlobal('useDmsRoute', () => ({ query: routeQuery }))
 	api.listCategories.mockResolvedValue({
 		categories: [
 			{ id: 'orders', label: 'Orders', icon: 'i-ph-package' },
@@ -152,22 +170,106 @@ describe('TemplateGallery', () => {
 		view.unmount()
 	})
 
-	it('filters the cards that need attention from the chip', async () => {
+	it('counts and filters what needs attention across every page of the tab', async () => {
+		api.listTemplates.mockResolvedValue({
+			results: [LIVE, MISSING_DE, DRAFT, STALE_DRAFT, ARCHIVED],
+			total: 5,
+		})
+		const ctx = context({
+			items: [LIVE],
+			query: { filter_status: 'is_not:archived' },
+		})
+		ctx.pagination.pageSize = 1
+		ctx.pagination.total = 4
+		const view = mount(TemplateGallery, { context: ctx }, globals)
+		await flush()
+		const chip = view.host.querySelector('ubutton[aria-pressed]') as HTMLElement
+		expect(chip.textContent).toContain('2')
+		expect(view.host.querySelector('upagination')).not.toBeNull()
+		chip.click()
+		await flush()
+		expect(cardNames(view.host)).toEqual(['Shipping update', 'Account closed'])
+		expect(view.host.querySelector('upagination')).toBeNull()
+		view.unmount()
+	})
+
+	it('reloads the attention list when the table refreshes, not when it pages', async () => {
+		api.listTemplates.mockClear()
+		api.templatesOverview.mockClear()
+		const ctx = reactive(context({ items: [LIVE] }))
+		const view = mount(TemplateGallery, { context: ctx }, globals)
+		await flush()
+		expect(api.listTemplates).toHaveBeenCalledTimes(1)
+		api.listTemplates.mockResolvedValue({
+			results: [LIVE, MISSING_DE],
+			total: 2,
+		})
+		ctx.items = [LIVE]
+		await flush()
+		expect(api.listTemplates).toHaveBeenCalledTimes(2)
+		expect(api.templatesOverview).toHaveBeenCalledTimes(2)
+		const chip = view.host.querySelector('ubutton[aria-pressed]') as HTMLElement
+		expect(chip.textContent).toContain('1')
+		ctx.pagination.pageIndex = 1
+		ctx.items = [MISSING_DE]
+		await flush()
+		expect(api.listTemplates).toHaveBeenCalledTimes(2)
+		view.unmount()
+	})
+
+	it('arrives filtered from an attention link', async () => {
+		routeQuery = { tab: 'attention' }
+		api.listTemplates.mockResolvedValue({
+			results: [LIVE, MISSING_DE],
+			total: 2,
+		})
 		const view = mount(
 			TemplateGallery,
-			{ context: context({ items: [LIVE, MISSING_DE, DRAFT] }) },
+			{ context: context({ items: [LIVE, MISSING_DE] }) },
 			globals,
 		)
 		await flush()
 		const chip = view.host.querySelector('ubutton[aria-pressed]') as HTMLElement
-		expect(chip.textContent).toContain('2')
-		chip.click()
+		expect(chip.getAttribute('aria-pressed')).toBe('true')
+		expect(cardNames(view.host)).toEqual(['Shipping update'])
+		view.unmount()
+	})
+
+	it('drops the category groups under an explicit sort, and steps the drawer in the drawn order', async () => {
+		const ctx = context({
+			items: [DRAFT, LIVE, MISSING_DE],
+			query: { sortKey: 'name', sortDirection: 'asc' },
+		})
+		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
+		expect(view.host.querySelectorAll('h2')).toHaveLength(0)
 		expect(cardNames(view.host)).toEqual([
-			'Shipping update',
 			'Delivery delayed',
+			'Order confirmation',
+			'Shipping update',
 		])
 		view.unmount()
+
+		const grouped = mount(
+			TemplateGallery,
+			{ context: context({ items: [DRAFT, LIVE, MISSING_DE] }) },
+			globals,
+		)
+		await flush()
+		const details = [
+			...grouped.host.querySelectorAll('ubutton[aria-label]'),
+		].filter(
+			(button) =>
+				button.getAttribute('aria-label') ===
+				'dms_mailing.templates.actions.details',
+		) as HTMLElement[]
+		details[0]!.click()
+		const rows = stubs.drawerCalls[0]?.componentOptions?.navigation as {
+			total: number
+			index: number
+		}
+		expect(rows).toMatchObject({ index: 0, total: 3 })
+		grouped.unmount()
 	})
 
 	it('shows the starters on a first run', async () => {

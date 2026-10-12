@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMailingApi } from '../composables/useMailingApi'
+import { useSetupHidesPeriod } from '../composables/useOverviewSetup'
 import { presetShortLabelKey } from '../utils/period'
 import type { Component } from 'vue'
 import type { MailingComponentProps } from '../types/component'
@@ -14,6 +15,8 @@ interface PageHeaderProps extends MailingComponentProps {
 }
 
 defineOptions({ inheritAttrs: false })
+
+const PERIOD_COMPONENT_SUFFIX = ':period'
 
 const props = withDefaults(defineProps<PageHeaderProps>(), {
 	periodScope: undefined,
@@ -30,6 +33,7 @@ const StatusPill = resolveComponent('DmsStatusPill') as Component
 const PeriodSelector = resolveComponent('DmsPeriodSelector') as Component
 
 const provider = ref<ProviderInfo | null>(null)
+const hidesPeriod = useSetupHidesPeriod(props.periodScope)
 
 const presetLabels = computed(() =>
 	Object.fromEntries(
@@ -62,9 +66,11 @@ function renderProvider() {
 }
 
 function renderPeriod() {
-	if (!props.periodScope) return null
+	if (!props.periodScope || hidesPeriod.value) return null
 	return h(PeriodSelector, {
 		id: props.periodScope,
+		componentId: `${props.componentId ?? props.periodScope}${PERIOD_COMPONENT_SUFFIX}`,
+		pageId: props.pageId ?? '',
 		variant: 'segmented',
 		size: 'sm',
 		showRangeLabel: false,

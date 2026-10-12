@@ -1,15 +1,28 @@
 <script setup lang="ts">
-import { useMailingApi } from '../composables/useMailingApi'
+import { useElementSize } from '@vueuse/core'
+import {
+	useMailingApi,
+	type TemplateDetails,
+} from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import { apiErrorMessage } from '../utils/api-error'
 import { formatCardDate } from '../utils/gallery'
 import { localeCoverage } from '../utils/locales'
+import { sendSnippet } from '../utils/send-snippet'
+import { variableTypeLabelKey } from '../utils/variable-types'
+import { validateName } from '../utils/slug'
 import {
 	validTransitions,
 	type LifecycleAction,
 } from '../utils/template-attention'
 import { editorRoute } from '../utils/editor-route'
-import { mergeVariables } from '../utils/variables'
+import {
+	isDeclarationChange,
+	mergeVariables,
+	publishedContract,
+	workingContract,
+} from '../utils/variables'
+import { systemVariables } from '../utils/system-variables'
 import type {
 	PreviewResponse,
 	TemplateContentResponse,
@@ -37,7 +50,7 @@ interface TemplateDrawerProps {
 	onChanged?: () => void
 }
 
-type DrawerTab = 'preview' | 'variables' | 'performance'
+type DrawerTab = 'preview' | 'variables' | 'performance' | 'history'
 
 type ConfirmTone = 'primary' | 'warning'
 
@@ -49,9 +62,14 @@ interface LifecycleSpec {
 }
 
 const SENDS_PATH = '/modules/mailing/sends'
+/** The send log reads these: `?template=` narrows it, `?view=` opens a tab. */
+const SENDS_TEMPLATE_KEY = 'template'
+const SENDS_VIEW_KEY = 'view'
+const PROBLEMS_VIEW = 'problems'
 const PREVIEW_WIDTH = 600
-const PREVIEW_SCALE = 0.72
+const PREVIEW_FALLBACK_SCALE = 0.72
 const OPEN_RATE_DIGITS = 1
+const PERCENT = 100
 const DEFAULT_VARIABLE_TYPE: VariableType = 'string'
 
 const STATUS_TONES: Record<TemplateStatus, string> = {
@@ -59,6 +77,7 @@ const STATUS_TONES: Record<TemplateStatus, string> = {
 	draft: 'neutral',
 	archived: 'warning',
 }
+const DRAFT_CHANGES_TONE = 'info'
 
 const props = defineProps<TemplateDrawerProps>()
 defineEmits<{ success: [changed?: boolean] }>()
@@ -93,6 +112,17 @@ const loading = ref(true)
 const tab = ref<DrawerTab>('preview')
 const locale = ref('')
 const subject = ref('')
+const isRenaming = ref(false)
+const draftName = ref('')
+const previewBox = ref<HTMLElement | null>(null)
+const { width: previewBoxWidth } = useElementSize(previewBox)
+
+/** The preview fills the drawer's width, whatever it is. */
+const previewScale = computed(() =>
+	previewBoxWidth.value
+		? Math.min(1, previewBoxWidth.value / PREVIEW_WIDTH)
+		: PREVIEW_FALLBACK_SCALE,
+)
 
 async function load(): Promise<void> {
 	if (!templateId.value) return
@@ -145,11 +175,32 @@ const isLocaleMissing = computed(() =>
 	coverage.value.some((entry) => entry.code === locale.value && !entry.present),
 )
 
+/**
+ * The contract the tab shows: the published one on a live template (what
+ * callers send against), the draft's otherwise.
+ */
+const contract = computed(() => {
+	if (!detail.value) return { variables: [], detected: [] }
+	return isLive.value
+		? publishedContract(detail.value)
+		: workingContract(detail.value)
+})
+
 const variables = computed(() =>
-	mergeVariables(
-		detail.value?.detectedVariables ?? [],
-		detail.value?.variables ?? [],
-	),
+	mergeVariables(contract.value.detected, contract.value.variables),
+)
+
+/** A live template whose draft changes the declarations, not shown yet. */
+const hasDraftDeclarations = computed(
+	() =>
+		isLive.value && Boolean(detail.value?.changes.some(isDeclarationChange)),
+)
+
+/** The footer links' URLs the contract asks of every send. */
+const systemVars = computed(() =>
+	shownContent.value
+		? systemVariables(shownContent.value, template.value?.category)
+		: [],
 )
 
 const tabs = computed(() => [
@@ -158,7 +209,7 @@ const tabs = computed(() => [
 		label: t('dms_mailing.templates.drawer.variables'),
 		value: 'variables',
 		badge: {
-			label: String(variables.value.length),
+			label: String(variables.value.length + systemVars.value.length),
 			color: 'neutral',
 			variant: 'soft',
 		},
@@ -167,12 +218,23 @@ const tabs = computed(() => [
 		label: t('dms_mailing.templates.drawer.tab_performance'),
 		value: 'performance',
 	},
+	{ label: t('dms_mailing.history.tab'), value: 'history' },
 ])
 
+const hasDraftChanges = computed(
+	() => isLive.value && Boolean(template.value?.isDraftPending),
+)
+
 const statusLabel = computed(() =>
-	isLive.value && template.value?.isDraftPending
+	hasDraftChanges.value
 		? t('dms_mailing.templates.card.draft_changes')
 		: t(`dms_mailing.templates.status.${template.value?.status ?? 'draft'}`),
+)
+
+const statusTone = computed(() =>
+	hasDraftChanges.value
+		? DRAFT_CHANGES_TONE
+		: STATUS_TONES[template.value?.status ?? 'draft'],
 )
 
 const editedLine = computed(() => {
@@ -180,7 +242,9 @@ const editedLine = computed(() => {
 	const at = row?.draftUpdatedAt || template.value?.updatedAt
 	const by = row?.draftUpdatedBy || template.value?.updatedBy || ''
 	return t('dms_mailing.templates.drawer.edited', {
-		date: formatCardDate(at, new Date(), uiLocale.value),
+		date: formatCardDate(at, new Date(), uiLocale.value, (date) =>
+			t('dms_mailing.common.on_date', { date }),
+		),
 		name: by,
 	})
 })
@@ -196,6 +260,31 @@ const formatNumber = (value: number) =>
 		maximumFractionDigits: OPEN_RATE_DIGITS,
 	}).format(value)
 
+/** A rate in percent, written the reader's way ("20.8%", "20,8 %"). */
+const formatPercent = (value: number) =>
+	new Intl.NumberFormat(uiLocale.value, {
+		style: 'percent',
+		maximumFractionDigits: OPEN_RATE_DIGITS,
+	}).format(value / PERCENT)
+
+/** The send log narrowed to this template, on one of its tabs if given. */
+function sendLogRoute(view?: string) {
+	return {
+		path: SENDS_PATH,
+		query: {
+			[SENDS_TEMPLATE_KEY]: template.value?.slug ?? '',
+			...(view ? { [SENDS_VIEW_KEY]: view } : {}),
+		},
+	}
+}
+
+function sendLogUrl(view?: string): string {
+	const { path, query } = sendLogRoute(view)
+	return `${path}?${new URLSearchParams(query).toString()}`
+}
+
+const hasSends = computed(() => Boolean(performance.value?.sends))
+
 const stats = computed(() => [
 	{
 		id: 'sends',
@@ -206,7 +295,7 @@ const stats = computed(() => [
 		id: 'open',
 		eyebrow: t('dms_mailing.templates.drawer.stats_open'),
 		value: performance.value?.sends
-			? `${formatNumber(performance.value.openRate)}%`
+			? formatPercent(performance.value.openRate)
 			: '—',
 	},
 	{
@@ -217,26 +306,81 @@ const stats = computed(() => [
 			? t('dms_mailing.templates.drawer.problems_detail')
 			: undefined,
 		detailTone: 'error' as const,
-		to: performance.value?.problems ? SENDS_PATH : undefined,
+		to: performance.value?.problems ? sendLogUrl(PROBLEMS_VIEW) : undefined,
 	},
 ])
 
-const snippet = computed(
-	() =>
-		`await SendTemplate("${template.value?.slug ?? ''}", {\n  to: customer.email,\n  variables: { … },\n});`,
+const snippet = computed(() =>
+	sendSnippet({
+		slug: template.value?.slug ?? '',
+		locale: locale.value || detail.value?.fallbackLocale || '',
+		variables: [
+			...variables.value.filter((variable) => variable.usage !== 'unused'),
+			...systemVars.value,
+		],
+		testData: detail.value?.testData ?? {},
+	}),
 )
+
+function reloadInPlace(): void {
+	void load()
+	props.onChanged?.()
+}
 
 function settle(): void {
 	if (props.onSuccessCallback) {
 		props.onSuccessCallback()
 		return
 	}
-	void load()
-	props.onChanged?.()
+	reloadInPlace()
 }
 
 function openSendLog(): void {
-	void navigateDms({ path: SENDS_PATH })
+	void navigateDms(sendLogRoute())
+}
+
+const nameError = computed(() => {
+	const issue = isRenaming.value ? validateName(draftName.value) : null
+	return issue ? t(`dms_mailing.templates.name_errors.${issue}`) : null
+})
+
+/** Writes the name or the category, the other details kept as they are. */
+async function saveDetails(changes: Partial<TemplateDetails>): Promise<void> {
+	const row = template.value
+	if (!row) return
+	try {
+		await api.saveTemplateDetails(templateId.value, {
+			name: row.name,
+			slug: row.slug,
+			category: row.category || null,
+			...changes,
+		})
+		reloadInPlace()
+	} catch (error) {
+		toast.add({
+			color: 'error',
+			title: processApiMessage(apiErrorMessage(error)),
+		})
+	}
+}
+
+function startRename(): void {
+	draftName.value = template.value?.name ?? ''
+	isRenaming.value = true
+}
+
+async function submitRename(): Promise<void> {
+	if (nameError.value) return
+	const name = draftName.value.trim()
+	isRenaming.value = false
+	if (name !== template.value?.name) await saveDetails({ name })
+}
+
+function onCategoryChange(value: string | null | undefined): void {
+	const category = value || null
+	if (category !== (template.value?.category || null)) {
+		void saveDetails({ category })
+	}
 }
 
 function openEditor(targetLocale?: string): void {
@@ -296,13 +440,17 @@ const menuItems = computed(() => {
 					icon: 'i-ph-paper-plane-right',
 					color: 'error' as const,
 					onSelect: () =>
-						overlays.openRealSend(templateId.value, { rowData: row }),
+						overlays.openRealSend(templateId.value, {
+							rowData: row,
+							onDone: reloadInPlace,
+						}),
 				},
 			]
 		: []
 	return [moves, send].filter((group) => group.length)
 })
 
+/** Declares a path in the draft, which the tab shows on a template not live. */
 async function declareVariable(path: string): Promise<void> {
 	if (!detail.value) return
 	const next: VariableDefinition[] = [
@@ -310,14 +458,47 @@ async function declareVariable(path: string): Promise<void> {
 		{ path, type: DEFAULT_VARIABLE_TYPE, required: false },
 	]
 	try {
-		const response = await api.saveVariables(templateId.value, next)
+		const response = await api.saveVariables(
+			templateId.value,
+			next,
+			detail.value.revision,
+		)
 		detail.value.variables = response.variables ?? next
+		detail.value.revision = response.revision ?? detail.value.revision
+	} catch (error) {
+		toast.add({
+			color: 'error',
+			title: processApiMessage(apiErrorMessage(error)),
+		})
+		reloadInPlace()
+	}
+}
+
+/**
+ * Copies a version into the draft. Customers keep the live version: the
+ * editor's review publishes the restored draft.
+ */
+async function restoreVersion(version: number): Promise<void> {
+	try {
+		await api.restoreVersion(templateId.value, version, detail.value?.revision)
+		toast.add({
+			color: 'success',
+			title: t('dms_mailing.history.restored', { version }),
+			description: t('dms_mailing.history.restored_description'),
+			actions: [
+				{
+					label: t('dms_mailing.templates.actions.open_editor'),
+					onClick: () => openEditor(),
+				},
+			],
+		})
 	} catch (error) {
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),
 		})
 	}
+	reloadInPlace()
 }
 
 function onResolved(preview: PreviewResponse): void {
@@ -372,20 +553,71 @@ function onResolved(preview: PreviewResponse): void {
 						</UDropdownMenu>
 					</div>
 				</div>
+				<form
+					v-if="isRenaming"
+					class="flex items-start gap-1.5"
+					@submit.prevent="submitRename"
+					@keydown.esc.stop="isRenaming = false"
+				>
+					<UFormField class="min-w-0 flex-1" :error="nameError ?? undefined">
+						<DmsInputText
+							v-model="draftName"
+							class="w-full"
+							autofocus
+							:aria-label="t('dms_mailing.templates.cols.name')"
+						/>
+					</UFormField>
+					<UButton
+						type="submit"
+						icon="i-ph-check"
+						size="sm"
+						square
+						:aria-label="t('dms_mailing.templates.drawer.rename')"
+					/>
+					<UButton
+						icon="i-ph-x"
+						color="neutral"
+						variant="ghost"
+						size="sm"
+						square
+						:aria-label="t('dms_mailing.common.cancel')"
+						@click="isRenaming = false"
+					/>
+				</form>
 				<h3
-					class="text-highlighted flex flex-wrap items-center gap-2 text-[17px] font-[650] tracking-[-0.02em]"
+					v-else
+					class="text-highlighted flex min-w-0 flex-wrap items-center gap-2 text-[17px] font-[650] tracking-[-0.02em] [overflow-wrap:anywhere]"
 				>
 					{{ template.name }}
 					<DmsStatusPill
-						:tone="STATUS_TONES[template.status]"
+						:tone="statusTone"
 						:label="statusLabel"
 						:dot="isLive ? 'live' : 'static'"
 					/>
+					<UButton
+						icon="i-ph-pencil-simple"
+						color="neutral"
+						variant="ghost"
+						size="xs"
+						square
+						:aria-label="t('dms_mailing.templates.drawer.rename')"
+						@click="startRename"
+					/>
 				</h3>
-				<p class="text-muted text-[12.5px]">
+				<p class="text-muted text-[12.5px] [overflow-wrap:anywhere]">
 					<span class="font-mono">{{ template.slug }}</span>
 					· {{ versionLabel }} · {{ editedLine }}
 				</p>
+				<div class="flex items-center gap-2 pt-1">
+					<span class="text-muted shrink-0 text-[12.5px]">
+						{{ t('dms_mailing.templates.drawer.category') }}
+					</span>
+					<MailingCategoryInput
+						class="min-w-0 flex-1"
+						:model-value="template.category ?? null"
+						@update:model-value="onCategoryChange"
+					/>
+				</div>
 			</div>
 
 			<UTabs
@@ -406,25 +638,28 @@ function onResolved(preview: PreviewResponse): void {
 						size="xs"
 						:aria-label="t('dms_mailing.test_send.locale')"
 					/>
-					<DmsEyebrow
+					<span
 						v-if="subject"
-						class="min-w-0"
-						truncate
-						:label="t('dms_mailing.templates.drawer.subject', { subject })"
-					/>
+						class="text-muted min-w-0 truncate text-[12.5px]"
+						:title="subject"
+					>
+						{{ t('dms_mailing.templates.drawer.subject', { subject }) }}
+					</span>
 				</div>
 				<div
-					class="border-default bg-elevated/40 flex justify-center overflow-hidden rounded-lg border p-3"
+					class="border-default bg-elevated/40 overflow-hidden rounded-lg border p-3"
 				>
-					<MailingTemplatePreviewFrame
-						:template-id="templateId"
-						:locale="locale"
-						:version="previewVersion"
-						:width="PREVIEW_WIDTH"
-						:scale="PREVIEW_SCALE"
-						:label="template.name"
-						@resolved="onResolved"
-					/>
+					<div ref="previewBox" class="flex justify-center">
+						<MailingTemplatePreviewFrame
+							:template-id="templateId"
+							:locale="locale"
+							:version="previewVersion"
+							:width="PREVIEW_WIDTH"
+							:scale="previewScale"
+							:label="template.name"
+							@resolved="onResolved"
+						/>
+					</div>
 				</div>
 				<DmsBanner
 					v-if="isLocaleMissing"
@@ -502,7 +737,7 @@ function onResolved(preview: PreviewResponse): void {
 							:label="t('dms_mailing.templates.drawer.unused')"
 						/>
 						<UButton
-							v-if="variable.usage === 'detected'"
+							v-if="variable.usage === 'detected' && !isLive"
 							class="ml-auto"
 							color="neutral"
 							variant="ghost"
@@ -510,11 +745,35 @@ function onResolved(preview: PreviewResponse): void {
 							:label="t('dms_mailing.templates.drawer.declare')"
 							@click="declareVariable(variable.path)"
 						/>
-						<span v-else class="text-dimmed ml-auto font-mono text-[11px]">
-							{{ variable.type }}
+						<span
+							v-else-if="variable.usage !== 'detected'"
+							class="text-dimmed ml-auto font-mono text-[11px]"
+						>
+							{{ t(variableTypeLabelKey(variable.type)) }}
 						</span>
 					</div>
 				</div>
+				<DmsBanner
+					v-if="hasDraftDeclarations"
+					tone="info"
+					size="sm"
+					icon="i-ph-brackets-curly"
+					:title="t('dms_mailing.templates.drawer.draft_declarations')"
+					:description="
+						t('dms_mailing.templates.drawer.draft_declarations_description')
+					"
+				>
+					<template #actions>
+						<UButton
+							color="neutral"
+							variant="outline"
+							size="xs"
+							:label="t('dms_mailing.templates.actions.open_editor')"
+							@click="openEditor()"
+						/>
+					</template>
+				</DmsBanner>
+				<MailingSystemVariables :variables="systemVars" />
 				<div class="flex flex-col gap-1.5">
 					<div class="flex items-center justify-between">
 						<DmsEyebrow
@@ -552,7 +811,7 @@ function onResolved(preview: PreviewResponse): void {
 				<div class="flex flex-col gap-1">
 					<DmsEyebrow :label="t('dms_mailing.templates.drawer.called_from')" />
 					<p
-						v-if="!performance?.sources.length"
+						v-if="!hasSends || !performance?.sources.length"
 						class="text-muted text-[12.5px]"
 					>
 						{{ t('dms_mailing.templates.drawer.no_sources') }}
@@ -577,8 +836,11 @@ function onResolved(preview: PreviewResponse): void {
 				</div>
 				<div class="flex flex-col gap-1">
 					<DmsEyebrow :label="t('dms_mailing.templates.drawer.fallbacks')" />
+					<p v-if="!hasSends" class="text-muted text-[12.5px]">
+						{{ t('dms_mailing.templates.drawer.no_sources') }}
+					</p>
 					<p
-						v-if="!performance?.fallbacks.length"
+						v-else-if="!performance?.fallbacks.length"
 						class="text-muted text-[12.5px]"
 					>
 						{{ t('dms_mailing.templates.drawer.no_fallbacks') }}
@@ -599,6 +861,19 @@ function onResolved(preview: PreviewResponse): void {
 						"
 					/>
 				</div>
+			</div>
+
+			<div v-if="tab === 'history'" class="flex flex-col gap-2 py-4">
+				<p class="text-muted text-[12.5px]">
+					{{ t('dms_mailing.history.intro') }}
+				</p>
+				<MailingVersionHistory
+					:template-id="templateId"
+					:current-version="detail?.version ?? 0"
+					:status="template.status"
+					:locale="locale"
+					:restore="restoreVersion"
+				/>
 			</div>
 
 			<div

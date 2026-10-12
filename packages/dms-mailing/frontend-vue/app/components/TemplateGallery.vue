@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
+import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import {
 	groupByCategory,
 	isNarrowed,
+	matchesQuery,
 	searchTermOf,
+	sortKeyOf,
+	sortLikeQuery,
 	userFilterKeys,
+	type CategoryGroup,
 	type GalleryContext,
 } from '../utils/gallery'
 import {
@@ -34,6 +39,15 @@ const SKELETON_CARDS = 3
 const NEW_TEMPLATE_KEY = 'n'
 const TYPING_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 const OPEN_OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]'
+const SEARCH_FIELDS = ['name', 'slug']
+/** The table's default sort: the only one the category groups keep. */
+const DEFAULT_SORT_KEY = 'updatedAt'
+const FLAT_GROUP: TemplateCategory = { id: 'all', label: '', icon: '' }
+/** Links into the attention filter: `?tab=attention` or `?attention=1`. */
+const ATTENTION_LINKS: Record<string, string> = {
+	tab: 'attention',
+	attention: '1',
+}
 
 const props = defineProps<TemplateGalleryProps>()
 
@@ -41,16 +55,24 @@ const api = useMailingApi()
 const { t } = useI18n()
 const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
+const route = useDmsRoute()
 
-const categories = ref<TemplateCategory[]>([])
+const isAttentionLink = (query: Record<string, unknown>) =>
+	Object.entries(ATTENTION_LINKS).some(([key, value]) => query[key] === value)
+
+const localized = useLocalizedDefaults()
+const storedCategories = ref<TemplateCategory[]>([])
+const categories = computed(() => localized.categories(storedCategories.value))
 const statsById = ref(new Map<string, TemplateStats>())
 const templateCount = ref<number | null>(null)
-const isAttentionOnly = ref(false)
+/** Every template, whatever the page: the attention filter works on them. */
+const allTemplates = ref<TemplateRow[]>([])
+const isAttentionOnly = ref(isAttentionLink(route.query ?? {}))
 const now = ref(new Date())
 
 async function loadCategories(): Promise<void> {
 	const response = await api.listCategories().catch(() => ({ categories: [] }))
-	categories.value = response.categories
+	storedCategories.value = response.categories
 }
 
 async function loadStats(): Promise<void> {
@@ -58,20 +80,41 @@ async function loadStats(): Promise<void> {
 	statsById.value = new Map(response.items.map((entry) => [entry.id, entry]))
 }
 
-async function loadCount(): Promise<void> {
+async function loadTemplates(): Promise<void> {
 	const response = await api.listTemplates().catch(() => null)
 	templateCount.value = response ? response.total : null
+	allTemplates.value = response?.results ?? []
 }
 
 onMounted(() => {
 	void loadCategories()
 	void loadStats()
-	void loadCount()
+	void loadTemplates()
 })
 
+/** The page of the table on screen: its query and its page index. */
+const viewKeyOf = (): string =>
+	JSON.stringify([props.context.query, props.context.pagination.pageIndex])
+
+/** The view whose rows are on screen; none while the first rows load. */
+let shownViewKey = props.context.loading ? null : viewKeyOf()
+
+/**
+ * New rows for the same page and query come from a refresh (the table's
+ * button, a realtime change): the whole list behind the attention filter and
+ * the figures are reloaded with them.
+ */
 watch(
 	() => props.context.items,
-	() => (now.value = new Date()),
+	() => {
+		now.value = new Date()
+		const viewKey = viewKeyOf()
+		const isRefresh = viewKey === shownViewKey
+		shownViewKey = viewKey
+		if (!isRefresh) return
+		void loadStats()
+		void loadTemplates()
+	},
 )
 
 const workspaceCodes = computed(() =>
@@ -81,7 +124,7 @@ const workspaceCodes = computed(() =>
 const reasonsById = computed(
 	() =>
 		new Map<string, AttentionReason[]>(
-			props.context.items.map((row) => [
+			[...allTemplates.value, ...props.context.items].map((row) => [
 				row._id,
 				attentionReasons({
 					row,
@@ -93,32 +136,47 @@ const reasonsById = computed(
 		),
 )
 
-const attentionCount = computed(
-	() =>
-		[...reasonsById.value.values()].filter((reasons) => reasons.length).length,
-)
-
-const visibleItems = computed(() =>
-	isAttentionOnly.value
-		? props.context.items.filter(
-				(row) => reasonsById.value.get(row._id)?.length,
-			)
-		: props.context.items,
-)
-
-const groups = computed(() =>
-	groupByCategory(
-		visibleItems.value,
-		categories.value,
-		t('dms_mailing.templates.uncategorised'),
+const attentionItems = computed(() =>
+	sortLikeQuery(
+		allTemplates.value.filter(
+			(row) =>
+				reasonsById.value.get(row._id)?.length &&
+				matchesQuery(row, props.context.query, SEARCH_FIELDS),
+		),
+		props.context.query,
 	),
 )
+
+const attentionCount = computed(() => attentionItems.value.length)
+
+const visibleItems = computed(() =>
+	isAttentionOnly.value ? attentionItems.value : props.context.items,
+)
+
+const isGrouped = computed(
+	() =>
+		(sortKeyOf(props.context.query) ?? DEFAULT_SORT_KEY) === DEFAULT_SORT_KEY,
+)
+
+const groups = computed<CategoryGroup<TemplateRow>[]>(() =>
+	isGrouped.value
+		? groupByCategory(
+				visibleItems.value,
+				categories.value,
+				t('dms_mailing.templates.uncategorised'),
+			)
+		: [{ category: FLAT_GROUP, items: visibleItems.value }],
+)
+
+/** The cards in the order drawn, for the drawer's previous / next. */
+const drawnItems = computed(() => groups.value.flatMap((group) => group.items))
 
 const search = computed(() => searchTermOf(props.context.query))
 const narrowed = computed(() => isNarrowed(props.context.query))
 const hasNoItems = computed(() => !props.context.items.length)
 
 const STATE_RULES: StateRule[] = [
+	['loading', () => isAttentionOnly.value && templateCount.value === null],
 	['loading', () => props.context.loading && hasNoItems.value],
 	[
 		'loading',
@@ -145,6 +203,8 @@ const isPaged = computed(
 	() => (props.context.pagination.mode ?? PAGES_MODE) === PAGES_MODE,
 )
 
+const isPaginationShown = computed(() => !isAttentionOnly.value)
+
 const emptyTitle = computed(() =>
 	search.value
 		? t('dms_mailing.templates.empty.no_match_title', { search: search.value })
@@ -160,7 +220,7 @@ const emptyDescription = computed(() =>
 function refreshAll(): void {
 	void props.context.refresh()
 	void loadStats()
-	void loadCount()
+	void loadTemplates()
 }
 
 function openRow(row: TemplateRow): void {
@@ -311,7 +371,7 @@ useEventListener(
 				:key="group.category.id"
 				class="flex flex-col gap-3"
 			>
-				<div class="flex items-center gap-2">
+				<div v-if="isGrouped" class="flex items-center gap-2">
 					<UIcon :name="group.category.icon" class="text-dimmed size-4" />
 					<h2 class="text-highlighted text-[13px] font-semibold">
 						{{ group.category.label }}
@@ -332,7 +392,7 @@ useEventListener(
 						@open-locale="(code: string) => openLocale(template, code)"
 						@details="
 							overlays.openDetails(template, {
-								rows: visibleItems,
+								rows: drawnItems,
 								onDone: refreshAll,
 							})
 						"
@@ -361,7 +421,11 @@ useEventListener(
 		</template>
 
 		<div
-			v-if="isPaged && context.pagination.total > context.pagination.pageSize"
+			v-if="
+				isPaginationShown &&
+				isPaged &&
+				context.pagination.total > context.pagination.pageSize
+			"
 			class="flex justify-end"
 		>
 			<UPagination
@@ -371,7 +435,7 @@ useEventListener(
 			/>
 		</div>
 		<div
-			v-else-if="!isPaged && context.pagination.hasMore"
+			v-else-if="isPaginationShown && !isPaged && context.pagination.hasMore"
 			class="flex justify-center"
 		>
 			<UButton

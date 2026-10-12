@@ -39,6 +39,28 @@ function backendKeys(): string[] {
 	return [...found].sort()
 }
 
+function messagesOf(value: unknown, prefix = ''): [string, string][] {
+	if (typeof value === 'string') return [[prefix, value]]
+	if (typeof value !== 'object' || value === null) return []
+	return Object.entries(value).flatMap(([key, child]) =>
+		messagesOf(child, prefix ? `${prefix}.${key}` : key),
+	)
+}
+
+// `{name}` placeholders and `{'…'}` literals, the only braces a message holds.
+const BRACED = /\{'[^']*'\}|\{\w+\}/g
+const PLACEHOLDER = /\{(\w+)\}/g
+const PLURAL_SEPARATOR = '|'
+// vue-i18n's default rule picks, for three forms, the first at 0 and the
+// second at 1: French says « 0 envoi », so every French plural needs all three.
+const FRENCH_PLURAL_FORMS = 3
+
+function placeholdersOf(message: string): string[] {
+	return [
+		...new Set([...message.matchAll(PLACEHOLDER)].map((match) => match[1])),
+	].sort()
+}
+
 function resolve(root: unknown, key: string): unknown {
 	return key
 		.split('.')
@@ -79,5 +101,38 @@ describe('locales', () => {
 		expect(keys.filter((key) => typeof resolve(fr, key) !== 'string')).toEqual(
 			[],
 		)
+	})
+	it('compile: no stray brace or unescaped @ outside placeholders', () => {
+		const broken = [...messagesOf(en), ...messagesOf(fr)].filter(
+			([, message]) => /[{}@]/.test(message.replace(BRACED, '')),
+		)
+		expect(broken).toEqual([])
+	})
+	it('give each message the same placeholders in both languages', () => {
+		const french = new Map(messagesOf(fr))
+		const mismatched = messagesOf(en)
+			.filter(
+				([key, message]) =>
+					placeholdersOf(message).join() !==
+					placeholdersOf(french.get(key) ?? '').join(),
+			)
+			.map(([key]) => key)
+		expect(mismatched).toEqual([])
+	})
+	it('say « modèle », never « template », in French', () => {
+		const anglicisms = messagesOf(fr)
+			.filter(([, message]) => /\btemplates?\b/i.test(message))
+			.map(([key]) => key)
+		expect(anglicisms).toEqual([])
+	})
+	it('write every French plural with three forms, 0 in the singular', () => {
+		const incomplete = messagesOf(fr)
+			.filter(
+				([, message]) =>
+					message.includes(PLURAL_SEPARATOR) &&
+					message.split(PLURAL_SEPARATOR).length !== FRENCH_PLURAL_FORMS,
+			)
+			.map(([key]) => key)
+		expect(incomplete).toEqual([])
 	})
 })

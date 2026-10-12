@@ -253,6 +253,7 @@ export type SendStatus =
 	| 'spam'
 	| 'failed'
 	| 'unsubscribed'
+	| 'suppressed'
 
 export const SEND_STATUSES: SendStatus[] = [
 	'queued',
@@ -264,9 +265,11 @@ export const SEND_STATUSES: SendStatus[] = [
 	'spam',
 	'failed',
 	'unsubscribed',
+	'suppressed',
 ]
 
-export type SendEventType = SendStatus
+/** What a provider reports: a suppressed send never reached one. */
+export type SendEventType = Exclude<SendStatus, 'suppressed'>
 
 export interface TemplateCategory {
 	id: string
@@ -288,6 +291,8 @@ export interface TemplateRow {
 	/** Version customers receive; 0 or absent when never published. */
 	publishedVersion?: number
 	publishedAt?: string | null
+	/** When the template last left `live` by an unpublish. */
+	unpublishedAt?: string | null
 	/** Whether a draft holds changes customers do not receive yet. */
 	isDraftPending?: boolean
 }
@@ -301,13 +306,22 @@ export type TemplateChangeKind =
 	| 'block_removed'
 	| 'block_changed'
 	| 'blocks_reordered'
+	| 'variable_added'
+	| 'variable_removed'
+	| 'variable_changed'
 
-/** One difference between what customers receive and the draft. */
+/**
+ * One difference between what customers receive and the draft: per locale
+ * for the content, per path for the variable declarations.
+ */
 export interface TemplateChange {
+	/** Blank for a change of the variable declarations. */
 	locale: string
 	kind: TemplateChangeKind
 	blockId?: string
 	blockType?: BlockType
+	/** The declared path a variable change is about. */
+	variable?: string
 }
 
 export interface TemplateSender {
@@ -330,12 +344,23 @@ export interface TemplateContentResponse {
 	hasDraft: boolean
 	/** Version customers receive; 0 when never published. */
 	version: number
+	/** The draft revision a save or a publish carries back. */
+	revision: number
 	changes: TemplateChange[]
+	/** The declarations the editor works on: the draft's, else the published. */
 	variables: VariableDefinition[]
-	/** Paths the content actually references, across every locale. */
+	/** Paths the working content references, across every locale. */
 	detectedVariables: string[]
+	/**
+	 * The contract callers send against: the published declarations and the
+	 * paths the published content references; `null` when never published.
+	 */
+	publishedVariables?: VariableDefinition[] | null
+	publishedDetectedVariables?: string[] | null
 	testData: Record<string, unknown>
 	fallbackLocale: string
+	/** Whether a send missing a variable fails rather than goes out blank. */
+	blockOnMissingVariables: boolean
 	categories: TemplateCategory[]
 	sender: TemplateSender
 }
@@ -346,6 +371,8 @@ export interface TemplateVersionSummary {
 	publishedBy: string
 	locales: string
 	changes: TemplateChange[]
+	/** The declarations the version shipped with. */
+	variables?: VariableDefinition[]
 }
 
 /** Last 30 days of real sends of one template. */
@@ -395,7 +422,13 @@ export interface PreviewResponse {
 }
 
 export type SendStage =
-	'problem' | 'in_progress' | 'delivered' | 'engaged' | 'unsubscribed'
+	| 'problem'
+	| 'resolved'
+	| 'suppressed'
+	| 'in_progress'
+	| 'delivered'
+	| 'engaged'
+	| 'unsubscribed'
 
 export interface SendRow {
 	_id: string
@@ -412,7 +445,7 @@ export interface SendRow {
 	status: SendStatus
 	provider?: string
 	providerMessageId?: string
-	latencyMs: number
+	latencyMs: number | null
 	error?: string
 	source?: string
 	json_variables: string
@@ -420,14 +453,35 @@ export interface SendRow {
 	clicks: number
 	createdAt: string
 	isTest: boolean
+	/** The send this one repeats. */
+	replayOf?: string
+	/** The send that repeated this one, once someone sent it again. */
+	replayedBy?: string
+	/** When someone sent it again. */
+	resolvedAt?: string
+	/** Who sent it again: a user id. */
+	resolvedBy?: string
 }
 
 export interface SendEventRow {
 	_id: string
 	sendId: string
-	type: SendStatus
+	type: SendEventType
 	at: string
 	json_details: string
+}
+
+export type SuppressionReason =
+	'hard_bounce' | 'complaint' | 'unsubscribe' | 'manual'
+
+/** An address's entry on the suppression list, as the API answers it. */
+export interface SuppressionSummary {
+	id: string
+	email: string
+	reason: SuppressionReason
+	createdAt: string
+	/** The send whose event put the address on the list. */
+	sendId?: string
 }
 
 export interface SendTemplateSummary {
@@ -442,6 +496,8 @@ export interface SendDetailResponse {
 	events: SendEventRow[]
 	/** `null` when the template was deleted since. */
 	template: SendTemplateSummary | null
+	/** The recipient's entry on the suppression list, if any. */
+	suppression?: SuppressionSummary | null
 }
 
 export interface SendHtmlResponse {
@@ -449,6 +505,8 @@ export interface SendHtmlResponse {
 	subject: string
 	locale: string
 	version: number
+	/** A draft test is rendered from today's draft, which may differ from what was sent. */
+	approximate?: boolean
 	from: string
 	fromName: string
 }
@@ -457,7 +515,10 @@ export interface FunnelStep {
 	id: string
 	label: string
 	count: number
-	rate: number
+	/** Share of the previous step; `null` when there is nothing to divide by. */
+	rate: number | null
+	/** `false` when nothing reports the events this step counts. */
+	isMeasured?: boolean
 }
 
 export interface ProviderInfo {

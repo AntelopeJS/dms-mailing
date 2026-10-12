@@ -37,4 +37,12 @@ describe('editor history', () => {
 			recordChange(history, String(step), step * HISTORY_COALESCE_MS)
 		expect(history.past).toHaveLength(HISTORY_LIMIT)
 	})
+	it('keeps a discrete change in a step of its own', () => {
+		const history = createHistory('a')
+		recordChange(history, 'b', HISTORY_COALESCE_MS)
+		recordChange(history, 'c', HISTORY_COALESCE_MS + 1, true)
+		recordChange(history, 'd', HISTORY_COALESCE_MS + 2)
+		expect(history.past).toEqual(['a', 'b', 'c'])
+		expect(undoChange(history)).toBe('c')
+	})
 })

@@ -4,6 +4,7 @@ import {
 	collectContentPaths,
 	collectPaths,
 	isPresent,
+	pathBreakSegments,
 	pathsInBlocks,
 	readPath,
 } from '../app/utils/paths'
@@ -138,5 +139,13 @@ describe('readPath', () => {
 		expect(readPath(data, 'constructor')).toBeUndefined()
 		expect(isPresent(readPath(data, 'order.note'))).toBe(false)
 		expect(isPresent(readPath(data, 'order.total'))).toBe(true)
+	})
+})
+
+describe('pathBreakSegments', () => {
+	it('cuts a path after each dot, so it wraps between names', () => {
+		expect(pathBreakSegments('order.number')).toEqual(['order.', 'number'])
+		expect(pathBreakSegments('items[].name')).toEqual(['items[].', 'name'])
+		expect(pathBreakSegments('firstName')).toEqual(['firstName'])
 	})
 })

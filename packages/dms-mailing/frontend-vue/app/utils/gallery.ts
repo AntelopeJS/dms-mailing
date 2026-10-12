@@ -105,18 +105,100 @@ export function isNarrowed(
 	return Boolean(searchTermOf(query)) || userFilterKeys(query).length > 0
 }
 
+type FilterMatcher = (cell: string, value: string) => boolean
+
+const FILTER_MATCHERS: Record<string, FilterMatcher> = {
+	is: (cell, value) => cell === value,
+	is_not: (cell, value) => cell !== value,
+	is_empty: (cell) => !cell,
+	is_not_empty: (cell) => Boolean(cell),
+}
+
+const FILTER_MODE_SEPARATOR = ':'
+
+const cellOf = (row: object, field: string) =>
+	String((row as Record<string, unknown>)[field] ?? '')
+
+function matchesFilter(row: object, key: string, filter: unknown): boolean {
+	if (typeof filter !== 'string') return true
+	const at = filter.indexOf(FILTER_MODE_SEPARATOR)
+	const mode = at < 0 ? filter : filter.slice(0, at)
+	const matcher = FILTER_MATCHERS[mode]
+	if (!matcher) return true
+	const value = at < 0 ? '' : filter.slice(at + 1)
+	return matcher(cellOf(row, key.slice(FILTER_PREFIX.length)), value)
+}
+
+/**
+ * Whether a row passes the table's query (the tab, the quick filters and the
+ * search over `searchFields`), checked in the browser over rows listed
+ * without it. A filter mode it does not know lets the row through.
+ */
+export function matchesQuery(
+	row: object,
+	query: Record<string, unknown> | undefined,
+	searchFields: string[],
+): boolean {
+	const filters = Object.entries(query ?? {}).filter(([key]) =>
+		key.startsWith(FILTER_PREFIX),
+	)
+	if (!filters.every(([key, value]) => matchesFilter(row, key, value))) {
+		return false
+	}
+	const search = searchTermOf(query).toLowerCase()
+	return (
+		!search ||
+		searchFields.some((field) =>
+			cellOf(row, field).toLowerCase().includes(search),
+		)
+	)
+}
+
+const SORT_KEY = 'sortKey'
+const SORT_DIRECTION_KEY = 'sortDirection'
+const DESCENDING = 'desc'
+
+/** The table's sort column; absent without one. */
+export function sortKeyOf(
+	query: Record<string, unknown> | undefined,
+): string | undefined {
+	const key = query?.[SORT_KEY]
+	return typeof key === 'string' && key ? key : undefined
+}
+
+/** Rows ordered like the table's query orders them, the list left untouched. */
+export function sortLikeQuery<T extends object>(
+	rows: T[],
+	query: Record<string, unknown> | undefined,
+): T[] {
+	const key = sortKeyOf(query)
+	if (!key) return rows
+	const direction = query?.[SORT_DIRECTION_KEY] === DESCENDING ? -1 : 1
+	return [...rows].sort(
+		(left, right) =>
+			direction * cellOf(left, key).localeCompare(cellOf(right, key)),
+	)
+}
+
 const MS_PER_HOUR = 3_600_000
 const MS_PER_MINUTE = 60_000
 const HOURS_PER_DAY = 24
 
+/** Words a sentence puts around an absolute date ("le 27 sept." in French). */
+export type OnDate = (date: string) => string
+
+const bareDate: OnDate = (date) => date
+
 /**
  * A date as a card reads it: "2 hr. ago" / "5 min. ago" within a day, "Sep 27"
- * after. Empty for an unreadable date.
+ * after. `onDate` dresses the absolute one only, so a sentence written around
+ * it ("Edited {date}") reads right in both cases. Empty for an unreadable date.
  */
 export function formatCardDate(
 	date: string | null | undefined,
 	now: Date,
 	locale: string,
+	onDate: OnDate = bareDate,
 ): string {
 	const time = date ? new Date(date).getTime() : Number.NaN
 	if (Number.isNaN(time)) return ''
@@ -131,10 +213,45 @@ export function formatCardDate(
 	if (elapsed < HOURS_PER_DAY * MS_PER_HOUR) {
 		return relative.format(-Math.round(elapsed / MS_PER_HOUR), 'hour')
 	}
-	return new Intl.DateTimeFormat(locale, {
-		month: 'short',
-		day: '2-digit',
-	}).format(new Date(time))
+	return onDate(
+		new Intl.DateTimeFormat(locale, {
+			month: 'short',
+			day: '2-digit',
+		}).format(new Date(time)),
+	)
+}
+
+/**
+ * How long ago `date` was, the way "live since…" reads it: a duration within a
+ * day ("1 hr", "5 min"; "1 h" in French), the date after ("Sep 27"). `null`
+ * for an unreadable date.
+ */
+export interface CardSince {
+	kind: 'duration' | 'date'
+	text: string
+}
+
+export function formatCardSince(
+	date: string | null | undefined,
+	now: Date,
+	locale: string,
+): CardSince | null {
+	const time = date ? new Date(date).getTime() : Number.NaN
+	if (Number.isNaN(time)) return null
+	const elapsed = Math.max(0, now.getTime() - time)
+	if (elapsed >= HOURS_PER_DAY * MS_PER_HOUR)
+		return { kind: 'date', text: formatCardDate(date, now, locale) }
+	const isHours = elapsed >= MS_PER_HOUR
+	const amount = Math.max(
+		1,
+		Math.round(elapsed / (isHours ? MS_PER_HOUR : MS_PER_MINUTE)),
+	)
+	const text = new Intl.NumberFormat(locale, {
+		style: 'unit',
+		unit: isHours ? 'hour' : 'minute',
+		unitDisplay: 'short',
+	}).format(amount)
+	return { kind: 'duration', text }
 }
 
 /** The first word of a person's name ("Hugo Bernard" → "Hugo"). */

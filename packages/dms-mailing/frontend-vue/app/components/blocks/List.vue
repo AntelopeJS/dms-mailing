@@ -70,7 +70,7 @@ const token = (path: string): string => `${TOKEN_OPEN}${path}${TOKEN_CLOSE}`
 				</tr>
 			</tbody>
 		</table>
-		<p class="mt-1 font-mono text-[10px] text-gray-400">
+		<p class="mt-1 font-mono text-[10px] text-gray-600">
 			#each {{ block.source }}
 		</p>
 	</div>

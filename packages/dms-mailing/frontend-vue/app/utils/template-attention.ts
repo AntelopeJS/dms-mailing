@@ -11,8 +11,7 @@ export const STALE_DRAFT_DAYS = 7
 
 const MS_PER_DAY = 86_400_000
 
-export type AttentionReason =
-	'unpublished_draft' | 'stale_draft' | 'never_sent' | 'missing_locale'
+export type AttentionReason = 'stale_draft' | 'never_sent' | 'missing_locale'
 
 export interface AttentionInput {
 	row: TemplateRow
@@ -35,7 +34,6 @@ export function daysSince(date: string | null | undefined, now: Date): number {
 }
 
 const ATTENTION_RULES: Record<AttentionReason, AttentionRule> = {
-	unpublished_draft: ({ row }) => isDraft(row) && !row.publishedVersion,
 	stale_draft: ({ row, now }) =>
 		isDraft(row) && daysSince(row.updatedAt, now) > STALE_DRAFT_DAYS,
 	never_sent: ({ row, stats }) => row.status === 'live' && !stats?.sends,
@@ -46,9 +44,10 @@ const ATTENTION_RULES: Record<AttentionReason, AttentionRule> = {
 const ATTENTION_REASONS = Object.keys(ATTENTION_RULES) as AttentionReason[]
 
 /**
- * Why a template needs a look, in a stable order: a draft never published or
- * untouched for a week, a live template no real send used in 30 days, a
- * workspace locale it lacks. Archived templates never need attention.
+ * Why a template needs a look, in a stable order: a draft untouched for a
+ * week, a live template no real send used in 30 days, a workspace locale it
+ * lacks. A draft being written is not a problem yet, and archived templates
+ * never need attention.
  */
 export function attentionReasons(input: AttentionInput): AttentionReason[] {
 	if (input.row.status === 'archived') return []

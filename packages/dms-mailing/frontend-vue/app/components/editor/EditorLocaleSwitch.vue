@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { pickLocale } from '../../utils/locales'
 
 interface LocaleItem {
 	code: string
@@ -19,8 +20,10 @@ const items = computed<LocaleItem[]>(() =>
 
 function titleOf(item: LocaleItem): string | undefined {
 	if (!item.isMissing) return undefined
+	const present = Object.keys(editor.content.locales)
+	const fallback = pickLocale(present, item.code, session.state.fallbackLocale)
 	return t('dms_mailing.editor.toolbar.locale_missing', {
-		fallback: session.state.fallbackLocale.toUpperCase(),
+		fallback: fallback.toUpperCase(),
 	})
 }
 </script>

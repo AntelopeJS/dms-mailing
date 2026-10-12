@@ -12,6 +12,13 @@ export interface BlockField {
 	kind: FieldKind
 	label: string
 	help?: string
+	/** The backend refuses the content while this field is empty. */
+	isRequired?: boolean
+}
+
+interface FieldOptions {
+	help?: string
+	isRequired?: boolean
 }
 
 const LABEL_PREFIX = 'dms_mailing.editor.block_settings'
@@ -19,12 +26,18 @@ const LABEL_PREFIX = 'dms_mailing.editor.block_settings'
 const snakeCase = (key: string): string =>
 	key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
 
-const field = (key: string, kind: FieldKind, help?: string): BlockField => ({
+const field = (
+	key: string,
+	kind: FieldKind,
+	options: FieldOptions = {},
+): BlockField => ({
 	key,
 	kind,
 	label: `${LABEL_PREFIX}.${snakeCase(key)}`,
-	help,
+	...options,
 })
+
+const REQUIRED: FieldOptions = { isRequired: true }
 
 const FIELDS: Record<BlockType, BlockField[]> = {
 	hero: [field('imageUrl', 'token'), field('alt', 'token')],
@@ -36,9 +49,9 @@ const FIELDS: Record<BlockType, BlockField[]> = {
 	paragraph: [field('text', 'tokens'), field('align', 'align')],
 	code: [field('text', 'token')],
 	list: [
-		field('source', 'path', 'source_help'),
-		field('labelPath', 'text'),
-		field('valuePath', 'text'),
+		field('source', 'path', { help: 'source_help', isRequired: true }),
+		field('labelPath', 'text', REQUIRED),
+		field('valuePath', 'text', REQUIRED),
 	],
 	total: [field('label', 'token'), field('value', 'token')],
 	button: [
@@ -50,11 +63,16 @@ const FIELDS: Record<BlockType, BlockField[]> = {
 	divider: [],
 	footer: [
 		field('text', 'tokens'),
-		field('unsubscribeLabel', 'text'),
-		field('preferencesLabel', 'text'),
+		field('unsubscribeLabel', 'text', { help: 'unsubscribe_label_help' }),
+		field('preferencesLabel', 'text', { help: 'preferences_label_help' }),
 	],
 }
 
 export function fieldsFor(type: BlockType): BlockField[] {
 	return FIELDS[type]
+}
+
+/** Whether `value` may be written to the content for `field`. */
+export function isFieldValueValid(field: BlockField, value: string): boolean {
+	return !field.isRequired || value.trim() !== ''
 }

@@ -6,11 +6,15 @@ export interface PeriodDataOptions {
 	extraQuery?: () => Record<string, string>
 	/** Refetches on this interval (ms) while mounted; off when absent. */
 	refreshEvery?: number
+	/** Refetches on each event of this realtime topic, as the DMS blocks do. */
+	realtimeTopic?: string
 }
 
 export interface PeriodDataState<T> {
 	data: Ref<T | null>
 	loading: Ref<boolean>
+	/** What the last load failed with; `null` once one succeeds. */
+	error: Ref<unknown>
 	/** When the data last loaded; drives "updated HH:MM". */
 	updatedAt: Ref<Date | null>
 	refresh: () => Promise<void>
@@ -27,6 +31,9 @@ const MISSING_SCOPE_DELAY_MS = 400
  * Reads a DMS period-selector scope and re-runs `load` whenever the window
  * (or the extra query) changes. The scope registers when the selector mounts,
  * so the first run is driven by the watcher rather than by `onMounted`.
+ *
+ * A failed load keeps the last data, like the DMS cards: the caller shows an
+ * error state only when there is nothing to show instead.
  */
 export function useMailingPeriodData<T>(
 	scope: string,
@@ -36,6 +43,7 @@ export function useMailingPeriodData<T>(
 	const period = usePeriodScope(scope)
 	const data = ref(null) as Ref<T | null>
 	const loading = ref(false)
+	const error = ref<unknown>(null)
 	const updatedAt = ref<Date | null>(null)
 	let fallbackTimer: ReturnType<typeof setTimeout> | undefined
 	let pollTimer: ReturnType<typeof setInterval> | undefined
@@ -49,9 +57,10 @@ export function useMailingPeriodData<T>(
 		loading.value = true
 		try {
 			data.value = await load(query())
+			error.value = null
 			updatedAt.value = new Date()
-		} catch {
-			data.value = null
+		} catch (failure) {
+			error.value = failure
 		} finally {
 			loading.value = false
 		}
@@ -76,6 +85,11 @@ export function useMailingPeriodData<T>(
 		},
 	)
 
+	if (options.realtimeTopic)
+		useRealtimeTopic(options.realtimeTopic, (event: object) => {
+			if ('type' in event) void refresh()
+		})
+
 	onMounted(() => {
 		if (options.refreshEvery)
 			pollTimer = setInterval(() => void refresh(), options.refreshEvery)
@@ -86,5 +100,5 @@ export function useMailingPeriodData<T>(
 		clearInterval(pollTimer)
 	})
 
-	return { data, loading, updatedAt, refresh }
+	return { data, loading, error, updatedAt, refresh }
 }

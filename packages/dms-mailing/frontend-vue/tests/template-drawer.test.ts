@@ -30,6 +30,7 @@ const api = {
 	starters: vi.fn(),
 	listCategories: vi.fn(),
 	createTemplate: vi.fn(),
+	saveTemplateDetails: vi.fn(),
 }
 
 vi.mock('../app/composables/useMailingApi', () => ({
@@ -59,12 +60,18 @@ function detail(template: TemplateRow): TemplateContentResponse {
 		publishedContent: { locales },
 		hasDraft: false,
 		version: 12,
+		revision: 3,
 		changes: [],
 		variables: [
 			{ path: 'customer.firstName', type: 'string', required: true },
 			{ path: 'customer.company', type: 'string', required: false },
 		],
 		detectedVariables: ['customer.firstName', 'order.trackingUrl'],
+		publishedVariables: [
+			{ path: 'customer.firstName', type: 'string', required: true },
+			{ path: 'customer.company', type: 'string', required: false },
+		],
+		publishedDetectedVariables: ['customer.firstName', 'order.trackingUrl'],
 		testData: {},
 		fallbackLocale: 'en',
 		categories: [],
@@ -118,7 +125,7 @@ beforeEach(() => {
 	api.archive.mockResolvedValue({ status: 'archived' })
 	api.restore.mockResolvedValue({ status: 'draft' })
 	api.saveVariables.mockImplementation(
-		async (_id: string, variables: unknown) => ({ variables }),
+		async (_id: string, variables: unknown) => ({ variables, revision: 4 }),
 	)
 })
 
@@ -183,8 +190,8 @@ describe('TemplateDrawer', () => {
 		view.unmount()
 	})
 
-	it('flags undeclared and unused variables, and declares one', async () => {
-		api.templateContent.mockResolvedValue(detail(row('live')))
+	it('flags undeclared and unused variables, and declares one in the draft', async () => {
+		api.templateContent.mockResolvedValue(detail(row('draft')))
 		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
 		await flush()
 		const text = view.host.textContent ?? ''
@@ -205,7 +212,119 @@ describe('TemplateDrawer', () => {
 			expect.arrayContaining([
 				{ path: 'order.trackingUrl', type: 'string', required: false },
 			]),
+			3,
 		)
+		view.unmount()
+	})
+
+	it('shows a live template its published contract, not the draft declarations', async () => {
+		const live = detail(row('live', { isDraftPending: true }))
+		api.templateContent.mockResolvedValue({
+			...live,
+			hasDraft: true,
+			variables: [
+				...live.variables,
+				{ path: 'order.trackingUrl', type: 'url', required: true },
+			],
+			changes: [
+				{ locale: '', kind: 'variable_added', variable: 'order.trackingUrl' },
+			],
+		})
+		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
+		await flush()
+		const pills = [...view.host.querySelectorAll('dmsstatuspill')].map((pill) =>
+			pill.getAttribute('label'),
+		)
+		expect(pills).toContain('dms_mailing.templates.drawer.not_declared')
+		const buttons = [...view.host.querySelectorAll('ubutton')].map((button) =>
+			button.getAttribute('label'),
+		)
+		expect(buttons).not.toContain('dms_mailing.templates.drawer.declare')
+		const banners = [
+			...view.host.querySelectorAll('[data-stub="DmsBanner"]'),
+		].map((banner) => banner.getAttribute('title'))
+		expect(banners).toContain('dms_mailing.templates.drawer.draft_declarations')
+		view.unmount()
+	})
+
+	it('reloads after a real send made from its menu', async () => {
+		vi.stubGlobal('useModal', () => ({
+			open: () => ({
+				result: Promise.resolve(true),
+				patch: () => undefined,
+			}),
+		}))
+		api.templateContent.mockResolvedValue(detail(row('live')))
+		const onChanged = vi.fn()
+		const view = mount(TemplateDrawer, { templateId: 't1', onChanged }, globals)
+		await flush()
+		menuGroups.flat().at(-1)!.onSelect()
+		await flush()
+		expect(api.templateContent).toHaveBeenCalledTimes(2)
+		expect(onChanged).toHaveBeenCalled()
+		view.unmount()
+	})
+
+	it('opens the send log narrowed to the template', async () => {
+		api.templateContent.mockResolvedValue(detail(row('live')))
+		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
+		await flush()
+		const link = [...view.host.querySelectorAll('ubutton')].find(
+			(button) =>
+				button.getAttribute('label') ===
+				'dms_mailing.templates.drawer.open_send_log',
+		) as HTMLElement
+		link.click()
+		expect(stubs.navigations).toEqual([
+			{
+				path: '/modules/mailing/sends',
+				query: { template: 'order-confirmed' },
+			},
+		])
+		view.unmount()
+	})
+
+	it('writes a complete SendTemplate call', async () => {
+		api.templateContent.mockResolvedValue({
+			...detail(row('live')),
+			testData: { customer: { firstName: 'Sofie' } },
+		})
+		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
+		await flush()
+		const snippet = view.host.querySelector('pre')?.textContent ?? ''
+		expect(snippet).toContain('await SendTemplate("order-confirmed", {')
+		expect(snippet).toContain('tenantId,')
+		expect(snippet).toContain('locale: "en",')
+		expect(snippet).toContain('firstName: "Sofie"')
+		expect(snippet).toContain('trackingUrl:')
+		expect(snippet).not.toContain('company')
+		view.unmount()
+	})
+
+	it('renames the template in place', async () => {
+		api.templateContent.mockResolvedValue(detail(row('draft')))
+		api.saveTemplateDetails.mockResolvedValue(1)
+		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
+		await flush()
+		;(
+			[...view.host.querySelectorAll('ubutton')].find(
+				(button) =>
+					button.getAttribute('aria-label') ===
+					'dms_mailing.templates.drawer.rename',
+			) as HTMLElement
+		).click()
+		await flush()
+		const input = view.host.querySelector('form input') as HTMLInputElement
+		await typeInto(input, '  Order shipped ')
+		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
+			new Event('submit'),
+		)
+		await flush()
+		expect(api.saveTemplateDetails).toHaveBeenCalledWith('t1', {
+			name: 'Order shipped',
+			slug: 'order-confirmed',
+			category: null,
+		})
 		view.unmount()
 	})
 
@@ -263,6 +382,20 @@ describe('DuplicateModal', () => {
 		expect(stubs.navigations).toEqual([
 			{ path: '/modules/mailing/templates/copy-id', query: {} },
 		])
+		view.unmount()
+	})
+
+	it('prefills a valid copy of a template with a long name', async () => {
+		const long = row('live', { name: 'x'.repeat(120), slug: 'x'.repeat(64) })
+		api.listTemplates.mockResolvedValue({ results: [long], total: 1 })
+		const view = mount(DuplicateModal, { templateId: 't1' }, globals)
+		await flush()
+		const [name, slug] = [
+			...view.host.querySelectorAll('input'),
+		] as HTMLInputElement[]
+		expect(name!.value.length).toBeLessThanOrEqual(120)
+		expect(name!.value).toContain('dms_mailing.duplicate.copy_name')
+		expect(slug!.value.length).toBeLessThanOrEqual(64)
 		view.unmount()
 	})
 })

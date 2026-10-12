@@ -1,14 +1,22 @@
 import type { Component } from 'vue'
 import type { MailingApi } from './useMailingApi'
 import type { EditorSession } from './useEditorSession'
+import { isDraftConflict } from './useEditorSession'
 import type { EditorState } from './useTemplateEditor'
 import { useTemplateDrawer } from './useTemplateDrawer'
 import type { TemplateOverlays } from './useTemplateDrawer'
 import { describeChanges } from '../utils/changes'
 import { deepClone } from '../utils/clone'
-import { publishChecks } from '../utils/editor-checks'
+import {
+	contentChecks,
+	publishBlockers,
+	publishChecks,
+	tokenChecks,
+} from '../utils/editor-checks'
+import type { EditorCheck } from '../utils/editor-checks'
 import type { LifecycleAction } from '../utils/lifecycle'
-import { canPublish } from '../utils/lifecycle'
+import { afterLifecycle, isPublishable } from '../utils/lifecycle'
+import { systemVariableChecks } from '../utils/system-variables'
 
 const PUBLISH_REVIEW_COMPONENT = 'MailingEditorPublishReview'
 const COMPARE_COMPONENT = 'MailingEditorCompare'
@@ -16,7 +24,7 @@ const PUBLISH_ICON = 'i-ph-rocket-launch'
 const DISCARD_ICON = 'i-ph-arrow-counter-clockwise'
 const COMPARE_ICON = 'i-ph-columns'
 const REVIEW_SIZE = 'lg'
-const COMPARE_SIZE = 'full'
+const COMPARE_SIZE = '5xl'
 const KEY = 'dms_mailing.editor'
 
 /** What the publish review resolves with, from its footer buttons. */
@@ -50,65 +58,131 @@ function createTestAction(
 		})
 }
 
+/** Which publish the review stands for; each has its own title and wording. */
+type PublishKind = 'first' | 'changes' | 'republish'
+
+function publishKindOf(deps: ActionDeps): PublishKind {
+	const { state } = deps.session
+	if (state.version === 0) return 'first'
+	return state.changes.length > 0 ? 'changes' : 'republish'
+}
+
+/** The version the publish puts live: the next one, or the same again. */
+function targetVersionOf(deps: ActionDeps): number {
+	const { version } = deps.session.state
+	return publishKindOf(deps) === 'republish' ? version : version + 1
+}
+
+const TITLE_KEYS: Record<PublishKind, string> = {
+	first: `${KEY}.publish_review.title_first`,
+	changes: `${KEY}.publish_review.title`,
+	republish: `${KEY}.publish_review.title_republish`,
+}
+
+const DESCRIPTION_KEYS: Record<PublishKind, string> = {
+	first: `${KEY}.publish_review.description_first`,
+	changes: `${KEY}.publish_review.description`,
+	republish: `${KEY}.publish_review.description_republish`,
+}
+
 function publishTitle(deps: ActionDeps, tools: ActionTools): string {
 	const { state } = deps.session
-	const name = state.template.name
-	if (state.version === 0)
-		return tools.t(`${KEY}.publish_review.title_first`, { name })
 	const count = state.changes.length
-	return tools.t(`${KEY}.publish_review.title`, { count, name }, count)
+	const params = { count, name: state.template.name, version: state.version }
+	return tools.t(TITLE_KEYS[publishKindOf(deps)], params, count)
 }
 
 function publishDescription(deps: ActionDeps, tools: ActionTools): string {
 	const { state } = deps.session
-	const params = {
+	return tools.t(DESCRIPTION_KEYS[publishKindOf(deps)], {
 		slug: state.template.slug,
-		next: state.version + 1,
+		next: targetVersionOf(deps),
 		version: state.version,
-	}
-	return state.version === 0
-		? tools.t(`${KEY}.publish_review.description_first`, params)
-		: tools.t(`${KEY}.publish_review.description`, params)
+	})
+}
+
+function reviewChecks(deps: ActionDeps): EditorCheck[] {
+	const { state } = deps.session
+	const { content } = deps.editor
+	const data = deps.session.testData ?? {}
+	return [
+		...contentChecks({
+			content,
+			locales: deps.editor.locales,
+			fallback: state.fallbackLocale,
+		}),
+		...tokenChecks(content, data),
+		...systemVariableChecks(content, state.template.category, data),
+		...publishChecks({
+			variables: deps.editor.variables,
+			detected: deps.session.detected,
+			data,
+			blocks: [],
+		}),
+	]
 }
 
 function reviewOptions(deps: ActionDeps, tools: ActionTools) {
 	const { state } = deps.session
 	const translate = (key: string, params?: Record<string, string>) =>
 		tools.t(key, params ?? {})
-	const checks = publishChecks({
-		variables: state.variables,
-		detected: deps.session.detected,
-		data: deps.session.testData ?? {},
-		blocks: [],
-	})
+	const read = (entry: EditorCheck) => tools.t(entry.key, entry.params)
 	return {
 		lines: describeChanges(
 			state.changes,
 			{ draft: deps.editor.content, published: state.publishedContent },
 			translate,
 		),
-		warnings: checks.map((entry) => tools.t(entry.key, entry.params)),
-		nextVersion: state.version + 1,
+		blockers: publishBlockers(deps.editor.content).map(read),
+		warnings: reviewChecks(deps).map(read),
+		nextVersion: targetVersionOf(deps),
 		currentVersion: state.version,
+		isRepublish: publishKindOf(deps) === 'republish',
 	}
 }
 
 async function runPublish(deps: ActionDeps, tools: ActionTools): Promise<void> {
 	try {
-		const { version } = await deps.api.publish(deps.templateId)
+		const { version } = await deps.api.publish(
+			deps.templateId,
+			deps.session.state.revision,
+		)
 		tools.toast.add({
 			color: 'success',
 			title: tools.t(`${KEY}.publish_review.done`, { version }),
 		})
 		await deps.reload()
 	} catch (error) {
+		if (isDraftConflict(error)) return deps.session.markConflict()
 		deps.onError(error)
 	}
 }
 
-async function refreshChanges(deps: ActionDeps): Promise<void> {
+/**
+ * Reads what the server would publish. A draft saved elsewhere since this
+ * editor's last write is a conflict: the review would not show what ships.
+ */
+async function refreshChanges(deps: ActionDeps): Promise<boolean> {
 	const response = await deps.api.changes(deps.templateId).catch(() => null)
-	if (response) deps.session.state.changes = response.changes
+	if (!response) return true
+	const { state } = deps.session
+	const isKnown = typeof response.revision === 'number'
+	if (isKnown && response.revision !== state.revision) {
+		deps.session.markConflict()
+		return false
+	}
+	state.version = response.version
+	state.changes = response.changes
+	return true
+}
+
+function canPublishNow(deps: ActionDeps): boolean {
+	const { state } = deps.session
+	return isPublishable({
+		status: state.template.status,
+		changeCount: state.changes.length,
+		dirty: deps.editor.dirty,
+	})
 }
 
 function createPublishAction(
@@ -118,9 +192,9 @@ function createPublishAction(
 ) {
 	const component = resolveComponent(PUBLISH_REVIEW_COMPONENT) as Component
 	return async (): Promise<void> => {
-		if (!canPublish(deps.session.state.template.status)) return
+		if (!canPublishNow(deps)) return
 		if (!(await deps.session.save())) return
-		await refreshChanges(deps)
+		if (!(await refreshChanges(deps)) || !canPublishNow(deps)) return
 		const choice = await tools.modal.open<PublishReviewChoice>({
 			title: publishTitle(deps, tools),
 			description: publishDescription(deps, tools),
@@ -178,11 +252,42 @@ function createCompareAction(deps: ActionDeps, tools: ActionTools) {
 			componentOptions: {
 				templateId: deps.templateId,
 				locale: deps.editor.locale,
+				locales: deps.editor.locales,
 				content: deepClone(deps.editor.content),
+				publishedContent: deps.session.state.publishedContent,
+				changes: deps.session.state.changes,
 				data: deps.session.testData ?? undefined,
 			},
 			size: COMPARE_SIZE,
 		})
+}
+
+/**
+ * Copies a published version into the draft, after this editor's pending
+ * edits are written (the server refuses a restore behind them). The editor
+ * then reloads on the restored draft; publishing it is the normal review.
+ */
+function createRestoreAction(deps: ActionDeps, tools: ActionTools) {
+	return async (version: number): Promise<void> => {
+		if (!(await deps.session.save())) return
+		try {
+			await deps.api.restoreVersion(
+				deps.templateId,
+				version,
+				deps.session.state.revision,
+			)
+		} catch (error) {
+			if (isDraftConflict(error)) return deps.session.markConflict()
+			return deps.onError(error)
+		}
+		tools.toast.add({
+			color: 'success',
+			title: tools.t('dms_mailing.history.restored', { version }),
+			description: tools.t('dms_mailing.history.restored_description'),
+		})
+		deps.editor.markSaved()
+		await deps.reload()
+	}
 }
 
 const LIFECYCLE_ICONS: Record<LifecycleAction, string> = {
@@ -219,10 +324,11 @@ function createLifecycleAction(deps: ActionDeps, tools: ActionTools) {
 		try {
 			const { status } = await calls[action](deps.templateId)
 			const { state } = deps.session
-			state.template = {
-				...state.template,
-				status: status as typeof state.template.status,
-			}
+			state.template = afterLifecycle(
+				state.template,
+				action,
+				status as typeof state.template.status,
+			)
 			tools.toast.add({
 				color: 'success',
 				title: tools.t(`${KEY}.lifecycle.${action}_done`),
@@ -235,7 +341,7 @@ function createLifecycleAction(deps: ActionDeps, tools: ActionTools) {
 
 /**
  * The editor's dialogs and their server calls: publish review, discard,
- * compare with live, test send and a manual save. Call it in a component's
+ * compare with live, restore of a version, test send and a manual save. Call it in a component's
  * setup: it reads the DMS container composables.
  */
 export function useEditorActions(deps: ActionDeps) {
@@ -251,12 +357,23 @@ export function useEditorActions(deps: ActionDeps) {
 		publish: createPublishAction(deps, tools, test),
 		discard: createDiscardAction(deps, tools),
 		compare: createCompareAction(deps, tools),
+		restoreVersion: createRestoreAction(deps, tools),
 		async save(): Promise<void> {
-			if (await deps.session.save())
+			const hasPendingWrite = deps.editor.dirty > 0
+			if ((await deps.session.save()) && hasPendingWrite)
 				tools.toast.add({
 					color: 'success',
 					title: tools.t(`${KEY}.save_state.saved_toast`),
 				})
+		},
+		/** Drops this editor's unsaved edits for the draft saved elsewhere. */
+		async reload(): Promise<void> {
+			deps.session.cancel()
+			deps.editor.markSaved()
+			await deps.reload()
+		},
+		async overwrite(): Promise<void> {
+			await deps.session.overwrite()
 		},
 		runLifecycle: createLifecycleAction(deps, tools),
 	}

@@ -21,12 +21,12 @@ const emit = defineEmits<{ update: [Condition] }>()
 const KEY = 'dms_mailing.editor.condition'
 
 const { t } = useI18n()
-const { session } = useEditorContext()
+const { editor, session } = useEditorContext()
 
 const pathItems = computed(() =>
 	[
 		...new Set([
-			...session.state.variables.map((variable) => variable.path),
+			...editor.variables.map((variable) => variable.path),
 			...session.detected,
 			props.condition.path,
 		]),

@@ -74,12 +74,16 @@ describe('attentionReasons', () => {
 		expect(reasons(row())).toEqual(['never_sent'])
 	})
 
-	it('flags a draft never published, and one untouched for a week', () => {
-		expect(reasons(row({ status: 'draft', publishedVersion: 0 }))).toEqual([
-			'unpublished_draft',
-		])
+	it('leaves a fresh draft alone, and flags one untouched for a week', () => {
+		expect(reasons(row({ status: 'draft', publishedVersion: 0 }))).toEqual([])
 		expect(
-			reasons(row({ status: 'draft', updatedAt: '2026-09-20T12:00:00Z' })),
+			reasons(
+				row({
+					status: 'draft',
+					publishedVersion: 0,
+					updatedAt: '2026-09-20T12:00:00Z',
+				}),
+			),
 		).toEqual(['stale_draft'])
 	})
 

@@ -2,21 +2,23 @@ import { describe, expect, it } from 'vitest'
 import {
 	correctedAddressError,
 	formatPayload,
+	replayOutcome,
 	SEND_STATUS_TONES,
 	sendFooterActions,
 	shortSendId,
 } from '../app/utils/send-actions'
 import { SEND_STATUSES } from '../app/types/mailing'
 
-const ids = (status: Parameters<typeof sendFooterActions>[0]) =>
-	sendFooterActions(status).map((action) => action.id)
+type Status = Parameters<typeof sendFooterActions>[0]['status']
+
+const footer = (status: Status) => sendFooterActions({ status })
+const ids = (status: Status) => footer(status).map((action) => action.id)
 
 describe('sendFooterActions', () => {
 	it('asks for a corrected address after a bounce, never a second send', () => {
 		expect(ids('bounced')).toEqual(['rendering', 'copy_address', 'fix_address'])
 		expect(
-			sendFooterActions('bounced').find((action) => action.id === 'fix_address')
-				?.variant,
+			footer('bounced').find((action) => action.id === 'fix_address')?.variant,
 		).toBe('solid')
 	})
 
@@ -26,9 +28,7 @@ describe('sendFooterActions', () => {
 	})
 
 	it('makes sending again the main action of a provider failure', () => {
-		const action = sendFooterActions('failed').find(
-			(entry) => entry.id === 'send_again',
-		)
+		const action = footer('failed').find((entry) => entry.id === 'send_again')
 		expect(action?.variant).toBe('solid')
 	})
 
@@ -41,10 +41,27 @@ describe('sendFooterActions', () => {
 			'queued',
 		] as const) {
 			expect(
-				sendFooterActions(status).find((action) => action.id === 'send_again')
-					?.variant,
+				footer(status).find((action) => action.id === 'send_again')?.variant,
 			).toBe('ghost')
 		}
+	})
+
+	it('sends a temporary bounce again to the same address', () => {
+		const actions = sendFooterActions({ status: 'bounced', isSoftBounce: true })
+		expect(actions.map((action) => action.id)).toEqual([
+			'rendering',
+			'send_again',
+		])
+	})
+
+	it('never sends again to someone who unsubscribed', () => {
+		expect(ids('unsubscribed')).toEqual(['rendering', 'copy_address'])
+	})
+
+	it('offers no second send once someone sent it again', () => {
+		const actions = sendFooterActions({ status: 'failed', replayedBy: 'snd_2' })
+		expect(actions.map((action) => action.id)).not.toContain('send_again')
+		expect(actions.map((action) => action.id)).not.toContain('fix_address')
 	})
 
 	it('always offers the rendering', () => {
@@ -91,5 +108,21 @@ describe('shortSendId and formatPayload', () => {
 		expect(formatPayload('{"a":1}')).toBe('{\n  "a": 1\n}')
 		expect(formatPayload('not json')).toBe('not json')
 		expect(formatPayload(undefined)).toBe('')
+	})
+})
+
+describe('replayOutcome', () => {
+	it('counts a send again as sent only when the e-mail went out', () => {
+		expect(replayOutcome({ status: 'sent' })).toBe('sent')
+		expect(
+			replayOutcome({
+				status: 'suppressed',
+				error: '$dms_mailing.errors.suppressed.unsubscribe',
+			}),
+		).toBe('suppressed')
+		expect(replayOutcome({ status: 'failed', error: 'ECONNREFUSED' })).toBe(
+			'failed',
+		)
+		expect(replayOutcome({ status: 'queued', error: 'boom' })).toBe('failed')
 	})
 })

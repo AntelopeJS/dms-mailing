@@ -37,13 +37,21 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
 
 const api = useMailingApi()
 const { t, locale } = useI18n()
+const { confirm } = useConfirm()
+const registerValidator = inject(FORM_VALIDATOR_KEY, null)
 
-const days = computed<number | null>(() => {
-	const raw = Number(props.modelValue ?? props.initialValue)
+function toDays(value: number | string | null | undefined): number | null {
+	const raw = Number(value)
 	return Number.isFinite(raw) && raw > 0 ? raw : null
-})
+}
 
+const days = computed(() => toDays(props.modelValue ?? props.initialValue))
+const savedDays = computed(() => toDays(props.initialValue))
+
+const root = ref<HTMLElement | null>(null)
 const isCustomPicked = ref(false)
+let lastEmitted: number | null = null
+let confirmedDays: number | null = null
 const isCustom = computed(
 	() =>
 		isCustomPicked.value ||
@@ -74,30 +82,72 @@ const choice = computed<string>({
 	get: () => (isCustom.value ? RETENTION_CUSTOM : String(days.value ?? '')),
 	set: (value) => {
 		isCustomPicked.value = value === RETENTION_CUSTOM
-		if (!isCustomPicked.value) emit('update:modelValue', Number(value))
+		if (!isCustomPicked.value) emitDays(Number(value))
 	},
 })
 
-function onCustomInput(value: number | null | undefined): void {
-	if (value === null || value === undefined) return
-	emit('update:modelValue', clampRetention(value))
+function emitDays(value: number): void {
+	lastEmitted = value
+	emit('update:modelValue', value)
 }
 
-const previewText = computed(() => {
-	const value = preview.value
-	if (!value) return ''
-	const params = {
+function onCustomInput(value: number | null | undefined): void {
+	if (value === null || value === undefined) return
+	emitDays(clampRetention(value))
+}
+
+function previewParams(value: RetentionPreview): Record<string, unknown> {
+	return {
 		when: isWithinADay(value.nextRunAt, new Date())
 			? key('tonight')
 			: new Date(value.nextRunAt).toLocaleDateString(locale.value, DATE_FORMAT),
 		time: formatClock(value.nextRunAt, locale.value),
 		count: new Intl.NumberFormat(locale.value).format(value.count),
-		days: value.days,
+		duration: key('days', { count: value.days }, value.days),
 	}
+}
+
+const previewText = computed(() => {
+	const value = preview.value
+	if (!value) return ''
+	const params = previewParams(value)
 	return value.count
 		? key('preview', params, value.count)
 		: key('preview_none', params)
 })
+
+/** The preview of the days now picked, when it deletes sends kept so far. */
+const deletion = computed<RetentionPreview | null>(() => {
+	const value = preview.value
+	const isShorter =
+		days.value !== null &&
+		savedDays.value !== null &&
+		days.value < savedDays.value
+	return isShorter && value?.days === days.value && value.count ? value : null
+})
+
+async function confirmDeletion(value: RetentionPreview): Promise<void> {
+	const isConfirmed = await confirm({
+		title: key('confirm_title'),
+		description: key('confirm_description', previewParams(value), value.count),
+		color: 'warning',
+		icon: 'i-ph-trash',
+		confirmLabel: key('confirm_action'),
+		cancelLabel: t('dms_mailing.common.cancel'),
+		initialFocus: 'cancel',
+	})
+	if (!isConfirmed) return
+	confirmedDays = value.days
+	root.value?.closest('form')?.requestSubmit()
+}
+
+/** Holds a save that deletes sends until it is confirmed. */
+function guardSubmit(): boolean {
+	const value = deletion.value
+	if (!value || confirmedDays === value.days) return true
+	void confirmDeletion(value)
+	return false
+}
 
 const loadPreview = useDebounceFn(async (value: number) => {
 	try {
@@ -114,10 +164,20 @@ watch(
 	},
 	{ immediate: true },
 )
+
+watch(
+	() => props.modelValue,
+	(value) => {
+		if (toDays(value) !== lastEmitted) isCustomPicked.value = false
+	},
+)
+
+const unregisterValidator = registerValidator?.(guardSubmit)
+onBeforeUnmount(() => unregisterValidator?.())
 </script>
 
 <template>
-	<div class="flex flex-col gap-2">
+	<div ref="root" class="flex flex-col gap-2">
 		<div class="flex flex-wrap items-center gap-2">
 			<DmsSegmented
 				v-model="choice"
@@ -140,7 +200,14 @@ watch(
 				{{ key('days_unit') }}
 			</span>
 		</div>
-		<p v-if="previewText" class="text-dimmed text-[12px]">
+		<UAlert
+			v-if="deletion"
+			color="warning"
+			variant="soft"
+			icon="i-ph-warning"
+			:description="previewText"
+		/>
+		<p v-else-if="previewText" class="text-dimmed text-[12px]">
 			{{ previewText }}
 		</p>
 	</div>

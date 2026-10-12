@@ -54,6 +54,15 @@ export const CATEGORY_ICONS = [
 
 export const DEFAULT_CATEGORY_ICON = 'i-ph-folder'
 
+const ICON_PREFIX = 'i-ph-'
+
+/** The i18n key part naming an icon (`megaphone` for `i-ph-megaphone`). */
+export function iconName(icon: string): string {
+	return icon.startsWith(ICON_PREFIX)
+		? icon.slice(ICON_PREFIX.length).replace(/-/g, '_')
+		: icon
+}
+
 /**
  * A row of the categories editor. `isNew` rows were added in this edit: their
  * id follows the label until the form is saved, then stays fixed for good.
@@ -100,6 +109,102 @@ export function toStoredCategories(
 }
 
 /**
+ * A category as the editor hands it to the form: a kept one, or one removed
+ * whose templates move to `moveTo` once the form is saved.
+ */
+export interface CategoryEntry extends TemplateCategory {
+	moveTo?: string
+}
+
+/** The kept categories of a list, without the removed ones it moves away. */
+export function keptCategories(entries: CategoryEntry[]): TemplateCategory[] {
+	return entries.filter((entry) => entry.moveTo === undefined)
+}
+
+/** Where the templates of each removed category go, by its id. */
+export function categoryMoves(entries: CategoryEntry[]): Map<string, string> {
+	return new Map(
+		entries.flatMap((entry) =>
+			entry.moveTo === undefined ? [] : [[entry.id, entry.moveTo] as const],
+		),
+	)
+}
+
+/**
+ * What the editor hands the form: the kept categories, then each removed one
+ * whose templates move elsewhere, still under its own id.
+ */
+export function withMoves(
+	categories: TemplateCategory[],
+	removed: CategoryEntry[],
+): CategoryEntry[] {
+	return [...categories, ...removed.filter((entry) => entry.moveTo)]
+}
+
+/**
+ * The moves of `removed` once `id` is removed too and its templates go to
+ * `target`: a move into `id` follows it to `target`, or is dropped when
+ * `target` is none (those templates end uncategorised either way).
+ */
+export function redirectMoves(
+	removed: CategoryEntry[],
+	id: string,
+	target: string,
+): CategoryEntry[] {
+	return removed
+		.map((entry) =>
+			entry.moveTo === id ? { ...entry, moveTo: target } : entry,
+		)
+		.filter((entry) => entry.moveTo)
+}
+
+/** Why a row of the editor cannot be saved. */
+export type CategoryRowError = 'label_required' | 'label_duplicate'
+
+const labelKey = (label: string): string => label.trim().toLocaleLowerCase()
+
+/**
+ * The rows that cannot be saved, by row key: a row without a label, or one
+ * whose label (whatever its case) an earlier row already has.
+ */
+export function categoryRowErrors(
+	rows: EditableCategory[],
+): Record<string, CategoryRowError> {
+	const seen = new Set<string>()
+	const errors: Record<string, CategoryRowError> = {}
+	for (const row of rows) {
+		const label = labelKey(row.label)
+		if (!label) errors[row.key] = 'label_required'
+		else if (seen.has(label)) errors[row.key] = 'label_duplicate'
+		seen.add(label)
+	}
+	return errors
+}
+
+/** Rows after a move, and where the moved row now sits. */
+export interface MovedRows<T> {
+	rows: T[]
+	index: number
+}
+
+/**
+ * `rows` with the row at `index` moved by `offset` (-1 up, 1 down), and its
+ * new index; unchanged at either end.
+ */
+export function moveRow<T>(
+	rows: T[],
+	index: number,
+	offset: number,
+): MovedRows<T> {
+	const target = index + offset
+	if (target < 0 || target >= rows.length) return { rows, index }
+	const moved = [...rows]
+	const [row] = moved.splice(index, 1)
+	moved.splice(target, 0, row as T)
+	return { rows: moved, index: target }
+}
+
+/**
  * The id a new category gets from its label. Ids are stored on every template,
  * so they stay ASCII and stable rather than following a later rename.
  */
@@ -137,4 +242,42 @@ export function toStoredCategory(
 	value: string | null | undefined,
 ): string | null {
 	return value || null
+}
+
+/** Answers the text of an i18n key, or nothing when the catalog lacks it. */
+export type OptionalTranslate = (key: string) => string | undefined
+
+/** The labels the backend's `DEFAULT_CATEGORIES` (`src/types/settings.ts`) ship with. */
+const DEFAULT_CATEGORY_LABELS: Record<string, string> = {
+	orders: 'Orders',
+	account: 'Account & access',
+	billing: 'Billing',
+	marketing: 'Marketing',
+	forms: 'Forms',
+}
+const DEFAULT_CATEGORY_KEY_PREFIX = 'dms_mailing.categories.defaults'
+
+/** The i18n key of a shipped category nobody renamed; absent otherwise. */
+export function defaultCategoryLabelKey(
+	category: TemplateCategory,
+): string | undefined {
+	return DEFAULT_CATEGORY_LABELS[category.id] === category.label
+		? `${DEFAULT_CATEGORY_KEY_PREFIX}.${category.id}`
+		: undefined
+}
+
+/**
+ * The categories as the interface shows them: a shipped one still under its
+ * original English label reads in the interface's language, a label someone
+ * wrote stays as written. Nothing stored changes.
+ */
+export function localizeCategories(
+	categories: TemplateCategory[],
+	translate: OptionalTranslate,
+): TemplateCategory[] {
+	return categories.map((category) => {
+		const key = defaultCategoryLabelKey(category)
+		const label = key ? translate(key) : undefined
+		return label ? { ...category, label } : category
+	})
 }

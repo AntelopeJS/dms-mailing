@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	MAX_NAME_LENGTH,
 	MAX_SLUG_LENGTH,
+	fitName,
 	freeSlug,
 	slugify,
 	validateName,
@@ -63,5 +64,25 @@ describe('freeSlug', () => {
 		expect(
 			freeSlug('welcome-copy', new Set(['welcome-copy', 'welcome-copy-2'])),
 		).toBe('welcome-copy-3')
+	})
+
+	it('cuts the base so a numbered slug stays within the limit', () => {
+		const base = 'a'.repeat(MAX_SLUG_LENGTH)
+		const slug = freeSlug(base, new Set([base]))
+		expect(slug).toHaveLength(MAX_SLUG_LENGTH)
+		expect(slug.endsWith('-2')).toBe(true)
+		expect(validateSlug(slug, new Set([base]))).toBeNull()
+	})
+})
+
+describe('fitName', () => {
+	const copy = (name: string) => `${name} (copy)`
+
+	it('keeps a name that fits and cuts the inner name of one that does not', () => {
+		expect(fitName('Welcome', copy)).toBe('Welcome (copy)')
+		const long = fitName('a'.repeat(MAX_NAME_LENGTH), copy)
+		expect(long).toHaveLength(MAX_NAME_LENGTH)
+		expect(long.endsWith(' (copy)')).toBe(true)
+		expect(validateName(long)).toBeNull()
 	})
 })

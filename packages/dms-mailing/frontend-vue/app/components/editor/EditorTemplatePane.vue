@@ -2,13 +2,15 @@
 import { computed, ref, watch } from 'vue'
 import type { TemplateDetails } from '../../composables/useMailingApi'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { useLocalizedDefaults } from '../../composables/useLocalizedDefaults'
 
 const KEY = 'dms_mailing.editor.template_tab'
 const NO_CATEGORY = '__none__'
 
 const { t } = useI18n()
 const toast = useToast()
-const { editor, session } = useEditorContext()
+const { editor, session, actions, templateId } = useEditorContext()
+const localized = useLocalizedDefaults()
 
 const template = computed(() => session.state.template)
 const name = ref(template.value.name)
@@ -20,7 +22,7 @@ watch(
 
 const categoryItems = computed(() => [
 	{ value: NO_CATEGORY, label: t(`${KEY}.no_category`), icon: 'i-ph-minus' },
-	...session.state.categories.map((category) => ({
+	...localized.categories(session.state.categories).map((category) => ({
 		value: category.id,
 		label: category.label,
 		icon: category.icon,
@@ -55,6 +57,14 @@ const subject = computed({
 	get: () => editor.current?.subject ?? '',
 	set: (value: string) => editor.updateLocale({ subject: value }),
 })
+
+const subjectHelp = computed(() =>
+	t(
+		session.state.blockOnMissingVariables
+			? `${KEY}.subject_help_block`
+			: `${KEY}.subject_help_send`,
+	),
+)
 
 const preheader = computed({
 	get: () => editor.current?.preheader ?? '',
@@ -92,7 +102,7 @@ const preheader = computed({
 			/>
 			<UFormField :label="t('dms_mailing.editor.subject')" size="sm">
 				<MailingEditorTokenField v-model="subject" />
-				<template #help>{{ t('dms_mailing.editor.subject_help') }}</template>
+				<template #help>{{ subjectHelp }}</template>
 			</UFormField>
 			<UFormField :label="t('dms_mailing.editor.preheader')" size="sm">
 				<MailingEditorTokenField v-model="preheader" />
@@ -101,5 +111,21 @@ const preheader = computed({
 
 		<USeparator />
 		<MailingEditorLifecycle />
+
+		<USeparator />
+		<div class="flex flex-col gap-2">
+			<DmsEyebrow :label="t('dms_mailing.history.title')" />
+			<MailingVersionHistory
+				v-if="session.state.version > 0"
+				:template-id="templateId"
+				:current-version="session.state.version"
+				:status="session.state.template.status"
+				:locale="editor.locale"
+				:restore="actions.restoreVersion"
+			/>
+			<p v-else class="text-muted text-xs">
+				{{ t('dms_mailing.history.never_published') }}
+			</p>
+		</div>
 	</div>
 </template>

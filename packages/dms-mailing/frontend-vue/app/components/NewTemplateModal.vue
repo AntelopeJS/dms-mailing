@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
+import NewTemplateSourceTile from './NewTemplateSourceTile.vue'
+import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import {
 	HTTP_CONFLICT,
@@ -8,6 +10,7 @@ import {
 	apiErrorStatus,
 } from '../utils/api-error'
 import { NO_CATEGORY, fromCategoryOption } from '../utils/categories'
+import { groupByCategory, matchesQuery } from '../utils/gallery'
 import { slugify, validateName, validateSlug } from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
 import type {
@@ -45,9 +48,16 @@ interface SourceTile {
 	pick: () => void
 }
 
-const PREVIEW_WIDTH = 600
-const PREVIEW_SCALE = 0.24
+interface TileGroup {
+	key: string
+	label: string
+	icon: string
+	tiles: SourceTile[]
+}
+
 const BLANK_SOURCE: SourceChoice = { kind: 'blank' }
+const ARCHIVED_STATUS = 'archived'
+const SEARCH_FIELDS = ['name', 'slug']
 
 const SOURCE_FIELDS: Record<
 	SourceKind,
@@ -78,9 +88,13 @@ const source = ref<SourceChoice>(
 const isSubmitted = ref(false)
 const saving = ref(false)
 const templates = ref<TemplateRow[]>([])
-const starters = ref<StarterSummary[]>([])
-const categories = ref<TemplateCategory[]>([])
+const localized = useLocalizedDefaults()
+const storedStarters = ref<StarterSummary[]>([])
+const storedCategories = ref<TemplateCategory[]>([])
+const starters = computed(() => localized.starters(storedStarters.value))
+const categories = computed(() => localized.categories(storedCategories.value))
 const refusedSlugs = ref(new Set<string>())
+const templateSearch = ref('')
 
 onMounted(async () => {
 	const [templateList, starterList, categoryList] = await Promise.all([
@@ -89,8 +103,8 @@ onMounted(async () => {
 		api.listCategories().catch(() => ({ categories: [] })),
 	])
 	templates.value = templateList.results
-	starters.value = starterList.starters
-	categories.value = categoryList.categories
+	storedStarters.value = starterList.starters
+	storedCategories.value = categoryList.categories
 })
 
 watch(name, (value) => {
@@ -108,16 +122,24 @@ const takenSlugs = computed(
 const slugIssue = computed(() => validateSlug(slug.value, takenSlugs.value))
 const nameIssue = computed(() => validateName(name.value))
 
-const slugError = computed(() =>
-	slugIssue.value && (slug.value || isSubmitted.value)
-		? t(`dms_mailing.templates.slug_errors.${slugIssue.value}`)
-		: false,
+/** A name that gives no slug (non-Latin script): the slug must be typed. */
+const isSlugUnderivable = computed(
+	() => !isSlugEdited.value && Boolean(name.value.trim()) && !slug.value,
 )
+
+const slugError = computed(() => {
+	if (isSlugUnderivable.value) {
+		return t('dms_mailing.new_template.slug_from_name_empty')
+	}
+	return slugIssue.value && (slug.value || isSubmitted.value)
+		? t(`dms_mailing.templates.slug_errors.${slugIssue.value}`)
+		: null
+})
 
 const nameError = computed(() =>
 	nameIssue.value && isSubmitted.value
 		? t(`dms_mailing.templates.name_errors.${nameIssue.value}`)
-		: false,
+		: null,
 )
 
 const canSubmit = computed(
@@ -156,7 +178,7 @@ function pickTemplate(template: TemplateRow): void {
 	adoptCategory(template.category)
 }
 
-const tiles = computed<SourceTile[]>(() => [
+const starterTiles = computed<SourceTile[]>(() => [
 	{
 		key: 'blank',
 		choice: BLANK_SOURCE,
@@ -173,19 +195,42 @@ const tiles = computed<SourceTile[]>(() => [
 		preview: { starterId: starter.id },
 		pick: () => pickStarter(starter),
 	})),
-	...templates.value.map((template) => ({
-		key: `template-${template._id}`,
-		choice: { kind: 'template' as const, id: template._id },
-		title: template.name,
-		subtitle: template.slug,
-		preview: { templateId: template._id },
-		pick: () => pickTemplate(template),
-	})),
 ])
 
+const copyableTemplates = computed(() =>
+	templates.value.filter((template) => template.status !== ARCHIVED_STATUS),
+)
+
+const templateTile = (template: TemplateRow): SourceTile => ({
+	key: `template-${template._id}`,
+	choice: { kind: 'template', id: template._id },
+	title: template.name,
+	subtitle: template.slug,
+	preview: { templateId: template._id },
+	pick: () => pickTemplate(template),
+})
+
+/** The templates to copy from, matching the search, by category. */
+const templateGroups = computed<TileGroup[]>(() =>
+	groupByCategory(
+		copyableTemplates.value.filter((template) =>
+			matchesQuery(template, { search: templateSearch.value }, SEARCH_FIELDS),
+		),
+		categories.value,
+		t('dms_mailing.templates.uncategorised'),
+	).map((group) => ({
+		key: group.category.id,
+		label: group.category.label,
+		icon: group.category.icon,
+		tiles: group.items.map(templateTile),
+	})),
+)
+
+/** A cleared slug follows the name again. */
 function onSlugInput(value: string): void {
-	isSlugEdited.value = true
-	slug.value = value.trim().toLowerCase()
+	const typed = value.trim().toLowerCase()
+	isSlugEdited.value = typed !== ''
+	slug.value = typed || slugify(name.value)
 }
 
 function close(created: boolean): void {
@@ -287,6 +332,13 @@ async function submit(): Promise<void> {
 							:aria-invalid="Boolean(slugError)"
 							@update:model-value="(value) => onSlugInput(String(value))"
 						/>
+						<UBadge
+							color="neutral"
+							variant="outline"
+							size="lg"
+							class="text-dimmed font-mono"
+							label=")"
+						/>
 					</UFieldGroup>
 				</template>
 			</FormFieldRow>
@@ -311,47 +363,64 @@ async function submit(): Promise<void> {
 				<div
 					role="radiogroup"
 					:aria-label="t('dms_mailing.templates.start_from.label')"
-					class="grid max-h-[320px] grid-cols-2 gap-3 overflow-y-auto p-0.5 sm:grid-cols-3"
+					class="flex max-h-[360px] flex-col gap-4 overflow-y-auto p-0.5"
 				>
-					<button
-						v-for="tile in tiles"
-						:key="tile.key"
-						type="button"
-						role="radio"
-						:aria-checked="isPicked(tile.choice)"
-						class="flex min-w-0 flex-col gap-1.5 rounded-lg border p-2 text-left transition-colors"
-						:class="
-							isPicked(tile.choice)
-								? 'border-primary ring-primary/30 ring-2'
-								: 'border-default hover:border-accented'
-						"
-						@click="tile.pick()"
-					>
-						<span
-							v-if="tile.choice.kind === 'blank'"
-							class="border-default text-dimmed flex h-[72px] items-center justify-center rounded border border-dashed"
-						>
-							<UIcon name="i-ph-plus" class="size-5" />
-						</span>
-						<span
-							v-else
-							class="bg-elevated/40 pointer-events-none flex h-[72px] justify-center overflow-hidden rounded"
-						>
-							<MailingTemplatePreviewFrame
+					<section class="flex flex-col gap-2">
+						<h3 class="text-muted text-xs font-semibold">
+							{{ t('dms_mailing.new_template.starters') }}
+						</h3>
+						<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+							<NewTemplateSourceTile
+								v-for="tile in starterTiles"
+								:key="tile.key"
 								v-bind="tile.preview"
-								:width="PREVIEW_WIDTH"
-								:scale="PREVIEW_SCALE"
-								:label="tile.title"
-								lazy
+								:title="tile.title"
+								:subtitle="tile.subtitle"
+								:is-picked="isPicked(tile.choice)"
+								:is-blank="tile.choice.kind === 'blank'"
+								@pick="tile.pick()"
 							/>
-						</span>
-						<span class="text-highlighted truncate text-[12.5px] font-medium">
-							{{ tile.title }}
-						</span>
-						<span class="text-dimmed truncate font-mono text-[11px]">
-							{{ tile.subtitle }}
-						</span>
-					</button>
+						</div>
+					</section>
+					<section v-if="copyableTemplates.length" class="flex flex-col gap-2">
+						<div class="flex items-center gap-2">
+							<h3 class="text-muted text-xs font-semibold">
+								{{ t('dms_mailing.new_template.existing') }}
+							</h3>
+							<UInput
+								v-model="templateSearch"
+								class="ml-auto w-44"
+								size="xs"
+								icon="i-ph-magnifying-glass"
+								:placeholder="t('dms_mailing.new_template.search')"
+								:aria-label="t('dms_mailing.new_template.search')"
+							/>
+						</div>
+						<template v-for="group in templateGroups" :key="group.key">
+							<span class="text-dimmed flex items-center gap-1.5 text-[11.5px]">
+								<UIcon :name="group.icon" class="size-3.5" />
+								{{ group.label }}
+							</span>
+							<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+								<NewTemplateSourceTile
+									v-for="tile in group.tiles"
+									:key="tile.key"
+									v-bind="tile.preview"
+									:title="tile.title"
+									:subtitle="tile.subtitle"
+									:is-picked="isPicked(tile.choice)"
+									@pick="tile.pick()"
+								/>
+							</div>
+						</template>
+						<p v-if="!templateGroups.length" class="text-dimmed text-xs">
+							{{
+								t('dms_mailing.templates.empty.no_match_title', {
+									search: templateSearch.trim(),
+								})
+							}}
+						</p>
+					</section>
 				</div>
 			</FormFieldRow>
 		</FormRows>
