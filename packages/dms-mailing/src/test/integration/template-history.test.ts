@@ -82,9 +82,10 @@ describe("[integration] template history and restore", () => {
       revision: before.data.revision,
     });
     expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);
-    expect(restored.data.revision).to.equal(before.data.revision + 1);
+    expect(restored.data).to.deep.equal({ revision: before.data.revision + 1 });
+    const changes = await api.get(`${TEMPLATES}/${id}/changes`);
     expect(
-      restored.data.changes.map((change: ChangeRow) => change.kind),
+      changes.data.changes.map((change: ChangeRow) => change.kind),
     ).to.deep.equal(["subject", "variable_added"]);
 
     const after = await api.get(`${TEMPLATES}/${id}/content`);

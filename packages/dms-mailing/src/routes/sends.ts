@@ -69,6 +69,7 @@ import {
   localeContentOf,
   pickLocale,
   publishedVersionOf,
+  requireTemplate,
 } from "../services/templates";
 import type {
   SendStatus,
@@ -85,7 +86,6 @@ import {
 import { comparisonRange, currentRange, isComparisonWanted } from "./period";
 
 const NOT_FOUND = "$dms_mailing.errors.send_not_found";
-const TEMPLATE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
 const INVALID_RECIPIENT = "$dms_mailing.errors.invalid_recipient";
 const REPLAY_PARTIAL = "$dms_mailing.sends.banner.replay_partial";
@@ -271,8 +271,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
       (value) => testSendSchema.parse(value),
       sendInputError,
     );
-    const template = await this.templates.get(id);
-    assert(template, HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
+    const template = await requireTemplate(this.templates, id);
     const ownAddressSuppressed = await this.ownSuppression(input.to);
     const result = await this.send(
       {
@@ -320,8 +319,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
       (value) => realSendSchema.parse(value),
       sendInputError,
     );
-    const template = await this.templates.get(id);
-    assert(template, HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
+    const template = await requireTemplate(this.templates, id);
     const result = await this.send(
       {
         tenantId: this.tenantId,
@@ -405,8 +403,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
   @Get("/sends/:id/html")
   async html(@Parameter("id", "param") id: string): Promise<SendHtmlResponse> {
     const send = await this.requireSend(id);
-    const template = await this.templates.get(send.templateId);
-    assert(template, HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
+    const template = await requireTemplate(this.templates, send.templateId);
     const content = await contentOfVersion(
       this.tenantId,
       template,
@@ -530,8 +527,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
     to: string | undefined,
     source: string,
   ): Promise<SendTemplateResult> {
-    const template = await this.templates.get(send.templateId);
-    assert(template, HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
+    const template = await requireTemplate(this.templates, send.templateId);
     const version = send.templateVersion;
     const content =
       version > DRAFT_VERSION

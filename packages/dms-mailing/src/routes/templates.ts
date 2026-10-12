@@ -56,6 +56,7 @@ import {
   saveDraft,
   workingContent,
   workingVariables,
+  requireTemplate,
 } from "../services/templates";
 import {
   BUSINESS_AUDIENCE,
@@ -73,7 +74,6 @@ import {
   variablesSchema,
 } from "../validation/templates.schema";
 
-const NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
@@ -191,12 +191,6 @@ export class TemplatesController extends Controller(
     return displayName(this.user);
   }
 
-  private async requireTemplate(id: string): Promise<MailingTemplate> {
-    const template = await this.templates.get(id);
-    assert(template, HTTP_NOT_FOUND, NOT_FOUND);
-    return template;
-  }
-
   /**
    * The tenant's categories for a category picker. Separate from `/settings`,
    * which is guarded by the settings page permission a template editor need
@@ -271,7 +265,7 @@ export class TemplatesController extends Controller(
   async performance(
     @Parameter("id", "param") id: string,
   ): Promise<TemplatePerformance> {
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     const rows = await this.sends.listForTemplate(
       template.slug,
       statsWindowStart(),
@@ -287,7 +281,7 @@ export class TemplatesController extends Controller(
   async content(
     @Parameter("id", "param") id: string,
   ): Promise<TemplateContentResponse> {
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     const settings = await getSettings(this.tenantId);
     const content = workingContent(template);
     const publishedContent = isPublished(template)
@@ -336,7 +330,7 @@ export class TemplatesController extends Controller(
       () => INVALID_CONTENT,
     );
     const content = input.content as TemplateContent;
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     assertCurrentDraft(template, input.revision);
     const variables = input.variables ?? workingVariables(template);
     const revision = await saveDraft(
@@ -345,7 +339,7 @@ export class TemplatesController extends Controller(
       { content, variables },
       this.author,
     );
-    const saved = await this.requireTemplate(id);
+    const saved = await requireTemplate(this.templates, id);
     return {
       saved: true,
       revision,
@@ -356,7 +350,7 @@ export class TemplatesController extends Controller(
 
   @Get("/:id/changes")
   async changes(@Parameter("id", "param") id: string) {
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     return {
       version: publishedVersionOf(template),
       revision: template.draftRevision,
@@ -396,7 +390,7 @@ export class TemplatesController extends Controller(
   /** Drops the draft back to the published content; nothing before v1. */
   @Post("/:id/discard")
   async discard(@Parameter("id", "param") id: string) {
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     assert(isPublished(template), HTTP_CONFLICT, NOTHING_TO_DISCARD);
     await discardDraft(this.tenantId, template, this.author);
     return { discarded: true };
@@ -421,7 +415,7 @@ export class TemplatesController extends Controller(
     id: string,
     action: TemplateAction,
   ): Promise<MailingTemplate> {
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     assert(
       ALLOWED_FROM[action].includes(template.status),
       HTTP_CONFLICT,
@@ -457,7 +451,7 @@ export class TemplatesController extends Controller(
     const { variables, revision } = assertValidation(body, (value) =>
       variablesSchema.parse(value),
     );
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     assertCurrentDraft(template, revision);
     const next = await saveDraft(
       this.tenantId,
@@ -476,7 +470,7 @@ export class TemplatesController extends Controller(
     const { data } = assertValidation(body, (value) =>
       testDataSchema.parse(value),
     );
-    await this.requireTemplate(id);
+    await requireTemplate(this.templates, id);
     await this.templates.update(id, { json_test_data: JSON.stringify(data) });
     return { data };
   }
@@ -491,7 +485,7 @@ export class TemplatesController extends Controller(
       (value) => previewSchema.parse(value),
       () => INVALID_CONTENT,
     );
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     const content =
       (input.content as TemplateContent | undefined) ??
       (await this.previewContent(template, input.version));
@@ -531,7 +525,7 @@ export class TemplatesController extends Controller(
     const { slug, name } = assertValidation(body, (value) =>
       duplicateSchema.parse(value),
     );
-    const source = await this.requireTemplate(id);
+    const source = await requireTemplate(this.templates, id);
     const clash = await this.templates.getBySlug(slug);
     assert(!clash, HTTP_CONFLICT, DUPLICATE_SLUG);
     const [copyId] = await this.templates.insert({

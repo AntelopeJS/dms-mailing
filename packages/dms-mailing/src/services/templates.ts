@@ -38,6 +38,17 @@ const EMPTY_CONTENT = '{"locales":{}}';
 const NEVER_PUBLISHED = 0;
 const STALE_DRAFT: TemplateAttentionReason = "stale_draft";
 const VERSION_NOT_FOUND = "$dms_mailing.errors.version_not_found";
+const TEMPLATE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
+
+/** The template `id` names; 404 when there is none. */
+export async function requireTemplate(
+  model: TemplateModel,
+  id: string,
+): Promise<MailingTemplate> {
+  const template = await model.get(id);
+  if (!template) throw new HTTPResult(HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
+  return template;
+}
 
 /** The content customers receive: the last published version. */
 export function parseContent(template: MailingTemplate): TemplateContent {

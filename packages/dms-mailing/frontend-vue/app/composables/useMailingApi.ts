@@ -91,9 +91,8 @@ export interface SaveContentInput {
 
 /** A version copied into the draft; the review then publishes it. */
 export interface RestoreVersionResponse {
-	restored: number
+	/** The draft revision the editor carries on with. */
 	revision: number
-	changes: TemplateChange[]
 }
 
 export interface PublishResponse {

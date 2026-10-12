@@ -14,18 +14,14 @@ import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { API_BASE_PATH, HTTP_NOT_FOUND } from "../constants";
 import type { TemplateChange } from "../engine";
-import {
-  type MailingTemplate,
-  TemplateModel,
-  TemplateVersionModel,
-} from "../db";
+import { TemplateModel, TemplateVersionModel } from "../db";
 import { TemplatesPageController } from "../pages/templates";
 import {
   displayName,
   parseVersionChanges,
   parseVersionVariables,
-  pendingChanges,
   restoreVersionAsDraft,
+  requireTemplate,
 } from "../services/templates";
 import type { VariableDefinition } from "../types";
 import {
@@ -34,7 +30,6 @@ import {
 } from "../validation/templates.schema";
 import { assertCurrentDraft } from "./templates";
 
-const NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const VERSION_NOT_FOUND = "$dms_mailing.errors.version_not_found";
 
 export interface TemplateVersionSummary {
@@ -48,10 +43,8 @@ export interface TemplateVersionSummary {
 }
 
 export interface RestoredVersion {
-  restored: number;
   /** The draft revision the editor carries on with. */
   revision: number;
-  changes: TemplateChange[];
 }
 
 /** A template's published versions: its history, and restoring one. */
@@ -70,17 +63,11 @@ export class TemplateVersionsController extends Controller(
   @TenantScopedModel(TemplateVersionModel)
   declare versions: TemplateVersionModel;
 
-  private async requireTemplate(id: string): Promise<MailingTemplate> {
-    const template = await this.templates.get(id);
-    assert(template, HTTP_NOT_FOUND, NOT_FOUND);
-    return template;
-  }
-
   @Get("/:id/versions")
   async history(
     @Parameter("id", "param") id: string,
   ): Promise<{ versions: TemplateVersionSummary[] }> {
-    await this.requireTemplate(id);
+    await requireTemplate(this.templates, id);
     const rows = await this.versions.listForTemplate(id);
     return {
       versions: rows.map((row) => ({
@@ -114,7 +101,7 @@ export class TemplateVersionsController extends Controller(
       () => VERSION_NOT_FOUND,
       HTTP_NOT_FOUND,
     );
-    const template = await this.requireTemplate(id);
+    const template = await requireTemplate(this.templates, id);
     assertCurrentDraft(template, revision);
     const row = await this.versions.getVersion(id, number);
     assert(row, HTTP_NOT_FOUND, VERSION_NOT_FOUND);
@@ -124,7 +111,6 @@ export class TemplateVersionsController extends Controller(
       row,
       displayName(this.user),
     );
-    const saved = await this.requireTemplate(id);
-    return { restored: number, revision: next, changes: pendingChanges(saved) };
+    return { revision: next };
   }
 }
