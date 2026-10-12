@@ -240,38 +240,6 @@ describe("[integration] send lifecycle", () => {
     await sends.delete(legacyId as string);
   });
 
-  it("clears the latency of suppressed sends written with one", async () => {
-    const { GetModel } =
-      await import("@antelopejs/interface-database-decorators");
-    const { DEFAULT_TENANT_ID } =
-      await import("@antelopejs/interface-dms/constants");
-    const { SendModel } = await import("../../db");
-    const { backfillSendStages } = await import("../../services/stages");
-    const sends = GetModel(SendModel, DEFAULT_TENANT_ID);
-    const [legacyId] = await sends.table
-      .insert({
-        _id: `legacy-suppressed-${Date.now()}`,
-        createdAt: new Date(),
-        templateId: "gone",
-        templateSlug: "gone",
-        locale: "en",
-        recipientEmail: "legacy-suppressed@example.test",
-        status: "suppressed",
-        stage: "suppressed",
-        latencyMs: 0,
-        json_variables: "{}",
-        opens: 0,
-        clicks: 0,
-        revision: "r",
-        isTest: false,
-      })
-      .run();
-    await backfillSendStages();
-    const legacy = await sends.get(legacyId as string);
-    expect(legacy?.latencyMs ?? null).to.equal(null);
-    await sends.delete(legacyId as string);
-  });
-
   it("links a send again to its original and resolves the original", async () => {
     const api = await client();
     const id = await liveTemplate(api, "replay-links");

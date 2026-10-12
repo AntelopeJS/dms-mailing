@@ -11,16 +11,13 @@ import { SendModel } from "../db";
 
 /**
  * Fills the send log stage of every tenant's sends written before the field
- * existed, and clears the latency of suppressed sends written before they had
- * none. Safe to run on every start: rows already up to date are skipped.
+ * existed. Safe to run on every start: rows already up to date are skipped.
  */
 export async function backfillSendStages(): Promise<number> {
   const tenants = await GetModel(TenantModel).getAll();
   let filled = 0;
   for (const tenant of tenants) {
-    const sends = GetModel(SendModel, tenant._id);
-    filled += await sends.backfillStages();
-    await sends.clearSuppressedLatency();
+    filled += await GetModel(SendModel, tenant._id).backfillStages();
   }
   if (filled) Logging.Info(`[dms-mailing] Filled the stage of ${filled} sends`);
   return filled;

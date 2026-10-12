@@ -21,8 +21,6 @@ type NewSend = Omit<
 >;
 
 const UNSET_STAGE = "";
-const SUPPRESSED_STATUS: SendStatus = "suppressed";
-const LEGACY_SUPPRESSED_LATENCY = 0;
 const MAX_MUTATION_ATTEMPTS = 5;
 
 /** A send as the metrics read it: everything but the rendered variables. */
@@ -249,22 +247,6 @@ export class SendModel extends BasicDataModel(
     let filled = 0;
     for (const status of SEND_STATUSES) filled += await this.fillStage(status);
     return filled;
-  }
-
-  /**
-   * Clears the `0` latency suppressed sends were once written with: they
-   * never reached the provider, so they have none. Returns how many it cleared.
-   */
-  clearSuppressedLatency(): Promise<number> {
-    return this.table
-      .filter((row) =>
-        row
-          .key("status")
-          .eq(SUPPRESSED_STATUS)
-          .and(row.key("latencyMs").eq(LEGACY_SUPPRESSED_LATENCY)),
-      )
-      .update({ latencyMs: null })
-      .run();
   }
 
   private fillStage(status: SendStatus): Promise<number> {
