@@ -5,6 +5,7 @@ import draggable from 'vuedraggable'
 import { useControlError } from '#dms-ui/app/build/composables/form/useControlError'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
+import { isMarketingCategory } from '../utils/system-variables'
 import {
 	CATEGORY_ICONS,
 	categoryRowErrors,
@@ -151,6 +152,11 @@ function dropRow(row: EditableCategory, target: string): void {
 	removed.value = redirectMoves(removed.value, row.id, target)
 	if (target) removed.value.push({ ...categoryOf(row), moveTo: target })
 	onEdit()
+}
+
+/** The marketing category carries the campaign rules: it is never removed. */
+function isRemovable(row: EditableCategory): boolean {
+	return row.isNew || !isMarketingCategory(row.id)
 }
 
 function categoryOf(row: EditableCategory): TemplateCategory {
@@ -337,16 +343,19 @@ onMounted(loadUsage)
 						>
 							{{ usageLabel(element) }}
 						</span>
-						<UButton
-							v-if="!disabled"
-							icon="i-ph-x"
-							color="neutral"
-							variant="ghost"
-							size="xs"
-							square
-							:aria-label="key('remove')"
-							@click="removeCategory(element)"
-						/>
+						<template v-if="!disabled">
+							<UButton
+								v-if="isRemovable(element)"
+								icon="i-ph-x"
+								color="neutral"
+								variant="ghost"
+								size="xs"
+								square
+								:aria-label="key('remove')"
+								@click="removeCategory(element)"
+							/>
+							<span v-else class="size-6 shrink-0" aria-hidden="true" />
+						</template>
 					</div>
 					<p
 						v-if="rowErrors[element.key]"

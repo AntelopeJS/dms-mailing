@@ -11,6 +11,7 @@ import type { TemplateCategory } from "../../types";
 const CATEGORIES: TemplateCategory[] = [
   { id: "orders", label: "Orders", icon: "i-ph-package" },
   { id: "billing", label: "Billing", icon: "i-ph-file-text" },
+  { id: "marketing", label: "Marketing", icon: "i-ph-sparkle" },
 ];
 
 const template = (id: string, category?: string): MailingTemplate =>
@@ -81,6 +82,13 @@ describe("[unit] validation categoriesSchema", () => {
     expect(parse([category({ label: "   " })])).to.equal(false);
     expect(parse([category({ id: "qa st/<b>" })])).to.equal(false);
     expect(parse([category({ icon: "not-an-icon" })])).to.equal(false);
+  });
+
+  it("refuses a list without the marketing category", () => {
+    expect(parse(CATEGORIES.slice(0, 2))).to.equal(false);
+    expect(
+      parse([...CATEGORIES.slice(0, 2), { ...CATEGORIES[2], label: "Promos" }]),
+    ).to.equal(true);
   });
 
   it("refuses a move to a category the list does not keep", () => {

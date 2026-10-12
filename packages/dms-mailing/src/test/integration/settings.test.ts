@@ -15,6 +15,11 @@ const UPDATED_RETENTION_DAYS = 30;
 const INVALID_RETENTION_DAYS = 0;
 
 const READ_ONLY_FIELDS = new Set(["webhookUrl", "provider"]);
+const MARKETING = {
+  id: "marketing",
+  label: "Marketing",
+  icon: "i-ph-megaphone",
+};
 
 /** A settings read as a write takes it back: without its read-only fields. */
 function writableOf(read: Record<string, unknown>): Record<string, unknown> {
@@ -279,10 +284,10 @@ describe("[integration] settings writes (partial, checked)", () => {
       icon: "i-ph-gift",
     };
     const lists = [
-      [category, { ...category, label: "fix-L7 Other" }],
-      [{ ...category, label: "   " }],
-      [{ ...category, id: "fix l7/<b>" }],
-      [{ ...category, icon: "not-an-icon" }],
+      [MARKETING, category, { ...category, label: "fix-L7 Other" }],
+      [MARKETING, { ...category, label: "   " }],
+      [MARKETING, { ...category, id: "fix l7/<b>" }],
+      [MARKETING, { ...category, icon: "not-an-icon" }],
     ];
     for (const categories of lists) {
       const response = await client.put(SETTINGS, { categories });
@@ -296,6 +301,21 @@ describe("[integration] settings writes (partial, checked)", () => {
       categories: JSON.stringify(stored),
     });
     expect(asText.status).to.equal(HTTP_BAD_REQUEST);
+  });
+
+  it("keeps the marketing category, renamed or not", async () => {
+    const client = await ownerClient();
+    const initial = await client.get(SETTINGS);
+    const stored = initial.data.categories as Array<{ id: string }>;
+    const others = stored.filter((entry) => entry.id !== MARKETING.id);
+    const dropped = await client.put(SETTINGS, { categories: others });
+    expect(dropped.status).to.equal(HTTP_BAD_REQUEST);
+    expect(issuePaths(dropped.data)).to.deep.equal(["categories"]);
+    const renamed = await client.put(SETTINGS, {
+      categories: [...others, { ...MARKETING, label: "fix-L7 Campaigns" }],
+    });
+    expect(renamed.status, JSON.stringify(renamed.data)).to.equal(HTTP_OK);
+    await restore(client, initial.data);
   });
 
   it("takes only a PUT of the writable fields", async () => {

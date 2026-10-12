@@ -13,6 +13,7 @@ import type { TopListItem } from "@antelopejs/interface-dms/base";
 import type { ComposedText } from "@antelopejs/interface-dms/base/types";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { API_BASE_PATH, HTTP_NOT_FOUND } from "../constants";
+import { isMarketingCategory } from "../engine";
 import {
   type SendSummary,
   type MailingTemplate,
@@ -409,7 +410,6 @@ export function funnelSteps(
 /** Which sends the funnel counts: all, or one side of the marketing split. */
 export type FunnelKind = "all" | "marketing" | "transactional";
 
-const MARKETING_CATEGORY = "marketing";
 const FUNNEL_KINDS: Record<string, FunnelKind> = {
   all: "all",
   marketing: "marketing",
@@ -422,8 +422,8 @@ export function readFunnelKind(raw: string | null): FunnelKind {
 
 const KIND_KEEPS: Record<FunnelKind, (category: string) => boolean> = {
   all: () => true,
-  marketing: (category) => category === MARKETING_CATEGORY,
-  transactional: (category) => category !== MARKETING_CATEGORY,
+  marketing: (category) => isMarketingCategory(category),
+  transactional: (category) => !isMarketingCategory(category),
 };
 
 /**

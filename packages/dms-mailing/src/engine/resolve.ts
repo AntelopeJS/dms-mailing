@@ -1,4 +1,8 @@
-import { SYSTEM_VARIABLE_PATHS } from "../constants";
+import {
+  PREFERENCES_URL_PATH,
+  SYSTEM_VARIABLE_PATHS,
+  UNSUBSCRIBE_URL_PATH,
+} from "../constants";
 import type {
   Block,
   FooterBlock,
@@ -12,11 +16,7 @@ import type {
 import { evaluateCondition } from "./conditions";
 import { safeUrl } from "./fallback-html";
 import { getPath, isPresent } from "./paths";
-import {
-  footerLinkPaths,
-  PREFERENCES_URL_PATH,
-  UNSUBSCRIBE_URL_PATH,
-} from "./system-variables";
+import { footerLinkPaths } from "./system-variables";
 import { type InterpolationMode, interpolate } from "./tokens";
 
 type Data = Record<string, unknown>;

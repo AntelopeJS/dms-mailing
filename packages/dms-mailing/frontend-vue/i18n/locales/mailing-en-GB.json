@@ -732,6 +732,7 @@
 				"reassigned": "{count} template changed category. | {count} templates changed category.",
 				"label_required": "Give the category a name.",
 				"label_duplicate": "This category already exists.",
+				"marketing_required": "The marketing category cannot be removed: campaign rules depend on it.",
 				"icons": {
 					"package": "Package",
 					"lock": "Lock",

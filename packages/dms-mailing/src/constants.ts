@@ -35,7 +35,14 @@ export const HTTP_UNPROCESSABLE = 422;
 
 export const LOCALE_LIST_SEPARATOR = ",";
 
-export const SYSTEM_VARIABLE_PATHS = ["unsubscribeUrl", "preferencesUrl"];
+export const UNSUBSCRIBE_URL_PATH = "unsubscribeUrl";
+export const PREFERENCES_URL_PATH = "preferencesUrl";
+
+/** The URLs a caller passes for the footer links, not declared by hand. */
+export const SYSTEM_VARIABLE_PATHS = [
+  UNSUBSCRIBE_URL_PATH,
+  PREFERENCES_URL_PATH,
+];
 
 /**
  * Ceiling on a metrics window. `from`/`to` are plain query parameters, and the

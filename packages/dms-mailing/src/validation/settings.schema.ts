@@ -1,6 +1,7 @@
 import { domainToASCII } from "node:url";
 import { z } from "zod";
 import { MAX_NAME_LENGTH, SLUG_PATTERN } from "../constants";
+import { MARKETING_CATEGORY } from "../engine";
 
 export const MIN_RETENTION_DAYS = 1;
 export const MAX_RETENTION_DAYS = 3650;
@@ -17,6 +18,7 @@ export const MIN_WEBHOOK_SECRET_LENGTH = 32;
 const messageKey = (path: string): string => `$dms_mailing.settings.${path}`;
 const LABEL_REQUIRED = messageKey("categories.label_required");
 const CATEGORY_DUPLICATE = messageKey("categories.label_duplicate");
+const MARKETING_REQUIRED = messageKey("categories.marketing_required");
 const UNKNOWN_MOVE_TARGET = "$dms.field_errors.invalid";
 export const WEBHOOK_SECRET_TOO_SHORT = messageKey(
   "fields.webhookSecret.too_short",
@@ -55,6 +57,11 @@ function refineCategoryEntries(
       });
     kept.add(entry.id);
   });
+  if (!kept.has(MARKETING_CATEGORY))
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: MARKETING_REQUIRED,
+    });
   entries.forEach((entry, index) => {
     if (entry.moveTo === undefined || kept.has(entry.moveTo)) return;
     context.addIssue({
@@ -66,8 +73,8 @@ function refineCategoryEntries(
 }
 
 /**
- * The category list of the settings: kept ids are unique and every move names
- * a kept one.
+ * The category list of the settings: kept ids are unique, every move names a
+ * kept one, and the marketing category stays.
  */
 export const categoriesSchema = z
   .array(categoryEntrySchema)

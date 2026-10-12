@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { webhookSecretMatches } from "../../services/events";
+import { DEFAULT_CATEGORIES } from "../../types";
 import { settingsSchema } from "../../validation/settings.schema";
 
 const VALID_SECRET = "a".repeat(48);
@@ -12,7 +13,7 @@ const settings = (webhookSecret: string) => ({
   senderEmail: "",
   replyTo: "",
   webhookSecret,
-  categories: [],
+  categories: DEFAULT_CATEGORIES,
 });
 
 describe("[unit] webhook secret", () => {

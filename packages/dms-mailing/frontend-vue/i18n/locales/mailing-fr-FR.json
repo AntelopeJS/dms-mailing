@@ -732,6 +732,7 @@
 				"reassigned": "{count} modèle a changé de catégorie. | {count} modèle a changé de catégorie. | {count} modèles ont changé de catégorie.",
 				"label_required": "Donnez un nom à la catégorie.",
 				"label_duplicate": "Cette catégorie existe déjà.",
+				"marketing_required": "La catégorie marketing ne peut pas être supprimée : les règles des campagnes en dépendent.",
 				"icons": {
 					"package": "Colis",
 					"lock": "Cadenas",

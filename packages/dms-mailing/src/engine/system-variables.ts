@@ -1,4 +1,8 @@
-import { SYSTEM_VARIABLE_PATHS } from "../constants";
+import {
+  PREFERENCES_URL_PATH,
+  SYSTEM_VARIABLE_PATHS,
+  UNSUBSCRIBE_URL_PATH,
+} from "../constants";
 import type {
   Block,
   FooterBlock,
@@ -10,10 +14,10 @@ import { collectReferencedPaths } from "./coverage";
 import { getPath, isPresent } from "./paths";
 import { walkBlocks } from "./walk";
 
-export const UNSUBSCRIBE_URL_PATH = "unsubscribeUrl";
-export const PREFERENCES_URL_PATH = "preferencesUrl";
-
-/** The category whose e-mails are campaigns; every other one is transactional. */
+/**
+ * The category whose e-mails are campaigns; every other one is transactional.
+ * The settings keep it: it can be renamed, never removed.
+ */
 export const MARKETING_CATEGORY = "marketing";
 
 const SYSTEM_VARIABLE_TYPE = "url";
