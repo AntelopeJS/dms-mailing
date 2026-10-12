@@ -211,9 +211,9 @@ AND-only and `is` compares one literal. How do we filter "Problems"?
 
 **Answer.** Store a derived `stage` on each send (`problem`, `in_progress`,
 `delivered`, `engaged`, `unsubscribed`), written by the single place that writes
-`status` (record + provider events), indexed. The tabs filter on `stage`. Rows
-written before this field existed are backfilled from `status` when the module
-starts (one indexed query for rows with no `stage`).
+`status` (record + provider events), indexed. The tabs filter on `stage`.
+Every send is written with its stage; there is no backfill (see §12: a 0.3
+database is not read).
 
 ### Q3.5 `mailing_templates` stores per-locale content by hand
 (`pickLocale` / `fallbackLocale`). Should it move to `@Localized`?
@@ -230,14 +230,15 @@ template is not translated today and the mockup does not ask for it.
 ### Q3.6 "Needs attention" on the templates gallery mixes drafts, never-sent
 live templates and missing locales. Stored flag or computed?
 
-**Answer.** Computed when the gallery loads, not stored. The flag depends on
-sends (never sent) and on the workspace locales (a frontend concern), so a
-stored column would go stale. The gallery reads `GET /templates/overview`
-(per-template sends, open rate, last send) and offers "Needs attention" as a
-filter chip with its own count at the top of the gallery. It is not a
-TableView tab: a tab's counter is counted on the server from its filter, and
-no single-column filter expresses that rule, so a tab would show a wrong
-number.
+**Answer (revised in §12).** Stored, refreshed by the server. The reasons
+are worked out once in `src/services/attention.ts` (a draft never published
+left aside for a week, a live template no real send used in 30 days, a live
+template missing a locale the other live ones carry) and kept on the template
+(`attention`, `needsAttention`), so a TableView tab filters on one column and
+counts it on the server. Template writes, the first real send of a flagged
+template and an hourly cron keep it current. The first answer computed it in
+the browser, which meant a second copy of the rules and of the table's filter
+grammar.
 
 ---
 
@@ -255,7 +256,8 @@ that is always visible, hover actions that also show on focus.
 
 **Answer.** All · Live · Drafts · Archived as TableView tabs on `status` with
 counters; All hides archived templates and publishes the Templates nav badge.
-"Needs attention" is a chip of the gallery (Q3.6).
+"Needs attention" is a fifth tab, filtering on `needsAttention` (Q3.6);
+`?tab=attention` opens it.
 
 ### Q4.3 New template (ML-15, ML-16)?
 
@@ -523,11 +525,70 @@ there.
 ## 11. How it is tested
 
 - Backend unit tests for every new service (versions, stages, error wording,
-  settings patch, overview stats), integration tests for publish / discard /
-  version history, draft test send, real send refusal, fix-the-address, the
-  partial settings post and the stage backfill.
+  settings patch, overview stats, attention reasons), integration tests for
+  publish / discard / version history, draft test send, real send refusal,
+  fix-the-address, the partial settings put and the attention tab.
 - Layer tests (vitest) for the editor state, shortcuts, autocomplete, slug
   derivation, locale chips, send footer by status.
 - An end-to-end pass in the playground (dms 0.6 + dms-frontend 0.5, Mongo,
   Ethereal) driven by Playwright over every page, drawer and dialog, with the
   screenshots attached to the pull request.
+
+## 12. Review follow-up
+
+The review of the v2 commits (October 2026) asked for no glue, no
+compatibility shim and nothing the DMS already provides. What changed:
+
+- **Dependencies.** dms `>=0.7.11 <0.8.0`, interface-dms `>=0.5.6`: 0.7.10
+  ships `GetApiBaseUrl` and the side panel's not-found state. The shared
+  module sources moved under `src/test`, out of the published package.
+- **0.3.4 compatibility removed** (breaking, see the README): the
+  `/events/<provider>` webhook route and the tenant in the body,
+  `POST /settings`, the read-only fields a patch used to accept, categories as
+  JSON text, the scan for settings rows without the tenant key, templates
+  read as version 1, the send stage backfill, the `notifications.bounce_*`
+  texts. A 0.3 database starts from scratch.
+- **Webhook URL.** Built on `GetApiBaseUrl()` (the DMS `apiBaseUrl`), never on
+  `X-Forwarded-*`: "Send a test event" can no longer be pointed at an
+  arbitrary host. The module's `publicApiUrl` option is gone.
+- **Removed as dead or unused:** the settings `If-Match` revision, the
+  suppressed-latency migration, the `List-Unsubscribe` header (no provider
+  emits it until `EmailParams` has headers), defaults on fields every row
+  carries, `useMailingPeriodData`, `useMailingOps`, the gallery's filter,
+  search and sort copies, the restore answer's unused fields.
+- **Marketing.** The `marketing` category carries the campaign rules: the
+  settings refuse a list without it (it can be renamed) and its editor row
+  has no remove action.
+- **Replaced by the DMS:** the delete / edit route wrappers (TableView
+  `guards`), the funnel loader (`useChartFetch`), the category removal
+  dialog (confirm `fields`), the per-row category errors (server issues under
+  `["categories", i, "label"]` shown by a `UFormField` of that name, in place
+  of `useControlError` from `app/build`), the KPI response type
+  (`KpiCardData`).
+- **Needs attention** became a TableView tab (§Q3.6).
+
+Workarounds kept, each waiting on a DMS defect, to remove in a follow-up:
+
+| Workaround | DMS defect |
+| --- | --- |
+| Webhook URL on the API origin (`GetApiBaseUrl`), not the front's | The front proxy refuses a `POST` without `Origin` and does not forward `x-mailing-webhook-secret` |
+| `stripRenderMarkers` (`services/render.ts`) | `GenerateHtml` keeps Vue SSR comment markers in e-mail HTML |
+| `EmailMailingTemplate.vue` forks `EmailLayout` | `EmailLayout` forces the subject as `h1` with a separator, and keeps SVG / localhost logos |
+| `MailingSuppressionFilter` banner | A `queryParamFilters` filter is hidden, with no chip to clear it |
+| `RetentionInput` re-submits through `requestSubmit()` | Form validators are synchronous: no confirmation before a submit |
+| E11000 caught in `services/notify.ts` | `createIdempotently` throws on a duplicate key with other parameters |
+| Hidden searchable "Send id" column | The table search matches only a field with a column or a filter, so finding a send by id needs a hidden column |
+| `MailingWebhookStatus` as a form field | A form section only holds fields, no display block |
+
+Planned but left out, because the module would look different: the
+`DmsActivityItem` lines of the webhook status (icon in a well),
+`DmsCodeSnippet` for the code blocks (DMS frame and copy button), the DMS
+form inputs and `DmsBanner` in place of `USwitch` / `UCheckbox` / `UAlert`,
+`IdentityDisplay` for the category cell (icon in a tile), one row component
+for the declared variables of three panels (each has its own spacing), the
+DMS date formatters (they follow the user's regional settings), and the
+replay toast reading the suppression reason from the error message (its
+wording would change). The front keeps its mirror of the system variables
+and of `pickLocale`: the layer is copied on its own and cannot import
+`src/engine`.
+

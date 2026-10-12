@@ -29,7 +29,10 @@ The v2 redesign neither reads what 0.3.x wrote nor takes its calls:
   fields with `PUT /api/mailing/settings`. A write carrying a read-only field
   (`webhookUrl`, `provider`) is refused.
 - **Categories.** The settings take `categories` as an array only, no longer
-  as its JSON text.
+  as its JSON text, and always with the `marketing` category (it can be
+  renamed, not removed: campaign rules depend on it).
+- **Interface.** The module implements `@antelopejs/interface-dms-mailing`
+  0.6, whose `SendStatus` adds `suppressed`.
 - **Data.** A 0.3.x database is not read any more (settings rows without the
   tenant key, templates without version numbers, sends without a stage):
   start the module on an empty database.
@@ -48,14 +51,14 @@ can render exactly what went out and show `DE → EN` fallbacks.
 
 | Path | What it holds |
 | --- | --- |
-| `src/index.ts` | Module lifecycle (`construct`/`start`/`stop`/`destroy`); registers the Vue frontend module, the automation nodes, the tenant-export contributor, the realtime topics and the retention cron. |
+| `src/index.ts` | Module lifecycle (`construct`/`start`/`stop`/`destroy`); registers the Vue frontend module, the automation nodes, the tenant-export contributor, the realtime topics and the crons. |
 | `src/pages/` | The DMS pages: `overview`, `templates`, the editor (`templates/:id`), `sends`, `settings` and `suppressions`, all inside the module sidebar. Every custom block carries a `.meta()` with i18n keys. |
 | `src/data/` | The `TableView` data controllers behind `/api/mailing/tables/*`. |
 | `src/routes/` | The HTTP API under `/api/mailing` (templates, sends, events, metrics, settings, provider, suppressions). |
 | `src/engine/` | The pure-TS rendering engine: block tree + variables → resolved e-mail. |
 | `../interface-dms-mailing/` | The separately published public AntelopeJS interface (see below). |
 | `src/automation/` | The `dms-automation` action and trigger. |
-| `src/crons/` | The daily, replay-safe send-log retention job. |
+| `src/crons/` | The daily, replay-safe send-log retention job and the hourly refresh of the templates needing attention. |
 | `src/hooks/` | The tenant data export contributor. |
 | `frontend-vue/` | Vue module registered under the `Mailing` component prefix: gallery display, template and send drawers, test / real send dialogs, the three-pane block editor, the overview and settings blocks, `dms.email.ts` server template entry and the `mailing-*.json` i18n catalogs. Its own composables and utils are imported by path, not auto-imported. |
 | `playground/` | Standalone AntelopeJS project wiring this module to the DMS, Mongo, the API server and the mailer, for local development. |
