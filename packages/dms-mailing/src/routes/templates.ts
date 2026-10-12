@@ -23,12 +23,7 @@ import {
   resolveEmail,
   type TemplateChange,
 } from "../engine";
-import {
-  type MailingTemplate,
-  SendModel,
-  TemplateModel,
-  TemplateVersionModel,
-} from "../db";
+import { type MailingTemplate, SendModel, TemplateModel } from "../db";
 import { TemplatesPageController } from "../pages/templates";
 import { forAudience } from "../services/metrics";
 import { renderEmailHtml } from "../services/render";
@@ -45,9 +40,12 @@ import {
   contentOfVersion,
   discardDraft,
   displayName,
+  draftRevisionOf,
   hasDraft,
   isPublished,
+  isStaleRevision,
   localeContentOf,
+  localesWithoutSubject,
   parseContent,
   parseTestData,
   parseVariables,
@@ -57,6 +55,7 @@ import {
   publishTemplate,
   saveDraft,
   workingContent,
+  workingVariables,
 } from "../services/templates";
 import {
   BUSINESS_AUDIENCE,
@@ -68,7 +67,8 @@ import {
 import {
   duplicateSchema,
   previewSchema,
-  templateContentSchema,
+  publishSchema,
+  saveContentSchema,
   testDataSchema,
   variablesSchema,
 } from "../validation/templates.schema";
@@ -79,6 +79,9 @@ const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
 const INVALID_TRANSITION = "$dms_mailing.errors.invalid_transition";
 const NOTHING_TO_PUBLISH = "$dms_mailing.errors.nothing_to_publish";
+const NOTHING_TO_DISCARD = "$dms_mailing.errors.nothing_to_discard";
+const DRAFT_CONFLICT = "$dms_mailing.errors.draft_conflict";
+const EMPTY_SUBJECT = "$dms_mailing.errors.empty_subject";
 const STATS_WINDOW_DAYS = 30;
 const DAY_MS = 86_400_000;
 
@@ -101,6 +104,13 @@ const TARGET_STATUS: Record<
   restore: "draft",
 };
 
+/** What a lifecycle action records besides the new status. */
+const TRANSITION_FIELDS: Partial<
+  Record<TemplateAction, () => Partial<MailingTemplate>>
+> = {
+  unpublish: () => ({ unpublishedAt: new Date() }),
+};
+
 export interface CategoriesResponse {
   categories: MailingSettingsValues["categories"];
 }
@@ -120,22 +130,25 @@ export interface TemplateContentResponse {
   hasDraft: boolean;
   /** Version customers receive; 0 when never published. */
   version: number;
+  /** The draft revision a save or a publish must carry back. */
+  revision: number;
   changes: TemplateChange[];
+  /** The declarations the editor works on: the draft's, else the published. */
   variables: VariableDefinition[];
-  /** Paths the content actually references, across every locale. */
+  /** Paths the working content references, across every locale. */
   detectedVariables: string[];
+  /**
+   * The contract callers send against: the published declarations and the
+   * paths the published content references; `null` when never published.
+   */
+  publishedVariables: VariableDefinition[] | null;
+  publishedDetectedVariables: string[] | null;
   testData: Record<string, unknown>;
   fallbackLocale: string;
+  /** Whether a send missing a variable fails rather than goes out blank. */
+  blockOnMissingVariables: boolean;
   categories: MailingSettingsValues["categories"];
   sender: TemplateSender;
-}
-
-export interface TemplateVersionSummary {
-  version: number;
-  publishedAt: Date;
-  publishedBy: string;
-  locales: string;
-  changes: TemplateChange[];
 }
 
 export interface StarterSummary {
@@ -144,6 +157,17 @@ export interface StarterSummary {
   slug: string;
   category: string;
   locales: string[];
+}
+
+/**
+ * Refuses a write of the draft from a writer behind it: it would silently
+ * drop what another editor saved meanwhile.
+ */
+export function assertCurrentDraft(
+  template: MailingTemplate,
+  revision: number | undefined,
+): void {
+  assert(!isStaleRevision(template, revision), HTTP_CONFLICT, DRAFT_CONFLICT);
 }
 
 function statsWindowStart(now: number = Date.now()): Date {
@@ -161,9 +185,6 @@ export class TemplatesController extends Controller(
 
   @TenantScopedModel(TemplateModel)
   declare templates: TemplateModel;
-
-  @TenantScopedModel(TemplateVersionModel)
-  declare versions: TemplateVersionModel;
 
   @TenantScopedModel(SendModel)
   declare sends: SendModel;
@@ -206,19 +227,27 @@ export class TemplatesController extends Controller(
     };
   }
 
+  /**
+   * A starter's thumbnail, in the `locale` asked for (the interface's) when
+   * the starter has it, else the tenant fallback; its test amounts are
+   * written the way that locale writes them.
+   */
   @Get("/starters/:id/preview")
-  async starterPreview(@Parameter("id", "param") id: string) {
+  async starterPreview(
+    @Parameter("id", "param") id: string,
+    @Parameter("locale", "query") requested?: string,
+  ) {
     const starter = findStarter(id);
     assert(starter, HTTP_NOT_FOUND, STARTER_NOT_FOUND);
     const settings = await getSettings(this.tenantId);
     const locale = pickLocale(
       starter.content,
-      undefined,
+      requested || undefined,
       settings.fallbackLocale,
     );
     const localeContent = localeContentOf(starter.content, locale);
     assert(localeContent, HTTP_UNPROCESSABLE, INVALID_CONTENT);
-    const email = resolveEmail(localeContent, starter.testData);
+    const email = resolveEmail(localeContent, starter.testDataFor(locale));
     return { html: await renderEmailHtml(email, locale), locale };
   }
 
@@ -267,17 +296,26 @@ export class TemplatesController extends Controller(
     const template = await this.requireTemplate(id);
     const settings = await getSettings(this.tenantId);
     const content = workingContent(template);
+    const publishedContent = isPublished(template)
+      ? parseContent(template)
+      : null;
     return {
       template,
       content,
-      publishedContent: isPublished(template) ? parseContent(template) : null,
+      publishedContent,
       hasDraft: hasDraft(template),
       version: publishedVersionOf(template),
+      revision: draftRevisionOf(template),
       changes: pendingChanges(template),
-      variables: parseVariables(template),
+      variables: workingVariables(template),
       detectedVariables: collectContentVariablePaths(content),
+      publishedVariables: publishedContent ? parseVariables(template) : null,
+      publishedDetectedVariables: publishedContent
+        ? collectContentVariablePaths(publishedContent)
+        : null,
       testData: parseTestData(template),
       fallbackLocale: settings.fallbackLocale,
+      blockOnMissingVariables: settings.blockOnMissingVariables,
       categories: settings.categories,
       sender: {
         name: settings.senderName,
@@ -287,25 +325,36 @@ export class TemplatesController extends Controller(
     };
   }
 
-  /** Saves the editor's content as the draft; customers keep the published one. */
+  /**
+   * Saves the editor's content, and its variable declarations when given, as
+   * the draft; customers and callers keep the published ones. A save carrying
+   * an older revision than the stored draft is refused: it would silently
+   * drop what another editor saved meanwhile.
+   */
   @Post("/:id/content")
   async replaceContent(
     @Parameter("id", "param") id: string,
     @JSONBody() body: unknown,
   ) {
-    const content = assertValidation(
+    const input = assertValidation(
       body,
-      (value) =>
-        templateContentSchema.parse(
-          (value as { content: unknown }).content,
-        ) as TemplateContent,
+      (value) => saveContentSchema.parse(value),
       () => INVALID_CONTENT,
     );
+    const content = input.content as TemplateContent;
     const template = await this.requireTemplate(id);
-    await saveDraft(this.tenantId, template, content, this.author);
+    assertCurrentDraft(template, input.revision);
+    const variables = input.variables ?? workingVariables(template);
+    const revision = await saveDraft(
+      this.tenantId,
+      template,
+      { content, variables },
+      this.author,
+    );
     const saved = await this.requireTemplate(id);
     return {
       saved: true,
+      revision,
       detectedVariables: collectContentVariablePaths(content),
       changes: pendingChanges(saved),
     };
@@ -316,43 +365,45 @@ export class TemplatesController extends Controller(
     const template = await this.requireTemplate(id);
     return {
       version: publishedVersionOf(template),
+      revision: draftRevisionOf(template),
       changes: pendingChanges(template),
     };
   }
 
-  @Get("/:id/versions")
-  async history(
-    @Parameter("id", "param") id: string,
-  ): Promise<{ versions: TemplateVersionSummary[] }> {
-    await this.requireTemplate(id);
-    const rows = await this.versions.listForTemplate(id);
-    return {
-      versions: rows.map((row) => ({
-        version: row.version,
-        publishedAt: row.publishedAt,
-        publishedBy: row.publishedBy,
-        locales: row.locales,
-        changes: JSON.parse(row.json_changes || "[]") as TemplateChange[],
-      })),
-    };
-  }
-
+  /**
+   * Ships the working content. A publish carrying a revision ships only the
+   * draft its review showed: one saved elsewhere since is refused.
+   */
   @Post("/:id/publish")
-  async publish(@Parameter("id", "param") id: string) {
+  async publish(
+    @Parameter("id", "param") id: string,
+    @JSONBody() body: unknown,
+  ) {
+    const { revision } = assertValidation(body ?? {}, (value) =>
+      publishSchema.parse(value),
+    );
     const template = await this.requireTransition(id, "publish");
+    assertCurrentDraft(template, revision);
     const content = workingContent(template);
     assert(
       Object.keys(content.locales).length > 0,
       HTTP_UNPROCESSABLE,
       NOTHING_TO_PUBLISH,
     );
+    assert(
+      localesWithoutSubject(content).length === 0,
+      HTTP_UNPROCESSABLE,
+      EMPTY_SUBJECT,
+    );
     const outcome = await publishTemplate(this.tenantId, template, this.author);
     return { status: "live", ...outcome };
   }
 
+  /** Drops the draft back to the published content; nothing before v1. */
   @Post("/:id/discard")
   async discard(@Parameter("id", "param") id: string) {
     const template = await this.requireTemplate(id);
+    assert(isPublished(template), HTTP_CONFLICT, NOTHING_TO_DISCARD);
     await discardDraft(this.tenantId, template, this.author);
     return { discarded: true };
   }
@@ -391,24 +442,35 @@ export class TemplatesController extends Controller(
   ) {
     await this.requireTransition(id, action);
     const status = TARGET_STATUS[action];
-    await this.templates.update(id, { status, updatedBy: this.author });
+    await this.templates.update(id, {
+      status,
+      updatedBy: this.author,
+      ...TRANSITION_FIELDS[action]?.(),
+    });
     return { status };
   }
 
+  /**
+   * Writes the variable declarations into the draft, next to its content:
+   * callers keep the published contract until a publish ships them.
+   */
   @Post("/:id/variables")
   async variables(
     @Parameter("id", "param") id: string,
     @JSONBody() body: unknown,
   ) {
-    const { variables } = assertValidation(body, (value) =>
+    const { variables, revision } = assertValidation(body, (value) =>
       variablesSchema.parse(value),
     );
-    await this.requireTemplate(id);
-    await this.templates.update(id, {
-      json_variables: JSON.stringify(variables),
-      updatedBy: this.author,
-    });
-    return { variables };
+    const template = await this.requireTemplate(id);
+    assertCurrentDraft(template, revision);
+    const next = await saveDraft(
+      this.tenantId,
+      template,
+      { content: workingContent(template), variables },
+      this.author,
+    );
+    return { variables, revision: next };
   }
 
   @Post("/:id/test-data")

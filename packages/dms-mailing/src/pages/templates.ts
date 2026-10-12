@@ -17,6 +17,8 @@ import { mailingNavCategory } from "./module";
 const TEMPLATES_ORDER = 1;
 const TABLE_DISPLAY_ID = "table";
 const ARCHIVED_STATUS = "archived";
+// A gallery row holds three or four cards: 24 fills whole rows at most widths.
+const PAGE_SIZE = 24;
 
 const statusTab = (id: string, icon: string): TableViewTab => ({
   id,
@@ -62,6 +64,7 @@ export class TemplatesPageController extends PageController(
     labelKey: "name",
     rowIdKey: "_id",
     defaultSort: { field: "updatedAt", desc: true },
+    pageSize: PAGE_SIZE,
     searchPlaceholder: "$dms_mailing.templates.search",
     tabs: [
       {
@@ -95,7 +98,22 @@ export class TemplatesPageController extends PageController(
       edit: true,
       details: false,
       duplicate: false,
-      delete: true,
+      // Only an archived template never sent can go: past sends render from
+      // it. The route refuses the others too.
+      delete: {
+        rule: {
+          and: [
+            { field: "status", equals: ARCHIVED_STATUS },
+            { field: "hasSends", notEquals: true },
+          ],
+        },
+        confirm: {
+          title: "$dms_mailing.templates.confirm.delete_title",
+          description: "$dms_mailing.templates.confirm.delete_description",
+          icon: "i-ph-trash",
+          color: "error",
+        },
+      },
       copyLink: false,
       hasSelection: false,
       custom: [
@@ -178,6 +196,7 @@ export class TemplatesPageController extends PageController(
           size: "lg",
           component: newTemplateModal,
           title: "$dms_mailing.new_template.title",
+          description: "$dms_mailing.new_template.description",
         },
       },
     ],

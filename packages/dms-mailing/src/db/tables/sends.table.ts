@@ -62,8 +62,9 @@ export class MailingSend extends Table {
   @Field("string")
   declare providerMessageId?: string;
 
+  /** `null` for a send that never reached the provider (suppressed). */
   @Field("number")
-  declare latencyMs: number;
+  declare latencyMs: number | null;
 
   @Field("string")
   declare error?: string;
@@ -95,4 +96,24 @@ export class MailingSend extends Table {
 
   @Field("boolean")
   declare isTest: boolean;
+
+  /** A bounce the receiving server called temporary (a full mailbox, 4.x.x). */
+  @Field("boolean")
+  declare isSoftBounce?: boolean;
+
+  /** The send this one repeats, sent again or to another address. */
+  @Field("string")
+  declare replayOf?: string;
+
+  /** The send that repeated this problem, once someone sent it again. */
+  @Field("string")
+  declare replayedBy?: string;
+
+  /** When someone dealt with this problem by sending it again. */
+  @Field("date")
+  declare resolvedAt?: Date;
+
+  /** Who sent it again: a user id. */
+  @Field("string")
+  declare resolvedBy?: string;
 }

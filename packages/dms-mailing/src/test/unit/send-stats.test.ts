@@ -1,6 +1,10 @@
 import { expect } from "chai";
 import type { SendSummary } from "../../db";
-import { buildSendStats, isProviderFailure } from "../../services/send-stats";
+import {
+  buildSendStats,
+  isProviderFailure,
+  isTransportFailure,
+} from "../../services/send-stats";
 import type { SendStatus } from "../../types";
 
 const send = (
@@ -39,6 +43,28 @@ describe("[unit] services/send-stats", () => {
     });
   });
 
+  it("leaves out of the problems those someone already sent again", () => {
+    const stats = buildSendStats(
+      [
+        send("failed"),
+        send("failed", { stage: "resolved" }),
+        send("bounced", { stage: "resolved" }),
+        send("spam", { stage: "problem" }),
+      ],
+      [],
+    );
+    expect(stats).to.deep.include({
+      problems: 2,
+      bounced: 0,
+      failed: 1,
+      spam: 1,
+    });
+  });
+
+  it("states no delta when the comparison is turned off", () => {
+    expect(buildSendStats([send("delivered")], null).sendsDelta).to.equal(null);
+  });
+
   it("dates the oldest send still queued", () => {
     const stats = buildSendStats(
       [
@@ -59,5 +85,20 @@ describe("[unit] services/send-stats", () => {
     expect(isProviderFailure(send("failed"))).to.equal(true);
     expect(isProviderFailure(send("bounced"))).to.equal(false);
     expect(isProviderFailure(send("failed", { isTest: true }))).to.equal(false);
+  });
+
+  it("never offers again a failure someone already sent again", () => {
+    expect(isProviderFailure(send("failed", { stage: "resolved" }))).to.equal(
+      false,
+    );
+  });
+
+  it("tells a connection failure from a recipient's rejection", () => {
+    expect(
+      isTransportFailure(send("failed", { error: "connect ECONNREFUSED" })),
+    ).to.equal(true);
+    expect(
+      isTransportFailure(send("failed", { error: "550 5.1.1 No such user" })),
+    ).to.equal(false);
   });
 });

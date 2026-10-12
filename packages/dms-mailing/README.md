@@ -14,8 +14,8 @@ e-mails through the DMS html-render chain and sends them through
 
 The module targets `@antelopejs/dms` 0.7 (0.7.8 or later) and `@antelopejs/dms-frontend` 0.5.
 Like every DMS module, its pages live in the module's own sidebar (Mailing:
-Overview, Templates, Sends; Configure: Settings) and are reserved to the
-platform owner. The design decisions behind the v2 screens are recorded in
+Overview, Templates, Sends; Configure: Settings, Suppression list) and are
+reserved to the platform owner. The design decisions behind the v2 screens are recorded in
 [`docs/design-v2-grill-me.md`](../../docs/design-v2-grill-me.md).
 
 ## Drafts and versions
@@ -33,9 +33,9 @@ can render exactly what went out and show `DE → EN` fallbacks.
 | Path | What it holds |
 | --- | --- |
 | `src/index.ts` | Module lifecycle (`construct`/`start`/`stop`/`destroy`); registers the Vue frontend module, the automation nodes, the tenant-export contributor, the realtime topics and the retention cron. |
-| `src/pages/` | The DMS pages: `overview`, `templates`, the editor (`templates/:id`), `sends` and `settings`, all inside the module sidebar. Every custom block carries a `.meta()` with i18n keys. |
+| `src/pages/` | The DMS pages: `overview`, `templates`, the editor (`templates/:id`), `sends`, `settings` and `suppressions`, all inside the module sidebar. Every custom block carries a `.meta()` with i18n keys. |
 | `src/data/` | The `TableView` data controllers behind `/api/mailing/tables/*`. |
-| `src/routes/` | The HTTP API under `/api/mailing` (templates, sends, events, metrics, settings, provider). |
+| `src/routes/` | The HTTP API under `/api/mailing` (templates, sends, events, metrics, settings, provider, suppressions). |
 | `src/engine/` | The pure-TS rendering engine: block tree + variables → resolved e-mail. |
 | `../interface-dms-mailing/` | The separately published public AntelopeJS interface (see below). |
 | `src/automation/` | The `dms-automation` action and trigger. |
@@ -78,25 +78,207 @@ once and issues a single `SendBatch`; otherwise it loops `Send`. Either way one
 row per recipient lands in the send log, and the returned
 `SendTemplateResult` describes the first one.
 
-## Webhook contract
+A recipient on the [suppression list](#suppression-list) gets nothing: its
+row in the log and its entry in `results` have the status `suppressed`, and
+`error` names the reason as an i18n key
+(`$dms_mailing.errors.suppressed.hard_bounce`, `….complaint`,
+`….unsubscribe`, `….manual`). Do not retry such a send.
 
-Provider events are posted to `POST /api/mailing/events/:provider`, guarded by
-the `x-mailing-webhook-secret` header (the secret lives in the mailing
-settings, per tenant). The endpoint never creates those settings: until a
-tenant's settings exist (any mailing page or send creates them), its events are
-refused with `403`.
+## What a recipient receives
 
-```sh
-curl -X POST http://localhost:5010/api/mailing/events/brevo \
-  -H "Content-Type: application/json" \
-  -H "x-mailing-webhook-secret: <settings.webhookSecret>" \
-  -d '{"messageId":"<provider message id>","type":"bounced","at":"2026-09-09T10:00:00.000Z","details":{"reason":"mailbox full"}}'
+Every e-mail goes out as HTML and as a plain-text part generated from the
+same blocks (`multipart/alternative`), with a `viewport` meta. The header logo
+is the DMS branding's light logo (`branding.logo.default.light`) at an
+absolute public URL (the DMS `clientBaseUrl`): on a `localhost`, private-IP or
+`.local` address, or for an SVG (refused by Gmail and Outlook), it is left out
+rather than shown broken. The editor canvas draws the same header and footer.
+
+**Footer links are system variables.** A footer whose unsubscribe or
+preferences label is filled (or a `{{unsubscribeUrl}}` / `{{preferencesUrl}}`
+token anywhere) declares `unsubscribeUrl` / `preferencesUrl` as variables of
+type `url`, required when the template is in the `marketing` category. The
+editor shows them in the Variables tab, the template drawer in its contract and
+its "Call it from code" snippet; pass them in `variables` at send time:
+
+```ts
+await SendTemplate("newsletter-october", {
+  tenantId,
+  to: "ana@example.com",
+  variables: {
+    unsubscribeUrl: `https://app.example.com/unsubscribe/${token}`,
+    preferencesUrl: "https://app.example.com/preferences",
+  },
+});
 ```
 
-`type` is one of `queued`, `sent`, `delivered`, `opened`, `clicked`,
-`bounced`, `spam`, `failed`, `unsubscribed`. The event is appended to the
-send's timeline, the send status only ever moves forward, and a `bounced`,
-`spam` or `failed` event notifies the tenant owners in the DMS bell.
+A link whose URL is missing is dropped from the e-mail, and an empty label
+removes the link. For a marketing template, a missing required URL refuses a
+manual real send, and every send when "Missing variables" is set to refuse;
+a test send never waits for it. The starters and the templates of the other
+categories get a footer with a legal line and no unsubscribe link.
+
+When the caller passes an absolute `http(s)` `unsubscribeUrl`, the module
+builds a `List-Unsubscribe: <url>` header, plus `List-Unsubscribe-Post:
+List-Unsubscribe=One-Click` for an `https` URL (that URL must then accept the
+RFC 8058 one-click `POST`). `@antelopejs/interface-email` has no headers field
+yet: they are passed in `providerOptions.headers`, which the e-mail
+implementation must forward (the nodemailer implementation does not read
+`providerOptions` today, so the headers do not reach the message until it
+does).
+
+## Suppression list
+
+An address goes on the workspace's suppression list (`mailing_suppressions`)
+when the provider reports a permanent bounce (a `bounced` event that is not
+temporary: no `4xx` / `4.x.x` answer, no `soft` bounce type), a spam
+complaint (`spam`) or an unsubscription (`unsubscribed`), or when someone adds
+it by hand. A test send only adds its address on a permanent bounce: a spam
+report or an unsubscription on a test is the editor's own gesture.
+
+Every send path checks the list: `SendTemplate`, the automation action, the
+real send dialog, "Send again" and "Send to another address". A suppressed
+recipient is logged with the status `suppressed` (the Sends page has a tab for
+them, and the figures leave them out) and nothing is handed to the provider.
+A test send to the editor's own address still goes out, and the dialog warns
+that the address is suppressed; a test to any other suppressed address does
+not.
+
+**Configure › Suppression list** lists the addresses with their reason and
+the send that caused it, searchable and filtered by reason. **Add an
+address** puts one on the list by hand (with an optional note); **Reactivate**
+lifts it, and the next send reaches it again. The same operations are
+`POST /api/mailing/suppressions` (`{ "email", "note"? }`, `409` when the
+address is already on the list) and `DELETE /api/mailing/suppressions/:id`.
+The tenant data export carries the list as `suppressions.json`.
+
+## Configuration
+
+The module takes two options, in the `config` of its entry in the project's
+`antelope.config.ts`:
+
+```ts
+config: {
+  // Public address of the API, as an e-mail provider reaches it.
+  publicApiUrl: "https://api.example.com",
+  // false renders with the module's own fallback HTML, not the DMS chain.
+  useHtmlRender: true,
+},
+```
+
+`publicApiUrl` is the origin the webhook URL of **Settings › Provider &
+webhook** starts with. Without it the settings show the address their own
+request came through, often an internal one (the DMS front-end proxies `/api`
+to the backend): set it as soon as a real provider has to reach the webhook.
+
+## Webhook contract
+
+The module has one generic event format. Provider events are posted to
+
+```
+POST <publicApiUrl>/api/mailing/events/<provider>/<tenantId>
+```
+
+the URL **Settings › Provider & webhook** shows, ready to copy. `<provider>`
+is a free label recorded with the event (the settings use the configured
+e-mail provider's name); `<tenantId>` names the workspace and wins over a
+`tenantId` in the body. The older `POST /api/mailing/events/<provider>` still
+works and takes the tenant from the body, else from the request.
+
+Every request carries the workspace's secret in the `x-mailing-webhook-secret`
+header (Settings › Provider & webhook; rotating it invalidates the old one at
+once). The body is JSON:
+
+```sh
+curl -X POST https://api.example.com/api/mailing/events/postmark/<tenantId> \
+  -H "Content-Type: application/json" \
+  -H "x-mailing-webhook-secret: <secret>" \
+  -d '{"messageId":"<provider message id>","type":"bounced","at":"2026-09-09T10:00:00.000Z","details":{"reason":"550 5.1.1 No such user","bounceType":"hard","eventId":"<provider event id>"}}'
+```
+
+| Field | Meaning |
+| --- | --- |
+| `messageId` | The id the provider returned when the e-mail was sent (the send's `providerMessageId`). Required. |
+| `type` | `queued`, `sent`, `delivered`, `opened`, `clicked`, `bounced`, `spam`, `failed` or `unsubscribed`. Required. |
+| `at` | When it happened (ISO date); now by default. |
+| `details.reason` | The provider's words (`550 5.1.1 …`), shown in the log. |
+| `details.bounceType` | `soft`/`transient`/`temporary` or `hard`/`permanent`; without it the SMTP class of `reason` decides. A permanent bounce suppresses the address. |
+| `details.eventId` | The provider's event id: a retried webhook with the same id is ignored. |
+| `details.url`, `details.userAgent` | Shown on the click and open steps. |
+
+The answer is `200 {"recorded": true}`, or `{"recorded": false}` when no send
+carries the message id (or the event was already recorded). The event is
+appended to the send's timeline, the status only ever moves forward (a
+delivery after a provider failure wins over it), a hard bounce, a spam report
+or an unsubscription puts the address on the suppression list, and repeated
+problems on a template notify the tenant owners in the DMS bell.
+
+A refused call gets a readable JSON body, for the relay's logs:
+
+| Status | `reason` | Why |
+| --- | --- | --- |
+| `403` | `missing_secret` | No `x-mailing-webhook-secret` header. |
+| `403` | `bad_secret` | The header does not match the workspace's secret, or the workspace has no mailing settings yet (any mailing page or send creates them). |
+| `400` | `invalid_event` | The secret is right but the body is not an event. |
+
+```json
+{ "error": "webhook_refused", "reason": "bad_secret", "message": "The x-mailing-webhook-secret header does not match …" }
+```
+
+The secret is checked before the body, so a caller without it learns nothing
+of the format. **Settings › Provider & webhook › Webhook status** shows the
+last event received (when, its type, the provider label, whether it matched a
+send) and the last call refused (when, and why). **Send a test event** posts a
+test event to the URL shown, with the stored secret, from the backend: it
+proves the URL is reachable from the server, the secret and the format, and
+touches no send (its message id is `dms-mailing-webhook-test`).
+
+### Relaying a provider
+
+Providers post their own format (Postmark, SES through SNS, Mailgun,
+SendGrid, Resend…) and most cannot add a custom header. Put a small relay
+between them and the module: it checks the provider's own signature,
+translates each event and forwards it with the secret. A sketch for Postmark:
+
+```ts
+const TYPES: Record<string, string> = {
+  Delivery: "delivered",
+  Open: "opened",
+  Click: "clicked",
+  Bounce: "bounced",
+  SpamComplaint: "spam",
+  SubscriptionChange: "unsubscribed",
+};
+
+export async function relayPostmark(event: PostmarkEvent): Promise<void> {
+  const type = TYPES[event.RecordType];
+  if (!type) return;
+  await fetch(MAILING_WEBHOOK_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-mailing-webhook-secret": MAILING_WEBHOOK_SECRET,
+    },
+    body: JSON.stringify({
+      messageId: event.MessageID,
+      type,
+      at: event.ReceivedAt ?? event.DeliveredAt ?? event.BouncedAt,
+      details: {
+        reason: event.Details ?? event.Description,
+        bounceType: event.Type === "SoftBounce" ? "soft" : "hard",
+        eventId: String(event.ID ?? ""),
+        url: event.OriginalLink,
+        userAgent: event.UserAgent,
+      },
+    }),
+  });
+}
+```
+
+A module of the same project can skip HTTP altogether and call
+`RecordEmailEvent(tenantId, event)` from the public interface. As long as the
+DMS front-end proxy refuses cross-site `POST`s without an `Origin` header and
+does not forward `x-mailing-webhook-secret`, the provider or the relay must
+reach the API directly: that is what `publicApiUrl` is for.
 
 ## Retention
 

@@ -5,6 +5,7 @@ import type {
   TemplateContent,
   VariableDefinition,
 } from "../types";
+import { footerForCategory } from "../engine";
 import { blankFields } from "./templates";
 
 /**
@@ -19,7 +20,48 @@ export interface StarterTemplate {
   category: string;
   content: TemplateContent;
   variables: VariableDefinition[];
+  /** The test data as an English-speaking workspace gets it. */
   testData: Record<string, unknown>;
+  /** The test data with its amounts written the way `locale` writes them. */
+  testDataFor: (locale: string) => Record<string, unknown>;
+}
+
+type StarterSource = Omit<StarterTemplate, "testData">;
+
+const DEFAULT_TEST_DATA_LOCALE = "en";
+const STARTER_CURRENCY = "EUR";
+
+/** `locale` when the runtime can format for it, English otherwise. */
+function formattingLocale(locale: string): string {
+  try {
+    return (
+      Intl.NumberFormat.supportedLocalesOf(locale)[0] ??
+      DEFAULT_TEST_DATA_LOCALE
+    );
+  } catch {
+    return DEFAULT_TEST_DATA_LOCALE;
+  }
+}
+
+/** The ordered item of the order starter's test data, by language. */
+const ORDER_LINE_NAMES: Record<string, string> = {
+  en: "Ergo chair · Graphite × 4",
+  fr: "Fauteuil ergonomique · Graphite × 4",
+};
+const LOCALE_PARTS = /[-_]/;
+
+/** A test text in the language of `locale`, English when it has none. */
+function inLanguageOf(texts: Record<string, string>, locale: string): string {
+  const language = locale.toLowerCase().split(LOCALE_PARTS)[0] ?? "";
+  return texts[language] ?? (texts[DEFAULT_TEST_DATA_LOCALE] as string);
+}
+
+/** An amount the way `locale` writes it: "€1,556.00", "1 556,00 €". */
+function money(amount: number, locale: string): string {
+  return new Intl.NumberFormat(formattingLocale(locale), {
+    style: "currency",
+    currency: STARTER_CURRENCY,
+  }).format(amount);
 }
 
 interface StarterCopy {
@@ -28,6 +70,8 @@ interface StarterCopy {
   heading: string;
   body: string;
   button?: string;
+  /** Why the recipient gets this e-mail: the footer's legal line. */
+  footer: string;
 }
 
 const HEADING_SIZE = 26;
@@ -37,7 +81,7 @@ const FOOTER_LABELS: Record<string, [string, string]> = {
   fr: ["Se désinscrire", "Préférences"],
 };
 
-const footer = (locale: string): Block => {
+const footer = (locale: string, text: string): Block => {
   const [unsubscribeLabel, preferencesLabel] = FOOTER_LABELS[locale] as [
     string,
     string,
@@ -45,7 +89,7 @@ const footer = (locale: string): Block => {
   return {
     id: "footer",
     type: "footer",
-    text: "",
+    text,
     unsubscribeLabel,
     preferencesLabel,
     visibleIf: null,
@@ -91,7 +135,7 @@ function localeContent(
       },
       ...extra,
       ...button,
-      footer(locale),
+      footer(locale, copy.footer),
     ],
   };
 }
@@ -120,7 +164,10 @@ const v = (
   required = true,
 ): VariableDefinition => ({ path, type, required });
 
-export const STARTER_TEMPLATES: StarterTemplate[] = [
+const ORDER_TOTAL = 1556;
+const INVOICE_AMOUNT = 318.9;
+
+const STARTER_SOURCES: StarterSource[] = [
   {
     id: "order-confirmed",
     name: "Order confirmation",
@@ -133,15 +180,20 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
       v("order.lines", "array"),
       v("order.url", "url"),
     ],
-    testData: {
+    testDataFor: (locale) => ({
       customer: { firstName: "Julie" },
       order: {
         number: "#10482",
-        total: "€1,556.00",
+        total: money(ORDER_TOTAL, locale),
         url: "https://example.com/orders/10482",
-        lines: [{ name: "Ergo chair · Graphite × 4", total: "€1,556.00" }],
+        lines: [
+          {
+            name: inLanguageOf(ORDER_LINE_NAMES, locale),
+            total: money(ORDER_TOTAL, locale),
+          },
+        ],
       },
-    },
+    }),
     content: {
       locales: {
         en: localeContent(
@@ -152,6 +204,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Thanks for your order, {{customer.firstName}}!",
             body: "We've received order {{order.number}} and we're getting it ready.",
             button: "Track your order",
+            footer:
+              "You are receiving this e-mail because you placed an order with us.",
           },
           orderLines,
           "{{order.url}}",
@@ -164,6 +218,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Merci pour votre commande, {{customer.firstName}} !",
             body: "Nous avons bien reçu la commande {{order.number}} et nous la préparons.",
             button: "Suivre ma commande",
+            footer: "Vous recevez cet e-mail suite à votre commande.",
           },
           orderLines,
           "{{order.url}}",
@@ -181,11 +236,11 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
       v("order.number", "string"),
       v("shipment.trackingUrl", "url"),
     ],
-    testData: {
+    testDataFor: () => ({
       customer: { firstName: "Julie" },
       order: { number: "#10482" },
       shipment: { trackingUrl: "https://example.com/track/10482" },
-    },
+    }),
     content: {
       locales: {
         en: localeContent(
@@ -196,6 +251,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Your order {{order.number}} has shipped",
             body: "Good news {{customer.firstName}}, your parcel is on its way.",
             button: "Track the parcel",
+            footer:
+              "You are receiving this e-mail because you placed an order with us.",
           },
           [],
           "{{shipment.trackingUrl}}",
@@ -208,6 +265,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Votre commande {{order.number}} est expédiée",
             body: "Bonne nouvelle {{customer.firstName}}, votre colis est en route.",
             button: "Suivre le colis",
+            footer: "Vous recevez cet e-mail suite à votre commande.",
           },
           [],
           "{{shipment.trackingUrl}}",
@@ -221,10 +279,10 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     slug: "password-reset",
     category: "account",
     variables: [v("user.firstName", "string"), v("reset.url", "url")],
-    testData: {
+    testDataFor: () => ({
       user: { firstName: "Julie" },
       reset: { url: "https://example.com/reset/abc123" },
-    },
+    }),
     content: {
       locales: {
         en: localeContent(
@@ -235,6 +293,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Reset your password",
             body: "Hi {{user.firstName}}, click the button below to choose a new password. If you didn't ask for it, ignore this e-mail.",
             button: "Choose a new password",
+            footer:
+              "You are receiving this e-mail because a password reset was requested for your account.",
           },
           [],
           "{{reset.url}}",
@@ -247,6 +307,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Réinitialisez votre mot de passe",
             body: "Bonjour {{user.firstName}}, cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Si vous ne l'avez pas demandé, ignorez cet e-mail.",
             button: "Choisir un nouveau mot de passe",
+            footer:
+              "Vous recevez cet e-mail car une réinitialisation du mot de passe a été demandée pour votre compte.",
           },
           [],
           "{{reset.url}}",
@@ -265,14 +327,14 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
       v("invoice.amount", "money"),
       v("invoice.url", "url"),
     ],
-    testData: {
+    testDataFor: (locale) => ({
       customer: { firstName: "Julie" },
       invoice: {
         number: "INV-2026-0918",
-        amount: "€318.90",
+        amount: money(INVOICE_AMOUNT, locale),
         url: "https://example.com/invoices/0918",
       },
-    },
+    }),
     content: {
       locales: {
         en: localeContent(
@@ -283,6 +345,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "Invoice {{invoice.number}} is available",
             body: "Hi {{customer.firstName}}, your invoice of {{invoice.amount}} is ready.",
             button: "Download the invoice",
+            footer:
+              "You are receiving this e-mail because an invoice was issued for your account.",
           },
           [],
           "{{invoice.url}}",
@@ -295,6 +359,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
             heading: "La facture {{invoice.number}} est disponible",
             body: "Bonjour {{customer.firstName}}, votre facture de {{invoice.amount}} est prête.",
             button: "Télécharger la facture",
+            footer:
+              "Vous recevez cet e-mail car une facture a été émise pour votre compte.",
           },
           [],
           "{{invoice.url}}",
@@ -304,17 +370,34 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   },
 ];
 
+/**
+ * The starters, each with the footer its category calls for: the shipped ones
+ * are transactional, so their footer states why the e-mail was sent and
+ * carries no unsubscribe link.
+ */
+export const STARTER_TEMPLATES: StarterTemplate[] = STARTER_SOURCES.map(
+  (starter) => ({
+    ...starter,
+    testData: starter.testDataFor(DEFAULT_TEST_DATA_LOCALE),
+    content: footerForCategory(starter.content, starter.category),
+  }),
+);
+
 export function findStarter(id: string): StarterTemplate | undefined {
   return STARTER_TEMPLATES.find((starter) => starter.id === id);
 }
 
-/** The content fields a template created from `starter` starts with. */
+/**
+ * The content fields a template created from `starter` starts with, its test
+ * data written in the workspace's `locale`: its amounts and its texts.
+ */
 export function starterFields(
   starter: StarterTemplate,
+  locale: string = DEFAULT_TEST_DATA_LOCALE,
 ): Partial<MailingTemplate> {
   return {
     ...blankFields(starter.content),
     json_variables: JSON.stringify(starter.variables),
-    json_test_data: JSON.stringify(starter.testData),
+    json_test_data: JSON.stringify(starter.testDataFor(locale)),
   };
 }

@@ -52,7 +52,7 @@ export function statsOf(
     id,
     slug,
     sends: sends.length,
-    openRate: aggregate(sends).openRate,
+    openRate: aggregate(sends).openRate ?? 0,
     problems: sends.filter(isProblem).length,
     lastSentAt: lastSentAt(sends),
   };

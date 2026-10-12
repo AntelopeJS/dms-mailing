@@ -11,6 +11,7 @@ const STATS: SendStats = {
   tests: 2,
   delivered: 18,
   deliverability: 90,
+  isDeliveryUntracked: false,
   problems: 2,
   bounced: 1,
   failed: 0,
@@ -73,6 +74,20 @@ describe("[unit] services/send-stat-items", () => {
     expect(latencyText(6500)).to.deep.equal({
       key: "$dms_mailing.sends.stats.latency_s",
       params: { value: { type: "number", value: 6.5, format: "decimal" } },
+    });
+  });
+
+  it("says the provider tracks no delivery rather than a 0 %", () => {
+    const untracked = buildSendStatItems(
+      { ...STATS, isDeliveryUntracked: true },
+      "nodemailer",
+      NOW,
+    );
+    const delivered = untracked.find((item) => item.id === "delivered");
+    expect(delivered?.value).to.equal("—");
+    expect(delivered?.detail).to.deep.equal({
+      key: "$dms_mailing.sends.stats.not_tracked",
+      params: { provider: "nodemailer" },
     });
   });
 

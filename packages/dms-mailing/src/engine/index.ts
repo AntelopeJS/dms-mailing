@@ -3,6 +3,8 @@ export * from "./conditions";
 export * from "./coverage";
 export * from "./fallback-html";
 export * from "./paths";
+export * from "./plain-text";
 export * from "./resolve";
+export * from "./system-variables";
 export * from "./tokens";
 export * from "./walk";

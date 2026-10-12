@@ -101,6 +101,20 @@ export const templateContentSchema = z.object({
   locales: z.record(localeContentSchema),
 });
 
+/**
+ * The draft revision the writer last saw; a write behind the stored draft is
+ * refused. Absent writes unconditionally.
+ */
+export const draftRevisionSchema = z.number().int().min(0).optional();
+
+export const publishSchema = z.object({ revision: draftRevisionSchema });
+
+/** Restoring a version writes the draft: it carries the revision too. */
+export const restoreVersionSchema = publishSchema;
+
+/** A published version's number, as the route's parameter spells it. */
+export const versionNumberSchema = z.coerce.number().int().min(1);
+
 export const variableSchema = z.object({
   path: z.string().min(1),
   type: z.enum([
@@ -116,7 +130,23 @@ export const variableSchema = z.object({
   required: z.boolean(),
 });
 
-export const variablesSchema = z.object({ variables: z.array(variableSchema) });
+export const variableListSchema = z.array(variableSchema);
+
+/** Declarations land in the draft, like the content: same revision check. */
+export const variablesSchema = z.object({
+  variables: variableListSchema,
+  revision: draftRevisionSchema,
+});
+
+/**
+ * A draft save: the content and, when given, the variable declarations
+ * (absent keeps the draft's own).
+ */
+export const saveContentSchema = z.object({
+  content: templateContentSchema,
+  variables: variableListSchema.optional(),
+  revision: draftRevisionSchema,
+});
 
 export const testDataSchema = z.object({ data: z.record(z.unknown()) });
 

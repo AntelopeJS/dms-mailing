@@ -9,7 +9,12 @@ import {
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import { MODULE_ID } from "../constants";
-import { SettingsModel, TemplateModel, TemplateVersionModel } from "../db";
+import {
+  SettingsModel,
+  SuppressionModel,
+  TemplateModel,
+  TemplateVersionModel,
+} from "../db";
 import type { MailingSettingsValues } from "../types";
 
 export type ExportedSettings = Omit<MailingSettingsValues, "webhookSecret">;
@@ -34,6 +39,7 @@ export const TENANT_EXPORT_PAGE_SIZE = 200;
 const TEMPLATES_ENTRY = "templates.json";
 const TEMPLATE_VERSIONS_ENTRY = "template-versions.json";
 const SETTINGS_ENTRY = "settings.json";
+const SUPPRESSIONS_ENTRY = "suppressions.json";
 
 const ARRAY_OPEN = "[";
 const ARRAY_CLOSE = "]";
@@ -95,6 +101,7 @@ async function loadPage<T extends object>(
 export function exportedCollections(tenantId: string): ExportedCollection[] {
   const templates = GetModel(TemplateModel, tenantId);
   const versions = GetModel(TemplateVersionModel, tenantId);
+  const suppressions = GetModel(SuppressionModel, tenantId);
   return [
     {
       entry: TEMPLATES_ENTRY,
@@ -105,6 +112,11 @@ export function exportedCollections(tenantId: string): ExportedCollection[] {
       entry: TEMPLATE_VERSIONS_ENTRY,
       load: (offset, size) =>
         loadPage(versions.table, TemplateVersionModel, offset, size),
+    },
+    {
+      entry: SUPPRESSIONS_ENTRY,
+      load: (offset, size) =>
+        loadPage(suppressions.table, SuppressionModel, offset, size),
     },
   ];
 }

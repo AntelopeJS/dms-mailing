@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   DEFAULT_FALLBACK_LOCALE,
@@ -114,8 +114,35 @@ export function missingVariablesPolicy(
   return values.blockOnMissingVariables ? REFUSE_POLICY : SEND_POLICY;
 }
 
-const DERIVED_KEYS = new Set(["webhookUrl", "provider", "missingVariables"]);
+const DERIVED_KEYS = new Set([
+  "webhookUrl",
+  "provider",
+  "missingVariables",
+  "revision",
+]);
 const CLEARED_VALUE = "";
+const REVISION_ALGORITHM = "sha256";
+const REVISION_LENGTH = 16;
+
+/**
+ * A fingerprint of the stored settings: a writer sending back the one it read
+ * is refused once someone else saved in between.
+ */
+export function settingsRevision(values: MailingSettingsValues): string {
+  return createHash(REVISION_ALGORITHM)
+    .update(JSON.stringify(values))
+    .digest("hex")
+    .slice(0, REVISION_LENGTH);
+}
+
+/** The patch with each cleared field (`null`) as the empty value it stores. */
+export function clearedToEmpty(
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(patch).map(([key, value]) => [key, value ?? CLEARED_VALUE]),
+  );
+}
 
 /**
  * The settings once `patch` (the fields a form changed, `null` for a cleared
@@ -125,11 +152,11 @@ const CLEARED_VALUE = "";
 export function mergeSettingsPatch(
   current: MailingSettingsValues,
   patch: Record<string, unknown>,
-): Record<string, unknown> {
+): MailingSettingsValues {
   const written = Object.fromEntries(
-    Object.entries(patch)
-      .filter(([key]) => !DERIVED_KEYS.has(key))
-      .map(([key, value]) => [key, value ?? CLEARED_VALUE]),
+    Object.entries(clearedToEmpty(patch)).filter(
+      ([key]) => !DERIVED_KEYS.has(key),
+    ),
   );
   const policy = patch.missingVariables;
   const isChoice = policy === REFUSE_POLICY || policy === SEND_POLICY;
@@ -137,5 +164,5 @@ export function mergeSettingsPatch(
     isChoice && !("blockOnMissingVariables" in patch)
       ? { blockOnMissingVariables: policy === REFUSE_POLICY }
       : {};
-  return { ...current, ...written, ...guard };
+  return { ...current, ...written, ...guard } as MailingSettingsValues;
 }

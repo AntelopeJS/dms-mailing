@@ -1,9 +1,14 @@
 import { expect } from "chai";
+import type { AxiosInstance } from "axios";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
+const HTTP_CONFLICT = 409;
+const SETTINGS = "/api/mailing/settings";
+const TEMPLATES_TABLE = "/api/mailing/tables/templates";
+const JSON_HEADERS = { "content-type": "application/json" };
 const DEFAULT_CATEGORY_COUNT = 5;
 const DEFAULT_RETENTION_DAYS = 90;
 const UPDATED_RETENTION_DAYS = 30;
@@ -177,5 +182,226 @@ describe("[integration] settings row per tenant", () => {
     expect(rows).to.have.lengthOf(1);
     expect(rows[0]?._id).to.equal(tenantId);
     expect(rows[0]?.webhookSecret).to.equal(LEGACY_SECRET);
+  });
+});
+
+interface SettingsIssue {
+  path: Array<string | number>;
+  message: string;
+}
+
+interface IssuesBody {
+  issues?: SettingsIssue[];
+}
+
+async function ownerClient(): Promise<AxiosInstance> {
+  const session = await ensureOwnerSession();
+  return authorizedClient(session.accessToken);
+}
+
+/** Puts back the fields a test changes, whatever it left. */
+async function restore(
+  client: AxiosInstance,
+  initial: Record<string, unknown>,
+): Promise<void> {
+  const { categories, senderName, senderEmail, replyTo, logRetentionDays } =
+    initial;
+  const restored = await client.put(SETTINGS, {
+    categories,
+    senderName,
+    senderEmail,
+    replyTo,
+    logRetentionDays,
+  });
+  expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);
+}
+
+const issuePaths = (data: IssuesBody): string[] =>
+  (data.issues ?? []).map((issue) => issue.path.join("."));
+
+describe("[integration] settings writes (partial, checked)", () => {
+  it("puts only the fields sent: a stale tab cannot bring back an old secret", async () => {
+    const client = await ownerClient();
+    const staleTab = await client.get(SETTINGS);
+    const rotated = await client.post(`${SETTINGS}/webhook-secret/rotate`, {});
+    expect(rotated.status).to.equal(HTTP_OK);
+
+    const saved = await client.put(SETTINGS, { senderName: "fix-L7 Acme" });
+    expect(saved.status, JSON.stringify(saved.data)).to.equal(HTTP_OK);
+    const after = await client.get(SETTINGS);
+    expect(after.data.webhookSecret).to.equal(rotated.data.value);
+    expect(after.data.logRetentionDays).to.equal(
+      staleTab.data.logRetentionDays,
+    );
+    expect(after.data.categories).to.deep.equal(staleTab.data.categories);
+    await restore(client, staleTab.data);
+  });
+
+  it("refuses a write whose If-Match revision is stale", async () => {
+    const client = await ownerClient();
+    const initial = await client.get(SETTINGS);
+    const revision = initial.data.revision as string;
+    expect(revision).to.be.a("string");
+
+    const current = await client.put(
+      SETTINGS,
+      { senderName: "fix-L7 first" },
+      { headers: { "if-match": `"${revision}"` } },
+    );
+    expect(current.status, JSON.stringify(current.data)).to.equal(HTTP_OK);
+    const stale = await client.put(
+      SETTINGS,
+      { senderName: "fix-L7 second" },
+      { headers: { "if-match": `"${revision}"` } },
+    );
+    expect(stale.status).to.equal(HTTP_CONFLICT);
+    expect(JSON.stringify(stale.data)).to.contain("settings_conflict");
+    await restore(client, initial.data);
+  });
+
+  it("answers 400, never 500, to a body that is not a settings patch", async () => {
+    const client = await ownerClient();
+    const bodies = ['"hello"', "[1,2]", "{not json", '{"bogus":1}'];
+    for (const body of bodies) {
+      const response = await client.put(SETTINGS, body, {
+        headers: JSON_HEADERS,
+        transformRequest: [(data: unknown) => data],
+      });
+      expect(response.status, body).to.equal(HTTP_BAD_REQUEST);
+    }
+    const unknownPolicy = await client.put(SETTINGS, {
+      missingVariables: "bogus",
+    });
+    expect(unknownPolicy.status).to.equal(HTTP_BAD_REQUEST);
+    expect(issuePaths(unknownPolicy.data)).to.deep.equal(["missingVariables"]);
+  });
+
+  it("names the field a refused value belongs to", async () => {
+    const client = await ownerClient();
+    const shortSecret = await client.put(SETTINGS, { webhookSecret: "abc" });
+    expect(shortSecret.status).to.equal(HTTP_BAD_REQUEST);
+    expect(shortSecret.data.issues[0].path).to.deep.equal(["webhookSecret"]);
+    expect(shortSecret.data.issues[0].message).to.equal(
+      "$dms_mailing.settings.fields.webhookSecret.too_short",
+    );
+
+    const refused: Record<string, string> = {
+      senderName: "fix-L7\r\nBcc: evil@example.com",
+      fallbackLocale: "not a locale",
+      senderEmail: "not an address",
+    };
+    for (const [field, value] of Object.entries(refused)) {
+      const response = await client.put(SETTINGS, { [field]: value });
+      expect(response.status, field).to.equal(HTTP_BAD_REQUEST);
+      expect(issuePaths(response.data), field).to.deep.equal([field]);
+    }
+  });
+
+  it("trims the addresses it stores", async () => {
+    const client = await ownerClient();
+    const initial = await client.get(SETTINGS);
+    const saved = await client.put(SETTINGS, {
+      senderEmail: "  fix-l7@example.com ",
+      replyTo: " ",
+    });
+    expect(saved.status, JSON.stringify(saved.data)).to.equal(HTTP_OK);
+    const after = await client.get(SETTINGS);
+    expect(after.data.senderEmail).to.equal("fix-l7@example.com");
+    expect(after.data.replyTo).to.equal("");
+    await restore(client, initial.data);
+  });
+
+  it("refuses duplicate, blank or free-form categories", async () => {
+    const client = await ownerClient();
+    const category = {
+      id: "fix-l7-dup",
+      label: "fix-L7 Dup",
+      icon: "i-ph-gift",
+    };
+    const lists = [
+      [category, { ...category, label: "fix-L7 Other" }],
+      [{ ...category, label: "   " }],
+      [{ ...category, id: "fix l7/<b>" }],
+      [{ ...category, icon: "not-an-icon" }],
+    ];
+    for (const categories of lists) {
+      const response = await client.put(SETTINGS, { categories });
+      expect(response.status, JSON.stringify(categories)).to.equal(
+        HTTP_BAD_REQUEST,
+      );
+      expect(issuePaths(response.data)[0]).to.match(/^categories\./);
+    }
+    const stored = (await client.get(SETTINGS)).data.categories;
+    const asText = await client.put(SETTINGS, {
+      categories: JSON.stringify(stored),
+    });
+    expect(asText.status, JSON.stringify(asText.data)).to.equal(HTTP_OK);
+  });
+
+  it("bounds the retention preview", async () => {
+    const client = await ownerClient();
+    for (const days of ["99999", "0", "-5", "1.5", "abc"]) {
+      const response = await client.get(
+        `${SETTINGS}/retention-preview?days=${days}`,
+      );
+      expect(response.status, days).to.equal(HTTP_BAD_REQUEST);
+    }
+    const stored = await client.get(`${SETTINGS}/retention-preview`);
+    expect(stored.status).to.equal(HTTP_OK);
+  });
+});
+
+describe("[integration] settings categories in use", () => {
+  const ALPHA = {
+    id: "fix-l7-alpha",
+    label: "fix-L7 Alpha",
+    icon: "i-ph-gift",
+  };
+  const BETA = { id: "fix-l7-beta", label: "fix-L7 Beta", icon: "i-ph-bell" };
+
+  async function createTemplate(
+    client: AxiosInstance,
+    slug: string,
+  ): Promise<string> {
+    const created = await client.post(`${TEMPLATES_TABLE}/new`, {
+      slug,
+      name: slug,
+      category: ALPHA.id,
+    });
+    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    return created.data[0] as string;
+  }
+
+  const categoryOf = async (client: AxiosInstance, id: string) =>
+    (await client.get(`${TEMPLATES_TABLE}/get?id=${id}`)).data.category ?? "";
+
+  it("counts the active templates and moves those of a removed category", async () => {
+    const client = await ownerClient();
+    const initial = await client.get(SETTINGS);
+    const kept = initial.data.categories as unknown[];
+    const added = await client.put(SETTINGS, {
+      categories: [...kept, ALPHA, BETA],
+    });
+    expect(added.status, JSON.stringify(added.data)).to.equal(HTTP_OK);
+    const stamp = Date.now();
+    const moved = await createTemplate(client, `fix-l7-moved-${stamp}`);
+    const archived = await createTemplate(client, `fix-l7-archived-${stamp}`);
+    await client.post(`/api/mailing/templates/${archived}/archive`, {});
+
+    const usage = await client.get(`${SETTINGS}/category-usage`);
+    expect(usage.data.counts[ALPHA.id]).to.equal(1);
+
+    const removed = await client.put(SETTINGS, {
+      categories: [...kept, BETA, { ...ALPHA, moveTo: BETA.id }],
+    });
+    expect(removed.status, JSON.stringify(removed.data)).to.equal(HTTP_OK);
+    expect(removed.data.notice.params.count).to.equal(2);
+    expect(removed.data.categories).to.deep.equal([...kept, BETA]);
+    expect(await categoryOf(client, moved)).to.equal(BETA.id);
+
+    const dropped = await client.put(SETTINGS, { categories: kept });
+    expect(dropped.status, JSON.stringify(dropped.data)).to.equal(HTTP_OK);
+    expect(await categoryOf(client, moved)).to.equal("");
+    await restore(client, initial.data);
   });
 });

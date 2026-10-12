@@ -111,7 +111,6 @@ const activity = Grid({ gap: GRID_GAP }).child(
           smooth: true,
           showGrid: true,
           comparisonStyle: "dashed",
-          realtimeTopic: MAILING_SENDS_TOPIC,
         }),
       }),
       { colSpan: WIDE_SPAN },
@@ -157,14 +156,13 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         showBar: true,
         showDelta: false,
         skeletonCount: 5,
+        emptyLabel: "$dms_mailing.metrics.ranking_empty",
       }),
     )
     .child(
       "domains",
       TopListCard({
         title: "$dms_mailing.metrics.domains",
-        // On the card, not on each row: `TopListRow` renders `item.description`
-        // verbatim, so a `$` key would show up raw.
         description: "$dms_mailing.metrics.domain_sends",
         fetchUrl: `${API_BASE_PATH}/metrics/domains`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
@@ -172,6 +170,7 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         showRank: false,
         showDelta: false,
         skeletonCount: 5,
+        emptyLabel: "$dms_mailing.metrics.ranking_empty",
       }),
     ),
 );

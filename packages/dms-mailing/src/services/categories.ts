@@ -1,22 +1,11 @@
-import { z } from "zod";
 import type { MailingTemplate } from "../db";
 import type { TemplateCategory } from "../types";
-import { categorySchema } from "../validation/settings.schema";
+import {
+  type CategoryEntry,
+  categoriesSchema,
+} from "../validation/settings.schema";
 
 /** Direct API callers may send a JSON string; accept both string and array. */
-const categoriesSchema = z
-  .union([z.string(), z.array(categorySchema)])
-  .transform((value) => {
-    if (typeof value !== "string") return value;
-    if (value === "") return [];
-    try {
-      return JSON.parse(value) as unknown;
-    } catch {
-      return [];
-    }
-  })
-  .pipe(z.array(categorySchema));
-
 export const CATEGORIES_SCHEMA = categoriesSchema;
 
 /**
@@ -25,19 +14,46 @@ export const CATEGORIES_SCHEMA = categoriesSchema;
  */
 export function parseCategories(raw: unknown): TemplateCategory[] {
   const parsed = categoriesSchema.safeParse(raw ?? []);
-  return parsed.success ? parsed.data : [];
+  return parsed.success ? keptCategories(parsed.data) : [];
+}
+
+/** The categories a list keeps, without the removed ones it moves away. */
+export function keptCategories(entries: CategoryEntry[]): TemplateCategory[] {
+  return entries
+    .filter((entry) => entry.moveTo === undefined)
+    .map(({ id, label, icon }) => ({ id, label, icon }));
+}
+
+/** Where the templates of each removed category go, by its id. */
+export function categoryMoves(entries: CategoryEntry[]): Map<string, string> {
+  return new Map(
+    entries.flatMap((entry) =>
+      entry.moveTo === undefined ? [] : [[entry.id, entry.moveTo] as const],
+    ),
+  );
+}
+
+/** A template whose category has to change, and the one it gets. */
+export interface CategoryReassignment {
+  templateId: string;
+  category: string;
 }
 
 /**
- * Ids of the templates whose category is not in `categories` any more. Deleting
- * a category must leave them uncategorised, never pointing at nothing.
+ * The templates whose category is not in `categories` any more, each with the
+ * category it moves to: the one `moves` names, else none. Deleting a category
+ * must never leave a template pointing at nothing.
  */
 export function reassignRemovedCategories(
   templates: MailingTemplate[],
   categories: TemplateCategory[],
-): string[] {
+  moves: ReadonlyMap<string, string> = new Map(),
+): CategoryReassignment[] {
   const kept = new Set(categories.map((category) => category.id));
   return templates
     .filter((template) => template.category && !kept.has(template.category))
-    .map((template) => template._id);
+    .map((template) => ({
+      templateId: template._id,
+      category: moves.get(template.category as string) ?? "",
+    }));
 }

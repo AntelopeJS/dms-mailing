@@ -4,4 +4,6 @@ export * from "./period";
 export * from "./provider";
 export * from "./sends";
 export * from "./settings";
+export * from "./suppressions";
+export * from "./template-versions";
 export * from "./templates";

@@ -3,6 +3,7 @@ import {
   Banner,
   EmptyState,
   StatGroup,
+  type TableViewTabFilter,
   type TableViewView,
 } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -20,13 +21,14 @@ import {
 } from "../constants";
 import { SendModel } from "../db";
 import { SendsTableAPI } from "../data/sends-table";
-import type { SendStage } from "../types";
+import { RESOLVED_STAGE, type SendStage } from "../types";
 import { mailingNavCategory } from "./module";
 
 const SENDS_ORDER = 3;
 const DAY_MS = 86_400_000;
 const STAT_COLUMNS = 5;
 const TEMPLATES_PAGE = "/modules/mailing/templates";
+const SUPPRESSIONS_PAGE = "/modules/mailing/suppressions";
 const FIRST_SEND_SNIPPET = [
   'await SendTemplate("order-confirmed", {',
   '  to: "margaux@northwind.co",',
@@ -39,13 +41,30 @@ interface StageView {
   id: string;
   icon: string;
   tone?: Tone;
+  /** Narrows the tab further than its stage. */
+  filters?: TableViewTabFilter[];
 }
 
+/** The Problems tab counts like the nav badge: test sends are left out. */
+const REAL_SENDS_ONLY: TableViewTabFilter = {
+  accessorKey: "isTest",
+  value: "false",
+  mode: "is",
+};
+
 const STAGE_VIEWS: StageView[] = [
-  { stage: "problem", id: "problems", icon: "i-ph-warning", tone: "error" },
+  {
+    stage: "problem",
+    id: "problems",
+    icon: "i-ph-warning",
+    tone: "error",
+    filters: [REAL_SENDS_ONLY],
+  },
   { stage: "in_progress", id: "in-progress", icon: "i-ph-clock" },
   { stage: "delivered", id: "delivered", icon: "i-ph-check-circle" },
   { stage: "engaged", id: "engaged", icon: "i-ph-cursor-click" },
+  { stage: "unsubscribed", id: "unsubscribed", icon: "i-ph-user-minus" },
+  { stage: "suppressed", id: "suppressed", icon: "i-ph-prohibit" },
 ];
 
 const stageView = (view: StageView): TableViewView => ({
@@ -54,8 +73,88 @@ const stageView = (view: StageView): TableViewView => ({
   icon: view.icon,
   tone: view.tone,
   count: true,
-  filters: [{ accessorKey: "stage", value: view.stage, mode: "is" }],
+  filters: [
+    { accessorKey: "stage", value: view.stage, mode: "is" },
+    ...(view.filters ?? []),
+  ],
 });
+
+type SendsTableOptions = NonNullable<
+  Parameters<typeof TableView<typeof SendsTableAPI>>[1]
+>;
+type SendRowAction = NonNullable<
+  NonNullable<SendsTableOptions["rowActions"]>["custom"]
+>[number];
+type SendRowRule = NonNullable<SendRowAction["rule"]>;
+
+/** A provider failure, or a bounce the receiving server called temporary. */
+const REPLAYABLE_PROBLEM: SendRowRule = {
+  or: [
+    { field: "status", equals: "failed" },
+    {
+      and: [
+        { field: "status", equals: "bounced" },
+        { field: "isSoftBounce", equals: true },
+      ],
+    },
+  ],
+};
+
+/** A problem nobody dealt with yet that a send again may fix. */
+const OPEN_REPLAYABLE_PROBLEM: SendRowRule = {
+  and: [REPLAYABLE_PROBLEM, { field: "stage", notEquals: RESOLVED_STAGE }],
+};
+
+/**
+ * "Send again…" on a problem nobody dealt with yet, unless the suppression
+ * list would stop it. A test sent again stays a test, and its confirmation
+ * says so.
+ */
+const sendAgainAction = (isTest: boolean): SendRowAction => ({
+  label: "$dms_mailing.sends.actions.send_again",
+  icon: "i-ph-arrow-clockwise",
+  rule: {
+    and: [
+      OPEN_REPLAYABLE_PROBLEM,
+      { field: "isRecipientSuppressed", notEquals: true },
+      { field: "isTest", equals: isTest },
+    ],
+  },
+  target: {
+    type: "api",
+    url: `${API_BASE_PATH}/sends/{_id}/replay`,
+    method: "POST",
+    successMessage: "$dms_mailing.sends.actions.sent_again",
+  },
+  confirm: {
+    title: "$dms_mailing.sends.confirm.replay_title",
+    description: isTest
+      ? "$dms_mailing.sends.confirm.replay_description_test"
+      : "$dms_mailing.sends.confirm.replay_description",
+    color: "warning",
+    icon: "i-ph-arrow-clockwise",
+    confirmLabel: "$dms_mailing.sends.confirm.replay_confirm",
+  },
+});
+
+/**
+ * In place of "Send again…" when the recipient is on the suppression list:
+ * nothing would leave, the way out is the list, narrowed to the address.
+ */
+const suppressedAddressAction: SendRowAction = {
+  label: "$dms_mailing.sends.actions.suppressed_address",
+  icon: "i-ph-prohibit",
+  rule: {
+    and: [
+      OPEN_REPLAYABLE_PROBLEM,
+      { field: "isRecipientSuppressed", equals: true },
+    ],
+  },
+  target: {
+    type: "page",
+    url: `${SUPPRESSIONS_PAGE}?email={suppressionAddress}`,
+  },
+};
 
 const permissionMeta = (id: string, icon: string) => ({
   name: `$dms_mailing.permissions.${id}.name`,
@@ -106,6 +205,7 @@ export class SendsPageController extends PageController(
     realtimeTopic: MAILING_SENDS_TOPIC,
   });
 
+  /** The period drives this strip only: the log keeps every send. */
   static stats = StatGroup({
     layout: "joined",
     columns: STAT_COLUMNS,
@@ -121,6 +221,8 @@ export class SendsPageController extends PageController(
     labelKey: "recipientEmail",
     rowIdKey: "_id",
     defaultSort: { field: "createdAt", desc: true },
+    // A template's drawer links to its sends: ?template=<slug>.
+    queryParamFilters: { template: { field: "templateSlug", mode: "is" } },
     searchPlaceholder: "$dms_mailing.sends.search",
     pageSize: 50,
     rowClick: "single",
@@ -148,7 +250,10 @@ export class SendsPageController extends PageController(
         icon: "i-ph-envelope-simple",
       },
     ],
-    footer: { countLabel: "$dms_mailing.sends.footer.count" },
+    footer: {
+      countLabel: "$dms_mailing.sends.footer.count",
+      hint: "$dms_mailing.sends.stats.period_hint",
+    },
     emptyStates: {
       firstRun: {
         title: "$dms_mailing.sends.empty.title",
@@ -211,24 +316,9 @@ export class SendsPageController extends PageController(
             title: "$dms_mailing.rendering.title",
           },
         },
-        {
-          label: "$dms_mailing.sends.actions.send_again",
-          icon: "i-ph-arrow-clockwise",
-          rule: { field: "status", equals: "failed" },
-          target: {
-            type: "api",
-            url: `${API_BASE_PATH}/sends/{_id}/replay`,
-            method: "POST",
-            successMessage: "$dms_mailing.sends.actions.sent_again",
-          },
-          confirm: {
-            title: "$dms_mailing.sends.confirm.replay_title",
-            description: "$dms_mailing.sends.confirm.replay_description",
-            color: "warning",
-            icon: "i-ph-arrow-clockwise",
-            confirmLabel: "$dms_mailing.sends.confirm.replay_confirm",
-          },
-        },
+        sendAgainAction(false),
+        sendAgainAction(true),
+        suppressedAddressAction,
       ],
     },
   }).navBadge({ count: (ctx) => recentProblems(ctx) });

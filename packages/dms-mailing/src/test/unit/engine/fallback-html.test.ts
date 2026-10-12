@@ -84,3 +84,77 @@ describe("[unit] engine/fallback-html link schemes", () => {
     }
   });
 });
+
+describe("[unit] engine/fallback-html layout", () => {
+  const email: ResolvedEmail = {
+    subject: "S",
+    preheader: "",
+    missing: [],
+    hiddenBlockIds: [],
+    blocks: [
+      {
+        id: "f",
+        type: "footer",
+        text: "Antelope\nBrussels",
+        unsubscribeLabel: "Unsub",
+        preferencesLabel: "Prefs",
+        unsubscribeUrl: "",
+        preferencesUrl: "",
+      },
+      {
+        id: "p",
+        type: "paragraph",
+        text: "Line one\nLine <two>",
+        align: "left",
+      },
+    ],
+  };
+  const html = renderFallbackHtml(email, "en");
+
+  it("keeps the line breaks typed in a text block", () => {
+    expect(html).to.include("Line one<br>Line &lt;two&gt;");
+    expect(html).to.include("Antelope<br>Brussels");
+  });
+
+  it("wraps long words instead of widening the e-mail", () => {
+    expect(html).to.match(/<p style="[^"]*overflow-wrap:anywhere/);
+  });
+
+  it("draws the footer last, without a dangling link line", () => {
+    expect(html.indexOf("Line one")).to.be.lessThan(html.indexOf("Antelope"));
+    expect(html).to.not.include("Brussels<br>");
+    expect(html).to.not.include("Unsub");
+  });
+});
+
+describe("[unit] engine/fallback-html robustness", () => {
+  const bareFooter: ResolvedEmail = {
+    subject: "S",
+    preheader: "",
+    missing: [],
+    hiddenBlockIds: [],
+    blocks: [
+      { id: "p", type: "paragraph", text: "Body", align: "left" },
+      {
+        id: "f",
+        type: "footer",
+        text: "",
+        unsubscribeLabel: "Unsub",
+        preferencesLabel: "",
+        unsubscribeUrl: "",
+        preferencesUrl: "",
+      },
+    ],
+  };
+  const html = renderFallbackHtml(bareFooter, "en");
+
+  it("declares a mobile viewport", () => {
+    expect(html).to.include(
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    );
+  });
+
+  it("draws no divider for a footer with neither text nor link", () => {
+    expect(html).to.not.include("<hr");
+  });
+});

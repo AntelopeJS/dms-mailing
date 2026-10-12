@@ -17,18 +17,28 @@ import {
   SendModel,
   TemplateModel,
 } from "../db";
-import { resolveEmail } from "../engine";
+import {
+  missingRequiredVariables,
+  missingSystemVariables,
+  renderPlainText,
+  resolveEmail,
+} from "../engine";
 import type {
   SendTemplateParams,
   SendTemplateResult,
 } from "@antelopejs/interface-dms-mailing";
 import {
   type MailingSettingsValues,
+  type ResolvedEmail,
   type SendStatus,
   stageOf,
   type TemplateContent,
 } from "../types";
 import { publishSendCreated } from "../realtime";
+import {
+  unsubscribeProviderOptions,
+  unsubscribeUrlOf,
+} from "./list-unsubscribe";
 import { renderEmailHtml } from "./render";
 import { getSettings } from "./settings";
 import { toSendStatus } from "./status";
@@ -36,6 +46,7 @@ import {
   hasDraft,
   localeContentOf,
   parseContent,
+  parseVariables,
   pickLocale,
   publishedVersionOf,
   workingContent,
@@ -60,6 +71,8 @@ export interface PreparedSend {
   templateId: string;
   slug: string;
   tenantId: string;
+  /** The template's category: a marketing one requires its unsubscribe URL. */
+  category: string;
 }
 
 /**
@@ -74,8 +87,11 @@ export interface ModuleSendParams extends SendTemplateParams {
 const DRAFT_VERSION = 0;
 const TEST_SUBJECT_PREFIX = "[TEST] ";
 
+/** Source of a real send started by hand from the module's dialog. */
+export const MANUAL_SEND_SOURCE = "dms-mailing:manual";
+
 interface SendOutcome {
-  latencyMs: number;
+  latencyMs: number | null;
   provider?: string;
   providerMessageId?: string;
   error?: string;
@@ -100,6 +116,10 @@ export interface DeliveryInput {
   settings: MailingSettingsValues;
   subject: string;
   html: string;
+  /** The plain-text alternative of `html`. */
+  text?: string;
+  /** Where the recipient unsubscribes, for the `List-Unsubscribe` header. */
+  unsubscribeUrl?: string;
   recipients: EmailAddress[];
 }
 
@@ -128,9 +148,10 @@ const OUTCOME_SEVERITY: Record<SendStatus, number> = {
   sent: 3,
   queued: 4,
   unsubscribed: 5,
-  spam: 6,
-  bounced: 7,
-  failed: 8,
+  suppressed: 6,
+  spam: 7,
+  bounced: 8,
+  failed: 9,
 };
 
 const describeError = (error: unknown): string =>
@@ -174,7 +195,73 @@ function resolveContent(
   };
 }
 
-async function prepare(
+const isManualRealSend = (params: ModuleSendParams): boolean =>
+  params.source === MANUAL_SEND_SOURCE && !params.isTest;
+
+/**
+ * The required variables a manual real send lacks. Such a send is refused
+ * whatever `blockOnMissingVariables` says: a person typed its values for real
+ * recipients, so a blank there is a slip, not a caller's choice.
+ */
+export function missingManualVariables(
+  template: MailingTemplate,
+  params: ModuleSendParams,
+): string[] {
+  return isManualRealSend(params)
+    ? missingRequiredVariables(parseVariables(template), params.variables ?? {})
+    : [];
+}
+
+/**
+ * The missing values a send is refused over. `blockOnMissingVariables` refuses
+ * on any of them; a manual real send always refuses on the required system
+ * URLs, like on its other required variables. A test send never waits for
+ * an unsubscribe URL: it goes to the team, not to a subscriber.
+ */
+export function refusedMissing(
+  params: ModuleSendParams,
+  isBlocking: boolean,
+  missing: string[],
+  missingSystem: string[],
+): string[] {
+  const system = params.isTest ? [] : missingSystem;
+  if (isBlocking) return [...missing, ...system];
+  return isManualRealSend(params) ? system : [];
+}
+
+interface RenderedSend {
+  email: ResolvedEmail;
+  html: string;
+}
+
+/** The e-mail a send delivers, or a refusal over its missing values. */
+async function renderForSend(
+  prepared: PreparedSend,
+  params: ModuleSendParams,
+  isBlocking: boolean,
+): Promise<RenderedSend> {
+  const localeContent = localeContentOf(prepared.content, prepared.locale);
+  if (!localeContent) {
+    throw new SendError(
+      "invalid_content",
+      `Template "${prepared.slug}" has no content for "${prepared.locale}"`,
+    );
+  }
+  const variables = params.variables ?? {};
+  const email = resolveEmail(localeContent, variables, "send");
+  const refused = refusedMissing(
+    params,
+    isBlocking,
+    email.missing,
+    missingSystemVariables(localeContent, prepared.category, variables),
+  );
+  if (refused.length) {
+    throw new SendError("missing_variables", refused.join(", "));
+  }
+  return { email, html: await renderEmailHtml(email, prepared.locale) };
+}
+
+export async function prepare(
   tenantId: string,
   slug: string,
   params: ModuleSendParams,
@@ -189,6 +276,10 @@ async function prepare(
       `Template "${slug}" is ${template.status}`,
     );
   }
+  const missing = missingManualVariables(template, params);
+  if (missing.length) {
+    throw new SendError("missing_variables", missing.join(", "));
+  }
   const { content, version } = resolveContent(template, params);
   const settings = await getSettings(tenantId);
   return {
@@ -199,6 +290,7 @@ async function prepare(
     templateId: template._id,
     slug,
     tenantId,
+    category: template.category ?? "",
   };
 }
 
@@ -207,12 +299,17 @@ export function subjectFor(subject: string, isTest: boolean): string {
   return isTest ? `${TEST_SUBJECT_PREFIX}${subject}` : subject;
 }
 
-function messageFor(input: DeliveryInput, to: EmailAddress): EmailParams {
-  const { prepared, settings, subject, html } = input;
+export function messageFor(
+  input: DeliveryInput,
+  to: EmailAddress,
+): EmailParams {
+  const { prepared, settings, subject, html, text } = input;
   return {
     to,
     subject,
     html,
+    text: text || undefined,
+    providerOptions: unsubscribeProviderOptions(input.unsubscribeUrl ?? ""),
     from: settings.senderEmail
       ? { email: settings.senderEmail, name: settings.senderName || undefined }
       : undefined,
@@ -455,22 +552,18 @@ export async function sendTemplate(
   }
   const prepared = await prepare(params.tenantId, slug, params);
   const settings = await getSettings(params.tenantId);
-  const localeContent = localeContentOf(prepared.content, prepared.locale);
-  if (!localeContent) {
-    throw new SendError(
-      "invalid_content",
-      `Template "${slug}" has no content for "${prepared.locale}"`,
-    );
-  }
-  const email = resolveEmail(localeContent, params.variables ?? {});
-  if (settings.blockOnMissingVariables && email.missing.length) {
-    throw new SendError("missing_variables", email.missing.join(", "));
-  }
+  const { email, html } = await renderForSend(
+    prepared,
+    params,
+    settings.blockOnMissingVariables,
+  );
   const delivered = await deliver({
     prepared,
     settings,
     subject: subjectFor(email.subject, Boolean(params.isTest)),
-    html: await renderEmailHtml(email, prepared.locale),
+    html,
+    text: renderPlainText(email, prepared.locale),
+    unsubscribeUrl: unsubscribeUrlOf(params.variables ?? {}),
     recipients,
   });
   return aggregateResults(await recordAll(prepared, params, delivered));

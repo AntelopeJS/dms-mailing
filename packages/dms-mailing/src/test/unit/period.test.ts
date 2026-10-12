@@ -4,6 +4,7 @@ import { MAX_WINDOW_DAYS } from "../../constants";
 import {
   comparisonRange,
   currentRange,
+  isComparisonWanted,
   type RangeContext,
 } from "../../routes/period";
 
@@ -40,14 +41,38 @@ describe("[unit] period range", () => {
     expect(range.to.toISOString()).to.equal("2500-01-01T00:00:00.000Z");
   });
 
-  it("leaves a reversed window alone rather than inventing one", () => {
+  // A reversed window is a typo: read as given, the comparison window would
+  // land in the future.
+  it("swaps the bounds of a reversed window", () => {
     const range = currentRange(
       ctxWith({
         from: "2026-09-11T00:00:00.000Z",
         to: "2026-09-04T00:00:00.000Z",
       }),
     );
-    expect(spanDays(range)).to.be.lessThan(0);
+    expect(range.from.toISOString()).to.equal("2026-09-04T00:00:00.000Z");
+    expect(range.to.toISOString()).to.equal("2026-09-11T00:00:00.000Z");
+    const previous = comparisonRange(ctxWith({}), range);
+    expect(previous.to.getTime()).to.equal(range.from.getTime());
+  });
+
+  it("swaps the bounds of a reversed comparison window", () => {
+    const previous = comparisonRange(
+      ctxWith({
+        compareFrom: "2026-09-01T00:00:00.000Z",
+        compareTo: "2026-08-01T00:00:00.000Z",
+      }),
+      currentRange(ctxWith({})),
+    );
+    expect(previous.from.toISOString()).to.equal("2026-08-01T00:00:00.000Z");
+  });
+
+  it("compares unless the selector turned the comparison off", () => {
+    expect(isComparisonWanted(ctxWith({}))).to.equal(true);
+    expect(
+      isComparisonWanted(ctxWith({ comparison: "previous-period" })),
+    ).to.equal(true);
+    expect(isComparisonWanted(ctxWith({ comparison: "none" }))).to.equal(false);
   });
 
   it("derives the comparison window from the clamped current one", () => {

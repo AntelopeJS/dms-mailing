@@ -2,10 +2,14 @@ import { expect } from "chai";
 import type { MailingSend } from "../../db";
 import {
   aggregate,
+  alignSeries,
   dailySeries,
+  dailyValues,
   deltaPercent,
   domainOf,
   forAudience,
+  isDeliveryUntracked,
+  ratio,
   readAudience,
 } from "../../services/metrics";
 
@@ -30,7 +34,7 @@ const send = (
   }) as MailingSend;
 
 const SENDS = [
-  send("delivered", "a@gmail.com", 1, 1),
+  send("delivered", "a@gmail.com", 1),
   send("opened", "b@gmail.com", 1, 1, 0),
   send("clicked", "c@outlook.com", 2, 2, 1),
   send("bounced", "d@bad.tld", 2),
@@ -41,6 +45,7 @@ const TOLERANCE = 0.01;
 const EXPECTED_DELIVERABILITY = 60;
 const EXPECTED_OPEN_RATE = 66.67;
 const EXPECTED_DELTA = 20;
+const FULL_RATE = 100;
 
 describe("[unit] services/metrics", () => {
   it("aggregates the funnel counters", () => {
@@ -64,7 +69,6 @@ describe("[unit] services/metrics", () => {
 
   it("computes deltas and daily series", () => {
     expect(deltaPercent(120, LATENCY_MS)).to.equal(EXPECTED_DELTA);
-    expect(deltaPercent(5, 0)).to.equal(0);
     expect(
       dailySeries(
         SENDS,
@@ -73,6 +77,115 @@ describe("[unit] services/metrics", () => {
       ).map((point) => point.y),
     ).to.deep.equal([2, 2, 1]);
     expect(domainOf("x@Gmail.com")).to.equal("gmail.com");
+  });
+});
+
+describe("[unit] services/metrics engagement outlives the final status", () => {
+  // The send ranks move it to "unsubscribed" or "spam" last: the open and
+  // the click that came before still happened.
+  it("counts a send opened, clicked then unsubscribed as opened and clicked", () => {
+    const totals = aggregate([
+      send("unsubscribed", "a@gmail.com", 1, 1, 1),
+      send("spam", "b@gmail.com", 1, 1, 0),
+    ]);
+    expect(totals).to.deep.include({ delivered: 2, opened: 2, clicked: 1 });
+    expect(totals.openRate).to.equal(FULL_RATE);
+  });
+
+  it("counts a click as an open the pixel missed", () => {
+    const totals = aggregate([send("clicked", "a@gmail.com", 1, 0, 1)]);
+    expect(totals).to.deep.include({ opened: 1, clicked: 1 });
+  });
+
+  it("never counts an undelivered send as opened", () => {
+    const totals = aggregate([send("bounced", "a@gmail.com", 1, 1, 0)]);
+    expect(totals.opened).to.equal(0);
+  });
+});
+
+describe("[unit] services/metrics figures that cannot be stated", () => {
+  it("answers no rate on an empty base rather than 0 %", () => {
+    expect(ratio(0, 0)).to.equal(null);
+    const totals = aggregate([]);
+    expect(totals.deliverability).to.equal(null);
+    expect(totals.openRate).to.equal(null);
+    expect(totals.clickRate).to.equal(null);
+  });
+
+  it("answers no change from a preceding zero or an unknown figure", () => {
+    expect(deltaPercent(5, 0)).to.equal(null);
+    expect(deltaPercent(null, 5)).to.equal(null);
+    expect(deltaPercent(5, null)).to.equal(null);
+  });
+});
+
+const SMTP = { name: "smtp", openTracking: false, clickTracking: false };
+
+describe("[unit] services/metrics untracked delivery", () => {
+  const sent = send("sent", "a@gmail.com", 1);
+
+  it("is unmeasured when the provider tracks nothing and no event came back", () => {
+    expect(isDeliveryUntracked([sent, sent], SMTP)).to.equal(true);
+  });
+
+  it("is measured once the webhook reports any event", () => {
+    expect(
+      isDeliveryUntracked([sent, send("bounced", "b@x.tld", 1)], SMTP),
+    ).to.equal(false);
+    expect(
+      isDeliveryUntracked([sent, send("delivered", "b@x.tld", 1)], SMTP),
+    ).to.equal(false);
+  });
+
+  it("claims nothing for an empty window or unknown capabilities", () => {
+    expect(isDeliveryUntracked([], SMTP)).to.equal(false);
+    expect(isDeliveryUntracked([sent], null)).to.equal(false);
+  });
+
+  it("trusts a provider that tracks events itself", () => {
+    expect(
+      isDeliveryUntracked([sent], { ...SMTP, openTracking: true }),
+    ).to.equal(false);
+  });
+});
+
+describe("[unit] services/metrics daily values", () => {
+  const range = {
+    from: new Date(Date.UTC(YEAR, MONTH, 1)),
+    to: new Date(Date.UTC(YEAR, MONTH, 4)),
+  };
+
+  it("draws each figure's own trend, not the send volume", () => {
+    expect(dailyValues(SENDS, range, (totals) => totals.bounced)).to.deep.equal(
+      [0, 1, 0],
+    );
+  });
+
+  it("leaves out the days a rate cannot be stated on", () => {
+    expect(
+      dailyValues(SENDS, range, (totals) => totals.deliverability),
+    ).to.deep.equal([FULL_RATE, 50, 0]);
+    expect(
+      dailyValues(SENDS, range, (totals) => totals.openRate),
+    ).to.deep.equal([50, FULL_RATE]);
+  });
+});
+
+describe("[unit] services/metrics comparison series", () => {
+  it("lays the previous period on the current axis, day by day", () => {
+    const previous = [
+      { x: "2026-08-01", y: 3 },
+      { x: "2026-08-02", y: 4 },
+      { x: "2026-08-03", y: 5 },
+    ];
+    const current = [
+      { x: "2026-09-01", y: 1 },
+      { x: "2026-09-02", y: 2 },
+    ];
+    expect(alignSeries(previous, current)).to.deep.equal([
+      { x: "2026-09-01", y: 3 },
+      { x: "2026-09-02", y: 4 },
+    ]);
   });
 });
 

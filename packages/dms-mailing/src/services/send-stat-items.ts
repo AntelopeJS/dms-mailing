@@ -16,6 +16,9 @@ const MS_PER_SECOND = 1000;
 const EMPTY_FIGURE = "—";
 const PROBLEMS_PAGE = "/modules/mailing/sends?view=problems";
 const PROBLEM_PARTS = ["bounced", "failed", "spam"] as const;
+const THE_PROVIDER: ComposedText = {
+  key: "$dms_mailing.sends.banner.the_provider",
+};
 
 const key = (path: string): string => `${KEY}${path}`;
 
@@ -36,7 +39,7 @@ function joined(parts: ComposedText[], fallback: ComposedText): BlockText {
   return parts.reduce((left, right) => text("joined", { left, right }));
 }
 
-function deltaText(delta: number): ComposedText[] {
+function deltaText(delta: number | null): ComposedText[] {
   if (!delta) return [];
   return [
     text(delta > 0 ? "delta_up" : "delta_down", {
@@ -61,14 +64,24 @@ function sendsItem(stats: SendStats): StatGroupItem {
   };
 }
 
-function deliveredItem(stats: SendStats): StatGroupItem {
+function deliveredItem(stats: SendStats, provider: string): StatGroupItem {
+  if (stats.isDeliveryUntracked) {
+    return {
+      id: "delivered",
+      icon: "i-ph-check-circle",
+      eyebrow: key("delivered"),
+      value: EMPTY_FIGURE,
+      detail: text("not_tracked", { provider: provider || THE_PROVIDER }),
+    };
+  }
   return {
     id: "delivered",
     icon: "i-ph-check-circle",
     eyebrow: key("delivered"),
-    value: stats.sends
-      ? text("rate", { rate: percent(stats.deliverability) })
-      : EMPTY_FIGURE,
+    value:
+      stats.sends && stats.deliverability !== null
+        ? text("rate", { rate: percent(stats.deliverability) })
+        : EMPTY_FIGURE,
     detail: text("delivered_of", {
       delivered: stats.delivered,
       sends: stats.sends,
@@ -139,7 +152,7 @@ export function buildSendStatItems(
 ): StatGroupItem[] {
   return [
     sendsItem(stats),
-    deliveredItem(stats),
+    deliveredItem(stats, provider),
     problemsItem(stats),
     queuedItem(stats, now),
     latencyItem(stats, provider),

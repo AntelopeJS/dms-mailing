@@ -4,7 +4,8 @@ import type {
   ComposedTextParam,
 } from "@antelopejs/interface-dms/base/types";
 import type { SendSummary, MailingTemplate } from "../db";
-import { PROBLEM_STATUSES } from "../types";
+import { isResolvedStage, PROBLEM_STATUSES } from "../types";
+import { isDeliveryUntracked, type ProviderTracking } from "./metrics";
 
 export type AttentionTone = "error" | "warning" | "neutral";
 
@@ -19,16 +20,19 @@ export interface AttentionItem {
   to: string;
   /** The figure the title leads with, shown bold. */
   count?: number;
-  params?: Record<string, string | number>;
+  params?: Record<string, ComposedTextParam>;
   /** Details shown in place of `description` where a feed lists them. */
   details?: ComposedText[];
 }
 
 const TEMPLATES_PAGE = "/modules/mailing/templates";
-const TEMPLATES_ATTENTION_PAGE = `${TEMPLATES_PAGE}?tab=attention`;
+const TEMPLATES_ATTENTION_PAGE = `${TEMPLATES_PAGE}?tab=all&attention=1`;
 const SENDS_PAGE = "/modules/mailing/sends";
 const SENDS_PROBLEMS_PAGE = `${SENDS_PAGE}?view=problems`;
-const SETTINGS_PAGE = "/modules/mailing/settings";
+/** A settings form section, by the id the DMS form gives its anchor. */
+const SETTINGS_SECTION = "/modules/mailing/settings#dms-form-content-section-";
+const SENDER_SETTINGS = `${SETTINGS_SECTION}sender`;
+const PROVIDER_SETTINGS = `${SETTINGS_SECTION}provider`;
 const STALE_DRAFT_DAYS = 7;
 const DAY_MS = 86_400_000;
 
@@ -38,8 +42,9 @@ const isStaleDraft = (template: MailingTemplate, now: number): boolean =>
   now - new Date(template.updatedAt).getTime() > STALE_DRAFT_DAYS * DAY_MS;
 
 function problemsItem(sends: SendSummary[]): AttentionItem[] {
-  const problems = sends.filter((send) =>
-    PROBLEM_STATUSES.includes(send.status),
+  const problems = sends.filter(
+    (send) =>
+      PROBLEM_STATUSES.includes(send.status) && !isResolvedStage(send.stage),
   );
   if (!problems.length) return [];
   return [
@@ -78,13 +83,22 @@ function staleDraftsItem(templates: MailingTemplate[]): AttentionItem[] {
   ];
 }
 
-function neverSentItem(
-  templates: MailingTemplate[],
-  sends: SendSummary[],
-): AttentionItem[] {
-  const used = new Set(sends.map((send) => send.templateSlug));
-  const unused = templates.filter(
-    (template) => template.status === "live" && !used.has(template.slug),
+const publishedBy = (template: MailingTemplate, end: Date): boolean =>
+  !template.publishedAt ||
+  new Date(template.publishedAt).getTime() <= end.getTime();
+
+/**
+ * Live templates no send of the window used. Only the window is read, so the
+ * item says "not sent in this period" rather than "never sent", and leaves
+ * out a template published after the window closed.
+ */
+function unusedLiveItem(window: AttentionWindow): AttentionItem[] {
+  const used = new Set(window.sends.map((send) => send.templateSlug));
+  const unused = window.templates.filter(
+    (template) =>
+      template.status === "live" &&
+      !used.has(template.slug) &&
+      publishedBy(template, window.windowEnd),
   );
   if (!unused.length) return [];
   return [
@@ -111,15 +125,12 @@ export interface AttentionWindow {
   templates: MailingTemplate[];
   sends: SendSummary[];
   excluded: SendSummary[];
+  /** When the window closes. */
+  windowEnd: Date;
   /** What the configured provider can report; `null` when it is unreachable. */
   tracking: ProviderTracking | null;
-}
-
-/** The provider features the Overview's rates depend on. */
-export interface ProviderTracking {
-  name: string;
-  openTracking: boolean;
-  clickTracking: boolean;
+  /** Whether the settings name the address e-mails go out from. */
+  isSenderSet: boolean;
 }
 
 function testOnlyWindowItem(window: AttentionWindow): AttentionItem[] {
@@ -139,16 +150,57 @@ function testOnlyWindowItem(window: AttentionWindow): AttentionItem[] {
   ];
 }
 
+function senderMissingItem(window: AttentionWindow): AttentionItem[] {
+  if (window.isSenderSet) return [];
+  return [
+    {
+      id: "sender-missing",
+      tone: "warning",
+      icon: "i-ph-at",
+      title: "$dms_mailing.attention.sender_missing.title",
+      description: "$dms_mailing.attention.sender_missing.description",
+      action: "$dms_mailing.attention.sender_missing.action",
+      to: SENDER_SETTINGS,
+    },
+  ];
+}
+
 /**
- * Open and click rates can only move if the provider reports those events. An
- * SMTP provider reports neither, so the rates sit at 0 % forever — which reads
- * as "nobody opened it" rather than "nobody can tell". Say so next to the
- * figures, and only while the window actually shows some.
+ * With nothing reported back, every send stays "sent": the delivery figures
+ * show "—" and this item says why, and where the webhook that would report
+ * them is set.
+ */
+function untrackedDeliveryItem(window: AttentionWindow): AttentionItem[] {
+  if (!isDeliveryUntracked(window.sends, window.tracking)) return [];
+  return [
+    {
+      id: "untracked-delivery",
+      tone: "neutral",
+      icon: "i-ph-plugs",
+      title: "$dms_mailing.attention.untracked_delivery.title",
+      description: "$dms_mailing.attention.untracked_delivery.description",
+      action: "$dms_mailing.attention.untracked_delivery.action",
+      to: PROVIDER_SETTINGS,
+      params: { provider: window.tracking?.name ?? "" },
+    },
+  ];
+}
+
+const showsEngagement = (send: SendSummary): boolean =>
+  send.opens > 0 || send.clicks > 0;
+
+/**
+ * Open and click rates can only move if something reports those events: the
+ * provider itself, or its webhook. Said only while the window shows none at
+ * all, so the item never contradicts rates the webhook does fill; when the
+ * delivery itself is unmeasured, that item says it already.
  */
 function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
   const { tracking } = window;
   if (!tracking || !window.sends.length) return [];
   if (tracking.openTracking && tracking.clickTracking) return [];
+  if (isDeliveryUntracked(window.sends, tracking)) return [];
+  if (window.sends.some(showsEngagement)) return [];
   return [
     {
       id: "untracked-rates",
@@ -157,7 +209,7 @@ function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
       title: "$dms_mailing.attention.untracked_rates.title",
       description: "$dms_mailing.attention.untracked_rates.description",
       action: "$dms_mailing.attention.untracked_rates.action",
-      to: SETTINGS_PAGE,
+      to: PROVIDER_SETTINGS,
       params: { provider: tracking.name },
     },
   ];
@@ -165,12 +217,20 @@ function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
 
 const MAX_LISTED_NAMES = 2;
 const LIST_SEPARATOR = ", ";
+const MORE_NAMES_KEY = "$dms_mailing.attention.more_names";
 
-function namesOf(templates: MailingTemplate[]): string {
-  return templates
+/** The first names, and how many others there are ("A, B and 2 more"). */
+function namesOf(templates: MailingTemplate[]): ComposedTextParam {
+  const names = templates
     .slice(0, MAX_LISTED_NAMES)
     .map((template) => template.name)
     .join(LIST_SEPARATOR);
+  const more = templates.length - MAX_LISTED_NAMES;
+  if (more <= 0) return names;
+  return {
+    key: MORE_NAMES_KEY,
+    params: { names, count: { type: "count", value: more } },
+  };
 }
 
 function problemBreakdown(problems: SendSummary[]): Record<string, number> {
@@ -241,9 +301,11 @@ export function buildAttentionItems(window: AttentionWindow): AttentionItem[] {
   return [
     ...problemsItem(window.sends),
     ...missingLocalesItem(window.templates),
+    ...senderMissingItem(window),
+    ...untrackedDeliveryItem(window),
     ...testOnlyWindowItem(window),
     ...untrackedRatesItem(window),
-    ...neverSentItem(window.templates, window.sends),
+    ...unusedLiveItem(window),
     ...staleDraftsItem(window.templates),
   ];
 }
@@ -263,7 +325,8 @@ function feedParams(
 
 /**
  * An attention item as an `ActivityFeed` entry: the explanation (or its
- * counted details) under the title, the whole entry linking to the next step.
+ * counted details) under the title, the verb of the next step as its trailing
+ * text, the whole entry linking to that step.
  */
 export function attentionFeedItem(item: AttentionItem): ActivityFeedItem {
   return {
@@ -273,6 +336,7 @@ export function attentionFeedItem(item: AttentionItem): ActivityFeedItem {
     title: item.title,
     meta: item.details?.length ? item.details : [item.description],
     params: feedParams(item),
+    time: item.action,
     to: item.to,
   };
 }

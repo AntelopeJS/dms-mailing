@@ -4,7 +4,7 @@ import type {
 } from "@antelopejs/interface-dms-automation";
 import type { EmailAddress } from "@antelopejs/interface-email";
 import type { SendTemplateResult } from "@antelopejs/interface-dms-mailing";
-import { sendTemplate } from "../services/send";
+import { sendUnlessSuppressed } from "../services/checked-send";
 import { SEND_STATUSES } from "../types";
 
 export interface SendTemplateActionInput {
@@ -27,7 +27,7 @@ const INPUT_SCHEMA: JsonSchema = {
     slug: { type: "string", description: "Slug of the live mailing template" },
     // A list, not just one address: the automation module has no loop node, so
     // a procedure cannot call this action once per contact — the fan-out has to
-    // happen here. `sendTemplate` already accepts both shapes.
+    // happen here. `sendUnlessSuppressed` already accepts both shapes.
     to: {
       type: ["string", "array"],
       items: { type: "string" },
@@ -76,7 +76,7 @@ export const sendTemplateAction: ActionType<
     const source =
       input.source ?? `${AUTOMATION_SOURCE_PREFIX}${ctx.procedureId}`;
     try {
-      const result = await sendTemplate(input.slug, {
+      const result = await sendUnlessSuppressed(input.slug, {
         tenantId: input.tenantId,
         to: input.to,
         locale: input.locale,

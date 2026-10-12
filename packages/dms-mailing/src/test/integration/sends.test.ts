@@ -104,7 +104,16 @@ describe("[integration] sends", () => {
       category: "orders",
     });
     const id = created.data[0] as string;
-    await client.post(`/api/mailing/templates/${id}/publish`, {});
+    await client.post(`/api/mailing/templates/${id}/content`, {
+      content: {
+        locales: { en: { subject: "Real send", preheader: "", blocks: [] } },
+      },
+    });
+    const published = await client.post(
+      `/api/mailing/templates/${id}/publish`,
+      {},
+    );
+    expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
     const sent = await client.post(`/api/mailing/templates/${id}/send`, {
       to: ["sofie@example.test"],
       locale: "en",

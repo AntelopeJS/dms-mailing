@@ -3,6 +3,7 @@ import {
   HTTPResult,
   type RequestContext,
 } from "@antelopejs/interface-api";
+import { assertValidation } from "@antelopejs/interface-api-util";
 import {
   DataController,
   type DataControllerCallback,
@@ -30,30 +31,56 @@ import {
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { DefaultDisplays } from "@antelopejs/interface-dms/base/table-view";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
-import { HTTP_CONFLICT, HTTP_NOT_FOUND, TABLES_BASE_PATH } from "../constants";
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_CONFLICT,
+  HTTP_NOT_FOUND,
+  HTTP_UNPROCESSABLE,
+  MAX_NAME_LENGTH,
+  MAX_SLUG_LENGTH,
+  TABLES_BASE_PATH,
+} from "../constants";
 import { TemplateCategoryType } from "../data-types";
-import { MailingTemplate, TemplateModel } from "../db";
-import { getSettings } from "../services/settings";
+import { footerForCategory } from "../engine";
+import {
+  MailingTemplate,
+  SendModel,
+  TemplateModel,
+  TemplateVersionModel,
+} from "../db";
+import { findCategory, getSettings } from "../services/settings";
 import { findStarter, starterFields } from "../services/starters";
 import {
-  blankTemplateFields,
+  blankContent,
+  blankFields,
   contentFieldsOf,
   displayName,
   initializeTemplate,
 } from "../services/templates";
+import type { TemplateCategory } from "../types";
 
 import { createTemplateSchema } from "../validation/templates.schema";
 import { parseBody } from "./body";
-import { LocaleChipsDisplay } from "./displays";
+import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
 const SOURCE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
+const INVALID_TEMPLATE = "$dms_mailing.errors.invalid_template";
+const UNKNOWN_CATEGORY = "$dms_mailing.errors.unknown_category";
+const TEMPLATE_IN_USE = "$dms_mailing.errors.template_in_use";
+const TEMPLATE_WAS_SENT = "$dms_mailing.errors.template_was_sent";
+const ARCHIVED_STATUS = "archived";
+const MIN_NAME_LENGTH = 1;
 const CREATE_ONLY = { edit: ReadonlyBehaviorType.disabled };
-// Read-only columns render as empty dashes on the create form; the four fields
-// a template is actually created from are the only ones worth asking for.
-const NEVER_ON_CREATE = { new: ReadonlyBehaviorType.hidden };
+// Read-only columns render as empty dashes on the create form and as raw
+// internal values on the edit one: a template's name, slug and category are
+// the only fields worth asking for.
+const NEVER_IN_FORMS = {
+  new: ReadonlyBehaviorType.hidden,
+  edit: ReadonlyBehaviorType.hidden,
+};
 
 const STATUS_ITEMS = ["draft", "live", "archived"].map((value) => ({
   value,
@@ -74,6 +101,7 @@ async function resolveSource(
 interface TemplateSeed {
   sourceTemplateId?: string;
   starterId?: string;
+  category?: string;
 }
 
 /** The content fields a creation starts from: a copy, a starter or a blank page. */
@@ -84,10 +112,69 @@ async function seedFields(
 ): Promise<Partial<MailingTemplate>> {
   const source = await resolveSource(tenantId, seed.sourceTemplateId);
   if (source) return contentFieldsOf(source);
-  if (!seed.starterId) return blankTemplateFields(fallbackLocale);
+  if (!seed.starterId) {
+    return blankFields(
+      footerForCategory(blankContent(fallbackLocale), seed.category),
+    );
+  }
   const starter = findStarter(seed.starterId);
   if (!starter) throw new HTTPResult(HTTP_NOT_FOUND, STARTER_NOT_FOUND);
-  return starterFields(starter);
+  return starterFields(starter, fallbackLocale);
+}
+
+const isBlank = (value: unknown) =>
+  value === undefined || value === null || value === "";
+
+/** A category is left empty or picked among the ones the settings declare. */
+function assertKnownCategory(
+  categories: TemplateCategory[],
+  category: unknown,
+): void {
+  if (isBlank(category)) return;
+  if (typeof category === "string" && findCategory(categories, category)) {
+    return;
+  }
+  throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
+}
+
+const creationTime = (template: MailingTemplate) =>
+  new Date(template.createdAt).getTime();
+
+/**
+ * Nothing in the database keeps slugs unique, so two creations racing past
+ * the free-slug check both land: the earliest one stays, a later one is
+ * removed again and refused like any taken slug.
+ */
+async function assertFirstOfSlug(
+  model: TemplateModel,
+  slug: string,
+  templateId: string,
+): Promise<void> {
+  const [first] = (await model.getBy("slug", slug)).sort(
+    (left, right) =>
+      creationTime(left) - creationTime(right) ||
+      left._id.localeCompare(right._id),
+  );
+  if (!first || first._id === templateId) return;
+  await model.delete(templateId);
+  throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
+}
+
+/** The creation's seed, and the body to store: slug and name trimmed. */
+function parseCreation(body: Buffer | string) {
+  const raw = parseBody(body);
+  const seed = assertValidation(
+    raw,
+    (value) => createTemplateSchema.parse(value),
+    () => INVALID_TEMPLATE,
+    HTTP_BAD_REQUEST,
+  );
+  const normalized = JSON.stringify({
+    ...raw,
+    slug: seed.slug,
+    name: seed.name,
+  });
+  return { seed, normalized };
 }
 
 function withSeeding(base: DataControllerCallback): DataControllerCallback {
@@ -100,28 +187,26 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       body: Buffer | string,
       ...rest: unknown[]
     ) {
-      const seed = createTemplateSchema.parse(parseBody(body));
+      const { seed, normalized } = parseCreation(body);
       const tenantId = getRequestTenantId(ctx);
-      const existing = await GetModel(TemplateModel, tenantId).getBySlug(
-        seed.slug,
-      );
-      if (existing) throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
+      const model = GetModel(TemplateModel, tenantId);
+      if (await model.getBySlug(seed.slug)) {
+        throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
+      }
       const settings = await getSettings(tenantId);
+      assertKnownCategory(settings.categories, seed.category);
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
       const ids = (await base.func.call(
         this,
         ctx,
         params,
-        body,
+        normalized,
         ...rest,
       )) as string[];
+      const templateId = ids[0] as string;
+      await assertFirstOfSlug(model, seed.slug, templateId);
       const user = await authenticateTenantRequest(ctx);
-      await initializeTemplate(
-        tenantId,
-        ids[0] as string,
-        displayName(user),
-        fields,
-      );
+      await initializeTemplate(tenantId, templateId, displayName(user), fields);
       return ids;
     },
   };
@@ -131,12 +216,16 @@ interface EditParams {
   id: string;
 }
 
+const trimmedName = (name: unknown) =>
+  typeof name === "string" ? { name: name.trim() } : {};
+
 /**
  * The body an edit may apply. Sends resolve templates by slug and nothing
  * enforces its uniqueness but the create checks, so a slug never changes once
  * set: a different one is refused, and the stored one is always written back.
+ * The name is stored trimmed, the category must be one the settings declare.
  */
-async function withStoredSlug(
+async function guardedEdit(
   tenantId: string,
   templateId: string,
   body: Buffer | string,
@@ -147,7 +236,13 @@ async function withStoredSlug(
   if (edit.slug !== undefined && edit.slug !== stored.slug) {
     throw new HTTPResult(HTTP_CONFLICT, SLUG_IMMUTABLE);
   }
-  return JSON.stringify({ ...edit, slug: stored.slug });
+  const { categories } = await getSettings(tenantId);
+  assertKnownCategory(categories, edit.category);
+  return JSON.stringify({
+    ...edit,
+    ...trimmedName(edit.name),
+    slug: stored.slug,
+  });
 }
 
 function withFixedSlug(base: DataControllerCallback): DataControllerCallback {
@@ -160,7 +255,7 @@ function withFixedSlug(base: DataControllerCallback): DataControllerCallback {
       body: Buffer | string,
       ...rest: unknown[]
     ) {
-      const guarded = await withStoredSlug(
+      const guarded = await guardedEdit(
         getRequestTenantId(ctx),
         params.id,
         body,
@@ -170,10 +265,71 @@ function withFixedSlug(base: DataControllerCallback): DataControllerCallback {
   };
 }
 
+interface DeleteParams {
+  id: string[];
+}
+
+/** Whether a template was ever sent, a test included. */
+async function wasSent(sends: SendModel, slug: string): Promise<boolean> {
+  const count = await sends.table.getAll(slug, "templateSlug").count().run();
+  return count > 0;
+}
+
+/**
+ * Why a template cannot go for good, `null` when it can: archived first
+ * (archiving explains what stops working), and never sent, since the send log
+ * renders past sends from it and a freed slug would inherit their figures.
+ */
+async function deleteRefusal(
+  tenantId: string,
+  template: MailingTemplate,
+): Promise<string | null> {
+  if (template.status !== ARCHIVED_STATUS) return TEMPLATE_IN_USE;
+  const isSent = await wasSent(GetModel(SendModel, tenantId), template.slug);
+  return isSent ? TEMPLATE_WAS_SENT : null;
+}
+
+async function assertDeletable(tenantId: string, ids: string[]) {
+  const model = GetModel(TemplateModel, tenantId);
+  for (const id of ids) {
+    const template = await model.get(id);
+    const refusal = template && (await deleteRefusal(tenantId, template));
+    if (refusal) throw new HTTPResult(HTTP_CONFLICT, refusal);
+  }
+}
+
+/** A deleted template takes its published versions with it. */
+async function deleteVersions(tenantId: string, ids: string[]) {
+  const versions = GetModel(TemplateVersionModel, tenantId).table;
+  await Promise.all(
+    ids.map((id) => versions.getAll(id, "templateId").delete().run()),
+  );
+}
+
+function withDeleteGuard(base: DataControllerCallback): DataControllerCallback {
+  return {
+    ...base,
+    func: async function (
+      this: unknown,
+      ctx: RequestContext,
+      params: DeleteParams,
+      ...rest: unknown[]
+    ) {
+      await authenticateTenantRequest(ctx);
+      const tenantId = getRequestTenantId(ctx);
+      await assertDeletable(tenantId, params.id);
+      const result = await base.func.call(this, ctx, params, ...rest);
+      await deleteVersions(tenantId, params.id);
+      return result;
+    },
+  };
+}
+
 const templateRoutes = {
   ...TableViewRoutes.All,
   new: withSeeding(TableViewRoutes.New),
   edit: withFixedSlug(TableViewRoutes.Edit),
+  delete: withDeleteGuard(TableViewRoutes.Delete),
 };
 
 @RegisterDataController()
@@ -186,6 +342,9 @@ export class TemplatesTableAPI extends DataController(
   @TenantScopedModel(TemplateModel)
   declare model: TemplateModel;
 
+  @TenantScopedModel(SendModel)
+  declare sends: SendModel;
+
   @Select()
   @Listable()
   @Exported()
@@ -197,11 +356,14 @@ export class TemplatesTableAPI extends DataController(
   @Sortable()
   @Exported()
   @Searchable()
-  @Mandatory("new")
+  @Mandatory("new", "edit")
   @Access(AccessMode.ReadWrite)
   @Column({
     name: "$dms_mailing.templates.cols.name",
-    type: new DefaultDataTypes.StringType({}),
+    type: new DefaultDataTypes.StringType({
+      minLength: MIN_NAME_LENGTH,
+      maxLength: MAX_NAME_LENGTH,
+    }),
   })
   declare name: string;
 
@@ -214,7 +376,7 @@ export class TemplatesTableAPI extends DataController(
   @Access(AccessMode.ReadWrite)
   @Column({
     name: "$dms_mailing.templates.cols.slug",
-    type: new DefaultDataTypes.StringType({}),
+    type: new DefaultDataTypes.StringType({ maxLength: MAX_SLUG_LENGTH }),
     readonlyBehavior: CREATE_ONLY,
     display: new DefaultDisplays.MonoDisplay({ copy: true }),
   })
@@ -227,6 +389,7 @@ export class TemplatesTableAPI extends DataController(
     name: "$dms_mailing.templates.cols.category",
     type: new TemplateCategoryType(),
     filterable: true,
+    display: new CategoryDisplay({}),
   })
   declare category: string;
 
@@ -238,7 +401,7 @@ export class TemplatesTableAPI extends DataController(
     name: "$dms_mailing.templates.cols.status",
     type: new DefaultDataTypes.SelectType({ items: STATUS_ITEMS }),
     filterable: true,
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
     display: new DefaultDisplays.StatusPillDisplay({
       tones: { live: "success", draft: "neutral", archived: "warning" },
     }),
@@ -252,7 +415,7 @@ export class TemplatesTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.templates.cols.updatedAt",
     type: new DefaultDataTypes.DateType({}),
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
     display: new DefaultDisplays.RelativeDateDisplay({
       style: "day",
       byField: "updatedBy",
@@ -267,7 +430,7 @@ export class TemplatesTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.templates.cols.locales",
     type: new DefaultDataTypes.StringType({}),
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
     display: new LocaleChipsDisplay({}),
   })
   declare locales: string;
@@ -278,7 +441,7 @@ export class TemplatesTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.templates.cols.updatedBy",
     type: new DefaultDataTypes.StringType({}),
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
   })
   declare updatedBy: string;
 
@@ -287,7 +450,7 @@ export class TemplatesTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.templates.cols.publishedVersion",
     type: new DefaultDataTypes.NumberType({}),
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
     isVisible: false,
   })
   declare publishedVersion: number;
@@ -297,7 +460,7 @@ export class TemplatesTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.templates.cols.isDraftPending",
     type: new DefaultDataTypes.BooleanType({}),
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
     isVisible: false,
   })
   declare isDraftPending: boolean;
@@ -307,8 +470,20 @@ export class TemplatesTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.templates.cols.publishedAt",
     type: new DefaultDataTypes.DateType({}),
-    readonlyBehavior: NEVER_ON_CREATE,
+    readonlyBehavior: NEVER_IN_FORMS,
     isVisible: false,
   })
   declare publishedAt: Date;
+
+  /**
+   * Whether an archived template was ever sent: the gallery then offers no
+   * Delete, which the route would refuse. Read for archived rows only, the
+   * only ones Delete is offered on.
+   */
+  @Listable(["slug", "status"])
+  @Access(AccessMode.ReadOnly)
+  get hasSends(): Promise<boolean> | boolean {
+    if (this.status !== ARCHIVED_STATUS || !this.sends) return false;
+    return wasSent(this.sends, this.slug);
+  }
 }

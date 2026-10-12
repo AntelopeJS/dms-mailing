@@ -99,6 +99,52 @@ describe("[integration] events", () => {
     const after = await client.get(`/api/mailing/sends/${sendId}`);
     expect(after.data.send.status).to.equal("delivered");
   });
+
+  it("ignores a webhook the provider delivers twice", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const settings = await client.get("/api/mailing/settings");
+    const created = await client.post(`${TABLE}/new`, {
+      slug: "retried-webhook",
+      name: "Retried webhook",
+      category: "orders",
+    });
+    const sent = await client.post(
+      `/api/mailing/templates/${created.data[0]}/test-send`,
+      { to: ["retried@example.test"], locale: "en", data: {} },
+    );
+    const sendId = sent.data.results[0].sendId as string;
+    const detail = await client.get(`/api/mailing/sends/${sendId}`);
+    const body = {
+      messageId: detail.data.send.providerMessageId,
+      type: "opened",
+      details: { eventId: "evt-retried-1" },
+    };
+    const headers = {
+      headers: { "x-mailing-webhook-secret": settings.data.webhookSecret },
+    };
+
+    const first = await client.post(
+      "/api/mailing/events/manual",
+      body,
+      headers,
+    );
+    const retry = await client.post(
+      "/api/mailing/events/manual",
+      body,
+      headers,
+    );
+
+    expect(first.data.recorded).to.equal(true);
+    expect(retry.status).to.equal(HTTP_OK);
+    expect(retry.data.recorded).to.equal(false);
+    const after = await client.get(`/api/mailing/sends/${sendId}`);
+    expect(after.data.send.opens).to.equal(1);
+    const opened = after.data.events.filter(
+      (event: EventRow) => event.type === "opened",
+    );
+    expect(opened).to.have.length(1);
+  });
 });
 
 describe("[integration] webhook for a tenant without settings", () => {

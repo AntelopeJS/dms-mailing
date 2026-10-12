@@ -64,6 +64,13 @@ export class MailingTemplate extends Table {
   @Field("string")
   declare draftUpdatedBy?: string;
 
+  /**
+   * Moves on with every write of `json_draft`; a save or a publish carrying
+   * an older one is refused. Absent on rows written before it: 0.
+   */
+  @Field("number")
+  declare draftRevision?: number;
+
   /** Version customers receive; absent on rows written before versions. */
   @Field("number")
   declare publishedVersion?: number;
@@ -71,9 +78,20 @@ export class MailingTemplate extends Table {
   @Field("string")
   declare publishedBy?: string;
 
-  /** JSON-serialized VariableDefinition[] declared for this template. */
+  /**
+   * JSON-serialized VariableDefinition[] of the contract callers send
+   * against: the published declarations (the working ones until a first
+   * publish). Only a publish changes them on a published template.
+   */
   @Field("string")
   declare json_variables: string;
+
+  /**
+   * JSON-serialized VariableDefinition[] the draft declares, published with
+   * its content. Blank when the draft declares what `json_variables` does.
+   */
+  @Field("string")
+  declare json_variables_draft?: string;
 
   /** JSON-serialized data set used by the preview and the test send. */
   @Field("string")
@@ -94,4 +112,8 @@ export class MailingTemplate extends Table {
 
   @Field("date")
   declare publishedAt?: Date;
+
+  /** When the template last left `live` by an unpublish. */
+  @Field("date")
+  declare unpublishedAt?: Date;
 }

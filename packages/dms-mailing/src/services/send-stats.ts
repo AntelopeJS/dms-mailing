@@ -1,14 +1,32 @@
+import type { ProviderCapabilities } from "@antelopejs/interface-email";
 import type { SendSummary } from "../db";
-import { aggregate, deltaPercent } from "./metrics";
+import { isResolvedStage, type SendStatus } from "../types";
+import {
+  aggregate,
+  deltaPercent,
+  isDeliveryUntracked,
+  type ProviderTracking,
+} from "./metrics";
 
 /** The figures of the send log's stat strip, for one period. */
 export interface SendStats {
   sends: number;
-  sendsDelta: number;
+  /** `null` when the previous period had no send to compare with. */
+  sendsDelta: number | null;
   /** Test sends of the period, shown next to the count but not in it. */
   tests: number;
   delivered: number;
-  deliverability: number;
+  /** `null` without a real send in the period. */
+  deliverability: number | null;
+  /**
+   * The provider reports no delivery (SMTP) and no webhook event came back:
+   * every send stays "sent", and a deliverability would mislead.
+   */
+  isDeliveryUntracked: boolean;
+  /**
+   * Problems nobody dealt with yet, like the Problems tab and the nav badge: a
+   * send again resolves its original. The breakdown counts the same sends.
+   */
   problems: number;
   bounced: number;
   failed: number;
@@ -29,30 +47,76 @@ function oldestQueuedAt(sends: SendSummary[]): string | null {
   return new Date(Math.min(...queued)).toISOString();
 }
 
+/** What the provider says it tracks; `null` while it cannot be reached. */
+export function trackingOf(
+  capabilities: ProviderCapabilities | null,
+): ProviderTracking | null {
+  if (!capabilities) return null;
+  return {
+    name: capabilities.name,
+    openTracking: capabilities.features.openTracking,
+    clickTracking: capabilities.features.clickTracking,
+  };
+}
+
+type ProblemBreakdown = Pick<
+  SendStats,
+  "problems" | "bounced" | "failed" | "spam"
+>;
+
+function problemBreakdown(real: SendSummary[]): ProblemBreakdown {
+  const open = real.filter((send) => !isResolvedStage(send.stage));
+  const countOf = (status: SendStatus): number =>
+    open.filter((send) => send.status === status).length;
+  const bounced = countOf("bounced");
+  const failed = countOf("failed");
+  const spam = countOf("spam");
+  return { problems: bounced + failed + spam, bounced, failed, spam };
+}
+
+/** `previous` is `null` when the user turned the comparison off. */
 export function buildSendStats(
   current: SendSummary[],
-  previous: SendSummary[],
+  previous: SendSummary[] | null,
+  tracking: ProviderTracking | null = null,
 ): SendStats {
   const real = current.filter((send) => !send.isTest);
   const totals = aggregate(real);
-  const previousTotals = aggregate(previous.filter((send) => !send.isTest));
+  const previousTotals = previous
+    ? aggregate(previous.filter((send) => !send.isTest))
+    : null;
   return {
     sends: totals.sends,
-    sendsDelta: deltaPercent(totals.sends, previousTotals.sends),
+    sendsDelta: deltaPercent(totals.sends, previousTotals?.sends ?? null),
     tests: current.length - real.length,
     delivered: totals.delivered,
     deliverability: totals.deliverability,
-    problems: totals.bounced + totals.failed + totals.spam,
-    bounced: totals.bounced,
-    failed: totals.failed,
-    spam: totals.spam,
+    isDeliveryUntracked: isDeliveryUntracked(real, tracking),
+    ...problemBreakdown(real),
     queued: totals.queued,
     oldestQueuedAt: oldestQueuedAt(real),
     latencyMedian: totals.latencyMedian,
   };
 }
 
-/** Provider failures worth a send again: failed, not a bounce, not a test. */
+/** At most this many failures go again in one "send the failures again". */
+export const MAX_BULK_REPLAY = 100;
+
+/** An error of the connection to the provider rather than of one recipient. */
+const TRANSPORT_ERROR =
+  /ECONN|ETIMEDOUT|EHOSTUNREACH|ENOTFOUND|EAI_AGAIN|ESOCKET|timed? ?out|connection/i;
+
+/**
+ * Provider failures worth a send again: failed, not a bounce, not a test, and
+ * not already sent again by someone.
+ */
 export function isProviderFailure(send: SendSummary): boolean {
-  return send.status === "failed" && !send.isTest;
+  return (
+    send.status === "failed" && !send.isTest && !isResolvedStage(send.stage)
+  );
+}
+
+/** A provider failure that says the provider could not be reached at all. */
+export function isTransportFailure(send: SendSummary): boolean {
+  return isProviderFailure(send) && TRANSPORT_ERROR.test(send.error ?? "");
 }

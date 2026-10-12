@@ -1,14 +1,33 @@
 import { Form, type FormSection } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import type { DataType } from "@antelopejs/interface-dms/base/data-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types";
+import { ComponentBuilder } from "@antelopejs/interface-dms/component";
+import { z } from "zod";
 import { API_BASE_PATH } from "../../constants";
 import { TemplateCategoriesType } from "../../data-types";
+import {
+  MAX_RETENTION_DAYS,
+  MIN_RETENTION_DAYS,
+  MIN_WEBHOOK_SECRET_LENGTH,
+  WEBHOOK_SECRET_TOO_SHORT,
+} from "../../validation/settings.schema";
 
-const MIN_RETENTION_DAYS = 1;
-const MAX_RETENTION_DAYS = 3650;
 const RETENTION_STEP = 1;
 const SETTINGS_URL = `${API_BASE_PATH}/settings`;
+const EMAIL_INPUT_COMPONENT = "dms-input-email";
+
+/** An address input that drops the spaces a paste brings along. */
+const trimmedEmailInput = () =>
+  new ComponentBuilder(EMAIL_INPUT_COMPONENT)
+    .options({ modelModifiers: { trim: true } })
+    .serializeSync();
+
+/** `type`, checked in the browser with `validation` instead of its own. */
+function checkedWith<T extends DataType>(type: T, validation: z.ZodType): T {
+  return Object.assign(type, { getValidation: () => validation });
+}
 
 const key = (path: string): string => `$dms_mailing.settings.${path}`;
 
@@ -35,9 +54,13 @@ const sender = section("sender", "i-ph-at", [
   {
     ...field("senderEmail"),
     type: new DefaultDataTypes.EmailType({}),
-    required: true,
+    inputComponent: trimmedEmailInput(),
   },
-  { ...field("replyTo"), type: new DefaultDataTypes.EmailType({}) },
+  {
+    ...field("replyTo"),
+    type: new DefaultDataTypes.EmailType({}),
+    inputComponent: trimmedEmailInput(),
+  },
 ]);
 
 const guards = section("guards", "i-ph-shield-check", [
@@ -82,10 +105,20 @@ const provider = section("provider", "i-ph-plugs-connected", [
   },
   {
     ...field("webhookSecret"),
-    type: new DefaultDataTypes.SecretType({
-      rotateUrl: `${SETTINGS_URL}/webhook-secret/rotate`,
-    }),
+    type: checkedWith(
+      new DefaultDataTypes.SecretType({
+        rotateUrl: `${SETTINGS_URL}/webhook-secret/rotate`,
+      }),
+      z.string().min(MIN_WEBHOOK_SECRET_LENGTH, WEBHOOK_SECRET_TOO_SHORT),
+    ),
     required: true,
+  },
+  {
+    // Reads its own route and never changes the form's value: it is shown,
+    // never saved.
+    ...field("webhookStatus"),
+    type: new DefaultDataTypes.StringType({}),
+    inputComponent: CustomComponent("MailingWebhookStatus").serializeSync(),
   },
 ]);
 
@@ -113,7 +146,7 @@ export const mailingSettingsForm = Form({
   saveMode: "bar",
   fetchUrl: SETTINGS_URL,
   submitUrl: SETTINGS_URL,
-  submitUrlMethod: HttpMethod.post,
+  submitUrlMethod: HttpMethod.put,
   successMessage: key("saved"),
 }).meta({
   name: "$dms_mailing.permissions.settings_form.name",

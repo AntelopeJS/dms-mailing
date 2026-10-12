@@ -155,6 +155,19 @@ describe("[integration] template drafts and versions", () => {
     expect(unknown.status).to.equal(HTTP_NOT_FOUND);
   });
 
+  it("previews a starter in the locale asked for, its amounts written for it", async () => {
+    const api = await client();
+    const path = `${TEMPLATES}/starters/order-confirmed/preview`;
+    const french = await api.get(`${path}?locale=fr`);
+    expect(french.status).to.equal(HTTP_OK);
+    expect(french.data.locale).to.equal("fr");
+    expect(french.data.html).to.include("Merci pour votre commande");
+    expect(french.data.html).to.include("556,00");
+    const fallback = await api.get(path);
+    expect(fallback.data.locale).to.equal("en");
+    expect(fallback.data.html).to.include("1,556.00");
+  });
+
   it("reports 30-day figures per template", async () => {
     const api = await client();
     const overview = await api.get(`${TEMPLATES}/overview`);

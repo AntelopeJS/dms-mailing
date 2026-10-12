@@ -24,23 +24,36 @@ import {
   DefaultDisplays,
 } from "@antelopejs/interface-dms/base/table-view";
 import { TABLES_BASE_PATH } from "../constants";
-import { MailingSend, SendModel } from "../db";
 import {
+  MailingSend,
+  normalizeAddress,
+  SendModel,
+  SuppressionModel,
+} from "../db";
+import {
+  RESOLVED_STAGE,
   SEND_STAGES,
   SEND_STATUSES,
   type SendStage,
   type SendStatus,
 } from "../types";
 import { localeCode, localeFallbackSubline } from "./locale-fallback";
+import { TemplatesTableAPI } from "./templates-table";
 
 const STATUS_ITEMS = SEND_STATUSES.map((value) => ({
   value,
   label: `$dms_mailing.sends.status.${value}`,
 }));
 
-const RECIPIENT_COLUMN_WIDTH = 280;
+/**
+ * Narrow enough for the status to show next to it on a phone, between the
+ * recipient and the pinned row actions (about 340px of table at 390px).
+ */
+const RECIPIENT_COLUMN_WIDTH = 180;
 const STATUS_COLUMN_WIDTH = 220;
 const NARROW_COLUMN_WIDTH = 120;
+
+const PROBLEM_STAGE: SendStage = "problem";
 
 const STAGE_ITEMS = SEND_STAGES.map((value) => ({
   value,
@@ -57,6 +70,7 @@ const STATUS_TONES = {
   spam: "warning",
   failed: "error",
   unsubscribed: "warning",
+  suppressed: "neutral",
 } as const;
 
 const TEST_BADGE = {
@@ -64,6 +78,13 @@ const TEST_BADGE = {
   equals: true,
   label: "$dms_mailing.sends.test_badge",
   tone: "warning" as const,
+};
+
+const RESOLVED_BADGE = {
+  field: "stage",
+  equals: RESOLVED_STAGE,
+  label: "$dms_mailing.sends.status.resolved",
+  tone: "success" as const,
 };
 
 const readOnlyRoutes = {
@@ -85,10 +106,20 @@ export class SendsTableAPI extends DataController(
   @TenantScopedModel(SendModel)
   declare model: SendModel;
 
+  @TenantScopedModel(SuppressionModel)
+  declare suppressions: SuppressionModel;
+
   @Select()
   @Listable()
   @Exported()
+  @Searchable()
   @Access(AccessMode.ReadOnly)
+  @Column({
+    name: "$dms_mailing.sends.cols.id",
+    type: new DefaultDataTypes.StringType({}),
+    isVisible: false,
+    display: new DefaultDisplays.MonoDisplay({}),
+  })
   declare _id: string;
 
   @Listable()
@@ -102,7 +133,7 @@ export class SendsTableAPI extends DataController(
     size: RECIPIENT_COLUMN_WIDTH,
     display: new DefaultDisplays.IdentityDisplay({
       subtitleField: "recipientName",
-      badges: [TEST_BADGE],
+      badges: [TEST_BADGE, RESOLVED_BADGE],
     }),
   })
   declare recipientEmail: string;
@@ -120,18 +151,6 @@ export class SendsTableAPI extends DataController(
 
   @Listable()
   @Exported()
-  @Searchable()
-  @Access(AccessMode.ReadOnly)
-  @Column({
-    name: "$dms_mailing.sends.cols.templateSlug",
-    type: new DefaultDataTypes.StringType({}),
-    filterable: true,
-    display: new DefaultDisplays.MonoDisplay({}),
-  })
-  declare templateSlug: string;
-
-  @Listable()
-  @Exported()
   @Access(AccessMode.ReadOnly)
   @Column({
     name: "$dms_mailing.sends.cols.status",
@@ -145,6 +164,26 @@ export class SendsTableAPI extends DataController(
     }),
   })
   declare status: SendStatus;
+
+  /**
+   * A relation used as a filter only: the "Template" quick filter lists the
+   * templates by name, the cell keeps the slug the send was made with.
+   */
+  @Listable()
+  @Exported()
+  @Searchable()
+  @Access(AccessMode.ReadOnly)
+  @Column({
+    name: "$dms_mailing.sends.cols.templateSlug",
+    type: new DefaultDataTypes.RelationType({
+      dataApiController: TemplatesTableAPI,
+      keyMapping: { label: "name", value: "slug" },
+      filterOnly: true,
+    }),
+    filterable: true,
+    display: new DefaultDisplays.MonoDisplay({}),
+  })
+  declare templateSlug: string;
 
   @Listable()
   @Exported()
@@ -214,7 +253,7 @@ export class SendsTableAPI extends DataController(
     size: NARROW_COLUMN_WIDTH,
     display: new DefaultDisplays.DurationDisplay({ unit: "ms" }),
   })
-  declare latencyMs: number;
+  declare latencyMs: number | null;
 
   @Listable()
   @Exported()
@@ -223,7 +262,7 @@ export class SendsTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.sends.cols.createdAt",
     type: new DefaultDataTypes.DateType({}),
-    display: new DefaultDisplays.RelativeDateDisplay({ style: "day" }),
+    display: new DefaultDisplays.RelativeDateDisplay({ style: "relative" }),
   })
   declare createdAt: Date;
 
@@ -257,4 +296,41 @@ export class SendsTableAPI extends DataController(
     isVisible: false,
   })
   declare error: string;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare isSoftBounce: boolean;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare replayOf: string;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare replayedBy: string;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare resolvedAt: Date;
+
+  /**
+   * Whether the recipient is on the suppression list: "Send again…" would not
+   * leave, so the row offers the list instead. Read for problems only, the
+   * only rows either action is offered on.
+   */
+  @Listable(["recipientEmail", "stage"])
+  @Access(AccessMode.ReadOnly)
+  get isRecipientSuppressed(): Promise<boolean> | boolean {
+    if (this.stage !== PROBLEM_STAGE || !this.suppressions) return false;
+    return this.suppressions
+      .findByEmail(this.recipientEmail)
+      .then((row) => Boolean(row));
+  }
+
+  /** The address as the suppression list filters on it. */
+  @Listable(["recipientEmail"])
+  @Access(AccessMode.ReadOnly)
+  get suppressionAddress(): string {
+    return normalizeAddress(this.recipientEmail ?? "");
+  }
 }

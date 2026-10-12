@@ -7,10 +7,19 @@ import {
   type DeliveredMessage,
   type DeliveryInput,
   deliverEach,
+  MANUAL_SEND_SOURCE,
+  messageFor,
+  missingManualVariables,
   type PreparedSend,
   recordAll,
+  refusedMissing,
   type SendRecordInput,
 } from "../../services/send";
+import {
+  unsubscribeHeaders,
+  unsubscribeUrlOf,
+} from "../../services/list-unsubscribe";
+import type { MailingTemplate } from "../../db";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
 
 const TRANSPORT_FAILURE = "socket hang up";
@@ -25,6 +34,7 @@ const PREPARED: PreparedSend = {
   templateId: "template-1",
   slug: "welcome",
   tenantId: "tenant-1",
+  category: "",
 };
 
 const SETTINGS: MailingSettingsValues = {
@@ -159,5 +169,98 @@ describe("[unit] services/send result aggregation", () => {
     ]);
 
     expect(aggregated.status).to.equal("queued");
+  });
+});
+
+describe("[unit] services/send manual real sends", () => {
+  const template = {
+    json_variables: JSON.stringify([
+      { path: "user.firstName", type: "string", required: true },
+      { path: "reset.url", type: "url", required: true },
+      { path: "promo", type: "string", required: false },
+    ]),
+  } as MailingTemplate;
+  const manual = {
+    ...PARAMS,
+    source: MANUAL_SEND_SOURCE,
+    variables: { user: { firstName: "Julie" } },
+  };
+
+  it("names the required variables a manual real send lacks", () => {
+    expect(missingManualVariables(template, manual)).to.deep.equal([
+      "reset.url",
+    ]);
+  });
+
+  it("leaves tests and API calls to the workspace setting", () => {
+    expect(
+      missingManualVariables(template, { ...manual, isTest: true }),
+    ).to.deep.equal([]);
+    expect(
+      missingManualVariables(template, { ...manual, source: "shop" }),
+    ).to.deep.equal([]);
+  });
+});
+
+describe("[unit] services/send message parts", () => {
+  it("sends the plain-text part next to the HTML", () => {
+    const message = messageFor({ ...input(RECIPIENTS), text: "Hello" }, "a@b");
+    expect(message.text).to.equal("Hello");
+    expect(message.html).to.equal("<p>Hello</p>");
+    expect(message.providerOptions).to.equal(undefined);
+  });
+
+  it("announces a one-click unsubscribe for an HTTPS URL", () => {
+    const message = messageFor(
+      { ...input(RECIPIENTS), unsubscribeUrl: "https://shop.test/u?t=1" },
+      "a@b",
+    );
+    expect(message.providerOptions).to.deep.equal({
+      headers: {
+        "List-Unsubscribe": "<https://shop.test/u?t=1>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    });
+  });
+
+  it("keeps only the List-Unsubscribe header over plain HTTP", () => {
+    expect(unsubscribeHeaders("http://shop.test/u")).to.deep.equal({
+      "List-Unsubscribe": "<http://shop.test/u>",
+    });
+  });
+
+  it("reads the unsubscribe URL only when it is an absolute web address", () => {
+    expect(unsubscribeUrlOf({ unsubscribeUrl: " https://u.test/x " })).to.equal(
+      "https://u.test/x",
+    );
+    expect(
+      unsubscribeUrlOf({ unsubscribeUrl: "javascript:alert(1)" }),
+    ).to.equal("");
+    expect(unsubscribeUrlOf({ unsubscribeUrl: "/relative" })).to.equal("");
+    expect(unsubscribeUrlOf({ unsubscribeUrl: 42 })).to.equal("");
+    expect(unsubscribeUrlOf({})).to.equal("");
+  });
+});
+
+describe("[unit] services/send missing system URLs", () => {
+  const SYSTEM = ["unsubscribeUrl"];
+
+  it("refuses an API send only when the workspace blocks on missing values", () => {
+    expect(refusedMissing(PARAMS, false, ["a"], SYSTEM)).to.deep.equal([]);
+    expect(refusedMissing(PARAMS, true, ["a"], SYSTEM)).to.deep.equal([
+      "a",
+      "unsubscribeUrl",
+    ]);
+  });
+
+  it("always refuses a manual real send without its unsubscribe URL", () => {
+    const manual = { ...PARAMS, source: MANUAL_SEND_SOURCE };
+    expect(refusedMissing(manual, false, ["a"], SYSTEM)).to.deep.equal(SYSTEM);
+  });
+
+  it("never holds a test send for an unsubscribe URL", () => {
+    const test = { ...PARAMS, source: MANUAL_SEND_SOURCE, isTest: true };
+    expect(refusedMissing(test, false, [], SYSTEM)).to.deep.equal([]);
+    expect(refusedMissing(test, true, ["a"], SYSTEM)).to.deep.equal(["a"]);
   });
 });

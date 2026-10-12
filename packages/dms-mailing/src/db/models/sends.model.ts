@@ -4,7 +4,12 @@ import type {
   AtomicMutationOutcome,
   ValueProxy,
 } from "@antelopejs/interface-database";
-import { SEND_STATUSES, type SendStatus, stageOf } from "../../types";
+import {
+  isResolvedStage,
+  SEND_STATUSES,
+  type SendStatus,
+  stageOf,
+} from "../../types";
 import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
 
 const FIRST_ROW_OFFSET = 0;
@@ -16,14 +21,34 @@ type NewSend = Omit<
 >;
 
 const UNSET_STAGE = "";
+const SUPPRESSED_STATUS: SendStatus = "suppressed";
+const LEGACY_SUPPRESSED_LATENCY = 0;
+const MAX_MUTATION_ATTEMPTS = 5;
 
 /** A send as the metrics read it: everything but the rendered variables. */
 export type SendSummary = Omit<MailingSend, "json_variables">;
 
 type SendActivity = Pick<
   MailingSend,
-  "status" | "opens" | "clicks" | "lastEventAt" | "provider" | "error"
+  | "status"
+  | "opens"
+  | "clicks"
+  | "lastEventAt"
+  | "provider"
+  | "error"
+  | "isSoftBounce"
 >;
+
+/** Who sent a problem again, and the send that did. */
+export interface SendReplay {
+  replayedBy: string;
+  resolvedBy: string;
+}
+
+type SendPatch = Partial<MailingSend>;
+
+/** The change to make to a send's latest row, `null` to leave it alone. */
+type PatchOf = (send: MailingSend) => SendPatch | null;
 
 function canRetire(row: ValueProxy<MailingSend>, limit: Date) {
   return row
@@ -137,7 +162,9 @@ export class SendModel extends BasicDataModel(
     const patch = Object.fromEntries(
       Object.entries({
         ...changes,
-        stage: changes.status ? stageOf(changes.status) : undefined,
+        stage: changes.status
+          ? stageOf(changes.status, isResolvedStage(send.stage))
+          : undefined,
         lastActivityAt: new Date(),
       }).filter(([, value]) => value !== undefined),
     );
@@ -154,6 +181,67 @@ export class SendModel extends BasicDataModel(
   }
 
   /**
+   * Takes a problem out of the Problems tab before it is sent again, so a
+   * second "send the failures again" skips it. `false` when it was already
+   * dealt with, or is gone.
+   */
+  claimResolution(sendId: string, resolvedBy: string): Promise<boolean> {
+    return this.mutateLatest(sendId, (send) =>
+      isResolvedStage(send.stage)
+        ? null
+        : {
+            resolvedAt: new Date(),
+            resolvedBy,
+            stage: stageOf(send.status, true),
+          },
+    );
+  }
+
+  /** Puts a claimed problem back when sending it again could not start. */
+  releaseResolution(sendId: string): Promise<boolean> {
+    return this.mutateLatest(sendId, (send) => ({
+      stage: stageOf(send.status),
+    }));
+  }
+
+  /** Links a send to the one that repeated it; a problem is then resolved. */
+  markReplayed(sendId: string, replay: SendReplay): Promise<boolean> {
+    return this.mutateLatest(sendId, (send) => ({
+      ...replay,
+      resolvedAt: new Date(),
+      stage: stageOf(send.status, true),
+    }));
+  }
+
+  /** Links a send again to the send it repeats. */
+  linkReplayOf(sendId: string, originalId: string): Promise<boolean> {
+    return this.mutateLatest(sendId, () => ({ replayOf: originalId }));
+  }
+
+  private async mutateLatest(
+    sendId: string,
+    patchOf: PatchOf,
+  ): Promise<boolean> {
+    for (let attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
+      const send = await this.getSnapshot(sendId);
+      if (!send || send.isRetiring) return false;
+      const patch = patchOf(send);
+      if (!patch) return false;
+      const outcome = await this.table
+        .atomicMutation(sendId, {
+          type: "update",
+          revisionField: "revision",
+          expectedRevision: send.revision,
+          nextRevision: randomUUID(),
+          patch,
+        })
+        .run();
+      if (wasApplied(outcome)) return true;
+    }
+    return false;
+  }
+
+  /**
    * Gives rows written before `stage` existed the stage of their status, one
    * indexed update per status. Returns how many rows it filled.
    */
@@ -161,6 +249,22 @@ export class SendModel extends BasicDataModel(
     let filled = 0;
     for (const status of SEND_STATUSES) filled += await this.fillStage(status);
     return filled;
+  }
+
+  /**
+   * Clears the `0` latency suppressed sends were once written with: they
+   * never reached the provider, so they have none. Returns how many it cleared.
+   */
+  clearSuppressedLatency(): Promise<number> {
+    return this.table
+      .filter((row) =>
+        row
+          .key("status")
+          .eq(SUPPRESSED_STATUS)
+          .and(row.key("latencyMs").eq(LEGACY_SUPPRESSED_LATENCY)),
+      )
+      .update({ latencyMs: null })
+      .run();
   }
 
   private fillStage(status: SendStatus): Promise<number> {

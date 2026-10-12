@@ -3,7 +3,7 @@ import type {
   JsonSchema,
   TriggerType,
 } from "@antelopejs/interface-dms-automation";
-import { SEND_STATUSES, type SendEventType } from "../types";
+import { SEND_EVENT_TYPES, type SendEventType } from "../types";
 
 export interface EmailEventPayload {
   tenantId: string;
@@ -29,7 +29,7 @@ const CONFIG_SCHEMA: JsonSchema = {
   properties: {
     types: {
       type: "array",
-      items: { type: "string", enum: SEND_STATUSES },
+      items: { type: "string", enum: SEND_EVENT_TYPES },
       description:
         "Event types the trigger fires on. Leave empty to fire on every event.",
     },
@@ -42,7 +42,7 @@ const OUTPUT_SCHEMA: JsonSchema = {
     tenantId: { type: "string" },
     sendId: { type: "string" },
     templateSlug: { type: "string" },
-    type: { type: "string", enum: SEND_STATUSES },
+    type: { type: "string", enum: SEND_EVENT_TYPES },
     recipientEmail: { type: "string" },
   },
 };

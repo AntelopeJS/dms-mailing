@@ -1,6 +1,11 @@
 import { expect } from "chai";
-import { diffContents } from "../../../engine";
-import type { Block, LocaleContent, TemplateContent } from "../../../types";
+import { diffContents, diffVariables } from "../../../engine";
+import type {
+  Block,
+  LocaleContent,
+  TemplateContent,
+  VariableDefinition,
+} from "../../../types";
 
 const paragraph = (id: string, text: string): Block => ({
   id,
@@ -24,6 +29,20 @@ describe("[unit] engine/changes diffContents", () => {
   it("finds nothing between two equal contents", () => {
     const same = content({ en: locale("Hi", [paragraph("a", "Hello")]) });
     expect(diffContents(same, structuredClone(same))).to.deep.equal([]);
+  });
+
+  it("ignores the order a block's fields were written in", () => {
+    const published = content({ en: locale("Hi", [paragraph("a", "Hello")]) });
+    const reordered: Block = {
+      visibleIf: null,
+      id: "a",
+      align: "left",
+      text: "Hello",
+      type: "paragraph",
+    };
+    expect(
+      diffContents(published, content({ en: locale("Hi", [reordered]) })),
+    ).to.deep.equal([]);
   });
 
   it("names the subject, the changed block and the added one", () => {
@@ -101,6 +120,36 @@ describe("[unit] engine/changes diffContents", () => {
         blockId: "inner",
         blockType: "paragraph",
       },
+    ]);
+  });
+});
+
+describe("[unit] engine/changes diffVariables", () => {
+  const declare = (
+    path: string,
+    required = false,
+    type: VariableDefinition["type"] = "string",
+  ): VariableDefinition => ({ path, type, required });
+
+  it("finds nothing between the same declarations in another order", () => {
+    expect(
+      diffVariables(
+        [declare("a"), declare("b", true)],
+        [{ required: true, type: "string", path: "b" }, declare("a")],
+      ),
+    ).to.deep.equal([]);
+  });
+
+  it("names each declaration added, removed or changed, by path", () => {
+    expect(
+      diffVariables(
+        [declare("kept"), declare("gone"), declare("typed")],
+        [declare("kept"), declare("typed", true, "url"), declare("new")],
+      ),
+    ).to.deep.equal([
+      { locale: "", kind: "variable_removed", variable: "gone" },
+      { locale: "", kind: "variable_added", variable: "new" },
+      { locale: "", kind: "variable_changed", variable: "typed" },
     ]);
   });
 });
