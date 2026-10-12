@@ -1,10 +1,8 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantModel } from "@antelopejs/interface-dms/db";
-import cron, { type ScheduledTask } from "node-cron";
 import { SendEventModel, SendModel, SettingsModel } from "../db";
-
-export const RETENTION_CRON_NAME = "mailing-retention";
+import type { CronJob } from "./jobs";
 
 export interface RetentionLimits {
   pageSize: number;
@@ -108,19 +106,8 @@ export async function runRetention(now: Date = new Date()): Promise<number> {
   return purged;
 }
 
-/** Stops the task and drops it from node-cron's module-level registry. */
-export async function stopRetention(
-  task: ScheduledTask | undefined,
-): Promise<void> {
-  if (!task) return;
-  await task.stop();
-  await task.destroy();
-}
-
-export function scheduleRetention(): ScheduledTask {
-  return cron.schedule(RETENTION_SCHEDULE, () => {
-    void runRetention().catch((error: unknown) => {
-      Logging.Error(`Cron '${RETENTION_CRON_NAME}' failed:`, error);
-    });
-  });
-}
+export const RETENTION_JOB: CronJob = {
+  name: "mailing-retention",
+  schedule: RETENTION_SCHEDULE,
+  run: runRetention,
+};

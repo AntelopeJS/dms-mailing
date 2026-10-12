@@ -25,7 +25,8 @@ import {
 } from "../engine";
 import { type MailingTemplate, SendModel, TemplateModel } from "../db";
 import { TemplatesPageController } from "../pages/templates";
-import { forAudience } from "../services/metrics";
+import { forAudience, statsWindowStart } from "../services/metrics";
+import { refreshTemplateAttention } from "../services/template-attention";
 import { renderEmailHtml } from "../services/render";
 import { getSettings } from "../services/settings";
 import { findStarter, STARTER_TEMPLATES } from "../services/starters";
@@ -81,8 +82,6 @@ const NOTHING_TO_PUBLISH = "$dms_mailing.errors.nothing_to_publish";
 const NOTHING_TO_DISCARD = "$dms_mailing.errors.nothing_to_discard";
 const DRAFT_CONFLICT = "$dms_mailing.errors.draft_conflict";
 const EMPTY_SUBJECT = "$dms_mailing.errors.empty_subject";
-const STATS_WINDOW_DAYS = 30;
-const DAY_MS = 86_400_000;
 
 type TemplateAction = "publish" | "unpublish" | "archive" | "restore";
 
@@ -167,10 +166,6 @@ export function assertCurrentDraft(
   revision: number | undefined,
 ): void {
   assert(!isStaleRevision(template, revision), HTTP_CONFLICT, DRAFT_CONFLICT);
-}
-
-function statsWindowStart(now: number = Date.now()): Date {
-  return new Date(now - STATS_WINDOW_DAYS * DAY_MS);
 }
 
 export class TemplatesController extends Controller(
@@ -446,6 +441,7 @@ export class TemplatesController extends Controller(
       updatedBy: this.author,
       ...TRANSITION_FIELDS[action]?.(),
     });
+    await refreshTemplateAttention(this.tenantId);
     return { status };
   }
 
@@ -546,6 +542,7 @@ export class TemplatesController extends Controller(
       ...contentFieldsOf(source),
       updatedBy: this.author,
     });
+    await refreshTemplateAttention(this.tenantId);
     return { id: copyId };
   }
 }

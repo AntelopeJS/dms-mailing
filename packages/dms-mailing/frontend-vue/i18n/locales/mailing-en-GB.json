@@ -990,7 +990,8 @@
 				"all": "All",
 				"live": "Live",
 				"draft": "Drafts",
-				"archived": "Archived"
+				"archived": "Archived",
+				"attention": "Needs attention"
 			},
 			"filters": {
 				"category": "Category"
@@ -1000,8 +1001,6 @@
 				"hint": "Open a template to edit it · ↵ open · T test send"
 			},
 			"attention": {
-				"chip": "Needs attention",
-				"hint": "Drafts left aside, live templates never sent in 30 days, missing locales",
 				"none_title": "Nothing needs attention here",
 				"none_description": "Every template in this tab is published, sent and translated.",
 				"show_all": "Show all templates"

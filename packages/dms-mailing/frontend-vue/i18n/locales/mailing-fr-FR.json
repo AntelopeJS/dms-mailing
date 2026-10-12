@@ -990,7 +990,8 @@
 				"all": "Tous",
 				"live": "En ligne",
 				"draft": "Brouillons",
-				"archived": "Archivés"
+				"archived": "Archivés",
+				"attention": "À revoir"
 			},
 			"filters": {
 				"category": "Catégorie"
@@ -1000,8 +1001,6 @@
 				"hint": "Ouvrez un modèle pour le modifier · ↵ ouvrir · T envoi de test"
 			},
 			"attention": {
-				"chip": "À revoir",
-				"hint": "Brouillons laissés de côté, modèles en ligne sans envoi depuis 30 jours, langues manquantes",
 				"none_title": "Rien à revoir ici",
 				"none_description": "Tous les modèles de cet onglet sont publiés, envoyés et traduits.",
 				"show_all": "Afficher tous les modèles"

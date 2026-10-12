@@ -21,6 +21,13 @@ export function readAudience(raw: string | null | undefined): SendAudience {
   return AUDIENCE_BY_NAME[raw ?? ""] ?? BUSINESS_AUDIENCE;
 }
 
+const STATS_WINDOW_DAYS = 30;
+
+/** Where the per-template figures start: the last 30 days. */
+export function statsWindowStart(now: number = Date.now()): Date {
+  return new Date(now - STATS_WINDOW_DAYS * DAY_MS);
+}
+
 export function forAudience(
   sends: SendSummary[],
   audience: SendAudience,

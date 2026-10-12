@@ -32,12 +32,14 @@ import {
   type ResolvedEmail,
   type SendStatus,
   stageOf,
+  type TemplateAttentionReason,
   type TemplateContent,
 } from "../types";
 import { publishSendCreated } from "../realtime";
 import { renderEmailHtml } from "./render";
 import { getSettings } from "./settings";
 import { toSendStatus } from "./status";
+import { refreshAttentionIfFlagged } from "./template-attention";
 import {
   hasDraft,
   localeContentOf,
@@ -69,6 +71,8 @@ export interface PreparedSend {
   tenantId: string;
   /** The template's category: a marketing one requires its unsubscribe URL. */
   category: string;
+  /** Why the template needed a look when the send started. */
+  attention: string;
 }
 
 /**
@@ -81,6 +85,7 @@ export interface ModuleSendParams extends SendTemplateParams {
 }
 
 const DRAFT_VERSION = 0;
+const NEVER_SENT: TemplateAttentionReason = "never_sent";
 const TEST_SUBJECT_PREFIX = "[TEST] ";
 
 /** Source of a real send started by hand from the module's dialog. */
@@ -285,6 +290,7 @@ export async function prepare(
     slug,
     tenantId,
     category: template.category ?? "",
+    attention: template.attention,
   };
 }
 
@@ -558,5 +564,8 @@ export async function sendTemplate(
     text: renderPlainText(email, prepared.locale),
     recipients,
   });
-  return aggregateResults(await recordAll(prepared, params, delivered));
+  const results = await recordAll(prepared, params, delivered);
+  if (!params.isTest)
+    await refreshAttentionIfFlagged(params.tenantId, prepared, NEVER_SENT);
+  return aggregateResults(results);
 }

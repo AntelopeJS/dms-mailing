@@ -12,6 +12,8 @@ import {
 import {
   Access,
   AccessMode,
+  Filter,
+  type FilterFunction,
   Listable,
   Mandatory,
   ModelReference,
@@ -50,6 +52,7 @@ import {
 } from "../db";
 import { findCategory, getSettings } from "../services/settings";
 import { findStarter, starterFields } from "../services/starters";
+import { refreshTemplateAttention } from "../services/template-attention";
 import {
   blankContent,
   blankFields,
@@ -320,10 +323,15 @@ function withDeleteGuard(base: DataControllerCallback): DataControllerCallback {
       await assertDeletable(tenantId, params.id);
       const result = await base.func.call(this, ctx, params, ...rest);
       await deleteVersions(tenantId, params.id);
+      await refreshTemplateAttention(tenantId);
       return result;
     },
   };
 }
+
+/** The templates the attention refresh flagged. */
+const isFlagged: FilterFunction<Record<string, unknown>> = (_context, proxy) =>
+  proxy.default(false).eq(true);
 
 const templateRoutes = {
   ...TableViewRoutes.All,
@@ -474,6 +482,16 @@ export class TemplatesTableAPI extends DataController(
     isVisible: false,
   })
   declare publishedAt: Date;
+
+  /** Why the template needs a look (comma-separated), for the gallery cards. */
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare attention: string;
+
+  /** What the "Needs attention" tab filters on, whatever value it names. */
+  @Filter(isFlagged)
+  @Access(AccessMode.ReadOnly)
+  declare needsAttention: boolean;
 
   /**
    * Whether an archived template was ever sent: the gallery then offers no

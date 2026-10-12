@@ -202,7 +202,7 @@ describe("[unit] services/attention live templates without a send", () => {
     expect(findItem(items, "unused-live")).to.deep.include({
       count: 2,
       title: "$dms_mailing.attention.unused_live.title",
-      to: "/modules/mailing/templates?tab=all&attention=1",
+      to: "/modules/mailing/templates?tab=attention",
     });
   });
 

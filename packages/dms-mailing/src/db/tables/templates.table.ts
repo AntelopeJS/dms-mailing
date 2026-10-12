@@ -112,6 +112,19 @@ export class MailingTemplate extends Table {
   @Field("date")
   declare publishedAt?: Date;
 
+  /**
+   * Why the template needs a look (`stale_draft`, `never_sent`,
+   * `missing_locale`), comma-separated; blank when nothing does. Kept by the
+   * attention refresh, never by an edit.
+   */
+  @Field("string")
+  declare attention: string;
+
+  /** Whether `attention` names a reason: what the templates tab filters on. */
+  @Index()
+  @Field("boolean")
+  declare needsAttention: boolean;
+
   /** When the template last left `live` by an unpublish. */
   @Field("date")
   declare unpublishedAt?: Date;

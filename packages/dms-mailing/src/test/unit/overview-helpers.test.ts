@@ -13,7 +13,11 @@ import {
   volumeChart,
 } from "../../routes/metrics";
 import { nextRetentionRun } from "../../routes/settings";
-import { missingLocaleTemplates } from "../../services/attention";
+import {
+  knownLocalesOf,
+  missingLocaleTemplates,
+  templateAttentionReasons,
+} from "../../services/attention";
 import { aggregate } from "../../services/metrics";
 
 const template = (
@@ -269,5 +273,40 @@ describe("[unit] overview rankings", () => {
       10,
     );
     expect(items.map((item) => item.id)).to.deep.equal(["other", "welcome"]);
+  });
+});
+
+describe("[unit] template attention reasons", () => {
+  const NOW = Date.parse("2026-10-12T12:00:00Z");
+  const OLD = new Date("2026-09-01T12:00:00Z");
+  const templates = [
+    template("sent", "en,fr"),
+    template("unsent", "en,fr"),
+    template("partial", "en"),
+    template("stale", "en", { status: "draft", updatedAt: OLD }),
+    template("fresh", "en", { status: "draft", updatedAt: new Date(NOW) }),
+    template("archived", "en", { status: "archived", updatedAt: OLD }),
+  ];
+  const context = {
+    now: NOW,
+    sentSlugs: new Set(["sent", "partial"]),
+    knownLocales: knownLocalesOf(templates),
+  };
+  const reasonsOf = (slug: string) =>
+    templateAttentionReasons(
+      templates.find((entry) => entry.slug === slug) as MailingTemplate,
+      context,
+    );
+
+  it("flags a live template no real send used, or missing a locale", () => {
+    expect(reasonsOf("sent")).to.deep.equal([]);
+    expect(reasonsOf("unsent")).to.deep.equal(["never_sent"]);
+    expect(reasonsOf("partial")).to.deep.equal(["missing_locale"]);
+  });
+
+  it("flags a draft left aside for a week, never an archived template", () => {
+    expect(reasonsOf("stale")).to.deep.equal(["stale_draft"]);
+    expect(reasonsOf("fresh")).to.deep.equal([]);
+    expect(reasonsOf("archived")).to.deep.equal([]);
   });
 });

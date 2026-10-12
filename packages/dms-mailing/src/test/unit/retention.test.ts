@@ -6,9 +6,10 @@ import {
   type RetentionPass,
   purgeInPages,
   retentionLimit,
-  scheduleRetention,
-  stopRetention,
-} from "../../crons/retention";
+  RETENTION_JOB,
+  scheduleJob,
+  stopJob,
+} from "../../crons";
 
 const EXTRA_ROW = 1;
 const SMALL_LIMITS: RetentionLimits = { pageSize: 2, maxRows: 5 };
@@ -81,11 +82,11 @@ describe("[unit] crons/retention", () => {
   });
 
   it("drops the task from the node-cron registry when it is stopped", async () => {
-    const task = scheduleRetention();
-    expect(cron.getTasks().has(task.id)).to.equal(true);
+    const job = scheduleJob(RETENTION_JOB);
+    expect(cron.getTasks().has(job.task.id)).to.equal(true);
 
-    await stopRetention(task);
+    await stopJob(job);
 
-    expect(cron.getTasks().has(task.id)).to.equal(false);
+    expect(cron.getTasks().has(job.task.id)).to.equal(false);
   });
 });

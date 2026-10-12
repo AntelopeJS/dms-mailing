@@ -3,15 +3,12 @@ import {
 	attentionReasons,
 	cardFooter,
 	daysSince,
-	needsAttention,
-	readPath,
 	validTransitions,
 	variablesCovered,
 } from '../app/utils/template-attention'
 import type { TemplateRow, TemplateStats } from '../app/types/mailing'
 
 const NOW = new Date('2026-10-07T12:00:00Z')
-const WORKSPACE = ['en', 'fr', 'de']
 
 function row(overrides: Partial<TemplateRow> = {}): TemplateRow {
 	return {
@@ -25,6 +22,7 @@ function row(overrides: Partial<TemplateRow> = {}): TemplateRow {
 		publishedVersion: 3,
 		publishedAt: '2026-09-22T09:00:00Z',
 		isDraftPending: false,
+		attention: '',
 		...overrides,
 	}
 }
@@ -40,14 +38,6 @@ function stats(sends: number): TemplateStats {
 	}
 }
 
-const reasons = (template: TemplateRow, sendStats?: TemplateStats) =>
-	attentionReasons({
-		row: template,
-		stats: sendStats,
-		workspaceLocales: WORKSPACE,
-		now: NOW,
-	})
-
 describe('daysSince', () => {
 	it('counts whole days and ignores unreadable dates', () => {
 		expect(daysSince('2026-09-27T12:00:00Z', NOW)).toBe(10)
@@ -57,45 +47,11 @@ describe('daysSince', () => {
 })
 
 describe('attentionReasons', () => {
-	it('leaves a healthy live template alone', () => {
-		expect(reasons(row(), stats(12))).toEqual([])
+	it('reads the reasons the server stored on the row', () => {
+		expect(attentionReasons(row())).toEqual([])
 		expect(
-			needsAttention({
-				row: row(),
-				stats: stats(1),
-				workspaceLocales: WORKSPACE,
-				now: NOW,
-			}),
-		).toBe(false)
-	})
-
-	it('flags a live template no real send used in 30 days', () => {
-		expect(reasons(row(), stats(0))).toEqual(['never_sent'])
-		expect(reasons(row())).toEqual(['never_sent'])
-	})
-
-	it('leaves a fresh draft alone, and flags one untouched for a week', () => {
-		expect(reasons(row({ status: 'draft', publishedVersion: 0 }))).toEqual([])
-		expect(
-			reasons(
-				row({
-					status: 'draft',
-					publishedVersion: 0,
-					updatedAt: '2026-09-20T12:00:00Z',
-				}),
-			),
-		).toEqual(['stale_draft'])
-	})
-
-	it('flags a missing workspace locale, not an unknown locale list', () => {
-		expect(reasons(row({ locales: 'en,fr' }), stats(4))).toEqual([
-			'missing_locale',
-		])
-		expect(reasons(row({ locales: '' }), stats(4))).toEqual([])
-	})
-
-	it('never flags an archived template', () => {
-		expect(reasons(row({ status: 'archived', locales: 'en' }))).toEqual([])
+			attentionReasons(row({ attention: 'stale_draft,missing_locale' })),
+		).toEqual(['stale_draft', 'missing_locale'])
 	})
 })
 
@@ -140,15 +96,6 @@ describe('validTransitions', () => {
 			'archive',
 		])
 		expect(validTransitions(row({ status: 'archived' }))).toEqual(['restore'])
-	})
-})
-
-describe('readPath', () => {
-	it('reads a dotted path and stops on a missing step', () => {
-		const data = { order: { number: '#1', lines: [] }, empty: null }
-		expect(readPath(data, 'order.number')).toBe('#1')
-		expect(readPath(data, 'order.missing.deep')).toBeUndefined()
-		expect(readPath(data, 'empty.value')).toBeUndefined()
 	})
 })
 

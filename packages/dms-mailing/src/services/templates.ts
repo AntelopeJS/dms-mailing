@@ -12,9 +12,14 @@ import {
   TemplateVersionModel,
 } from "../db";
 import { diffContents, diffVariables, type TemplateChange } from "../engine";
+import {
+  refreshAttentionIfFlagged,
+  refreshTemplateAttention,
+} from "./template-attention";
 import type {
   Block,
   LocaleContent,
+  TemplateAttentionReason,
   TemplateContent,
   VariableDefinition,
 } from "../types";
@@ -31,6 +36,7 @@ export function localesOf(content: TemplateContent): string {
 
 const EMPTY_CONTENT = '{"locales":{}}';
 const NEVER_PUBLISHED = 0;
+const STALE_DRAFT: TemplateAttentionReason = "stale_draft";
 const VERSION_NOT_FOUND = "$dms_mailing.errors.version_not_found";
 
 /** The content customers receive: the last published version. */
@@ -152,6 +158,9 @@ export function blankContent(locale: string): TemplateContent {
 
 const FIRST_DRAFT_REVISION = 0;
 
+/** A new template needs no look until the attention refresh says so. */
+const NO_ATTENTION = { attention: "", needsAttention: false };
+
 /** Whether a writer that last saw `revision` is behind the stored draft. */
 export function isStaleRevision(
   template: MailingTemplate,
@@ -204,6 +213,7 @@ export async function saveDraft(
     ...fields,
     ...locales,
   });
+  await refreshAttentionIfFlagged(tenantId, template, STALE_DRAFT);
   return fields.draftRevision as number;
 }
 
@@ -278,6 +288,7 @@ export async function publishTemplate(
   const changes = pendingChanges(template);
   if (previous > NEVER_PUBLISHED && changes.length === 0) {
     await markLive(tenantId, template, previous, author);
+    await refreshTemplateAttention(tenantId);
     return { version: previous, changes };
   }
   const content = workingContent(template);
@@ -307,6 +318,7 @@ export async function publishTemplate(
     publishedBy: author,
     updatedBy: author,
   });
+  await refreshTemplateAttention(tenantId);
   return { version, changes };
 }
 
@@ -374,6 +386,7 @@ export function contentFieldsOf(
     locales: localesOf(content),
     publishedVersion: NEVER_PUBLISHED,
     draftRevision: FIRST_DRAFT_REVISION,
+    ...NO_ATTENTION,
   };
 }
 
@@ -394,6 +407,7 @@ export async function initializeTemplate(
     ...fields,
     updatedBy: author,
   });
+  await refreshTemplateAttention(tenantId);
 }
 
 export function blankFields(
@@ -406,6 +420,7 @@ export function blankFields(
     locales: localesOf(content),
     publishedVersion: NEVER_PUBLISHED,
     draftRevision: FIRST_DRAFT_REVISION,
+    ...NO_ATTENTION,
   };
 }
 

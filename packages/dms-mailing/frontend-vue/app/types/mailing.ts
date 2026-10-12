@@ -295,6 +295,8 @@ export interface TemplateRow {
 	unpublishedAt?: string | null
 	/** Whether a draft holds changes customers do not receive yet. */
 	isDraftPending?: boolean
+	/** Why the template needs a look, comma-separated; blank when nothing does. */
+	attention: string
 }
 
 export type TemplateChangeKind =

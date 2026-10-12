@@ -78,8 +78,13 @@ export interface GalleryContext<T> {
 
 const SEARCH_KEY = 'search'
 const FILTER_PREFIX = 'filter_'
-/** The status tabs filter on this column: a tab is not a user filter. */
-const TAB_FILTER_KEY = `${FILTER_PREFIX}status`
+/** The "Needs attention" tab filters on this column. */
+const ATTENTION_FILTER_KEY = `${FILTER_PREFIX}needsAttention`
+/** The tabs filter on these columns: a tab is not a user filter. */
+const TAB_FILTER_KEYS = new Set([
+	`${FILTER_PREFIX}status`,
+	ATTENTION_FILTER_KEY,
+])
 
 /** The search typed in the table, trimmed; empty without one. */
 export function searchTermOf(
@@ -94,8 +99,15 @@ export function userFilterKeys(
 	query: Record<string, unknown> | undefined,
 ): string[] {
 	return Object.keys(query ?? {}).filter(
-		(key) => key.startsWith(FILTER_PREFIX) && key !== TAB_FILTER_KEY,
+		(key) => key.startsWith(FILTER_PREFIX) && !TAB_FILTER_KEYS.has(key),
 	)
+}
+
+/** Whether the table shows its "Needs attention" tab. */
+export function isAttentionView(
+	query: Record<string, unknown> | undefined,
+): boolean {
+	return ATTENTION_FILTER_KEY in (query ?? {})
 }
 
 /** Whether a search or a filter narrows what the gallery lists. */
@@ -105,58 +117,19 @@ export function isNarrowed(
 	return Boolean(searchTermOf(query)) || userFilterKeys(query).length > 0
 }
 
-type FilterMatcher = (cell: string, value: string) => boolean
-
-const FILTER_MATCHERS: Record<string, FilterMatcher> = {
-	is: (cell, value) => cell === value,
-	is_not: (cell, value) => cell !== value,
-	is_empty: (cell) => !cell,
-	is_not_empty: (cell) => Boolean(cell),
-}
-
-const FILTER_MODE_SEPARATOR = ':'
-
-const cellOf = (row: object, field: string) =>
-	String((row as Record<string, unknown>)[field] ?? '')
-
-function matchesFilter(row: object, key: string, filter: unknown): boolean {
-	if (typeof filter !== 'string') return true
-	const at = filter.indexOf(FILTER_MODE_SEPARATOR)
-	const mode = at < 0 ? filter : filter.slice(0, at)
-	const matcher = FILTER_MATCHERS[mode]
-	if (!matcher) return true
-	const value = at < 0 ? '' : filter.slice(at + 1)
-	return matcher(cellOf(row, key.slice(FILTER_PREFIX.length)), value)
-}
-
-/**
- * Whether a row passes the table's query (the tab, the quick filters and the
- * search over `searchFields`), checked in the browser over rows listed
- * without it. A filter mode it does not know lets the row through.
- */
-export function matchesQuery(
+/** Whether `row` holds `search`, whatever its case, in one of `fields`. */
+export function matchesSearch(
 	row: object,
-	query: Record<string, unknown> | undefined,
-	searchFields: string[],
+	search: string,
+	fields: string[],
 ): boolean {
-	const filters = Object.entries(query ?? {}).filter(([key]) =>
-		key.startsWith(FILTER_PREFIX),
-	)
-	if (!filters.every(([key, value]) => matchesFilter(row, key, value))) {
-		return false
-	}
-	const search = searchTermOf(query).toLowerCase()
-	return (
-		!search ||
-		searchFields.some((field) =>
-			cellOf(row, field).toLowerCase().includes(search),
-		)
-	)
+	const term = search.trim().toLowerCase()
+	const cellOf = (field: string) =>
+		String((row as Record<string, unknown>)[field] ?? '').toLowerCase()
+	return !term || fields.some((field) => cellOf(field).includes(term))
 }
 
 const SORT_KEY = 'sortKey'
-const SORT_DIRECTION_KEY = 'sortDirection'
-const DESCENDING = 'desc'
 
 /** The table's sort column; absent without one. */
 export function sortKeyOf(
@@ -164,20 +137,6 @@ export function sortKeyOf(
 ): string | undefined {
 	const key = query?.[SORT_KEY]
 	return typeof key === 'string' && key ? key : undefined
-}
-
-/** Rows ordered like the table's query orders them, the list left untouched. */
-export function sortLikeQuery<T extends object>(
-	rows: T[],
-	query: Record<string, unknown> | undefined,
-): T[] {
-	const key = sortKeyOf(query)
-	if (!key) return rows
-	const direction = query?.[SORT_DIRECTION_KEY] === DESCENDING ? -1 : 1
-	return [...rows].sort(
-		(left, right) =>
-			direction * cellOf(left, key).localeCompare(cellOf(right, key)),
-	)
 }
 
 const MS_PER_HOUR = 3_600_000

@@ -1,6 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import { ButtonVariant } from "@antelopejs/interface-dms/base/types";
+import { ButtonVariant, Color } from "@antelopejs/interface-dms/base/types";
 import type { TableViewTab } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
@@ -80,6 +80,13 @@ export class TemplatesPageController extends PageController(
       statusTab("live", "i-ph-check-circle"),
       statusTab("draft", "i-ph-pencil-simple"),
       statusTab(ARCHIVED_STATUS, "i-ph-archive"),
+      {
+        id: "attention",
+        label: "$dms_mailing.templates.tabs.attention",
+        icon: "i-ph-warning",
+        iconColor: Color.warning,
+        filter: { accessorKey: "needsAttention", value: "true", mode: "is" },
+      },
     ],
     quickFilters: [
       {

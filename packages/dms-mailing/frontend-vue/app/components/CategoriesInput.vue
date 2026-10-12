@@ -83,13 +83,11 @@ const labelFieldName = (index: number): string =>
 	`${FIELD_NAME}.${index}.${LABEL_PART}`
 
 function toRows(value: CategoryEntry[]): EditableCategory[] {
-	return localized
-		.categories(keptCategories(value))
-		.map((category) => ({
-			...category,
-			key: keyOf(),
-			isNew: false,
-		}))
+	return localized.categories(keptCategories(value)).map((category) => ({
+		...category,
+		key: keyOf(),
+		isNew: false,
+	}))
 }
 
 function movesOf(value: CategoryEntry[]): CategoryEntry[] {

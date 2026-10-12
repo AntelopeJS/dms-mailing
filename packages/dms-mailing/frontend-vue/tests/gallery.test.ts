@@ -5,10 +5,10 @@ import {
 	formatCardDate,
 	formatCardSince,
 	groupByCategory,
+	isAttentionView,
 	isNarrowed,
-	matchesQuery,
+	matchesSearch,
 	searchTermOf,
-	sortLikeQuery,
 	userFilterKeys,
 } from '../app/utils/gallery'
 
@@ -68,6 +68,13 @@ describe('table query helpers', () => {
 		expect(isNarrowed({ filter_status: 'is_not:archived' })).toBe(false)
 		expect(isNarrowed({ search: 'x' })).toBe(true)
 	})
+
+	it('tells the attention tab, which is no user filter either', () => {
+		const query = { filter_needsAttention: 'is:true' }
+		expect(isAttentionView(query)).toBe(true)
+		expect(isAttentionView({ filter_status: 'is:live' })).toBe(false)
+		expect(isNarrowed(query)).toBe(false)
+	})
 })
 
 describe('formatCardDate', () => {
@@ -91,37 +98,12 @@ describe('formatCardDate', () => {
 	})
 })
 
-describe('matchesQuery', () => {
-	const live = { name: 'Order confirmation', slug: 'order', status: 'live' }
-	const draft = { name: 'Refund', slug: 'refund', status: 'draft' }
-	const archived = { name: 'Old', slug: 'old', status: 'archived' }
-
-	it('applies the tab, the quick filters and the search', () => {
-		const tab = { filter_status: 'is_not:archived' }
-		expect(
-			[live, draft, archived].filter((row) =>
-				matchesQuery(row, tab, ['name', 'slug']),
-			),
-		).toEqual([live, draft])
-		expect(
-			matchesQuery(live, { ...tab, search: ' ORDER ' }, ['name', 'slug']),
-		).toBe(true)
-		expect(matchesQuery(draft, { search: 'order' }, ['name', 'slug'])).toBe(
-			false,
-		)
-		expect(matchesQuery(live, { filter_category: 'is_empty:' }, [])).toBe(true)
-		expect(matchesQuery(live, { filter_status: 'between:a' }, [])).toBe(true)
-	})
-})
-
-describe('sortLikeQuery', () => {
-	const rows = [{ name: 'b' }, { name: 'c' }, { name: 'a' }]
-
-	it('orders like the table, and keeps the order without a sort', () => {
-		expect(
-			sortLikeQuery(rows, { sortKey: 'name', sortDirection: 'desc' }),
-		).toEqual([{ name: 'c' }, { name: 'b' }, { name: 'a' }])
-		expect(sortLikeQuery(rows, {})).toBe(rows)
+describe('matchesSearch', () => {
+	it('finds the term in any field, whatever its case', () => {
+		const row = { name: 'Order confirmation', slug: 'order' }
+		expect(matchesSearch(row, ' ORDER ', ['name', 'slug'])).toBe(true)
+		expect(matchesSearch(row, 'refund', ['name', 'slug'])).toBe(false)
+		expect(matchesSearch(row, '', [])).toBe(true)
 	})
 })
 

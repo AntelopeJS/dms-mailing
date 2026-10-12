@@ -5,19 +5,15 @@ import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import {
 	groupByCategory,
+	isAttentionView,
 	isNarrowed,
-	matchesQuery,
 	searchTermOf,
 	sortKeyOf,
-	sortLikeQuery,
 	userFilterKeys,
 	type CategoryGroup,
 	type GalleryContext,
 } from '../utils/gallery'
-import {
-	attentionReasons,
-	type AttentionReason,
-} from '../utils/template-attention'
+import { attentionReasons } from '../utils/template-attention'
 import { TEMPLATES_PATH, editorRoute } from '../utils/editor-route'
 import type {
 	TemplateCategory,
@@ -39,36 +35,23 @@ const SKELETON_CARDS = 3
 const NEW_TEMPLATE_KEY = 'n'
 const TYPING_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 const OPEN_OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]'
-const SEARCH_FIELDS = ['name', 'slug']
 /** The table's default sort: the only one the category groups keep. */
 const DEFAULT_SORT_KEY = 'updatedAt'
 const FLAT_GROUP: TemplateCategory = { id: 'all', label: '', icon: '' }
-/** Links into the attention filter: `?tab=attention` or `?attention=1`. */
-const ATTENTION_LINKS: Record<string, string> = {
-	tab: 'attention',
-	attention: '1',
-}
+/** The tab "Show all templates" leaves the attention tab for. */
+const ALL_TAB = 'all'
 
 const props = defineProps<TemplateGalleryProps>()
 
 const api = useMailingApi()
 const { t } = useI18n()
-const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
-const route = useDmsRoute()
-
-const isAttentionLink = (query: Record<string, unknown>) =>
-	Object.entries(ATTENTION_LINKS).some(([key, value]) => query[key] === value)
 
 const localized = useLocalizedDefaults()
 const storedCategories = ref<TemplateCategory[]>([])
 const categories = computed(() => localized.categories(storedCategories.value))
 const statsById = ref(new Map<string, TemplateStats>())
 const templateCount = ref<number | null>(null)
-/** Every template, whatever the page: the attention filter works on them. */
-const allTemplates = ref<TemplateRow[]>([])
-const isAttentionOnly = ref(isAttentionLink(route.query ?? {}))
-const now = ref(new Date())
 
 async function loadCategories(): Promise<void> {
 	const response = await api.listCategories().catch(() => ({ categories: [] }))
@@ -83,7 +66,6 @@ async function loadStats(): Promise<void> {
 async function loadTemplates(): Promise<void> {
 	const response = await api.listTemplates().catch(() => null)
 	templateCount.value = response ? response.total : null
-	allTemplates.value = response?.results ?? []
 }
 
 onMounted(() => {
@@ -101,13 +83,12 @@ let shownViewKey = props.context.loading ? null : viewKeyOf()
 
 /**
  * New rows for the same page and query come from a refresh (the table's
- * button, a realtime change): the whole list behind the attention filter and
- * the figures are reloaded with them.
+ * button, a realtime change): the template count and the figures are reloaded
+ * with them.
  */
 watch(
 	() => props.context.items,
 	() => {
-		now.value = new Date()
 		const viewKey = viewKeyOf()
 		const isRefresh = viewKey === shownViewKey
 		shownViewKey = viewKey
@@ -117,41 +98,7 @@ watch(
 	},
 )
 
-const workspaceCodes = computed(() =>
-	uniqueLocales.value.map((entry) => entry.code),
-)
-
-const reasonsById = computed(
-	() =>
-		new Map<string, AttentionReason[]>(
-			[...allTemplates.value, ...props.context.items].map((row) => [
-				row._id,
-				attentionReasons({
-					row,
-					stats: statsById.value.get(row._id),
-					workspaceLocales: workspaceCodes.value,
-					now: now.value,
-				}),
-			]),
-		),
-)
-
-const attentionItems = computed(() =>
-	sortLikeQuery(
-		allTemplates.value.filter(
-			(row) =>
-				reasonsById.value.get(row._id)?.length &&
-				matchesQuery(row, props.context.query, SEARCH_FIELDS),
-		),
-		props.context.query,
-	),
-)
-
-const attentionCount = computed(() => attentionItems.value.length)
-
-const visibleItems = computed(() =>
-	isAttentionOnly.value ? attentionItems.value : props.context.items,
-)
+const isAttentionTab = computed(() => isAttentionView(props.context.query))
 
 const isGrouped = computed(
 	() =>
@@ -161,11 +108,11 @@ const isGrouped = computed(
 const groups = computed<CategoryGroup<TemplateRow>[]>(() =>
 	isGrouped.value
 		? groupByCategory(
-				visibleItems.value,
+				props.context.items,
 				categories.value,
 				t('dms_mailing.templates.uncategorised'),
 			)
-		: [{ category: FLAT_GROUP, items: visibleItems.value }],
+		: [{ category: FLAT_GROUP, items: props.context.items }],
 )
 
 /** The cards in the order drawn, for the drawer's previous / next. */
@@ -176,7 +123,6 @@ const narrowed = computed(() => isNarrowed(props.context.query))
 const hasNoItems = computed(() => !props.context.items.length)
 
 const STATE_RULES: StateRule[] = [
-	['loading', () => isAttentionOnly.value && templateCount.value === null],
 	['loading', () => props.context.loading && hasNoItems.value],
 	[
 		'loading',
@@ -186,8 +132,11 @@ const STATE_RULES: StateRule[] = [
 		'first_run',
 		() => hasNoItems.value && !narrowed.value && templateCount.value === 0,
 	],
+	[
+		'no_attention',
+		() => isAttentionTab.value && hasNoItems.value && !narrowed.value,
+	],
 	['empty', () => hasNoItems.value],
-	['no_attention', () => !visibleItems.value.length],
 ]
 
 const state = computed<GalleryState>(
@@ -202,8 +151,6 @@ const page = computed({
 const isPaged = computed(
 	() => (props.context.pagination.mode ?? PAGES_MODE) === PAGES_MODE,
 )
-
-const isPaginationShown = computed(() => !isAttentionOnly.value)
 
 const emptyTitle = computed(() =>
 	search.value
@@ -239,8 +186,11 @@ function openNewTemplate(initialName?: string): void {
 	overlays.openNewTemplate({ initialName, onDone: refreshAll })
 }
 
+function showAllTemplates(): void {
+	void navigateDms({ path: TEMPLATES_PATH, query: { tab: ALL_TAB } })
+}
+
 function resetFilters(): void {
-	isAttentionOnly.value = false
 	const table = props.context.table
 	table?.setGlobalFilter('')
 	if (!table || userFilterKeys(props.context.query).length) {
@@ -270,28 +220,6 @@ useEventListener(
 
 <template>
 	<div class="flex flex-col gap-6 p-4">
-		<div
-			v-if="attentionCount || isAttentionOnly"
-			class="flex items-center gap-2"
-		>
-			<UButton
-				icon="i-ph-warning"
-				color="warning"
-				:variant="isAttentionOnly ? 'soft' : 'outline'"
-				size="xs"
-				:aria-pressed="isAttentionOnly"
-				@click="isAttentionOnly = !isAttentionOnly"
-			>
-				{{ t('dms_mailing.templates.attention.chip') }}
-				<span class="font-mono text-[10.5px] font-semibold">
-					{{ attentionCount }}
-				</span>
-			</UButton>
-			<span class="text-dimmed text-xs">
-				{{ t('dms_mailing.templates.attention.hint') }}
-			</span>
-		</div>
-
 		<div
 			v-if="state === 'loading'"
 			class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4"
@@ -360,7 +288,7 @@ useEventListener(
 					label: t('dms_mailing.templates.attention.show_all'),
 					color: 'neutral',
 					variant: 'outline',
-					onClick: () => (isAttentionOnly = false),
+					onClick: showAllTemplates,
 				},
 			]"
 		/>
@@ -387,7 +315,7 @@ useEventListener(
 						:key="template._id"
 						:template="template"
 						:stats="statsById.get(template._id)"
-						:attention="reasonsById.get(template._id)"
+						:attention="attentionReasons(template)"
 						@open="openRow(template)"
 						@open-locale="(code: string) => openLocale(template, code)"
 						@details="
@@ -421,11 +349,7 @@ useEventListener(
 		</template>
 
 		<div
-			v-if="
-				isPaginationShown &&
-				isPaged &&
-				context.pagination.total > context.pagination.pageSize
-			"
+			v-if="isPaged && context.pagination.total > context.pagination.pageSize"
 			class="flex justify-end"
 		>
 			<UPagination
@@ -435,7 +359,7 @@ useEventListener(
 			/>
 		</div>
 		<div
-			v-else-if="isPaginationShown && !isPaged && context.pagination.hasMore"
+			v-else-if="!isPaged && context.pagination.hasMore"
 			class="flex justify-center"
 		>
 			<UButton

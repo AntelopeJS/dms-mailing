@@ -35,6 +35,7 @@ function row(overrides: Partial<TemplateRow>): TemplateRow {
 		updatedBy: 'Julie Martin',
 		publishedVersion: 2,
 		publishedAt: RECENT,
+		attention: '',
 		...overrides,
 	}
 }
@@ -48,6 +49,7 @@ const MISSING_DE = row({
 	_id: 'missing',
 	name: 'Shipping update',
 	locales: 'en,fr',
+	attention: 'missing_locale',
 })
 const DRAFT = row({
 	_id: 'draft',
@@ -63,6 +65,7 @@ const STALE_DRAFT = row({
 	publishedVersion: 0,
 	category: 'billing',
 	updatedAt: '2026-01-01T00:00:00Z',
+	attention: 'stale_draft',
 })
 const ARCHIVED = row({
 	_id: 'archived',
@@ -159,7 +162,7 @@ describe('TemplateGallery', () => {
 	it('draws the 30-day figures and the attention badges on the cards', async () => {
 		const view = mount(
 			TemplateGallery,
-			{ context: context({ items: [LIVE, DRAFT] }) },
+			{ context: context({ items: [LIVE, DRAFT, STALE_DRAFT] }) },
 			globals,
 		)
 		await flush()
@@ -167,71 +170,56 @@ describe('TemplateGallery', () => {
 		expect(text).toContain('6,812')
 		expect(text).toContain('dms_mailing.templates.card.edited_by')
 		expect(text).toContain('name=Julie')
+		expect(
+			view.host.querySelector(
+				'[label*="dms_mailing.templates.card.stale_days"]',
+			),
+		).not.toBeNull()
 		view.unmount()
 	})
 
-	it('counts and filters what needs attention across every page of the tab', async () => {
-		api.listTemplates.mockResolvedValue({
-			results: [LIVE, MISSING_DE, DRAFT, STALE_DRAFT, ARCHIVED],
-			total: 5,
-		})
-		const ctx = context({
-			items: [LIVE],
-			query: { filter_status: 'is_not:archived' },
-		})
-		ctx.pagination.pageSize = 1
-		ctx.pagination.total = 4
-		const view = mount(TemplateGallery, { context: ctx }, globals)
+	it('lists the rows of the attention tab, and says when none is left', async () => {
+		const query = { filter_needsAttention: 'is:true' }
+		const listed = mount(
+			TemplateGallery,
+			{ context: context({ items: [MISSING_DE, STALE_DRAFT], query }) },
+			globals,
+		)
 		await flush()
-		const chip = view.host.querySelector('ubutton[aria-pressed]') as HTMLElement
-		expect(chip.textContent).toContain('2')
-		expect(view.host.querySelector('upagination')).not.toBeNull()
-		chip.click()
+		expect(cardNames(listed.host)).toEqual([
+			'Shipping update',
+			'Account closed',
+		])
+		listed.unmount()
+		const cleared = mount(
+			TemplateGallery,
+			{ context: context({ items: [], query }) },
+			globals,
+		)
 		await flush()
-		expect(cardNames(view.host)).toEqual(['Shipping update', 'Account closed'])
-		expect(view.host.querySelector('upagination')).toBeNull()
-		view.unmount()
+		expect(
+			cleared.host.querySelector(
+				'[title*="dms_mailing.templates.attention.none_title"]',
+			),
+		).not.toBeNull()
+		cleared.unmount()
 	})
 
-	it('reloads the attention list when the table refreshes, not when it pages', async () => {
+	it('reloads the figures when the table refreshes, not when it pages', async () => {
 		api.listTemplates.mockClear()
 		api.templatesOverview.mockClear()
 		const ctx = reactive(context({ items: [LIVE] }))
 		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
 		expect(api.listTemplates).toHaveBeenCalledTimes(1)
-		api.listTemplates.mockResolvedValue({
-			results: [LIVE, MISSING_DE],
-			total: 2,
-		})
 		ctx.items = [LIVE]
 		await flush()
 		expect(api.listTemplates).toHaveBeenCalledTimes(2)
 		expect(api.templatesOverview).toHaveBeenCalledTimes(2)
-		const chip = view.host.querySelector('ubutton[aria-pressed]') as HTMLElement
-		expect(chip.textContent).toContain('1')
 		ctx.pagination.pageIndex = 1
 		ctx.items = [MISSING_DE]
 		await flush()
 		expect(api.listTemplates).toHaveBeenCalledTimes(2)
-		view.unmount()
-	})
-
-	it('arrives filtered from an attention link', async () => {
-		routeQuery = { tab: 'attention' }
-		api.listTemplates.mockResolvedValue({
-			results: [LIVE, MISSING_DE],
-			total: 2,
-		})
-		const view = mount(
-			TemplateGallery,
-			{ context: context({ items: [LIVE, MISSING_DE] }) },
-			globals,
-		)
-		await flush()
-		const chip = view.host.querySelector('ubutton[aria-pressed]') as HTMLElement
-		expect(chip.getAttribute('aria-pressed')).toBe('true')
-		expect(cardNames(view.host)).toEqual(['Shipping update'])
 		view.unmount()
 	})
 

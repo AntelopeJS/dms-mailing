@@ -4,7 +4,12 @@ import type {
   ComposedTextParam,
 } from "@antelopejs/interface-dms/base/types";
 import type { SendSummary, MailingTemplate } from "../db";
-import { isResolvedStage, PROBLEM_STATUSES } from "../types";
+import { LOCALE_LIST_SEPARATOR } from "../constants";
+import {
+  isResolvedStage,
+  PROBLEM_STATUSES,
+  type TemplateAttentionReason,
+} from "../types";
 import { isDeliveryUntracked, type ProviderTracking } from "./metrics";
 
 export type AttentionTone = "error" | "warning" | "neutral";
@@ -26,7 +31,7 @@ export interface AttentionItem {
 }
 
 const TEMPLATES_PAGE = "/modules/mailing/templates";
-const TEMPLATES_ATTENTION_PAGE = `${TEMPLATES_PAGE}?tab=all&attention=1`;
+const TEMPLATES_ATTENTION_PAGE = `${TEMPLATES_PAGE}?tab=attention`;
 const SENDS_PAGE = "/modules/mailing/sends";
 const SENDS_PROBLEMS_PAGE = `${SENDS_PAGE}?view=problems`;
 /** A settings form section, by the id the DMS form gives its anchor. */
@@ -261,22 +266,36 @@ function problemDetails(problems: SendSummary[]): ComposedText[] {
 }
 
 const localeCodes = (template: MailingTemplate): string[] =>
-  (template.locales || "").split(",").filter(Boolean);
+  template.locales.split(LOCALE_LIST_SEPARATOR).filter(Boolean);
 
 /**
- * Live templates missing a locale the workspace writes in elsewhere: the
- * locales any live template carries stand for the workspace's languages,
- * since the server holds no list of its own.
+ * The locales any live template carries: they stand for the workspace's
+ * languages, since the server holds no list of its own.
  */
+export function knownLocalesOf(templates: MailingTemplate[]): Set<string> {
+  return new Set(
+    templates
+      .filter((template) => template.status === "live")
+      .flatMap(localeCodes),
+  );
+}
+
+/** A live template missing one of the `known` locales. */
+function isMissingLocale(
+  template: MailingTemplate,
+  known: Set<string>,
+): boolean {
+  if (template.status !== "live") return false;
+  const own = new Set(localeCodes(template));
+  return [...known].some((code) => !own.has(code));
+}
+
+/** Live templates missing a locale the workspace writes in elsewhere. */
 export function missingLocaleTemplates(
   templates: MailingTemplate[],
 ): MailingTemplate[] {
-  const live = templates.filter((template) => template.status === "live");
-  const known = new Set(live.flatMap(localeCodes));
-  return live.filter((template) => {
-    const own = new Set(localeCodes(template));
-    return [...known].some((code) => !own.has(code));
-  });
+  const known = knownLocalesOf(templates);
+  return templates.filter((template) => isMissingLocale(template, known));
 }
 
 function missingLocalesItem(templates: MailingTemplate[]): AttentionItem[] {
@@ -339,4 +358,47 @@ export function attentionFeedItem(item: AttentionItem): ActivityFeedItem {
     time: item.action,
     to: item.to,
   };
+}
+
+/** What the template rules read besides the template itself. */
+export interface TemplateAttentionContext {
+  now: number;
+  /** The slugs a real send used in the stats window. */
+  sentSlugs: Set<string>;
+  /** The locales any live template carries. */
+  knownLocales: Set<string>;
+}
+
+type TemplateAttentionRule = (
+  template: MailingTemplate,
+  context: TemplateAttentionContext,
+) => boolean;
+
+const TEMPLATE_ATTENTION_RULES: Record<
+  TemplateAttentionReason,
+  TemplateAttentionRule
+> = {
+  stale_draft: (template, context) => isStaleDraft(template, context.now),
+  never_sent: (template, context) =>
+    template.status === "live" && !context.sentSlugs.has(template.slug),
+  missing_locale: (template, context) =>
+    isMissingLocale(template, context.knownLocales),
+};
+
+const TEMPLATE_ATTENTION_REASONS = Object.keys(
+  TEMPLATE_ATTENTION_RULES,
+) as TemplateAttentionReason[];
+
+/**
+ * Why a template needs a look, in a stable order: a draft never published and
+ * untouched for a week, a live template no real send used in the stats
+ * window, a live template missing a locale the others carry.
+ */
+export function templateAttentionReasons(
+  template: MailingTemplate,
+  context: TemplateAttentionContext,
+): TemplateAttentionReason[] {
+  return TEMPLATE_ATTENTION_REASONS.filter((reason) =>
+    TEMPLATE_ATTENTION_RULES[reason](template, context),
+  );
 }

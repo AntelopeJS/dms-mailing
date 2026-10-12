@@ -1,4 +1,4 @@
-import { readPath } from './template-attention'
+import { readPath } from './paths'
 import type { VariableType } from '../types/mailing'
 
 export interface SnippetVariable {

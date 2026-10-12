@@ -84,11 +84,7 @@ function submit(): void {
 		</UFormField>
 		<USwitch v-model="draft.required" size="sm" :label="t(`${KEY}.required`)" />
 		<div class="flex items-center gap-2">
-			<UButton
-				type="submit"
-				size="xs"
-				:disabled="!isPathValid"
-			>
+			<UButton type="submit" size="xs" :disabled="!isPathValid">
 				{{ isNew ? t(`${KEY}.add`) : t(`${KEY}.save`) }}
 			</UButton>
 			<UButton

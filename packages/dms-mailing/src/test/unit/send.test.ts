@@ -31,6 +31,7 @@ const PREPARED: PreparedSend = {
   slug: "welcome",
   tenantId: "tenant-1",
   category: "",
+  attention: "",
 };
 
 const SETTINGS: MailingSettingsValues = {

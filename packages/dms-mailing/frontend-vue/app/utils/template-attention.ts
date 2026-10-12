@@ -4,58 +4,27 @@ import type {
 	TemplateStatus,
 	VariableDefinition,
 } from '../types/mailing'
-import { localeBadges } from './locales'
-
-/** A draft untouched for longer than this many days counts as stale. */
-export const STALE_DRAFT_DAYS = 7
+import { readPath } from './paths'
 
 const MS_PER_DAY = 86_400_000
 
 export type AttentionReason = 'stale_draft' | 'never_sent' | 'missing_locale'
 
-export interface AttentionInput {
-	row: TemplateRow
-	/** Last 30 days of real sends; absent means none. */
-	stats?: TemplateStats
-	/** Workspace locale codes, in the workspace order. */
-	workspaceLocales: string[]
-	now: Date
+/** How the row's `attention` field separates its reasons. */
+const REASON_SEPARATOR = ','
+
+/** Why the server says a template needs a look, read off its row. */
+export function attentionReasons(row: TemplateRow): AttentionReason[] {
+	return row.attention
+		.split(REASON_SEPARATOR)
+		.filter(Boolean) as AttentionReason[]
 }
-
-type AttentionRule = (input: AttentionInput) => boolean
-
-const isDraft = (row: TemplateRow) => row.status === 'draft'
 
 /** Whole days between `date` and `now`; 0 for an unreadable date. */
 export function daysSince(date: string | null | undefined, now: Date): number {
 	const time = date ? new Date(date).getTime() : Number.NaN
 	if (Number.isNaN(time)) return 0
 	return Math.max(0, Math.floor((now.getTime() - time) / MS_PER_DAY))
-}
-
-const ATTENTION_RULES: Record<AttentionReason, AttentionRule> = {
-	stale_draft: ({ row, now }) =>
-		isDraft(row) && daysSince(row.updatedAt, now) > STALE_DRAFT_DAYS,
-	never_sent: ({ row, stats }) => row.status === 'live' && !stats?.sends,
-	missing_locale: ({ row, workspaceLocales }) =>
-		localeBadges(row.locales, workspaceLocales).some((badge) => !badge.present),
-}
-
-const ATTENTION_REASONS = Object.keys(ATTENTION_RULES) as AttentionReason[]
-
-/**
- * Why a template needs a look, in a stable order: a draft untouched for a
- * week, a live template no real send used in 30 days, a workspace locale it
- * lacks. A draft being written is not a problem yet, and archived templates
- * never need attention.
- */
-export function attentionReasons(input: AttentionInput): AttentionReason[] {
-	if (input.row.status === 'archived') return []
-	return ATTENTION_REASONS.filter((reason) => ATTENTION_RULES[reason](input))
-}
-
-export function needsAttention(input: AttentionInput): boolean {
-	return attentionReasons(input).length > 0
 }
 
 export type CardFooterKind = 'stats' | 'edited' | 'no_send'
@@ -112,14 +81,6 @@ const TRANSITIONS: Record<TemplateStatus, TransitionRule> = {
 /** The lifecycle moves a template accepts from its current status. */
 export function validTransitions(row: TemplateRow): LifecycleAction[] {
 	return TRANSITIONS[row.status]?.(row) ?? []
-}
-
-/** Reads a dotted path (`order.number`) off a data set. */
-export function readPath(data: unknown, path: string): unknown {
-	return path.split('.').reduce<unknown>((value, key) => {
-		if (value === null || typeof value !== 'object') return undefined
-		return (value as Record<string, unknown>)[key]
-	}, data)
 }
 
 const isFilled = (value: unknown) =>

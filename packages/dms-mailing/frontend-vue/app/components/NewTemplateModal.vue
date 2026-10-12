@@ -10,7 +10,7 @@ import {
 	apiErrorStatus,
 } from '../utils/api-error'
 import { NO_CATEGORY, fromCategoryOption } from '../utils/categories'
-import { groupByCategory, matchesQuery } from '../utils/gallery'
+import { groupByCategory, matchesSearch } from '../utils/gallery'
 import { slugify, validateName, validateSlug } from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
 import type {
@@ -214,7 +214,7 @@ const templateTile = (template: TemplateRow): SourceTile => ({
 const templateGroups = computed<TileGroup[]>(() =>
 	groupByCategory(
 		copyableTemplates.value.filter((template) =>
-			matchesQuery(template, { search: templateSearch.value }, SEARCH_FIELDS),
+			matchesSearch(template, templateSearch.value, SEARCH_FIELDS),
 		),
 		categories.value,
 		t('dms_mailing.templates.uncategorised'),
