@@ -6,7 +6,7 @@ import type {
   VariableDefinition,
 } from "../types";
 import { footerForCategory } from "../engine";
-import { blankFields } from "./templates";
+import { blankFields, footerBlock } from "./templates";
 
 /**
  * A ready-made template a new workspace can start from instead of a blank
@@ -76,26 +76,6 @@ interface StarterCopy {
 
 const HEADING_SIZE = 26;
 
-const FOOTER_LABELS: Record<string, [string, string]> = {
-  en: ["Unsubscribe", "Preferences"],
-  fr: ["Se désinscrire", "Préférences"],
-};
-
-const footer = (locale: string, text: string): Block => {
-  const [unsubscribeLabel, preferencesLabel] = FOOTER_LABELS[locale] as [
-    string,
-    string,
-  ];
-  return {
-    id: "footer",
-    type: "footer",
-    text,
-    unsubscribeLabel,
-    preferencesLabel,
-    visibleIf: null,
-  };
-};
-
 function localeContent(
   locale: string,
   copy: StarterCopy,
@@ -135,7 +115,7 @@ function localeContent(
       },
       ...extra,
       ...button,
-      footer(locale, copy.footer),
+      footerBlock(locale, copy.footer),
     ],
   };
 }

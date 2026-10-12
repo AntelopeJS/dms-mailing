@@ -152,18 +152,24 @@ const FOOTER_LABELS: Record<string, FooterLabels> = {
 
 const FOOTER_BLOCK_ID = "footer";
 
-export function blankContent(locale: string): TemplateContent {
+/** A footer in `locale`: its legal line and the labels of its two links. */
+export function footerBlock(locale: string, text = ""): Block {
   const labels = FOOTER_LABELS[locale] ?? (FOOTER_LABELS.en as FooterLabels);
-  const footer: Block = {
+  return {
     id: FOOTER_BLOCK_ID,
     type: "footer",
-    text: "",
+    text,
     unsubscribeLabel: labels.unsubscribe,
     preferencesLabel: labels.preferences,
     visibleIf: null,
   };
+}
+
+export function blankContent(locale: string): TemplateContent {
   return {
-    locales: { [locale]: { subject: "", preheader: "", blocks: [footer] } },
+    locales: {
+      [locale]: { subject: "", preheader: "", blocks: [footerBlock(locale)] },
+    },
   };
 }
 
