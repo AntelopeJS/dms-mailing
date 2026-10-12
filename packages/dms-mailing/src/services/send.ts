@@ -35,10 +35,6 @@ import {
   type TemplateContent,
 } from "../types";
 import { publishSendCreated } from "../realtime";
-import {
-  unsubscribeProviderOptions,
-  unsubscribeUrlOf,
-} from "./list-unsubscribe";
 import { renderEmailHtml } from "./render";
 import { getSettings } from "./settings";
 import { toSendStatus } from "./status";
@@ -118,8 +114,6 @@ export interface DeliveryInput {
   html: string;
   /** The plain-text alternative of `html`. */
   text?: string;
-  /** Where the recipient unsubscribes, for the `List-Unsubscribe` header. */
-  unsubscribeUrl?: string;
   recipients: EmailAddress[];
 }
 
@@ -309,7 +303,6 @@ export function messageFor(
     subject,
     html,
     text: text || undefined,
-    providerOptions: unsubscribeProviderOptions(input.unsubscribeUrl ?? ""),
     from: settings.senderEmail
       ? { email: settings.senderEmail, name: settings.senderName || undefined }
       : undefined,
@@ -563,7 +556,6 @@ export async function sendTemplate(
     subject: subjectFor(email.subject, Boolean(params.isTest)),
     html,
     text: renderPlainText(email, prepared.locale),
-    unsubscribeUrl: unsubscribeUrlOf(params.variables ?? {}),
     recipients,
   });
   return aggregateResults(await recordAll(prepared, params, delivered));

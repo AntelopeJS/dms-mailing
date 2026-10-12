@@ -15,10 +15,6 @@ import {
   refusedMissing,
   type SendRecordInput,
 } from "../../services/send";
-import {
-  unsubscribeHeaders,
-  unsubscribeUrlOf,
-} from "../../services/list-unsubscribe";
 import type { MailingTemplate } from "../../db";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
 
@@ -208,37 +204,6 @@ describe("[unit] services/send message parts", () => {
     expect(message.text).to.equal("Hello");
     expect(message.html).to.equal("<p>Hello</p>");
     expect(message.providerOptions).to.equal(undefined);
-  });
-
-  it("announces a one-click unsubscribe for an HTTPS URL", () => {
-    const message = messageFor(
-      { ...input(RECIPIENTS), unsubscribeUrl: "https://shop.test/u?t=1" },
-      "a@b",
-    );
-    expect(message.providerOptions).to.deep.equal({
-      headers: {
-        "List-Unsubscribe": "<https://shop.test/u?t=1>",
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
-    });
-  });
-
-  it("keeps only the List-Unsubscribe header over plain HTTP", () => {
-    expect(unsubscribeHeaders("http://shop.test/u")).to.deep.equal({
-      "List-Unsubscribe": "<http://shop.test/u>",
-    });
-  });
-
-  it("reads the unsubscribe URL only when it is an absolute web address", () => {
-    expect(unsubscribeUrlOf({ unsubscribeUrl: " https://u.test/x " })).to.equal(
-      "https://u.test/x",
-    );
-    expect(
-      unsubscribeUrlOf({ unsubscribeUrl: "javascript:alert(1)" }),
-    ).to.equal("");
-    expect(unsubscribeUrlOf({ unsubscribeUrl: "/relative" })).to.equal("");
-    expect(unsubscribeUrlOf({ unsubscribeUrl: 42 })).to.equal("");
-    expect(unsubscribeUrlOf({})).to.equal("");
   });
 });
 

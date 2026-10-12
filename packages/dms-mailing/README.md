@@ -117,15 +117,6 @@ manual real send, and every send when "Missing variables" is set to refuse;
 a test send never waits for it. The starters and the templates of the other
 categories get a footer with a legal line and no unsubscribe link.
 
-When the caller passes an absolute `http(s)` `unsubscribeUrl`, the module
-builds a `List-Unsubscribe: <url>` header, plus `List-Unsubscribe-Post:
-List-Unsubscribe=One-Click` for an `https` URL (that URL must then accept the
-RFC 8058 one-click `POST`). `@antelopejs/interface-email` has no headers field
-yet: they are passed in `providerOptions.headers`, which the e-mail
-implementation must forward (the nodemailer implementation does not read
-`providerOptions` today, so the headers do not reach the message until it
-does).
-
 ## Suppression list
 
 An address goes on the workspace's suppression list (`mailing_suppressions`)
