@@ -372,7 +372,7 @@ export interface TemplateVersionSummary {
 	locales: string
 	changes: TemplateChange[]
 	/** The declarations the version shipped with. */
-	variables?: VariableDefinition[]
+	variables: VariableDefinition[]
 }
 
 /** Last 30 days of real sends of one template. */

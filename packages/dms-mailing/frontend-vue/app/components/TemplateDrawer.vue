@@ -463,8 +463,8 @@ async function declareVariable(path: string): Promise<void> {
 			next,
 			detail.value.revision,
 		)
-		detail.value.variables = response.variables ?? next
-		detail.value.revision = response.revision ?? detail.value.revision
+		detail.value.variables = response.variables
+		detail.value.revision = response.revision
 	} catch (error) {
 		toast.add({
 			color: 'error',

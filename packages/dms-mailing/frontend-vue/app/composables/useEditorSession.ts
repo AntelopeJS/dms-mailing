@@ -70,19 +70,19 @@ export interface SessionDeps {
 }
 
 function createState(loaded: TemplateContentResponse): SessionState {
-	const testData = JSON.stringify(loaded.testData ?? {}, null, JSON_INDENT)
+	const testData = JSON.stringify(loaded.testData, null, JSON_INDENT)
 	return reactive({
 		template: { ...loaded.template },
-		version: loaded.version ?? 0,
-		revision: loaded.revision ?? 0,
-		publishedContent: loaded.publishedContent ?? null,
-		changes: loaded.changes ?? [],
-		serverDetected: loaded.detectedVariables ?? [],
+		version: loaded.version,
+		revision: loaded.revision,
+		publishedContent: loaded.publishedContent,
+		changes: loaded.changes,
+		serverDetected: loaded.detectedVariables,
 		testDataSource: testData,
 		savedTestDataSource: testData,
-		categories: loaded.categories ?? [],
+		categories: loaded.categories,
 		fallbackLocale: loaded.fallbackLocale,
-		blockOnMissingVariables: Boolean(loaded.blockOnMissingVariables),
+		blockOnMissingVariables: loaded.blockOnMissingVariables,
 		performance: null,
 		saveStatus: 'idle',
 		activeField: null,
@@ -177,9 +177,9 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 				variables: deepClone(editor.variables),
 				revision: state.revision,
 			})
-			state.revision = response.revision ?? state.revision
-			state.changes = response.changes ?? state.changes
-			state.serverDetected = response.detectedVariables ?? state.serverDetected
+			state.revision = response.revision
+			state.changes = response.changes
+			state.serverDetected = response.detectedVariables
 			editor.markSaved(revision)
 			failures = 0
 			state.saveStatus = 'idle'

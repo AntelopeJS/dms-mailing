@@ -22,6 +22,7 @@ import {
 import { TemplatesPageController } from "../pages/templates";
 import {
   displayName,
+  parseVersionChanges,
   parseVersionVariables,
   pendingChanges,
   restoreVersionAsDraft,
@@ -87,7 +88,7 @@ export class TemplateVersionsController extends Controller(
         publishedAt: row.publishedAt,
         publishedBy: row.publishedBy,
         locales: row.locales,
-        changes: JSON.parse(row.json_changes || "[]") as TemplateChange[],
+        changes: parseVersionChanges(row),
         variables: parseVersionVariables(row),
       })),
     };

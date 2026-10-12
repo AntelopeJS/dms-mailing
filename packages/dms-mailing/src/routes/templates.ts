@@ -40,7 +40,6 @@ import {
   contentOfVersion,
   discardDraft,
   displayName,
-  draftRevisionOf,
   hasDraft,
   isPublished,
   isStaleRevision,
@@ -305,7 +304,7 @@ export class TemplatesController extends Controller(
       publishedContent,
       hasDraft: hasDraft(template),
       version: publishedVersionOf(template),
-      revision: draftRevisionOf(template),
+      revision: template.draftRevision,
       changes: pendingChanges(template),
       variables: workingVariables(template),
       detectedVariables: collectContentVariablePaths(content),
@@ -365,7 +364,7 @@ export class TemplatesController extends Controller(
     const template = await this.requireTemplate(id);
     return {
       version: publishedVersionOf(template),
-      revision: draftRevisionOf(template),
+      revision: template.draftRevision,
       changes: pendingChanges(template),
     };
   }

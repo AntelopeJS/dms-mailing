@@ -29,7 +29,7 @@ export function changeSummary(
 	version: Pick<TemplateVersionSummary, 'changes'>,
 	t: ChangeTranslator,
 ): ChangeSummary {
-	const lines = describeChanges(version.changes ?? [], NO_SOURCES, t)
+	const lines = describeChanges(version.changes, NO_SOURCES, t)
 	return {
 		named: lines.slice(0, SUMMARY_CHANGE_COUNT).map((line) => line.text),
 		more: Math.max(0, lines.length - SUMMARY_CHANGE_COUNT),

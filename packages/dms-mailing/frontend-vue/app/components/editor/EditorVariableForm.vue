@@ -8,7 +8,6 @@ import type { VariableSubmission } from '../../utils/variables'
 interface Props {
 	value: VariableDefinition
 	isNew: boolean
-	saving?: boolean
 	/** The path the content uses now, which a new path may replace. */
 	usedPath?: string | null
 	/** How many places of the content use `usedPath`. */
@@ -16,7 +15,6 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	saving: false,
 	usedPath: null,
 	usageCount: 0,
 })
@@ -89,7 +87,6 @@ function submit(): void {
 			<UButton
 				type="submit"
 				size="xs"
-				:loading="saving"
 				:disabled="!isPathValid"
 			>
 				{{ isNew ? t(`${KEY}.add`) : t(`${KEY}.save`) }}

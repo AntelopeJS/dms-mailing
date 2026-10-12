@@ -64,7 +64,7 @@ export function isPublished(template: MailingTemplate): boolean {
 export function parseVariables(
   template: MailingTemplate,
 ): VariableDefinition[] {
-  return JSON.parse(template.json_variables || "[]") as VariableDefinition[];
+  return JSON.parse(template.json_variables) as VariableDefinition[];
 }
 
 /**
@@ -115,7 +115,7 @@ export function pendingChanges(template: MailingTemplate): TemplateChange[] {
 export function parseTestData(
   template: MailingTemplate,
 ): Record<string, unknown> {
-  return JSON.parse(template.json_test_data || "{}") as Record<string, unknown>;
+  return JSON.parse(template.json_test_data) as Record<string, unknown>;
 }
 
 interface FooterLabels {
@@ -152,21 +152,12 @@ export function blankContent(locale: string): TemplateContent {
 
 const FIRST_DRAFT_REVISION = 0;
 
-/**
- * The draft's revision: every write of `json_draft` (a save, a discard, a
- * publish) moves it on, so a writer holding an older one knows it would
- * overwrite changes it never saw.
- */
-export function draftRevisionOf(template: MailingTemplate): number {
-  return template.draftRevision ?? FIRST_DRAFT_REVISION;
-}
-
 /** Whether a writer that last saw `revision` is behind the stored draft. */
 export function isStaleRevision(
   template: MailingTemplate,
   revision: number | undefined,
 ): boolean {
-  return revision !== undefined && revision !== draftRevisionOf(template);
+  return revision !== undefined && revision !== template.draftRevision;
 }
 
 function draftWriteFields(
@@ -174,7 +165,7 @@ function draftWriteFields(
   author: string,
 ): Partial<MailingTemplate> {
   return {
-    draftRevision: draftRevisionOf(template) + 1,
+    draftRevision: template.draftRevision + 1,
     draftUpdatedAt: new Date(),
     draftUpdatedBy: author,
     updatedBy: author,
@@ -229,11 +220,18 @@ export async function discardDraft(
   });
 }
 
+/** What a published version changed from the one before. */
+export function parseVersionChanges(
+  row: MailingTemplateVersion,
+): TemplateChange[] {
+  return JSON.parse(row.json_changes) as TemplateChange[];
+}
+
 /** The declarations a published version shipped with. */
 export function parseVersionVariables(
   row: MailingTemplateVersion,
 ): VariableDefinition[] {
-  return JSON.parse(row.json_variables || "[]") as VariableDefinition[];
+  return JSON.parse(row.json_variables) as VariableDefinition[];
 }
 
 /**
@@ -301,7 +299,7 @@ export async function publishTemplate(
     json_draft: "",
     json_variables_draft: "",
     isDraftPending: false,
-    draftRevision: draftRevisionOf(template) + 1,
+    draftRevision: template.draftRevision + 1,
     locales: localesOf(content),
     status: "live",
     publishedVersion: version,
@@ -324,7 +322,7 @@ async function markLive(
         json_draft: "",
         json_variables_draft: "",
         isDraftPending: false,
-        draftRevision: draftRevisionOf(template) + 1,
+        draftRevision: template.draftRevision + 1,
       }
     : {};
   await GetModel(TemplateModel, tenantId).update(template._id, {
@@ -354,7 +352,7 @@ export async function contentOfVersion(
 export function parseVersionContent(
   row: MailingTemplateVersion,
 ): TemplateContent {
-  return JSON.parse(row.json_content || EMPTY_CONTENT) as TemplateContent;
+  return JSON.parse(row.json_content) as TemplateContent;
 }
 
 /**
@@ -375,6 +373,7 @@ export function contentFieldsOf(
     json_test_data: source.json_test_data,
     locales: localesOf(content),
     publishedVersion: NEVER_PUBLISHED,
+    draftRevision: FIRST_DRAFT_REVISION,
   };
 }
 
@@ -406,6 +405,7 @@ export function blankFields(
     isDraftPending: true,
     locales: localesOf(content),
     publishedVersion: NEVER_PUBLISHED,
+    draftRevision: FIRST_DRAFT_REVISION,
   };
 }
 

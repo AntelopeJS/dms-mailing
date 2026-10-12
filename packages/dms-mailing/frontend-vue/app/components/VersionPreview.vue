@@ -47,12 +47,12 @@ const localeItems = computed(() =>
 )
 
 const lines = computed(() =>
-	describeChanges(props.version.changes ?? [], NO_SOURCES, (key, params) =>
+	describeChanges(props.version.changes, NO_SOURCES, (key, params) =>
 		t(key, params ?? {}),
 	),
 )
 
-const declared = computed(() => props.version.variables ?? [])
+const declared = computed(() => props.version.variables)
 
 function onResolved(preview: PreviewResponse): void {
 	subject.value = preview.subject

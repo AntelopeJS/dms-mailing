@@ -166,8 +166,7 @@ async function refreshChanges(deps: ActionDeps): Promise<boolean> {
 	const response = await deps.api.changes(deps.templateId).catch(() => null)
 	if (!response) return true
 	const { state } = deps.session
-	const isKnown = typeof response.revision === 'number'
-	if (isKnown && response.revision !== state.revision) {
+	if (response.revision !== state.revision) {
 		deps.session.markConflict()
 		return false
 	}

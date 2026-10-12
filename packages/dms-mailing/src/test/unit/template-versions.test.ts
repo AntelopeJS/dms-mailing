@@ -2,7 +2,6 @@ import { expect } from "chai";
 import type { MailingTemplate } from "../../db";
 import {
   contentFieldsOf,
-  draftRevisionOf,
   isStaleRevision,
   localesWithoutSubject,
   pendingChanges,
@@ -97,12 +96,12 @@ describe("[unit] services/templates versions", () => {
       json_draft: DRAFT,
       isDraftPending: true,
       publishedVersion: 0,
+      draftRevision: 0,
       locales: "en",
     });
   });
 
   it("refuses only a writer behind the stored draft revision", () => {
-    expect(draftRevisionOf(template({}))).to.equal(0);
     const row = template({ draftRevision: 4 });
     expect(isStaleRevision(row, 4)).to.equal(false);
     expect(isStaleRevision(row, 3)).to.equal(true);

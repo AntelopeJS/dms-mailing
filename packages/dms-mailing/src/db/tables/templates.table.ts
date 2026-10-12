@@ -66,10 +66,10 @@ export class MailingTemplate extends Table {
 
   /**
    * Moves on with every write of `json_draft`; a save or a publish carrying
-   * an older one is refused. Absent on rows written before it: 0.
+   * an older one is refused. 0 for a new template.
    */
   @Field("number")
-  declare draftRevision?: number;
+  declare draftRevision: number;
 
   /** Version customers receive; 0 until a first publish. */
   @Field("number")
