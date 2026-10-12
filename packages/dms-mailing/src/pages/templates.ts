@@ -24,7 +24,7 @@ import { mailingNavCategory } from "./module";
 
 const TEMPLATES_ORDER = 1;
 const TABLE_DISPLAY_ID = "table";
-// A gallery row holds three or four cards: 24 fills whole rows at most widths.
+/** A gallery row holds three or four cards: 24 fills whole rows at most widths. */
 const PAGE_SIZE = 24;
 
 const statusTab = (id: string, icon: string): TableViewTab => ({

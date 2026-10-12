@@ -114,10 +114,12 @@ const provider = section("provider", "i-ph-plugs-connected", [
     required: true,
   },
   {
-    // Reads its own route and never changes the form's value: it is shown,
-    // never saved.
     ...field("webhookStatus"),
     type: new DefaultDataTypes.StringType({}),
+    /**
+     * Reads its own route and never changes the form's value: it is shown,
+     * never saved.
+     */
     inputComponent: CustomComponent("MailingWebhookStatus").serializeSync(),
   },
 ]);

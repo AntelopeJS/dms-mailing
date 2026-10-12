@@ -221,7 +221,7 @@ export class SendsPageController extends PageController(
     labelKey: "recipientEmail",
     rowIdKey: "_id",
     defaultSort: { field: "createdAt", desc: true },
-    // A template's drawer links to its sends: ?template=<slug>.
+    /** A template's drawer links to its sends: `?template=<slug>`. */
     queryParamFilters: { template: { field: "templateSlug", mode: "is" } },
     searchPlaceholder: "$dms_mailing.sends.search",
     pageSize: 50,
@@ -291,9 +291,11 @@ export class SendsPageController extends PageController(
         {
           label: "$dms_mailing.sends.actions.details",
           icon: "i-ph-info",
-          // A send is an append-only record: it cannot be edited, so the
-          // built-in `edit`/`details` row click has nothing to open. This
-          // action takes the row click and opens the send in the side panel.
+          /**
+           * A send is an append-only record: it cannot be edited, so the
+           * built-in `edit`/`details` row click has nothing to open. This
+           * action takes the row click and opens the send in the side panel.
+           */
           isDefault: true,
           target: {
             type: "sidePanel",

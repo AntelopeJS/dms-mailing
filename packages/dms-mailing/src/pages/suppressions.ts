@@ -61,7 +61,7 @@ export class SuppressionsPageController extends PageController(
     labelKey: "email",
     rowIdKey: "_id",
     defaultSort: { field: "createdAt", desc: true },
-    // The send drawer links to an address's entry: ?email=<address>.
+    /** The send drawer links to an address's entry: `?email=<address>`. */
     queryParamFilters: { email: { field: "email", mode: "is" } },
     searchPlaceholder: key("search"),
     pageSize: PAGE_SIZE,

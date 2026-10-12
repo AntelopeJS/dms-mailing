@@ -98,9 +98,11 @@ const activity = Grid({ gap: GRID_GAP }).child(
       "volume",
       ChartCard({
         title: "$dms_mailing.metrics.volume",
-        // The legend is the one series label the DMS translates: it runs
-        // `primaryLabel`/`comparisonLabel` through `processI18n`, while the
-        // `name` carried by each series goes to ApexCharts verbatim.
+        /**
+         * The legend is the one series label the DMS translates: it runs
+         * `primaryLabel`/`comparisonLabel` through `processI18n`, while the
+         * `name` carried by each series goes to ApexCharts verbatim.
+         */
         primaryLabel: "$dms_mailing.metrics.sends",
         comparisonLabel: "$dms_mailing.metrics.previous",
         fetchUrl: `${API_BASE_PATH}/metrics/volume`,

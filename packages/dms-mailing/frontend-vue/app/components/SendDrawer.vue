@@ -177,7 +177,6 @@ const stats = computed<StatTrioItem[]>(() => {
 	const row = send.value
 	if (!row) return []
 	const isFallback = !!row.requestedLocale && row.requestedLocale !== row.locale
-	// A suppressed send never reached the provider: no call, no latency.
 	const isNotHanded = isSuppressedStatus(row.status)
 	const isSlow = !isNotHanded && isSlowLatency(row.latencyMs)
 	return [

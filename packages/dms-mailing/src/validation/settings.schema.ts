@@ -10,9 +10,11 @@ const CATEGORY_ICON_PATTERN = /^i-ph-[a-z0-9-]+$/;
 const CONTROL_CHARACTERS = /\p{Cc}/u;
 const ADDRESS_SEPARATOR = "@";
 const NO_ADDRESS = "";
-// The generated secret is 48 hex characters; this floor lets an admin paste a
-// provider-issued one without letting them blank the field, which would leave
-// the unauthenticated event endpoint with no gate at all.
+/**
+ * The generated secret is 48 hex characters; this floor lets an admin paste a
+ * provider-issued one without letting them blank the field, which would leave
+ * the unauthenticated event endpoint with no gate at all.
+ */
 export const MIN_WEBHOOK_SECRET_LENGTH = 32;
 
 const messageKey = (path: string): string => `$dms_mailing.settings.${path}`;

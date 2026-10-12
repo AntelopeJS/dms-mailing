@@ -77,9 +77,11 @@ const TEMPLATE_IN_USE = "$dms_mailing.errors.template_in_use";
 const TEMPLATE_WAS_SENT = "$dms_mailing.errors.template_was_sent";
 const MIN_NAME_LENGTH = 1;
 const CREATE_ONLY = { edit: ReadonlyBehaviorType.disabled };
-// Read-only columns render as empty dashes on the create form and as raw
-// internal values on the edit one: a template's name, slug and category are
-// the only fields worth asking for.
+/**
+ * Read-only columns render as empty dashes on the create form and as raw
+ * internal values on the edit one: a template's name, slug and category are
+ * the only fields worth asking for.
+ */
 const NEVER_IN_FORMS = {
   new: ReadonlyBehaviorType.hidden,
   edit: ReadonlyBehaviorType.hidden,

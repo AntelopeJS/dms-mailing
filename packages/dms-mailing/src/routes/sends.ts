@@ -275,7 +275,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
         locale: (input as TestSendInput).locale,
         variables: (input as TestSendInput).data,
         content: (input as TestSendInput).content,
-        version: publishedVersionOfInput(input.version),
+        version: requestedVersionOf(input.version),
         isTest: true,
         source: TEST_SEND_SOURCE,
       },
@@ -569,7 +569,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
  * The version a test of a published version records: a number names one,
  * "draft" or "published" let the send decide.
  */
-function publishedVersionOfInput(version: unknown): number | undefined {
+function requestedVersionOf(version: unknown): number | undefined {
   return typeof version === "number" ? version : undefined;
 }
 

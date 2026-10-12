@@ -25,9 +25,11 @@ const INPUT_SCHEMA: JsonSchema = {
   properties: {
     tenantId: { type: "string" },
     slug: { type: "string", description: "Slug of the live mailing template" },
-    // A list, not just one address: the automation module has no loop node, so
-    // a procedure cannot call this action once per contact — the fan-out has to
-    // happen here. `sendUnlessSuppressed` already accepts both shapes.
+    /**
+     * A list, not just one address: the automation module has no loop node, so
+     * a procedure cannot call this action once per contact — the fan-out has
+     * to happen here. `sendUnlessSuppressed` already accepts both shapes.
+     */
     to: {
       type: ["string", "array"],
       items: { type: "string" },

@@ -55,8 +55,10 @@ const slots = defineSlots<FormFieldRowSlots>()
 
 const controlId = useId()
 
-// A form row without a label stacks: in the form layout its control would
-// sit in the 240px label column.
+/**
+ * A form row without a label stacks: in the form layout its control would sit
+ * in the 240px label column.
+ */
 const layout = computed(() => (props.label ? 'form' : 'stack'))
 </script>
 

@@ -1,12 +1,12 @@
 import type { RequestContext } from "@antelopejs/interface-api";
+import { MAX_WINDOW_DAYS } from "../constants";
+import type { DateRange } from "../services/metrics";
 
 /**
  * Both readers only ever touch the query string, so they ask for that slice
  * rather than the whole request: a full `RequestContext` still satisfies it.
  */
 export type RangeContext = Pick<RequestContext, "url">;
-import { MAX_WINDOW_DAYS } from "../constants";
-import type { DateRange } from "../services/metrics";
 
 const DAY_MS = 86_400_000;
 const DEFAULT_WINDOW_DAYS = 30;

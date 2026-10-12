@@ -170,13 +170,14 @@ const RESOLVERS: Record<Block["type"], BlockResolver> = {
       : [],
 };
 
+/**
+ * Visibility decides before a block is resolved, not after: resolving first
+ * would record a hidden block's unresolved paths in `state.missing`, and
+ * `blockOnMissingVariables` refuses a send on that set, so a hidden block
+ * could block a send over a variable it never rendered.
+ */
 function resolveBlocks(blocks: Block[], state: ResolveState): ResolvedBlock[] {
   return blocks.flatMap((block) => {
-    // Visibility decides before the block is resolved, not after. Resolving
-    // first recorded the block's unresolved paths in `state.missing` even
-    // though it was then discarded — and `blockOnMissingVariables` refuses a
-    // send on that set, so a hidden block could block a send over a variable
-    // it never rendered.
     if (block.visibleIf && !evaluateCondition(block.visibleIf, state.data)) {
       state.hidden.push(block.id);
       return [];
