@@ -6,21 +6,25 @@ import type {
 	VariableDefinition,
 } from '../types/mailing'
 import type { EditorCheck } from './editor-checks'
-import { SYSTEM_PATHS, pathsInBlocks, textPaths } from './paths'
+import {
+	PREFERENCES_URL_PATH,
+	SYSTEM_PATHS,
+	UNSUBSCRIBE_URL_PATH,
+	pathsInBlocks,
+	textPaths,
+} from './paths'
 
-/**
- * The footer links as system variables of a template's contract. Mirrors
- * `src/engine/system-variables.ts`: a footer link shows when its label is
- * filled, and its URL is the caller's `unsubscribeUrl` / `preferencesUrl`.
- */
-
-export const UNSUBSCRIBE_URL_PATH = 'unsubscribeUrl'
-export const PREFERENCES_URL_PATH = 'preferencesUrl'
+/** The category whose e-mails are campaigns; the settings never remove it. */
 export const MARKETING_CATEGORY = 'marketing'
 
 type FooterLabelKey = 'unsubscribeLabel' | 'preferencesLabel'
 
-/** Each footer link: the label that shows it and the URL the caller passes. */
+/**
+ * Each footer link: the label that shows it and the URL the caller passes.
+ * The footer links are the system variables of a template's contract, as in
+ * the server's `src/engine/system-variables.ts`, which the layer cannot
+ * import: a link shows when its label is filled.
+ */
 export const FOOTER_LINK_PATHS: Record<FooterLabelKey, string> = {
 	unsubscribeLabel: UNSUBSCRIBE_URL_PATH,
 	preferencesLabel: PREFERENCES_URL_PATH,
@@ -46,10 +50,6 @@ export function isMarketingCategory(category?: string | null): boolean {
  */
 export function hasFooterLinksByDefault(category?: string | null): boolean {
 	return !category || isMarketingCategory(category)
-}
-
-export function isSystemPath(path: string): boolean {
-	return SYSTEM_PATHS.includes(path)
 }
 
 const isFooter = (block: Block): block is FooterBlock => block.type === 'footer'

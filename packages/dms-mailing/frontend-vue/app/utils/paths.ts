@@ -6,12 +6,15 @@ const PATH_SEPARATOR = '.'
 const ARRAY_SUFFIX = '[]'
 const RESERVED_SEGMENTS = ['__proto__', 'constructor', 'prototype']
 
+export const UNSUBSCRIBE_URL_PATH = 'unsubscribeUrl'
+export const PREFERENCES_URL_PATH = 'preferencesUrl'
+
 /**
  * The footer links' URLs, passed by the caller at send time. The content
  * declares them itself (`utils/system-variables.ts`), so they never show as
  * undeclared; the backend keeps them out of `detectedVariables` the same way.
  */
-export const SYSTEM_PATHS = ['unsubscribeUrl', 'preferencesUrl']
+export const SYSTEM_PATHS = [UNSUBSCRIBE_URL_PATH, PREFERENCES_URL_PATH]
 
 /**
  * A path cut after each separator ("order." + "number"): where a narrow

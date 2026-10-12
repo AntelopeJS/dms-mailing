@@ -45,14 +45,12 @@ const EVALUATORS: Record<ConditionOperator, Evaluator> = {
 /**
  * Evaluates a condition against a data set exactly like the backend engine
  * (`src/engine/conditions.ts`), so the editor's Data mode shows the branch a
- * real send takes. An unknown operator reads as false.
+ * real send takes.
  */
 export function evaluateCondition(
 	condition: Condition,
 	data: Record<string, unknown>,
 ): boolean {
 	const evaluate = EVALUATORS[condition.operator]
-	return evaluate
-		? evaluate(readPath(data, condition.path), condition.value)
-		: false
+	return evaluate(readPath(data, condition.path), condition.value)
 }
