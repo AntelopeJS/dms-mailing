@@ -9,7 +9,7 @@ import { assert } from "@antelopejs/interface-api-util";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
-import type { TopListItem } from "@antelopejs/interface-dms/base";
+import type { KpiCardData, TopListItem } from "@antelopejs/interface-dms/base";
 import type { ComposedText } from "@antelopejs/interface-dms/base/types";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { API_BASE_PATH, HTTP_NOT_FOUND } from "../constants";
@@ -22,6 +22,7 @@ import {
 } from "../db";
 import { OverviewPageController } from "../pages/overview";
 import { readCapabilities } from "../services/provider";
+import { trackingOf } from "../services/send-stats";
 import { findSettings } from "../services/settings";
 import { attentionFeedItem, buildAttentionItems } from "../services/attention";
 import {
@@ -131,17 +132,6 @@ const FUNNEL_STEPS: FunnelStepDefinition[] = [
   },
 ];
 
-/** A figure and its change; each is left out when it cannot be stated. */
-export interface ComparedFigure {
-  value?: number;
-  previousValue?: number;
-  delta?: number;
-}
-
-export interface KpiResponse extends ComparedFigure {
-  sparkline?: number[];
-}
-
 export interface FunnelStepResponse {
   id: string;
   label: string;
@@ -209,7 +199,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   @Get("/kpi/:metric")
   async kpi(
     @Parameter("metric", "param") metric: string,
-  ): Promise<KpiResponse> {
+  ): Promise<KpiCardData> {
     const extract = KPI_EXTRACTORS[metric];
     assert(extract, HTTP_NOT_FOUND, UNKNOWN_METRIC);
     const range = currentRange(this.ctx);
@@ -325,8 +315,8 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
 export function comparedFigure(
   value: number | null,
   previousValue: number | null,
-): ComparedFigure {
-  const figure: ComparedFigure = {};
+): KpiCardData {
+  const figure: KpiCardData = {};
   const delta = deltaPercent(value, previousValue);
   if (value !== null) figure.value = value;
   if (previousValue !== null) figure.previousValue = previousValue;
@@ -343,7 +333,7 @@ export function kpiFigure(
   current: SendSummary[],
   previous: SendSummary[] | null,
   range: DateRange,
-): KpiResponse {
+): KpiCardData {
   const value = extract(aggregate(current));
   const previousValue = previous ? extract(aggregate(previous)) : null;
   return {
@@ -448,13 +438,7 @@ export function filterByKind(
  * card is the one that reports the outage.
  */
 async function readTracking(): Promise<ProviderTracking | null> {
-  const capabilities = await readCapabilities();
-  if (!capabilities) return null;
-  return {
-    name: capabilities.name,
-    openTracking: capabilities.features.openTracking,
-    clickTracking: capabilities.features.clickTracking,
-  };
+  return trackingOf(await readCapabilities());
 }
 
 /** The rows that can be ranked, best first, at most `limit` of them. */

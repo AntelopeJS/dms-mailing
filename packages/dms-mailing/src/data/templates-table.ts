@@ -34,6 +34,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { DefaultDisplays } from "@antelopejs/interface-dms/base/table-view";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import {
+  ARCHIVED_STATUS,
   HTTP_BAD_REQUEST,
   HTTP_CONFLICT,
   HTTP_NOT_FOUND,
@@ -74,7 +75,6 @@ const INVALID_TEMPLATE = "$dms_mailing.errors.invalid_template";
 const UNKNOWN_CATEGORY = "$dms_mailing.errors.unknown_category";
 const TEMPLATE_IN_USE = "$dms_mailing.errors.template_in_use";
 const TEMPLATE_WAS_SENT = "$dms_mailing.errors.template_was_sent";
-const ARCHIVED_STATUS = "archived";
 const MIN_NAME_LENGTH = 1;
 const CREATE_ONLY = { edit: ReadonlyBehaviorType.disabled };
 // Read-only columns render as empty dashes on the create form and as raw

@@ -15,7 +15,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { z } from "zod";
-import { API_BASE_PATH, HTTP_BAD_REQUEST } from "../constants";
+import { API_BASE_PATH, ARCHIVED_STATUS, HTTP_BAD_REQUEST } from "../constants";
 import { parseBody } from "../data/body";
 import { SendModel, TemplateModel } from "../db";
 import { MailingSettingsPage } from "../pages/settings/page";
@@ -58,7 +58,6 @@ const TRAILING_SLASHES = /\/+$/;
 const NEXT_RUN_HOUR = 3;
 const NEXT_RUN_MINUTE = 15;
 const RETENTION_DAYS_PARAM = "days";
-const ARCHIVED_STATUS = "archived";
 
 /** A settings field the form shows under another name. */
 const FORM_FIELD_OF: Record<string, string> = {

@@ -16,7 +16,6 @@ import {
   Exported,
   Searchable,
   Select,
-  TableViewRoutes,
 } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -39,6 +38,7 @@ import {
 } from "../types";
 import { localeCode, localeFallbackSubline } from "./locale-fallback";
 import { TemplatesTableAPI } from "./templates-table";
+import { READ_ONLY_ROUTES } from "./read-only-routes";
 
 const STATUS_ITEMS = SEND_STATUSES.map((value) => ({
   value,
@@ -87,19 +87,10 @@ const RESOLVED_BADGE = {
   tone: "success" as const,
 };
 
-const readOnlyRoutes = {
-  get: TableViewRoutes.Get,
-  list: TableViewRoutes.List,
-  count: TableViewRoutes.Count,
-  countBatch: TableViewRoutes.CountBatch,
-  select: TableViewRoutes.Select,
-  ...TableViewRoutes.ExportRoutes,
-};
-
 @RegisterDataController()
 export class SendsTableAPI extends DataController(
   MailingSend,
-  readOnlyRoutes,
+  READ_ONLY_ROUTES,
   Controller(`${TABLES_BASE_PATH}/sends`),
 ) {
   @ModelReference()

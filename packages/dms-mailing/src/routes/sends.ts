@@ -45,7 +45,7 @@ import {
   type CheckedSendParams,
   sendUnlessSuppressed,
 } from "../services/checked-send";
-import { SendError, subjectFor } from "../services/send";
+import { MANUAL_SEND_SOURCE, SendError, subjectFor } from "../services/send";
 import {
   buildSendStats,
   isProviderFailure,
@@ -58,12 +58,7 @@ import { buildSendStatItems } from "../services/send-stat-items";
 import type { DateRange } from "../services/metrics";
 import { assertSendPermission } from "../services/permissions";
 import { getSettings } from "../services/settings";
-import {
-  findSuppression,
-  summarizeSuppression,
-  suppressedSendIds,
-  suppressionsOf,
-} from "../services/suppressions";
+import { findSuppression, suppressedSendIds } from "../services/suppressions";
 import {
   contentOfVersion,
   localeContentOf,
@@ -96,7 +91,6 @@ const NO_REPLAY_AFTER_SPAM = "$dms_mailing.errors.no_replay_after_spam";
 const TEST_SEND_SOURCE = "dms-mailing:test-send";
 const REPLAY_SOURCE = "dms-mailing:replay";
 const FIX_ADDRESS_SOURCE = "dms-mailing:fix-address";
-const MANUAL_SEND_SOURCE = "dms-mailing:manual";
 const HOUR_MS = 3_600_000;
 const DRAFT_VERSION = 0;
 /** Renders as the recipient got it, not as the editor previews it. */
@@ -195,7 +189,7 @@ function needsNewAddress(send: MailingSend): boolean {
 }
 
 const sameAddress = (left: string, right: string): boolean =>
-  left.trim().toLowerCase() === right.trim().toLowerCase();
+  normalizeAddress(left) === normalizeAddress(right);
 
 /** A bad address gets its own message; any other invalid field is the content's. */
 function sendInputError(error: unknown): string {
@@ -297,11 +291,9 @@ export class SendsController extends Controller(API_BASE_PATH) {
   private async ownSuppression(
     to: string[],
   ): Promise<SuppressionSummary | undefined> {
-    const own = normalizeAddress(this.user.email ?? "");
-    if (!own || !to.some((address) => normalizeAddress(address) === own))
-      return undefined;
-    const row = (await suppressionsOf(this.tenantId, [own])).get(own);
-    return row ? summarizeSuppression(row) : undefined;
+    const isOwn = (address: string) => sameAddress(address, this.user.email);
+    if (!to.some(isOwn)) return undefined;
+    return (await findSuppression(this.tenantId, this.user.email)) ?? undefined;
   }
 
   /**

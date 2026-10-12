@@ -35,6 +35,9 @@ export const HTTP_UNPROCESSABLE = 422;
 
 export const LOCALE_LIST_SEPARATOR = ",";
 
+/** The status of a template taken out of use. */
+export const ARCHIVED_STATUS = "archived";
+
 export const UNSUBSCRIBE_URL_PATH = "unsubscribeUrl";
 export const PREFERENCES_URL_PATH = "preferencesUrl";
 

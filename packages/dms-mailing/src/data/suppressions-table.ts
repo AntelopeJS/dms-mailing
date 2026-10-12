@@ -16,13 +16,13 @@ import {
   Exported,
   Searchable,
   Select,
-  TableViewRoutes,
 } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { DefaultDisplays } from "@antelopejs/interface-dms/base/table-view";
 import { TABLES_BASE_PATH } from "../constants";
 import { MailingSuppression, SuppressionModel } from "../db";
 import { SUPPRESSION_REASONS, type SuppressionReason } from "../types";
+import { READ_ONLY_ROUTES } from "./read-only-routes";
 
 const REASON_ITEMS = SUPPRESSION_REASONS.map((value) => ({
   value,
@@ -40,22 +40,14 @@ const EMAIL_COLUMN_WIDTH = 280;
 const REASON_COLUMN_WIDTH = 200;
 
 /**
- * Read-only routes: an address goes on the list and comes off it through
- * `/api/mailing/suppressions`, which normalizes it and records who did it.
+ * The suppression list, read-only here: an address goes on the list and comes
+ * off it through `/api/mailing/suppressions`, which normalizes it and records
+ * who did it.
  */
-const readOnlyRoutes = {
-  get: TableViewRoutes.Get,
-  list: TableViewRoutes.List,
-  count: TableViewRoutes.Count,
-  countBatch: TableViewRoutes.CountBatch,
-  select: TableViewRoutes.Select,
-  ...TableViewRoutes.ExportRoutes,
-};
-
 @RegisterDataController()
 export class SuppressionsTableAPI extends DataController(
   MailingSuppression,
-  readOnlyRoutes,
+  READ_ONLY_ROUTES,
   Controller(`${TABLES_BASE_PATH}/suppressions`),
 ) {
   @ModelReference()

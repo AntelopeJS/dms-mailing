@@ -7,6 +7,7 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import {
   API_BASE_PATH,
+  ARCHIVED_STATUS,
   GALLERY_DISPLAY_ID,
   MODULE_ID,
   NEW_TEMPLATE_BUTTON_ID,
@@ -23,7 +24,6 @@ import { mailingNavCategory } from "./module";
 
 const TEMPLATES_ORDER = 1;
 const TABLE_DISPLAY_ID = "table";
-const ARCHIVED_STATUS = "archived";
 // A gallery row holds three or four cards: 24 fills whole rows at most widths.
 const PAGE_SIZE = 24;
 
