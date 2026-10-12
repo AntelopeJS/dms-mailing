@@ -5,6 +5,7 @@ import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
+const HTTP_NOT_FOUND = 404;
 const SETTINGS = "/api/mailing/settings";
 const TEMPLATES_TABLE = "/api/mailing/tables/templates";
 const JSON_HEADERS = { "content-type": "application/json" };
@@ -12,6 +13,15 @@ const DEFAULT_CATEGORY_COUNT = 5;
 const DEFAULT_RETENTION_DAYS = 90;
 const UPDATED_RETENTION_DAYS = 30;
 const INVALID_RETENTION_DAYS = 0;
+
+const READ_ONLY_FIELDS = new Set(["webhookUrl", "provider"]);
+
+/** A settings read as a write takes it back: without its read-only fields. */
+function writableOf(read: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(read).filter(([key]) => !READ_ONLY_FIELDS.has(key)),
+  );
+}
 
 describe("[integration] settings form", () => {
   it("applies a partial post without touching the other fields", async () => {
@@ -21,7 +31,7 @@ describe("[integration] settings form", () => {
     expect(initial.data.webhookUrl).to.match(/\/api\/mailing\/events\//);
     expect(initial.data.missingVariables).to.be.oneOf(["refuse", "send"]);
 
-    const partial = await client.post("/api/mailing/settings", {
+    const partial = await client.put("/api/mailing/settings", {
       senderName: "Acme Supplies",
       missingVariables: "refuse",
     });
@@ -32,7 +42,7 @@ describe("[integration] settings form", () => {
     expect(after.data.categories).to.deep.equal(initial.data.categories);
     expect(after.data.fallbackLocale).to.equal(initial.data.fallbackLocale);
 
-    const restored = await client.post("/api/mailing/settings", {
+    const restored = await client.put("/api/mailing/settings", {
       senderName: initial.data.senderName,
       blockOnMissingVariables: initial.data.blockOnMissingVariables,
     });
@@ -76,8 +86,8 @@ describe("[integration] settings", () => {
     expect(initial.data.logRetentionDays).to.equal(DEFAULT_RETENTION_DAYS);
     expect(initial.data.categories).to.have.length(DEFAULT_CATEGORY_COUNT);
 
-    const update = await client.post("/api/mailing/settings", {
-      ...initial.data,
+    const update = await client.put("/api/mailing/settings", {
+      ...writableOf(initial.data),
       fallbackLocale: "fr",
       logRetentionDays: UPDATED_RETENTION_DAYS,
       blockOnMissingVariables: true,
@@ -87,28 +97,30 @@ describe("[integration] settings", () => {
     expect(after.data.fallbackLocale).to.equal("fr");
     expect(after.data.blockOnMissingVariables).to.equal(true);
 
-    const invalid = await client.post("/api/mailing/settings", {
-      ...after.data,
+    const invalid = await client.put("/api/mailing/settings", {
+      ...writableOf(after.data),
       logRetentionDays: INVALID_RETENTION_DAYS,
     });
     expect(invalid.status).to.equal(HTTP_BAD_REQUEST);
 
     // Blanking the secret would leave the unauthenticated event endpoint with
     // no gate, so the write has to be refused rather than silently accepted.
-    const blankSecret = await client.post("/api/mailing/settings", {
-      ...after.data,
+    const blankSecret = await client.put("/api/mailing/settings", {
+      ...writableOf(after.data),
       webhookSecret: "",
     });
     expect(blankSecret.status).to.equal(HTTP_BAD_REQUEST);
 
-    const restored = await client.post("/api/mailing/settings", initial.data);
+    const restored = await client.put(
+      "/api/mailing/settings",
+      writableOf(initial.data),
+    );
     expect(restored.status).to.equal(HTTP_OK);
   });
 });
 
 const CONCURRENT_READERS = 5;
-const LEGACY_RETENTION_DAYS = 45;
-const LEGACY_SECRET = "l".repeat(48);
+const OTHER_SECRET = "l".repeat(48);
 
 async function loadSettingsModules() {
   const { GetModel } =
@@ -118,17 +130,6 @@ async function loadSettingsModules() {
   return {
     ...settings,
     rowsOf: (tenantId: string) => GetModel(SettingsModel, tenantId).getAll(),
-    insertLegacyRow: (tenantId: string) =>
-      GetModel(SettingsModel, tenantId).insert({
-        fallbackLocale: "en",
-        logRetentionDays: LEGACY_RETENTION_DAYS,
-        blockOnMissingVariables: false,
-        senderName: "",
-        senderEmail: "",
-        replyTo: "",
-        json_categories: "[]",
-        webhookSecret: LEGACY_SECRET,
-      }),
   };
 }
 
@@ -152,35 +153,17 @@ describe("[integration] settings row per tenant", () => {
     }
   });
 
-  it("keeps reading and updating a row written before the key existed", async () => {
-    const { getSettings, saveSettings, rowsOf, insertLegacyRow } =
-      await loadSettingsModules();
-    const tenantId = `settings-legacy-${Date.now()}`;
-    await insertLegacyRow(tenantId);
-
-    const read = await getSettings(tenantId);
-    expect(read.webhookSecret).to.equal(LEGACY_SECRET);
-    await saveSettings(tenantId, {
-      ...read,
-      logRetentionDays: UPDATED_RETENTION_DAYS,
-    });
-
-    const rows = await rowsOf(tenantId);
-    expect(rows).to.have.lengthOf(1);
-    expect(rows[0]?.logRetentionDays).to.equal(UPDATED_RETENTION_DAYS);
-  });
-
   it("saves a tenant's first settings under the tenant id", async () => {
     const { getSettings, saveSettings, rowsOf } = await loadSettingsModules();
     const tenantId = `settings-first-save-${Date.now()}`;
     const values = await getSettings(`settings-template-${Date.now()}`);
 
-    await saveSettings(tenantId, { ...values, webhookSecret: LEGACY_SECRET });
+    await saveSettings(tenantId, { ...values, webhookSecret: OTHER_SECRET });
 
     const rows = await rowsOf(tenantId);
     expect(rows).to.have.lengthOf(1);
     expect(rows[0]?._id).to.equal(tenantId);
-    expect(rows[0]?.webhookSecret).to.equal(LEGACY_SECRET);
+    expect(rows[0]?.webhookSecret).to.equal(OTHER_SECRET);
   });
 });
 
@@ -312,7 +295,16 @@ describe("[integration] settings writes (partial, checked)", () => {
     const asText = await client.put(SETTINGS, {
       categories: JSON.stringify(stored),
     });
-    expect(asText.status, JSON.stringify(asText.data)).to.equal(HTTP_OK);
+    expect(asText.status).to.equal(HTTP_BAD_REQUEST);
+  });
+
+  it("takes only a PUT of the writable fields", async () => {
+    const client = await ownerClient();
+    const read = await client.get(SETTINGS);
+    const echo = await client.put(SETTINGS, read.data);
+    expect(echo.status).to.equal(HTTP_BAD_REQUEST);
+    const posted = await client.post(SETTINGS, { senderName: "fix-L7" });
+    expect(posted.status).to.equal(HTTP_NOT_FOUND);
   });
 
   it("bounds the retention preview", async () => {

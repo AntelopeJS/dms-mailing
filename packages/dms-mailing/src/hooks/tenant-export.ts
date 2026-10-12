@@ -71,7 +71,7 @@ export async function* jsonArrayChunks<T>(
 async function exportedSettings(
   tenantId: string,
 ): Promise<ExportedSettings | null> {
-  const row = await GetModel(SettingsModel, tenantId).getSingleton(tenantId);
+  const row = await GetModel(SettingsModel, tenantId).get(tenantId);
   if (!row) return null;
   return {
     fallbackLocale: row.fallbackLocale,

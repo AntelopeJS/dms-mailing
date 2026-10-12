@@ -18,6 +18,22 @@ Overview, Templates, Sends; Configure: Settings, Suppression list) and are
 reserved to the platform owner. The design decisions behind the v2 screens are recorded in
 [`docs/design-v2-grill-me.md`](../../docs/design-v2-grill-me.md).
 
+## Breaking changes since 0.3
+
+The v2 redesign neither reads what 0.3.x wrote nor takes its calls:
+
+- **Webhook URL.** `POST /api/mailing/events/<provider>`, with the tenant in
+  the body, is gone. Copy the URL **Settings › Provider & webhook** shows
+  (`/api/mailing/events/<provider>/<tenantId>`) into the provider again.
+- **Settings writes.** `POST /api/mailing/settings` is gone: send the changed
+  fields with `PUT /api/mailing/settings`. A write carrying a read-only field
+  (`webhookUrl`, `provider`) is refused.
+- **Categories.** The settings take `categories` as an array only, no longer
+  as its JSON text.
+- **Data.** A 0.3.x database is not read any more (settings rows without the
+  tenant key, templates without version numbers, sends without a stage):
+  start the module on an empty database.
+
 ## Drafts and versions
 
 The editor never changes what customers receive. It saves a draft next to the
@@ -169,9 +185,7 @@ POST <apiBaseUrl>/api/mailing/events/<provider>/<tenantId>
 
 the URL **Settings › Provider & webhook** shows, ready to copy. `<provider>`
 is a free label recorded with the event (the settings use the configured
-e-mail provider's name); `<tenantId>` names the workspace and wins over a
-`tenantId` in the body. The older `POST /api/mailing/events/<provider>` still
-works and takes the tenant from the body, else from the request.
+e-mail provider's name); `<tenantId>` names the workspace.
 
 Every request carries the workspace's secret in the `x-mailing-webhook-secret`
 header (Settings › Provider & webhook; rotating it invalidates the old one at

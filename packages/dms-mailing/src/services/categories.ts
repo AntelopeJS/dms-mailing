@@ -1,21 +1,6 @@
 import type { MailingTemplate } from "../db";
 import type { TemplateCategory } from "../types";
-import {
-  type CategoryEntry,
-  categoriesSchema,
-} from "../validation/settings.schema";
-
-/** Direct API callers may send a JSON string; accept both string and array. */
-export const CATEGORIES_SCHEMA = categoriesSchema;
-
-/**
- * Reads a category list off a form field or an API body. Never throws on shape:
- * this runs while rendering a settings field.
- */
-export function parseCategories(raw: unknown): TemplateCategory[] {
-  const parsed = categoriesSchema.safeParse(raw ?? []);
-  return parsed.success ? keptCategories(parsed.data) : [];
-}
+import type { CategoryEntry } from "../validation/settings.schema";
 
 /** The categories a list keeps, without the removed ones it moves away. */
 export function keptCategories(entries: CategoryEntry[]): TemplateCategory[] {

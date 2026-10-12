@@ -27,12 +27,12 @@ const template = (extra: Partial<MailingTemplate>): MailingTemplate =>
     json_content: PUBLISHED,
     json_variables: "[]",
     json_test_data: "{}",
+    publishedVersion: extra.status === "live" ? 1 : 0,
     ...extra,
   }) as MailingTemplate;
 
 describe("[unit] services/templates versions", () => {
-  it("reads a live row written before versions as v1", () => {
-    expect(publishedVersionOf(template({ status: "live" }))).to.equal(1);
+  it("reads the version the last publish stored", () => {
     expect(publishedVersionOf(template({ status: "draft" }))).to.equal(0);
     expect(
       publishedVersionOf(template({ status: "live", publishedVersion: 12 })),

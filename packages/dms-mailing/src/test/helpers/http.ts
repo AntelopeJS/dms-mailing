@@ -21,3 +21,12 @@ export function authorizedClient(token: string): AxiosInstance {
   client.defaults.headers.common.Authorization = `Bearer ${token}`;
   return client;
 }
+
+/** The tenant the test client's namespace header reaches. */
+const TEST_TENANT_ID = "default";
+const EVENTS_BASE_PATH = "/api/mailing/events";
+
+/** The webhook address a provider posts the test tenant's events to. */
+export function eventsPath(provider: string): string {
+  return `${EVENTS_BASE_PATH}/${provider}/${TEST_TENANT_ID}`;
+}

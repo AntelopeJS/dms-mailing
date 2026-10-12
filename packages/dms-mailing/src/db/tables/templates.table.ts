@@ -71,9 +71,9 @@ export class MailingTemplate extends Table {
   @Field("number")
   declare draftRevision?: number;
 
-  /** Version customers receive; absent on rows written before versions. */
+  /** Version customers receive; 0 until a first publish. */
   @Field("number")
-  declare publishedVersion?: number;
+  declare publishedVersion: number;
 
   @Field("string")
   declare publishedBy?: string;
@@ -101,8 +101,7 @@ export class MailingTemplate extends Table {
    * Locale codes present in the content customers receive (the draft's until
    * a first publish), comma-separated.
    * Denormalised so a template row can show its coverage without loading the
-   * version. Blank on rows written before this field existed: unknown, not
-   * "none".
+   * version.
    */
   @Field("string")
   declare locales: string;

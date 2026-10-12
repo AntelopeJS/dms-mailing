@@ -4,12 +4,7 @@ import type {
   AtomicMutationOutcome,
   ValueProxy,
 } from "@antelopejs/interface-database";
-import {
-  isResolvedStage,
-  SEND_STATUSES,
-  type SendStatus,
-  stageOf,
-} from "../../types";
+import { isResolvedStage, stageOf } from "../../types";
 import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
 
 const FIRST_ROW_OFFSET = 0;
@@ -20,7 +15,6 @@ type NewSend = Omit<
   "_id" | "createdAt" | "revision" | "isRetiring" | "lastActivityAt"
 >;
 
-const UNSET_STAGE = "";
 const MAX_MUTATION_ATTEMPTS = 5;
 
 /** A send as the metrics read it: everything but the rendered variables. */
@@ -237,28 +231,6 @@ export class SendModel extends BasicDataModel(
       if (wasApplied(outcome)) return true;
     }
     return false;
-  }
-
-  /**
-   * Gives rows written before `stage` existed the stage of their status, one
-   * indexed update per status. Returns how many rows it filled.
-   */
-  async backfillStages(): Promise<number> {
-    let filled = 0;
-    for (const status of SEND_STATUSES) filled += await this.fillStage(status);
-    return filled;
-  }
-
-  private fillStage(status: SendStatus): Promise<number> {
-    return this.table
-      .filter((row) =>
-        row
-          .key("status")
-          .eq(status)
-          .and(row.key("stage").default(UNSET_STAGE).eq(UNSET_STAGE)),
-      )
-      .update({ stage: stageOf(status) })
-      .run();
   }
 
   /** Sends of a template since `from`, without the rendered variables. */

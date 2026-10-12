@@ -1,13 +1,10 @@
 import {
-  Context,
   Controller,
   HTTPResult,
   Parameter,
   Post,
   RawBody,
-  type RequestContext,
 } from "@antelopejs/interface-api";
-import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { z } from "zod";
 import { API_BASE_PATH, HTTP_BAD_REQUEST, HTTP_FORBIDDEN } from "../constants";
 import { recordEmailEvent } from "../services/events";
@@ -31,7 +28,6 @@ const eventSchema = z.object({
   type: z.enum(SEND_EVENT_TYPES as [SendEventType, ...SendEventType[]]),
   at: z.coerce.date().optional(),
   details: z.record(z.unknown()).optional(),
-  tenantId: z.string().optional(),
 });
 
 type ParsedEvent = z.infer<typeof eventSchema>;
@@ -46,8 +42,8 @@ interface ReceivedEvent {
   provider: string;
   secret: string | undefined;
   body: unknown;
-  /** The tenant the URL names; it wins over one the body carries. */
-  tenantId?: string;
+  /** The tenant the URL names. */
+  tenantId: string;
 }
 
 /** What the webhook answers an accepted call. */
@@ -69,26 +65,9 @@ function parseBody(raw: Buffer): unknown {
   }
 }
 
-/** The tenant id a body names, when it is a well-formed event. */
-function tenantIdOf(parsed: z.SafeParseReturnType<unknown, ParsedEvent>) {
-  return parsed.success ? parsed.data.tenantId : undefined;
-}
-
 export class MailingEventsController extends Controller(
   `${API_BASE_PATH}/events`,
 ) {
-  @Context()
-  declare ctx: RequestContext;
-
-  @Post("/:provider")
-  async receive(
-    @Parameter("provider", "param") provider: string,
-    @Parameter(WEBHOOK_SECRET_HEADER, "header") secret: string | undefined,
-    @RawBody() body: Buffer,
-  ): Promise<WebhookResponse> {
-    return this.record({ provider, secret, body: parseBody(body) });
-  }
-
   /** The address the settings show: the tenant is part of the URL. */
   @Post("/:provider/:tenantId")
   async receiveForTenant(
@@ -107,8 +86,7 @@ export class MailingEventsController extends Controller(
    */
   private async record(received: ReceivedEvent): Promise<WebhookResponse> {
     const parsed = eventSchema.safeParse(received.body);
-    const tenantId =
-      received.tenantId ?? tenantIdOf(parsed) ?? getRequestTenantId(this.ctx);
+    const { tenantId } = received;
     const settings = await findSettings(tenantId);
     const refusal = settings
       ? secretRefusal(received.secret, settings.webhookSecret)

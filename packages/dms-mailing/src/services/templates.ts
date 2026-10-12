@@ -1,5 +1,10 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { DEFAULT_FALLBACK_LOCALE, LOCALE_LIST_SEPARATOR } from "../constants";
+import {
+  DEFAULT_FALLBACK_LOCALE,
+  HTTP_NOT_FOUND,
+  LOCALE_LIST_SEPARATOR,
+} from "../constants";
 import {
   type MailingTemplate,
   type MailingTemplateVersion,
@@ -26,7 +31,7 @@ export function localesOf(content: TemplateContent): string {
 
 const EMPTY_CONTENT = '{"locales":{}}';
 const NEVER_PUBLISHED = 0;
-const FIRST_VERSION = 1;
+const VERSION_NOT_FOUND = "$dms_mailing.errors.version_not_found";
 
 /** The content customers receive: the last published version. */
 export function parseContent(template: MailingTemplate): TemplateContent {
@@ -43,15 +48,9 @@ export function workingContent(template: MailingTemplate): TemplateContent {
   return JSON.parse(template.json_draft) as TemplateContent;
 }
 
-/**
- * The version customers receive. Rows written before versions existed carry
- * no number: a template that was ever published reads as v1.
- */
+/** The version customers receive; 0 for a template never published. */
 export function publishedVersionOf(template: MailingTemplate): number {
-  if (typeof template.publishedVersion === "number")
-    return template.publishedVersion;
-  const wasPublished = template.status === "live" || !!template.publishedAt;
-  return wasPublished ? FIRST_VERSION : NEVER_PUBLISHED;
+  return template.publishedVersion;
 }
 
 export function isPublished(template: MailingTemplate): boolean {
@@ -70,7 +69,7 @@ export function parseVariables(
 
 /**
  * The declarations the editor works on: the draft's, else the published
- * ones. A draft saved before declarations followed it declares those.
+ * ones. A copy starts with a draft that declares the published ones.
  */
 export function workingVariables(
   template: MailingTemplate,
@@ -337,21 +336,19 @@ async function markLive(
   });
 }
 
-/**
- * The content a send of `version` carried. Versions published before the
- * history existed have no row: the template's current content stands in.
- */
+/** The content a send of `version` carried: the draft's for a test of one. */
 export async function contentOfVersion(
   tenantId: string,
   template: MailingTemplate,
-  version: number | undefined,
+  version: number,
 ): Promise<TemplateContent> {
   if (!version) return workingContent(template);
   const row = await GetModel(TemplateVersionModel, tenantId).getVersion(
     template._id,
     version,
   );
-  return row ? parseVersionContent(row) : parseContent(template);
+  if (!row) throw new HTTPResult(HTTP_NOT_FOUND, VERSION_NOT_FOUND);
+  return parseVersionContent(row);
 }
 
 export function parseVersionContent(

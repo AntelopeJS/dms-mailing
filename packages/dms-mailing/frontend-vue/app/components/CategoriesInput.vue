@@ -9,13 +9,11 @@ import {
 	CATEGORY_ICONS,
 	categoryRowErrors,
 	DEFAULT_CATEGORY_ICON,
-	formatCategoriesLike,
 	fromCategoryOption,
 	iconName,
 	keptCategories,
 	moveRow,
 	NO_CATEGORY,
-	parseCategories,
 	redirectMoves,
 	serializeCategories,
 	toStoredCategories,
@@ -26,8 +24,8 @@ import {
 import type { TemplateCategory } from '../types/mailing'
 
 interface CategoriesInputProps {
-	modelValue?: TemplateCategory[] | string | null
-	initialValue?: TemplateCategory[] | string | null
+	modelValue?: CategoryEntry[] | null
+	initialValue?: CategoryEntry[] | null
 	disabled?: boolean
 }
 
@@ -43,7 +41,7 @@ const props = withDefaults(defineProps<CategoriesInputProps>(), {
 })
 
 const emit = defineEmits<{
-	'update:modelValue': [value: TemplateCategory[] | string]
+	'update:modelValue': [value: CategoryEntry[]]
 }>()
 
 const KEY_PREFIX = 'dms_mailing.settings.categories.'
@@ -64,7 +62,7 @@ let nextKey = 0
 const keyOf = (): string => `category-${nextKey++}`
 
 const root = ref<HTMLElement | null>(null)
-const source = computed(() => props.modelValue ?? props.initialValue)
+const source = computed(() => props.modelValue ?? props.initialValue ?? [])
 const rows = ref<EditableCategory[]>(toRows(source.value))
 const removed = ref<CategoryEntry[]>(movesOf(source.value))
 const usage = ref<Record<string, number>>({})
@@ -99,11 +97,9 @@ function rowError(row: EditableCategory): string | undefined {
 	return error ? key(error) : undefined
 }
 
-function toRows(
-	value: TemplateCategory[] | string | null | undefined,
-): EditableCategory[] {
+function toRows(value: CategoryEntry[]): EditableCategory[] {
 	return localized
-		.categories(keptCategories(parseCategories(value)))
+		.categories(keptCategories(value))
 		.map((category) => ({
 			...category,
 			key: keyOf(),
@@ -111,12 +107,8 @@ function toRows(
 		}))
 }
 
-function movesOf(
-	value: TemplateCategory[] | string | null | undefined,
-): CategoryEntry[] {
-	return (parseCategories(value) as CategoryEntry[]).filter(
-		(entry) => entry.moveTo,
-	)
+function movesOf(value: CategoryEntry[]): CategoryEntry[] {
+	return value.filter((entry) => entry.moveTo)
 }
 
 function currentEntries(): CategoryEntry[] {
@@ -132,7 +124,7 @@ function onEdit(): void {
 	})
 	const entries = withMoves(stored, removed.value)
 	lastEmitted = serializeCategories(entries)
-	emit('update:modelValue', formatCategoriesLike(source.value, entries))
+	emit('update:modelValue', entries)
 }
 
 function addCategory(): void {
@@ -235,7 +227,7 @@ async function loadUsage(): Promise<void> {
 }
 
 watch(source, (value) => {
-	if (serializeCategories(parseCategories(value)) === lastEmitted) return
+	if (serializeCategories(value) === lastEmitted) return
 	rows.value = toRows(value)
 	removed.value = movesOf(value)
 	lastEmitted = serializeCategories(currentEntries())
@@ -244,7 +236,7 @@ watch(source, (value) => {
 watch(
 	() => props.initialValue,
 	(value) => {
-		const saved = new Set(parseCategories(value).map((category) => category.id))
+		const saved = new Set((value ?? []).map((category) => category.id))
 		rows.value
 			.filter((row) => row.isNew && saved.has(row.id))
 			.forEach((row) => (row.isNew = false))

@@ -29,7 +29,6 @@ describe("[unit] overview helpers", () => {
       template("a", "en,fr,de"),
       template("b", "en,fr"),
       template("c", "en", { status: "draft" }),
-      template("d", ""),
     ]);
     expect(missing.map((row) => row.slug)).to.deep.equal(["b"]);
   });

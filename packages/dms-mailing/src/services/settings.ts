@@ -48,9 +48,7 @@ function toRow(values: MailingSettingsValues): Partial<MailingSettings> {
 export async function findSettings(
   tenantId: string,
 ): Promise<MailingSettingsValues | undefined> {
-  const existing = await GetModel(SettingsModel, tenantId).getSingleton(
-    tenantId,
-  );
+  const existing = await GetModel(SettingsModel, tenantId).get(tenantId);
   return existing ? toValues(existing) : undefined;
 }
 
@@ -88,9 +86,8 @@ export async function saveSettings(
   values: MailingSettingsValues,
 ): Promise<MailingSettingsValues> {
   const model = GetModel(SettingsModel, tenantId);
-  const existing = await model.getSingleton(tenantId);
-  if (existing) await model.update(existing._id, toRow(values));
-  else if (!(await insertKeyedSettings(tenantId, values)))
+  const isStored = Boolean(await model.get(tenantId));
+  if (isStored || !(await insertKeyedSettings(tenantId, values)))
     await model.update(tenantId, toRow(values));
   return values;
 }
@@ -114,7 +111,8 @@ export function missingVariablesPolicy(
   return values.blockOnMissingVariables ? REFUSE_POLICY : SEND_POLICY;
 }
 
-const DERIVED_KEYS = new Set(["webhookUrl", "provider", "missingVariables"]);
+/** The form-only field folded back into `blockOnMissingVariables`. */
+const MISSING_VARIABLES_KEY = "missingVariables";
 const CLEARED_VALUE = "";
 /** The patch with each cleared field (`null`) as the empty value it stores. */
 export function clearedToEmpty(
@@ -127,8 +125,8 @@ export function clearedToEmpty(
 
 /**
  * The settings once `patch` (the fields a form changed, `null` for a cleared
- * one) is laid over the stored ones. Read-only derived fields are ignored and
- * the missing-variables choice is folded back into its boolean.
+ * one) is laid over the stored ones, the missing-variables choice folded back
+ * into its boolean.
  */
 export function mergeSettingsPatch(
   current: MailingSettingsValues,
@@ -136,7 +134,7 @@ export function mergeSettingsPatch(
 ): MailingSettingsValues {
   const written = Object.fromEntries(
     Object.entries(clearedToEmpty(patch)).filter(
-      ([key]) => !DERIVED_KEYS.has(key),
+      ([key]) => key !== MISSING_VARIABLES_KEY,
     ),
   );
   const policy = patch.missingVariables;

@@ -453,9 +453,7 @@
 		},
 		"notifications": {
 			"problems_title": "{count} problème de distribution sur {slug} dans la dernière heure | {count} problème de distribution sur {slug} dans la dernière heure | {count} problèmes de distribution sur {slug} dans la dernière heure",
-			"problems_description": "{rate} % de ses envois ont rebondi, échoué ou été signalés comme spam.",
-			"bounce_title": "Problème de distribution sur {slug}",
-			"bounce_description": "L’e-mail envoyé à {email} n’a pas pu être distribué."
+			"problems_description": "{rate} % de ses envois ont rebondi, échoué ou été signalés comme spam."
 		},
 		"overview": {
 			"description": "Délivrabilité et engagement de chaque e-mail envoyé par votre espace de travail. Les envois de test ne sont pas comptés.",

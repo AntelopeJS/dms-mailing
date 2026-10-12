@@ -29,11 +29,8 @@ describe("[unit] services/settings mergeSettingsPatch", () => {
     expect(merged.replyTo).to.equal("");
   });
 
-  it("drops the read-only derived fields", () => {
-    const merged = mergeSettingsPatch(CURRENT, {
-      webhookUrl: "https://x",
-      provider: "Brevo",
-    });
+  it("never stores the missing-variables choice itself", () => {
+    const merged = mergeSettingsPatch(CURRENT, { missingVariables: "send" });
     expect(merged).to.deep.equal(CURRENT);
   });
 
@@ -70,12 +67,12 @@ describe("[unit] validation settingsPatchSchema", () => {
   const accepts = (patch: Record<string, unknown>) =>
     settingsPatchSchema.safeParse(clearedToEmpty(patch)).success;
 
-  it("accepts a partial patch and the fields a full read echoes back", () => {
+  it("accepts a partial patch, and no read-only field", () => {
     expect(accepts({ senderName: "Acme" })).to.equal(true);
-    expect(accepts({ ...CURRENT, webhookUrl: "x", provider: "y" })).to.equal(
-      true,
-    );
+    expect(accepts({ ...CURRENT })).to.equal(true);
     expect(accepts({ replyTo: null })).to.equal(true);
+    expect(accepts({ webhookUrl: "x" })).to.equal(false);
+    expect(accepts({ provider: "y" })).to.equal(false);
   });
 
   it("refuses an unknown field or an unknown missing-variables choice", () => {

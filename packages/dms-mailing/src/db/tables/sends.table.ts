@@ -33,11 +33,11 @@ export class MailingSend extends Table {
 
   /** Locale the caller asked for; differs from `locale` on a fallback. */
   @Field("string")
-  declare requestedLocale?: string;
+  declare requestedLocale: string;
 
   /** Template version the send used; 0 for a test send of a draft. */
   @Field("number")
-  declare templateVersion?: number;
+  declare templateVersion: number;
 
   @Index()
   @Field("string")
@@ -53,7 +53,7 @@ export class MailingSend extends Table {
   /** The send log tab a status belongs to, derived from `status`. */
   @Index()
   @Field("string")
-  declare stage?: SendStage;
+  declare stage: SendStage;
 
   @Field("string")
   declare provider?: string;

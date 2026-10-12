@@ -152,9 +152,7 @@ describe("[integration] sends", () => {
   it("refuses to send when required variables are missing and blocking is on", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    const settings = await client.get("/api/mailing/settings");
-    await client.post("/api/mailing/settings", {
-      ...settings.data,
+    await client.put("/api/mailing/settings", {
       blockOnMissingVariables: true,
     });
     const list = await client.get(`${TABLE}/list?limit=100`);
@@ -185,8 +183,7 @@ describe("[integration] sends", () => {
       { to: ["sofie@example.test"], locale: "en", data: {} },
     );
     expect(blocked.status).to.equal(HTTP_UNPROCESSABLE);
-    await client.post("/api/mailing/settings", {
-      ...settings.data,
+    await client.put("/api/mailing/settings", {
       blockOnMissingVariables: false,
     });
   });

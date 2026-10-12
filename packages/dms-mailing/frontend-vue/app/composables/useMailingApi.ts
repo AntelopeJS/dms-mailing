@@ -185,10 +185,6 @@ export interface StarterPreviewResponse {
 	locale: string
 }
 
-export interface MailingSettings extends Record<string, unknown> {
-	blockOnMissingVariables?: boolean
-}
-
 /**
  * The single place that knows the mailing endpoints; every component reads
  * through it so a route change is a one-file edit.
@@ -297,9 +293,6 @@ export function useMailingApi() {
 			$authFetch<SendHtmlResponse>(mailingPath('sends', id, 'html')),
 		replay: (id: string, to?: string) =>
 			post<SendResult>(mailingPath('sends', id, 'replay'), to ? { to } : {}),
-		settings: () => $authFetch<MailingSettings>(mailingPath('settings')),
-		saveSettings: (settings: MailingSettings) =>
-			post<MailingSettings>(mailingPath('settings'), settings),
 		retentionPreview: (days: number) =>
 			$authFetch<RetentionPreview>(
 				mailingPath('settings', 'retention-preview'),

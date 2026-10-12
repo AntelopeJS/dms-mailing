@@ -453,9 +453,7 @@
 		},
 		"notifications": {
 			"problems_title": "{count} delivery problem on {slug} in the last hour | {count} delivery problems on {slug} in the last hour",
-			"problems_description": "{rate}% of its sends bounced, failed or were reported as spam.",
-			"bounce_title": "Delivery problem on {slug}",
-			"bounce_description": "The e-mail sent to {email} could not be delivered."
+			"problems_description": "{rate}% of its sends bounced, failed or were reported as spam."
 		},
 		"overview": {
 			"description": "Delivery and engagement for every e-mail your workspace sends. Test sends are left out of these figures.",

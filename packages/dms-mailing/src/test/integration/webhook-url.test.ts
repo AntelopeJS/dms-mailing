@@ -4,6 +4,7 @@ import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
+const HTTP_NOT_FOUND = 404;
 const SETTINGS = "/api/mailing/settings";
 const EVENTS_PATH = "/api/mailing/events/";
 const SECRET_HEADER = "x-mailing-webhook-secret";
@@ -36,7 +37,7 @@ describe("[integration] webhook URL", () => {
     expect(settings.webhookUrl).not.to.contain("internal.example.test");
   });
 
-  it("names the tenant, which the event route then records against", async () => {
+  it("names the tenant, whose secret alone the event route accepts", async () => {
     const settings = await readSettings();
     const url = new URL(settings.webhookUrl);
     expect(url.pathname.startsWith(EVENTS_PATH)).to.equal(true);
@@ -51,12 +52,20 @@ describe("[integration] webhook URL", () => {
     const accepted = await anonymous.post(url.pathname, EVENT, { headers });
     expect(accepted.status, JSON.stringify(accepted.data)).to.equal(HTTP_OK);
 
-    // The tenant in the path wins over one the body names.
     const otherTenant = await anonymous.post(
       `${EVENTS_PATH}${provider}/${OTHER_TENANT}`,
-      { ...EVENT, tenantId },
+      EVENT,
       { headers },
     );
     expect(otherTenant.status).to.equal(HTTP_FORBIDDEN);
+  });
+
+  it("answers no address without a tenant", async () => {
+    const settings = await readSettings();
+    const headers = { [SECRET_HEADER]: settings.webhookSecret };
+    const posted = await createClient().post(`${EVENTS_PATH}manual`, EVENT, {
+      headers,
+    });
+    expect(posted.status).to.equal(HTTP_NOT_FOUND);
   });
 });

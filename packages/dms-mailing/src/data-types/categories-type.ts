@@ -4,12 +4,11 @@ import {
   RegisterDataType,
 } from "@antelopejs/interface-dms/base/data-types";
 import { TEMPLATE_CATEGORIES_TYPE_ID } from "../constants";
-import { CATEGORIES_SCHEMA } from "../services/categories";
+import { categoriesSchema } from "../validation/settings.schema";
 
 /**
  * The tenant's template categories as a settings field — a repeatable list of
- * {id, label, icon} that no built-in DataType models: the input is ours, and
- * the validation accepts the array or the JSON string a form field stores.
+ * {id, label, icon} that no built-in DataType models: the input is ours.
  */
 @RegisterDataType(TEMPLATE_CATEGORIES_TYPE_ID)
 export class TemplateCategoriesType extends DataType {
@@ -24,6 +23,6 @@ export class TemplateCategoriesType extends DataType {
   }
 
   getValidation() {
-    return CATEGORIES_SCHEMA;
+    return categoriesSchema;
   }
 }

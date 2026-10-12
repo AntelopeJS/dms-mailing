@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { authorizedClient } from "../helpers/http";
+import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
@@ -43,7 +43,7 @@ async function markEvent(
   const settings = await api.get("/api/mailing/settings");
   const detail = await api.get(`${SENDS}/${sendId}`);
   const hook = await api.post(
-    "/api/mailing/events/manual",
+    eventsPath("manual"),
     { messageId: detail.data.send.providerMessageId, type, details },
     { headers: { "x-mailing-webhook-secret": settings.data.webhookSecret } },
   );
@@ -207,37 +207,6 @@ describe("[integration] send lifecycle", () => {
     const bulk = await api.post(`${SENDS}/replay-failed`, {});
     expect(bulk.status, JSON.stringify(bulk.data)).to.equal(HTTP_OK);
     expect(bulk.data.count).to.be.a("number");
-  });
-
-  it("fills the stage of sends written before it existed", async () => {
-    const { GetModel } =
-      await import("@antelopejs/interface-database-decorators");
-    const { DEFAULT_TENANT_ID } =
-      await import("@antelopejs/interface-dms/constants");
-    const { SendModel } = await import("../../db");
-    const { backfillSendStages } = await import("../../services/stages");
-    const sends = GetModel(SendModel, DEFAULT_TENANT_ID);
-    const [legacyId] = await sends.table
-      .insert({
-        _id: `legacy-${Date.now()}`,
-        createdAt: new Date(),
-        templateId: "gone",
-        templateSlug: "gone",
-        locale: "en",
-        recipientEmail: "legacy@example.test",
-        status: "bounced",
-        latencyMs: 1,
-        json_variables: "{}",
-        opens: 0,
-        clicks: 0,
-        revision: "r",
-        isTest: false,
-      })
-      .run();
-    expect(await backfillSendStages()).to.be.greaterThan(0);
-    const legacy = await sends.get(legacyId as string);
-    expect(legacy?.stage).to.equal("problem");
-    await sends.delete(legacyId as string);
   });
 
   it("links a send again to its original and resolves the original", async () => {

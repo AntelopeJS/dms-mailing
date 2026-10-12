@@ -3,7 +3,7 @@ import {
   clearEmailEventSubscriptions,
   emailEventTrigger,
 } from "../../automation/email-event-trigger";
-import { authorizedClient, createClient } from "../helpers/http";
+import { authorizedClient, createClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
@@ -39,7 +39,7 @@ describe("[integration] events", () => {
     expect(messageId.length, "provider message id").to.be.greaterThan(0);
 
     const hook = await client.post(
-      "/api/mailing/events/manual",
+      eventsPath("manual"),
       { messageId, type: "opened", details: { userAgent: "test" } },
       { headers: { "x-mailing-webhook-secret": settings.data.webhookSecret } },
     );
@@ -53,7 +53,7 @@ describe("[integration] events", () => {
       "opened",
     );
 
-    const rejected = await client.post("/api/mailing/events/manual", {
+    const rejected = await client.post(eventsPath("manual"), {
       messageId,
       type: "opened",
     });
@@ -84,7 +84,7 @@ describe("[integration] events", () => {
     });
     try {
       const hook = await client.post(
-        "/api/mailing/events/manual",
+        eventsPath("manual"),
         { messageId, type: "delivered" },
         {
           headers: { "x-mailing-webhook-secret": settings.data.webhookSecret },
@@ -124,16 +124,8 @@ describe("[integration] events", () => {
       headers: { "x-mailing-webhook-secret": settings.data.webhookSecret },
     };
 
-    const first = await client.post(
-      "/api/mailing/events/manual",
-      body,
-      headers,
-    );
-    const retry = await client.post(
-      "/api/mailing/events/manual",
-      body,
-      headers,
-    );
+    const first = await client.post(eventsPath("manual"), body, headers);
+    const retry = await client.post(eventsPath("manual"), body, headers);
 
     expect(first.data.recorded).to.equal(true);
     expect(retry.status).to.equal(HTTP_OK);
@@ -148,7 +140,7 @@ describe("[integration] events", () => {
 });
 
 describe("[integration] webhook for a tenant without settings", () => {
-  // The endpoint is unauthenticated and takes the tenant from the body: reading
+  // The endpoint is unauthenticated and takes the tenant from the URL: reading
   // the secret must not create a settings row for whatever tenant id it names.
   it("refuses the event and stores nothing", async () => {
     const { GetModel } =
@@ -157,8 +149,8 @@ describe("[integration] webhook for a tenant without settings", () => {
     const tenantId = `unknown-tenant-${Date.now()}`;
 
     const hook = await createClient().post(
-      "/api/mailing/events/manual",
-      { messageId: "unknown-message", type: "opened", tenantId },
+      `/api/mailing/events/manual/${tenantId}`,
+      { messageId: "unknown-message", type: "opened" },
       { headers: { "x-mailing-webhook-secret": "a".repeat(SECRET_LENGTH) } },
     );
 

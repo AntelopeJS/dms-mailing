@@ -14,10 +14,6 @@ import { FRONTEND_MODULE_NAME } from "./constants";
 import { RETENTION_CRON_NAME, scheduleRetention, stopRetention } from "./crons";
 import { registerTenantExport, unregisterTenantExport } from "./hooks";
 import { registerRealtimeTopics } from "./realtime";
-import {
-  registerStageBackfill,
-  unregisterStageBackfill,
-} from "./services/stages";
 
 export * from "./data";
 export * from "./data-types";
@@ -37,7 +33,6 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
   registerAutomationNodes();
   registerTenantExport();
   registerRealtimeTopics();
-  registerStageBackfill();
   await AddFrontendModule({
     name: FRONTEND_MODULE_NAME,
     sourcePath: path.join(__dirname, "../frontend-vue"),
@@ -50,7 +45,6 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
 export function destroy(): void {
   unregisterAutomationNodes();
   unregisterTenantExport();
-  unregisterStageBackfill();
 }
 
 export function start(): void {

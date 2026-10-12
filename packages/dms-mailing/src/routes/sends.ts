@@ -417,7 +417,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
     const localeContent = localeContentOf(content, locale);
     assert(localeContent, HTTP_UNPROCESSABLE, INVALID_CONTENT);
     const email = resolveEmail(localeContent, variablesOf(send), SEND_MODE);
-    const version = send.templateVersion ?? DRAFT_VERSION;
+    const version = send.templateVersion;
     return {
       html: await renderEmailHtml(email, locale),
       subject: subjectFor(email.subject, send.isTest),
@@ -532,7 +532,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
   ): Promise<SendTemplateResult> {
     const template = await this.templates.get(send.templateId);
     assert(template, HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
-    const version = send.templateVersion ?? DRAFT_VERSION;
+    const version = send.templateVersion;
     const content =
       version > DRAFT_VERSION
         ? await contentOfVersion(this.tenantId, template, version)

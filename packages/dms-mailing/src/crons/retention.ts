@@ -92,9 +92,7 @@ export async function purgeOrphanEvents(
 }
 
 async function purgeTenant(tenantId: string, now: Date): Promise<number> {
-  const settings = await GetModel(SettingsModel, tenantId).getSingleton(
-    tenantId,
-  );
+  const settings = await GetModel(SettingsModel, tenantId).get(tenantId);
   if (!settings || settings.logRetentionDays < MIN_RETENTION_DAYS) return 0;
   const limit = retentionLimit(settings.logRetentionDays, now);
   const purged = await purgeInPages(tenantPass(tenantId, limit));

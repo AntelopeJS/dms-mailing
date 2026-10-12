@@ -275,7 +275,7 @@ export function missingLocaleTemplates(
   const known = new Set(live.flatMap(localeCodes));
   return live.filter((template) => {
     const own = new Set(localeCodes(template));
-    return own.size > 0 && [...known].some((code) => !own.has(code));
+    return [...known].some((code) => !own.has(code));
   });
 }
 

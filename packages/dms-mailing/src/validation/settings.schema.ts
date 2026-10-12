@@ -65,25 +65,13 @@ function refineCategoryEntries(
   });
 }
 
-function readCategoriesText(value: unknown, context: z.RefinementCtx): unknown {
-  if (typeof value !== "string") return value;
-  if (value === "") return [];
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    context.addIssue({ code: z.ZodIssueCode.custom });
-    return z.NEVER;
-  }
-}
-
 /**
- * The category list of the settings: the array, or the JSON string a form
- * field stores it as. Kept ids are unique and every move names a kept one.
+ * The category list of the settings: kept ids are unique and every move names
+ * a kept one.
  */
 export const categoriesSchema = z
-  .union([z.string(), z.array(categoryEntrySchema)])
-  .transform(readCategoriesText)
-  .pipe(z.array(categoryEntrySchema).superRefine(refineCategoryEntries));
+  .array(categoryEntrySchema)
+  .superRefine(refineCategoryEntries);
 
 function isWellFormedLocale(value: string): boolean {
   try {
@@ -135,16 +123,13 @@ export const settingsSchema = z.object({
 
 /**
  * What a write may carry: any of the settings (`null` already turned into
- * `""` for a cleared one), the missing-variables choice the form shows, and
- * the read-only fields a full read-modify-write echoes back. Anything else is
- * refused.
+ * `""` for a cleared one) and the missing-variables choice the form shows.
+ * Anything else is refused.
  */
 export const settingsPatchSchema = settingsSchema
   .partial()
   .extend({
     missingVariables: z.enum(MISSING_VARIABLES_POLICIES).optional(),
-    webhookUrl: z.unknown().optional(),
-    provider: z.unknown().optional(),
   })
   .strict();
 

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { authorizedClient } from "../helpers/http";
+import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
@@ -51,7 +51,7 @@ async function markEvent(
   const settings = await api.get("/api/mailing/settings");
   const detail = await api.get(`${SENDS}/${sendId}`);
   const hook = await api.post(
-    "/api/mailing/events/manual",
+    eventsPath("manual"),
     { messageId: detail.data.send.providerMessageId, type, details },
     { headers: { "x-mailing-webhook-secret": settings.data.webhookSecret } },
   );

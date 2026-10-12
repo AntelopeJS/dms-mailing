@@ -2,7 +2,6 @@ import { expect } from "chai";
 import {
   categoryMoves,
   keptCategories,
-  parseCategories,
   reassignRemovedCategories,
 } from "../../services/categories";
 import { categoriesSchema } from "../../validation/settings.schema";
@@ -16,21 +15,6 @@ const CATEGORIES: TemplateCategory[] = [
 
 const template = (id: string, category?: string): MailingTemplate =>
   ({ _id: id, category }) as MailingTemplate;
-
-describe("[unit] services/categories parseCategories", () => {
-  it("reads the list the form field stores, as a string or an array", () => {
-    expect(parseCategories(JSON.stringify(CATEGORIES))).to.deep.equal(
-      CATEGORIES,
-    );
-    expect(parseCategories(CATEGORIES)).to.deep.equal(CATEGORIES);
-  });
-
-  it("answers an empty list for blank or broken input", () => {
-    expect(parseCategories("")).to.deep.equal([]);
-    expect(parseCategories("not json")).to.deep.equal([]);
-    expect(parseCategories(undefined)).to.deep.equal([]);
-  });
-});
 
 describe("[unit] services/categories reassignRemovedCategories", () => {
   it("leaves the templates of a removed category uncategorised", () => {
@@ -77,10 +61,6 @@ describe("[unit] services/categories moves", () => {
     expect(keptCategories(entries)).to.deep.equal(CATEGORIES);
     expect([...categoryMoves(entries)]).to.deep.equal([["gone", "orders"]]);
   });
-
-  it("is what a list with moves parses to", () => {
-    expect(parseCategories(entries)).to.deep.equal(CATEGORIES);
-  });
 });
 
 describe("[unit] validation categoriesSchema", () => {
@@ -90,14 +70,10 @@ describe("[unit] validation categoriesSchema", () => {
     ...patch,
   });
 
-  it("accepts the list as an array or as its JSON text", () => {
+  it("accepts the list as an array only", () => {
     expect(parse(CATEGORIES)).to.equal(true);
-    expect(parse(JSON.stringify(CATEGORIES))).to.equal(true);
-    expect(parse("")).to.equal(true);
-  });
-
-  it("refuses broken JSON instead of reading it as no category", () => {
-    expect(parse("[{")).to.equal(false);
+    expect(parse(JSON.stringify(CATEGORIES))).to.equal(false);
+    expect(parse("")).to.equal(false);
   });
 
   it("refuses a duplicate id, a blank label, a free id or an unknown icon", () => {

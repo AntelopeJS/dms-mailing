@@ -1,12 +1,12 @@
 import { expect } from "chai";
-import { authorizedClient } from "../helpers/http";
+import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
 const SETTINGS = "/api/mailing/settings";
-const EVENTS = "/api/mailing/events/status-check";
+const EVENTS = eventsPath("status-check");
 const SECRET_HEADER = "x-mailing-webhook-secret";
 
 type Client = ReturnType<typeof authorizedClient>;

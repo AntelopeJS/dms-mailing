@@ -211,16 +211,6 @@ export class MailingSettingsController extends Controller(
    */
   @Put("")
   async update(@RawBody() raw: Buffer): Promise<SettingsWriteResponse> {
-    return this.write(raw);
-  }
-
-  /** The same write, for callers posting their changes (`saveSettings`). */
-  @Post("")
-  async save(@RawBody() raw: Buffer): Promise<SettingsWriteResponse> {
-    return this.write(raw);
-  }
-
-  private async write(raw: Buffer): Promise<SettingsWriteResponse> {
     const patch = this.readPatch(raw);
     const current = await getSettings(this.tenantId);
     const merged = mergeSettingsPatch(current, patch);

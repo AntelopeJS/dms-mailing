@@ -2,34 +2,8 @@ import type { TemplateCategory } from '../types/mailing'
 
 const ID_SEPARATOR = '-'
 
-/**
- * Reads the category list off the settings form field, which stores it either
- * as the array or as the JSON string the DMS round-trips. Never throws: this
- * runs while rendering the field.
- */
-export function parseCategories(
-	value: TemplateCategory[] | string | null | undefined,
-): TemplateCategory[] {
-	if (Array.isArray(value)) return value
-	if (!value) return []
-	try {
-		const parsed: unknown = JSON.parse(value)
-		return Array.isArray(parsed) ? (parsed as TemplateCategory[]) : []
-	} catch {
-		return []
-	}
-}
-
 export function serializeCategories(categories: TemplateCategory[]): string {
 	return JSON.stringify(categories)
-}
-
-/** The value written back in the shape the field handed in (array or JSON). */
-export function formatCategoriesLike(
-	original: TemplateCategory[] | string | null | undefined,
-	categories: TemplateCategory[],
-): TemplateCategory[] | string {
-	return Array.isArray(original) ? categories : serializeCategories(categories)
 }
 
 /** The icons the categories editor offers ("Pick an icon"). */

@@ -3,7 +3,6 @@ import {
 	CATEGORY_ICONS,
 	categoryMoves,
 	categoryRowErrors,
-	formatCategoriesLike,
 	iconName,
 	keptCategories,
 	moveRow,
@@ -11,8 +10,6 @@ import {
 	withMoves,
 	fromCategoryOption,
 	NO_CATEGORY,
-	parseCategories,
-	serializeCategories,
 	slugifyId,
 	toCategoryOption,
 	toStoredCategories,
@@ -25,19 +22,6 @@ import type { TemplateCategory } from '../app/types/mailing'
 const CATEGORIES: TemplateCategory[] = [
 	{ id: 'orders', label: 'Orders', icon: 'i-ph-package' },
 ]
-
-describe('parseCategories', () => {
-	it('round-trips through the string form the form field stores', () => {
-		expect(parseCategories(serializeCategories(CATEGORIES))).toEqual(CATEGORIES)
-		expect(parseCategories('')).toEqual([])
-		expect(parseCategories('not json')).toEqual([])
-		expect(parseCategories(undefined)).toEqual([])
-	})
-
-	it('accepts an already-parsed array', () => {
-		expect(parseCategories(CATEGORIES)).toEqual(CATEGORIES)
-	})
-})
 
 describe('slugifyId', () => {
 	it('derives a stable id from a label', () => {
@@ -88,18 +72,6 @@ describe('toStoredCategory', () => {
 
 	it('keeps a real category id', () => {
 		expect(toStoredCategory('orders')).toBe('orders')
-	})
-})
-
-describe('formatCategoriesLike', () => {
-	it('writes back in the shape the field handed in', () => {
-		expect(formatCategoriesLike(CATEGORIES, CATEGORIES)).toEqual(CATEGORIES)
-		expect(formatCategoriesLike('[]', CATEGORIES)).toBe(
-			serializeCategories(CATEGORIES),
-		)
-		expect(formatCategoriesLike(null, CATEGORIES)).toBe(
-			serializeCategories(CATEGORIES),
-		)
 	})
 })
 
