@@ -1,3 +1,5 @@
+import { SETTINGS_PATH, TEMPLATES_PATH } from './pages'
+
 export type SetupStepId = 'provider' | 'sender' | 'publish' | 'test'
 
 export type SetupStepState = 'done' | 'current' | 'todo'
@@ -28,8 +30,7 @@ export interface SetupStep {
 }
 
 /** A settings form section, by the id the DMS form gives its anchor. */
-const SETTINGS_SECTION = '/modules/mailing/settings#dms-form-content-section-'
-const TEMPLATES_PAGE = '/modules/mailing/templates'
+const SETTINGS_SECTION = `${SETTINGS_PATH}#dms-form-content-section-`
 
 export const SETUP_STEPS: SetupStepDefinition[] = [
 	{
@@ -43,12 +44,12 @@ export const SETUP_STEPS: SetupStepDefinition[] = [
 	},
 	{
 		id: 'publish',
-		to: TEMPLATES_PAGE,
+		to: TEMPLATES_PATH,
 		isDone: (facts) => facts.liveTemplateCount > 0,
 	},
 	{
 		id: 'test',
-		to: TEMPLATES_PAGE,
+		to: TEMPLATES_PATH,
 		isDone: (facts) => facts.hasTestSend,
 	},
 ]

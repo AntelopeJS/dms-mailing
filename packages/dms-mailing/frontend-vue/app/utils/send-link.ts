@@ -1,7 +1,5 @@
 import type { SendResult } from '../composables/useMailingApi'
-
-/** The send log page. */
-export const SENDS_PATH = '/modules/mailing/sends'
+import { SENDS_PATH } from './pages'
 
 /** The DMS table's deep-link key: the send log opens that send's drawer. */
 const RECORD_QUERY_KEY = 'record'

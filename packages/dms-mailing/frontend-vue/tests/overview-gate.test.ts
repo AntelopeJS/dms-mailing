@@ -7,8 +7,11 @@ import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 const api = { setupFacts: vi.fn() }
 const hidesPeriod = ref(false)
 
+vi.mock('../app/composables/useMailingApi', () => ({
+	useMailingApi: () => api,
+}))
+
 vi.mock('../app/composables/useOverviewSetup', () => ({
-	useOverviewSetupApi: () => api,
 	useSetupHidesPeriod: () => hidesPeriod,
 }))
 

@@ -1,5 +1,4 @@
-/** The templates page; the editor is a record page under it. */
-export const TEMPLATES_PATH = '/modules/mailing/templates'
+import { TEMPLATES_PATH } from './pages'
 
 const PATH_SEPARATOR = '/'
 

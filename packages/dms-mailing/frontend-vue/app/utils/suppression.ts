@@ -1,10 +1,8 @@
 import type { SuppressionReason, SuppressionSummary } from '../types/mailing'
+import { SUPPRESSIONS_PATH } from './pages'
 
 /** The status of a send nothing was sent for: its address is suppressed. */
 export const SUPPRESSED_STATUS = 'suppressed'
-
-/** The suppression list page; `?email=` narrows it to one address. */
-export const SUPPRESSIONS_PATH = '/modules/mailing/suppressions'
 
 const EMAIL_QUERY_KEY = 'email'
 const KEY_PREFIX = 'dms_mailing.suppressions.'

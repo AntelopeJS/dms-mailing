@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-	TEMPLATES_PATH,
 	editorRoute,
 	recordLabelFor,
 	templateIdFrom,
 } from '../app/utils/editor-route'
+import { TEMPLATES_PATH } from '../app/utils/pages'
 
 describe('editorRoute', () => {
 	it('targets the record page under Templates', () => {

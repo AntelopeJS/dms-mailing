@@ -4,7 +4,7 @@ import type { EditorSession } from './useEditorSession'
 import type { EditorState } from './useTemplateEditor'
 import type { EditorShortcut } from '../utils/shortcuts'
 import { isTypingTarget, matchShortcut } from '../utils/shortcuts'
-import { TEMPLATES_PATH } from '../utils/editor-route'
+import { TEMPLATES_PATH } from '../utils/pages'
 
 const OPEN_DIALOG_SELECTOR =
 	'[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]'

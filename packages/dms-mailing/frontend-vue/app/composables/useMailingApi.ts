@@ -18,6 +18,8 @@ import type {
 	TemplateVersionSummary,
 	VariableDefinition,
 } from '../types/mailing'
+import type { SetupFacts } from '../utils/overview-setup'
+import type { WebhookStatus, WebhookTestResult } from '../utils/webhook-status'
 
 const BASE = '/api/mailing'
 
@@ -195,6 +197,11 @@ export function useMailingApi() {
 
 	return {
 		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
+		setupFacts: () => $authFetch<SetupFacts>(mailingPath('metrics', 'setup')),
+		webhookStatus: () =>
+			$authFetch<WebhookStatus>(mailingPath('settings', 'webhook-status')),
+		webhookTest: () =>
+			post<WebhookTestResult>(mailingPath('settings', 'webhook-test'), {}),
 		templateContent: (id: string) =>
 			$authFetch<TemplateContentResponse>(
 				mailingPath('templates', id, 'content'),

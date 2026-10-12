@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { SETTINGS_PATH } from '../../utils/pages'
 import { computed, onMounted } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
 
 const SETTINGS_PERMISSION = 'modules.mailing.configure.settings'
-const SETTINGS_PATH = '/modules/mailing/settings'
 const KEY = 'dms_mailing.editor'
 
 const { t } = useI18n()

@@ -14,7 +14,8 @@ import {
 	type GalleryContext,
 } from '../utils/gallery'
 import { attentionReasons } from '../utils/template-attention'
-import { TEMPLATES_PATH, editorRoute } from '../utils/editor-route'
+import { editorRoute } from '../utils/editor-route'
+import { TEMPLATES_PATH } from '../utils/pages'
 import type {
 	TemplateCategory,
 	TemplateRow,

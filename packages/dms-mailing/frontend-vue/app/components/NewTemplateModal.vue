@@ -14,10 +14,7 @@ import { NO_CATEGORY, fromCategoryOption } from '../utils/categories'
 import { groupByCategory, matchesSearch } from '../utils/gallery'
 import { slugify, validateName, validateSlug } from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
-import type {
-	StarterSummary,
-	TemplateRow,
-} from '../types/mailing'
+import type { StarterSummary, TemplateRow } from '../types/mailing'
 import type { CreateTemplateInput } from '../composables/useMailingApi'
 
 interface NewTemplateModalProps {

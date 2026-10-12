@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TEMPLATES_PATH } from '../utils/pages'
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useReplayToast } from '../composables/useReplayToast'
@@ -52,7 +53,6 @@ interface LinkedSend {
 	text: string
 }
 
-const EDITOR_PATH = '/modules/mailing/templates'
 const RENDERING_MODAL = 'MailingRenderingModal'
 const RENDERING_MODAL_SIZE = '3xl'
 const FIX_ADDRESS_MODAL = 'MailingFixAddressModal'
@@ -217,7 +217,7 @@ const originTitle = computed(() => {
 
 const editorLink = computed(() =>
 	send.value
-		? `${EDITOR_PATH}/${send.value.templateId}?locale=${send.value.locale}`
+		? `${TEMPLATES_PATH}/${send.value.templateId}?locale=${send.value.locale}`
 		: undefined,
 )
 

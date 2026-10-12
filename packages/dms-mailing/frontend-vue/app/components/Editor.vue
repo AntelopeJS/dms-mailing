@@ -3,7 +3,8 @@ import { computed, onMounted, ref } from 'vue'
 import type { TemplateContentResponse } from '../types/mailing'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useRecordLabel } from '../composables/useEditorContext'
-import { TEMPLATES_PATH, templateIdFrom } from '../utils/editor-route'
+import { templateIdFrom } from '../utils/editor-route'
+import { TEMPLATES_PATH } from '../utils/pages'
 import type { EditorRouteParams } from '../utils/editor-route'
 
 interface Props {

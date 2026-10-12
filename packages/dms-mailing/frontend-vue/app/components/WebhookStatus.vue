@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMailingOps } from '../composables/useMailingOps'
+import { useMailingApi } from '../composables/useMailingApi'
 import { formatCardDate } from '../utils/gallery'
 import {
 	type WebhookLineTone,
@@ -30,7 +30,7 @@ const TONE_CLASSES: Record<WebhookLineTone, string> = {
 	neutral: 'text-dimmed',
 }
 
-const ops = useMailingOps()
+const api = useMailingApi()
 const toast = useToast()
 const { t, locale } = useI18n()
 
@@ -56,7 +56,7 @@ function lineTime(line: WebhookStatusLine): string {
 
 async function load(): Promise<void> {
 	try {
-		status.value = await ops.webhookStatus()
+		status.value = await api.webhookStatus()
 	} catch {
 		status.value = null
 	} finally {
@@ -68,7 +68,7 @@ async function sendTest(): Promise<void> {
 	if (isTesting.value) return
 	isTesting.value = true
 	try {
-		const result = await ops.webhookTest()
+		const result = await api.webhookTest()
 		status.value = result.status
 		const message = webhookTestMessage(result)
 		toast.add({

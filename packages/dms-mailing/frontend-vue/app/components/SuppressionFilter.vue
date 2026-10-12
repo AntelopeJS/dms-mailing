@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { SUPPRESSIONS_PATH, suppressionFilterOf } from '../utils/suppression'
+import { SUPPRESSIONS_PATH } from '../utils/pages'
+import { suppressionFilterOf } from '../utils/suppression'
 
 const KEY_PREFIX = 'dms_mailing.suppressions.filter.'
 

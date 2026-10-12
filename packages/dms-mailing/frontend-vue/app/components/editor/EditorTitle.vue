@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
 import { useLocalizedDefaults } from '../../composables/useLocalizedDefaults'
-import { TEMPLATES_PATH } from '../../utils/editor-route'
+import { TEMPLATES_PATH } from '../../utils/pages'
 import type { StatusKey } from '../../utils/lifecycle'
 
 const STATUS_TONES: Record<StatusKey, string> = {

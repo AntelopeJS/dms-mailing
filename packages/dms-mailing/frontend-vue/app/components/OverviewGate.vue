@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import {
-	useOverviewSetupApi,
-	useSetupHidesPeriod,
-} from '../composables/useOverviewSetup'
+import { useMailingApi } from '../composables/useMailingApi'
+import { useSetupHidesPeriod } from '../composables/useOverviewSetup'
 import {
 	isSetupComplete,
 	needsSetup,
@@ -36,7 +34,7 @@ const STEP_BUTTON_VARIANTS: Record<SetupStepState, 'solid' | 'outline'> = {
 	todo: 'outline',
 }
 
-const api = useOverviewSetupApi()
+const api = useMailingApi()
 const { t } = useI18n()
 const { open: openModal } = useModal()
 const hidesPeriod = useSetupHidesPeriod(OVERVIEW_PERIOD_SCOPE)

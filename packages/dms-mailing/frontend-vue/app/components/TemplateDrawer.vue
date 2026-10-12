@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SENDS_PATH } from '../utils/pages'
 import { useElementSize } from '@vueuse/core'
 import {
 	useMailingApi,
@@ -61,7 +62,6 @@ interface LifecycleSpec {
 	confirmColor?: ConfirmTone
 }
 
-const SENDS_PATH = '/modules/mailing/sends'
 /** The send log reads these: `?template=` narrows it, `?view=` opens a tab. */
 const SENDS_TEMPLATE_KEY = 'template'
 const SENDS_VIEW_KEY = 'view'

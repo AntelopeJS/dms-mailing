@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SETTINGS_PATH } from '../utils/pages'
 import { onBeforeUnmount } from 'vue'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
@@ -47,7 +48,6 @@ interface ReadinessCheck {
 	state: CheckState
 }
 
-const SETTINGS_PATH = '/modules/mailing/settings'
 const SUBJECT_DELAY_MS = 300
 const PATH_LIST_SEPARATOR = ', '
 
