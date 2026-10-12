@@ -10,12 +10,12 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { GetApiBaseUrl } from "@antelopejs/interface-dms/api-base-url";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { z } from "zod";
-import { getConfig } from "../config";
 import { API_BASE_PATH, HTTP_BAD_REQUEST, HTTP_CONFLICT } from "../constants";
 import { parseBody } from "../data/body";
 import { SendModel, TemplateModel } from "../db";
@@ -57,8 +57,6 @@ const SENDER_NAME_IGNORED = "$dms_mailing.settings.sender_name_ignored";
 const WARNING_COLOR = "warning";
 const EVENTS_PATH = `${API_BASE_PATH}/events`;
 const DEFAULT_PROVIDER_SLUG = "provider";
-const FORWARDED_HOST_HEADER = "x-forwarded-host";
-const FORWARDED_PROTO_HEADER = "x-forwarded-proto";
 const TRAILING_SLASHES = /\/+$/;
 const NEXT_RUN_HOUR = 3;
 const NEXT_RUN_MINUTE = 15;
@@ -130,16 +128,14 @@ export function nextRetentionRun(now: Date = new Date()): Date {
 }
 
 /**
- * Where a provider posts the events of a tenant: the public API address the
- * module is configured with (else the one the request came through), the
- * provider and the tenant in the path.
+ * Where a provider posts the events of a tenant: the API origin, the provider
+ * and the tenant in the path.
  */
 function webhookUrl(
-  requestOrigin: string,
+  origin: string,
   provider: string | undefined,
   tenantId: string,
 ): string {
-  const origin = getConfig().publicApiUrl || requestOrigin;
   return [
     origin.replace(TRAILING_SLASHES, ""),
     EVENTS_PATH,
@@ -190,19 +186,18 @@ export class MailingSettingsController extends Controller(
     return getRequestTenantId(this.ctx);
   }
 
-  private origin(): string {
-    const { headers } = this.ctx.rawRequest;
-    const host = headers[FORWARDED_HOST_HEADER];
-    const proto = headers[FORWARDED_PROTO_HEADER];
-    if (typeof host === "string" && host)
-      return `${typeof proto === "string" && proto ? proto : "https"}://${host}`;
-    return this.ctx.url.origin;
+  /**
+   * The public API origin the DMS is configured with (`apiBaseUrl`), else
+   * this server's own. Never read from forwarding headers: the webhook test
+   * posts to it from the server.
+   */
+  private async apiOrigin(): Promise<string> {
+    return (await GetApiBaseUrl()) ?? this.ctx.url.origin;
   }
 
   /** The address the provider posts to, as the form shows it. */
-  private async providerWebhookUrl(): Promise<string> {
-    const capabilities = await readCapabilities();
-    return webhookUrl(this.origin(), capabilities?.name, this.tenantId);
+  private async providerWebhookUrl(provider?: string): Promise<string> {
+    return webhookUrl(await this.apiOrigin(), provider, this.tenantId);
   }
 
   @Get("")
@@ -213,7 +208,7 @@ export class MailingSettingsController extends Controller(
     ]);
     return {
       ...values,
-      webhookUrl: webhookUrl(this.origin(), capabilities?.name, this.tenantId),
+      webhookUrl: await this.providerWebhookUrl(capabilities?.name),
       provider: capabilities?.name ?? "",
       missingVariables: missingVariablesPolicy(values),
       revision: settingsRevision(values),
@@ -300,10 +295,11 @@ export class MailingSettingsController extends Controller(
    */
   @Post("/webhook-test")
   async webhookTest(): Promise<WebhookTestResponse> {
-    const [values, url] = await Promise.all([
+    const [values, capabilities] = await Promise.all([
       getSettings(this.tenantId),
-      this.providerWebhookUrl(),
+      readCapabilities(),
     ]);
+    const url = await this.providerWebhookUrl(capabilities?.name);
     const outcome = await sendWebhookTest(url, values.webhookSecret);
     return { ...outcome, status: await readWebhookStatus(this.tenantId) };
   }

@@ -153,29 +153,27 @@ The tenant data export carries the list as `suppressions.json`.
 
 ## Configuration
 
-The module takes two options, in the `config` of its entry in the project's
+The module takes one option, in the `config` of its entry in the project's
 `antelope.config.ts`:
 
 ```ts
 config: {
-  // Public address of the API, as an e-mail provider reaches it.
-  publicApiUrl: "https://api.example.com",
   // false renders with the module's own fallback HTML, not the DMS chain.
   useHtmlRender: true,
 },
 ```
 
-`publicApiUrl` is the origin the webhook URL of **Settings › Provider &
-webhook** starts with. Without it the settings show the address their own
-request came through, often an internal one (the DMS front-end proxies `/api`
-to the backend): set it as soon as a real provider has to reach the webhook.
+The webhook URL of **Settings › Provider & webhook** starts with the DMS
+`apiBaseUrl` (read through `GetApiBaseUrl`): set it in the `dms` module's
+config to the API's public origin as soon as a real provider has to reach the
+webhook. The URL never follows the headers of the request that reads it.
 
 ## Webhook contract
 
 The module has one generic event format. Provider events are posted to
 
 ```
-POST <publicApiUrl>/api/mailing/events/<provider>/<tenantId>
+POST <apiBaseUrl>/api/mailing/events/<provider>/<tenantId>
 ```
 
 the URL **Settings › Provider & webhook** shows, ready to copy. `<provider>`
@@ -278,7 +276,7 @@ A module of the same project can skip HTTP altogether and call
 `RecordEmailEvent(tenantId, event)` from the public interface. As long as the
 DMS front-end proxy refuses cross-site `POST`s without an `Origin` header and
 does not forward `x-mailing-webhook-secret`, the provider or the relay must
-reach the API directly: that is what `publicApiUrl` is for.
+reach the API directly: that is why the URL starts with the DMS `apiBaseUrl`.
 
 ## Retention
 

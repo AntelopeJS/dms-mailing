@@ -870,9 +870,9 @@
 					"received": "Événement de test reçu en {duration} ms",
 					"refused": "Le webhook a refusé l’événement de test",
 					"http_error": "L’URL du webhook a répondu {status}",
-					"proxy_hint": "Un proxy devant l’API refuse les appels des fournisseurs : renseignez dans publicApiUrl l’adresse publique de l’API.",
+					"proxy_hint": "Un proxy devant l’API refuse les appels des fournisseurs : renseignez dans apiBaseUrl du DMS l’adresse publique de l’API.",
 					"unreachable": "Impossible de joindre {url}",
-					"unreachable_hint": "{error}. Le serveur ne joint pas l’adresse qu’il affiche : vérifiez publicApiUrl dans la configuration du module."
+					"unreachable_hint": "{error}. Le serveur ne joint pas l’adresse qu’il affiche : vérifiez apiBaseUrl dans la configuration du DMS."
 				}
 			}
 		},

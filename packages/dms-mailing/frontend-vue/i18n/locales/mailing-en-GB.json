@@ -870,9 +870,9 @@
 					"received": "Test event received in {duration} ms",
 					"refused": "The webhook refused the test event",
 					"http_error": "The webhook URL answered {status}",
-					"proxy_hint": "A proxy in front of the API refuses provider calls: set the module’s publicApiUrl to the API’s public address.",
+					"proxy_hint": "A proxy in front of the API refuses provider calls: set the DMS apiBaseUrl to the API’s public address.",
 					"unreachable": "Could not reach {url}",
-					"unreachable_hint": "{error}. The server cannot reach the address it shows: check the module’s publicApiUrl."
+					"unreachable_hint": "{error}. The server cannot reach the address it shows: check the DMS apiBaseUrl."
 				}
 			}
 		},

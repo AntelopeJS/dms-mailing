@@ -108,6 +108,7 @@ export default defineConfig({
     dms: {
       source: SHARED_MODULE_SOURCES.dms,
       config: {
+        apiBaseUrl: `http://127.0.0.1:${API_PORT}`,
         auth: {
           jwtSecret: JWT_SECRET,
         },

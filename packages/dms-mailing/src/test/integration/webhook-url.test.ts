@@ -1,13 +1,11 @@
 import { expect } from "chai";
-import { getConfig, setConfig } from "../../config";
-import { authorizedClient, createClient } from "../helpers/http";
+import { authorizedClient, createClient, getBaseUrl } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
 const SETTINGS = "/api/mailing/settings";
 const EVENTS_PATH = "/api/mailing/events/";
-const PUBLIC_API_URL = "https://hooks.example.test/";
 const SECRET_HEADER = "x-mailing-webhook-secret";
 const OTHER_TENANT = "fix-l7-other-tenant";
 
@@ -23,17 +21,19 @@ async function readSettings() {
 }
 
 describe("[integration] webhook URL", () => {
-  it("starts with the public API address the module is configured with", async () => {
-    const previous = getConfig();
-    setConfig({ ...previous, publicApiUrl: PUBLIC_API_URL });
-    try {
-      const settings = await readSettings();
-      expect(settings.webhookUrl).to.match(
-        /^https:\/\/hooks\.example\.test\/api\/mailing\/events\/[^/]+\/[^/]+$/,
-      );
-    } finally {
-      setConfig(previous);
-    }
+  it("starts with the API base URL the DMS is configured with", async () => {
+    const settings = await readSettings();
+    expect(
+      settings.webhookUrl.startsWith(`${getBaseUrl()}${EVENTS_PATH}`),
+    ).to.equal(true);
+  });
+
+  it("ignores the forwarding headers of the request", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const headers = { "x-forwarded-host": "internal.example.test" };
+    const settings = (await client.get(SETTINGS, { headers })).data;
+    expect(settings.webhookUrl).not.to.contain("internal.example.test");
   });
 
   it("names the tenant, which the event route then records against", async () => {
