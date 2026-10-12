@@ -291,6 +291,50 @@ export interface PublishOutcome {
   changes: TemplateChange[];
 }
 
+/** What a publish ships: the working content and declarations. */
+interface Shipment {
+  content: TemplateContent;
+  variables: string;
+  version: number;
+  changes: TemplateChange[];
+}
+
+/**
+ * Keeps `shipment` as a version row for the history and makes it what
+ * customers receive, the draft cleared.
+ */
+async function ship(
+  tenantId: string,
+  template: MailingTemplate,
+  shipment: Shipment,
+  author: string,
+): Promise<void> {
+  const { content, variables, version, changes } = shipment;
+  const shipped = {
+    json_content: JSON.stringify(content),
+    json_variables: variables,
+    locales: localesOf(content),
+    publishedAt: new Date(),
+    publishedBy: author,
+  };
+  await GetModel(TemplateVersionModel, tenantId).insert({
+    ...shipped,
+    templateId: template._id,
+    version,
+    json_changes: JSON.stringify(changes),
+  });
+  await GetModel(TemplateModel, tenantId).update(template._id, {
+    ...shipped,
+    json_draft: "",
+    json_variables_draft: "",
+    isDraftPending: false,
+    draftRevision: template.draftRevision + 1,
+    status: "live",
+    publishedVersion: version,
+    updatedBy: author,
+  });
+}
+
 /**
  * Ships the working content: it becomes what `SendTemplate` sends, a version
  * row keeps it for the history, and the draft is cleared. Re-publishing a
@@ -303,38 +347,21 @@ export async function publishTemplate(
 ): Promise<PublishOutcome> {
   const previous = publishedVersionOf(template);
   const changes = pendingChanges(template);
-  if (previous > NEVER_PUBLISHED && changes.length === 0) {
-    await markLive(tenantId, template, previous, author);
-    await refreshTemplateAttention(tenantId);
-    return { version: previous, changes };
-  }
-  const content = workingContent(template);
-  const variables = JSON.stringify(workingVariables(template));
-  const version = previous + 1;
-  await GetModel(TemplateVersionModel, tenantId).insert({
-    templateId: template._id,
-    version,
-    json_content: JSON.stringify(content),
-    json_variables: variables,
-    locales: localesOf(content),
-    publishedAt: new Date(),
-    publishedBy: author,
-    json_changes: JSON.stringify(changes),
-  });
-  await GetModel(TemplateModel, tenantId).update(template._id, {
-    json_content: JSON.stringify(content),
-    json_variables: variables,
-    json_draft: "",
-    json_variables_draft: "",
-    isDraftPending: false,
-    draftRevision: template.draftRevision + 1,
-    locales: localesOf(content),
-    status: "live",
-    publishedVersion: version,
-    publishedAt: new Date(),
-    publishedBy: author,
-    updatedBy: author,
-  });
+  const isUnchanged = previous > NEVER_PUBLISHED && changes.length === 0;
+  const version = isUnchanged ? previous : previous + 1;
+  if (isUnchanged) await markLive(tenantId, template, previous, author);
+  else
+    await ship(
+      tenantId,
+      template,
+      {
+        content: workingContent(template),
+        variables: JSON.stringify(workingVariables(template)),
+        version,
+        changes,
+      },
+      author,
+    );
   await refreshTemplateAttention(tenantId);
   return { version, changes };
 }
