@@ -33,11 +33,11 @@ resolves:
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-dms` | `>=0.5.4 <1.0.0` (module and playground) |
+| `@antelopejs/interface-dms` | `>=0.5.6 <1.0.0` (module and playground; 0.5.6 exposes `GetApiBaseUrl`) |
 | `@antelopejs/interface-data-api` | `>=0.2.0 <1.0.0` |
 | `@antelopejs/interface-database` | `>=0.1.8 <1.0.0` |
 | `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.7.8 <0.8.0` (0.7.8 ships the side panel row target) |
+| `@antelopejs/dms` (shared module sources) | `>=0.7.11 <0.8.0` (0.7.10 ships `GetApiBaseUrl` and the side panel not-found state) |
 | `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
 | `@antelopejs/dms-frontend` (playground) | `0.5.3` |
 | `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.2 <0.6.0` |
@@ -45,7 +45,7 @@ resolves:
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
 keeps `<1.0.0` with its floor raised to 0.4. What pins the runtime is the
-`@antelopejs/dms` module range (`>=0.7.8 <0.8.0`) in the shared module
+`@antelopejs/dms` module range (`>=0.7.11 <0.8.0`) in the shared module
 sources, which the tests and the playground both boot.
 
 ### Q1.2 What breaks at compile time or at registration?

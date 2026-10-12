@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
-import { SHARED_MODULE_SOURCES } from "../antelope-modules";
+import { SHARED_MODULE_SOURCES } from "./antelope-modules";
 
 const API_PORT = 5019;
 const JWT_SECRET = "test-jwt-secret";

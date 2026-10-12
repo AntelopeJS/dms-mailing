@@ -1,5 +1,5 @@
 import { defineConfig } from "@antelopejs/interface-core/config";
-import { SHARED_MODULE_SOURCES } from "../src/antelope-modules";
+import { SHARED_MODULE_SOURCES } from "../src/test/antelope-modules";
 
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
 // A local SMTP server (`SMTP_PORT`) instead of Ethereal, for working offline.
