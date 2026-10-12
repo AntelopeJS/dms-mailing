@@ -215,63 +215,6 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
   };
 }
 
-interface EditParams {
-  id: string;
-}
-
-const trimmedName = (name: unknown) =>
-  typeof name === "string" ? { name: name.trim() } : {};
-
-/**
- * The body an edit may apply. Sends resolve templates by slug and nothing
- * enforces its uniqueness but the create checks, so a slug never changes once
- * set: a different one is refused, and the stored one is always written back.
- * The name is stored trimmed, the category must be one the settings declare.
- */
-async function guardedEdit(
-  tenantId: string,
-  templateId: string,
-  body: Buffer | string,
-): Promise<Buffer | string> {
-  const stored = await GetModel(TemplateModel, tenantId).get(templateId);
-  if (!stored) return body;
-  const edit = parseBody(body);
-  if (edit.slug !== undefined && edit.slug !== stored.slug) {
-    throw new HTTPResult(HTTP_CONFLICT, SLUG_IMMUTABLE);
-  }
-  const { categories } = await getSettings(tenantId);
-  assertKnownCategory(categories, edit.category);
-  return JSON.stringify({
-    ...edit,
-    ...trimmedName(edit.name),
-    slug: stored.slug,
-  });
-}
-
-function withFixedSlug(base: DataControllerCallback): DataControllerCallback {
-  return {
-    ...base,
-    func: async function (
-      this: unknown,
-      ctx: RequestContext,
-      params: EditParams,
-      body: Buffer | string,
-      ...rest: unknown[]
-    ) {
-      const guarded = await guardedEdit(
-        getRequestTenantId(ctx),
-        params.id,
-        body,
-      );
-      return base.func.call(this, ctx, params, guarded, ...rest);
-    },
-  };
-}
-
-interface DeleteParams {
-  id: string[];
-}
-
 /** Whether a template was ever sent, a test included. */
 async function wasSent(sends: SendModel, slug: string): Promise<boolean> {
   const count = await sends.table.getAll(slug, "templateSlug").count().run();
@@ -292,8 +235,25 @@ async function deleteRefusal(
   return isSent ? TEMPLATE_WAS_SENT : null;
 }
 
-async function assertDeletable(tenantId: string, ids: string[]) {
-  const model = GetModel(TemplateModel, tenantId);
+/** The fields of an edit the guard checks. */
+interface TemplateEdit {
+  slug?: unknown;
+  category?: unknown;
+  name?: unknown;
+}
+
+/** The field a refused blank name is reported under. */
+const BLANK_NAME = { message: INVALID_TEMPLATE, field: "name" };
+
+/** What a guard does once the write it let through is done. */
+type AfterWrite = () => Promise<void>;
+
+/** Only an archived template never sent can go. */
+export async function assertDeletable(
+  tenantId: string,
+  model: TemplateModel,
+  ids: string[],
+): Promise<void> {
   for (const id of ids) {
     const template = await model.get(id);
     const refusal = template && (await deleteRefusal(tenantId, template));
@@ -302,30 +262,43 @@ async function assertDeletable(tenantId: string, ids: string[]) {
 }
 
 /** A deleted template takes its published versions with it. */
-async function deleteVersions(tenantId: string, ids: string[]) {
-  const versions = GetModel(TemplateVersionModel, tenantId).table;
-  await Promise.all(
-    ids.map((id) => versions.getAll(id, "templateId").delete().run()),
-  );
+export function afterDelete(tenantId: string, ids: string[]): AfterWrite {
+  return async () => {
+    const versions = GetModel(TemplateVersionModel, tenantId).table;
+    await Promise.all(
+      ids.map((id) => versions.getAll(id, "templateId").delete().run()),
+    );
+    await refreshTemplateAttention(tenantId);
+  };
 }
 
-function withDeleteGuard(base: DataControllerCallback): DataControllerCallback {
-  return {
-    ...base,
-    func: async function (
-      this: unknown,
-      ctx: RequestContext,
-      params: DeleteParams,
-      ...rest: unknown[]
-    ) {
-      await authenticateTenantRequest(ctx);
-      const tenantId = getRequestTenantId(ctx);
-      await assertDeletable(tenantId, params.id);
-      const result = await base.func.call(this, ctx, params, ...rest);
-      await deleteVersions(tenantId, params.id);
-      await refreshTemplateAttention(tenantId);
-      return result;
-    },
+/**
+ * Sends resolve templates by slug and nothing enforces its uniqueness but the
+ * create checks, so a slug never changes once set; a category must be one the
+ * settings declare, and a name holds more than spaces.
+ */
+export async function assertEditable(
+  tenantId: string,
+  body: TemplateEdit,
+  current: Pick<MailingTemplate, "slug">,
+): Promise<void> {
+  if (body.slug !== undefined && body.slug !== current.slug)
+    throw new HTTPResult(HTTP_CONFLICT, SLUG_IMMUTABLE);
+  if (typeof body.name === "string" && !body.name.trim())
+    throw new HTTPResult(HTTP_BAD_REQUEST, BLANK_NAME);
+  const { categories } = await getSettings(tenantId);
+  assertKnownCategory(categories, body.category);
+}
+
+/** Stores an edited name trimmed, once the edit is written. */
+export function afterEdit(
+  model: TemplateModel,
+  id: string,
+  name: unknown,
+): AfterWrite | undefined {
+  if (typeof name !== "string" || name === name.trim()) return undefined;
+  return async () => {
+    await model.update(id, { name: name.trim() });
   };
 }
 
@@ -336,8 +309,6 @@ const isFlagged: FilterFunction<Record<string, unknown>> = (_context, proxy) =>
 const templateRoutes = {
   ...TableViewRoutes.All,
   new: withSeeding(TableViewRoutes.New),
-  edit: withFixedSlug(TableViewRoutes.Edit),
-  delete: withDeleteGuard(TableViewRoutes.Delete),
 };
 
 @RegisterDataController()

@@ -1,4 +1,5 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { ButtonVariant, Color } from "@antelopejs/interface-dms/base/types";
 import type { TableViewTab } from "@antelopejs/interface-dms/base";
@@ -11,7 +12,13 @@ import {
   NEW_TEMPLATE_BUTTON_ID,
   TEMPLATES_PATH,
 } from "../constants";
-import { TemplatesTableAPI } from "../data/templates-table";
+import {
+  afterDelete,
+  afterEdit,
+  assertDeletable,
+  assertEditable,
+  TemplatesTableAPI,
+} from "../data/templates-table";
 import { mailingNavCategory } from "./module";
 
 const TEMPLATES_ORDER = 1;
@@ -100,13 +107,22 @@ export class TemplatesPageController extends PageController(
       hint: "$dms_mailing.templates.footer.hint",
     },
     formContainer: { type: "drawer" },
+    guards: {
+      async delete(ctx, { ids }) {
+        const tenantId = getRequestTenantId(ctx);
+        await assertDeletable(tenantId, this.model, ids);
+        return afterDelete(tenantId, ids);
+      },
+      async edit(ctx, { id, body, current }) {
+        await assertEditable(getRequestTenantId(ctx), body, current);
+        return afterEdit(this.model, id, body.name);
+      },
+    },
     rowActions: {
       add: false,
       edit: true,
       details: false,
       duplicate: false,
-      // Only an archived template never sent can go: past sends render from
-      // it. The route refuses the others too.
       delete: {
         rule: {
           and: [
