@@ -58,7 +58,6 @@ const RENDERING_MODAL_SIZE = '3xl'
 const FIX_ADDRESS_MODAL = 'MailingFixAddressModal'
 const FIX_ADDRESS_MODAL_SIZE = 'md'
 const KEY_PREFIX = 'dms_mailing.sends.drawer.'
-const RECORD_QUERY_KEY = 'record'
 const RESOLVED_STAGE = 'resolved'
 const NO_VALUE = '—'
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -258,13 +257,13 @@ async function loadTracking(): Promise<void> {
 	}
 }
 
-/** Opens a linked send in this drawer, and in the URL so a reload keeps it. */
+/**
+ * Opens a linked send in this drawer. The URL keeps the row the table opened,
+ * which the DMS clears when the drawer closes.
+ */
 function showSend(id: string): void {
 	openedId.value = id
 	detail.value = null
-	const url = new URL(window.location.href)
-	url.searchParams.set(RECORD_QUERY_KEY, id)
-	window.history.replaceState(window.history.state, '', url)
 	void load()
 }
 
