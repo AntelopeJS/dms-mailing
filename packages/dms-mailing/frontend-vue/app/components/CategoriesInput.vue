@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { h, type Component, type Ref } from 'vue'
 import draggable from 'vuedraggable'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -48,6 +47,9 @@ const HANDLE_SELECTOR = '[data-drag-handle]'
 const MOVE_UP = -1
 const MOVE_DOWN = 1
 const FIELD_NAME = 'categories'
+const MOVE_FIELD_ID = 'moveTo'
+const MOVE_FIELD_TYPE = 'string'
+const MOVE_FIELD_COMPONENT = 'DmsSelect'
 const LABEL_PART = 'label'
 const ROW_FIELD_UI = { error: 'mt-1 ps-9 text-[12px]' }
 
@@ -55,7 +57,6 @@ const api = useMailingApi()
 const { t } = useI18n()
 const localized = useLocalizedDefaults()
 const { confirm } = useConfirm()
-const Select = resolveComponent('DmsSelect') as Component
 
 let nextKey = 0
 const keyOf = (): string => `category-${nextKey++}`
@@ -152,25 +153,29 @@ function moveOptions(row: EditableCategory): MoveOption[] {
 	return [{ value: NO_CATEGORY, label: key('move_none') }, ...targets]
 }
 
-function moveBody(row: EditableCategory, target: Ref<string>, count: number) {
-	return () =>
-		h('div', { class: 'flex flex-col gap-1.5' }, [
-			h('span', { class: 'text-sm font-medium' }, key('move_to', {}, count)),
-			h(Select, {
-				modelValue: target.value,
+/** The confirmation field naming where the removed row's templates go. */
+function moveField(row: EditableCategory, count: number) {
+	return {
+		id: MOVE_FIELD_ID,
+		label: key('move_to', {}, count),
+		type: MOVE_FIELD_TYPE,
+		component: {
+			componentName: MOVE_FIELD_COMPONENT,
+			options: {
 				items: moveOptions(row),
 				valueKey: 'value',
 				deselectable: false,
 				icon: 'i-ph-arrow-bend-down-right',
-				'onUpdate:modelValue': (value: string) => (target.value = value),
-			}),
-		])
+			},
+		},
+		defaultValue: NO_CATEGORY,
+	}
 }
 
 async function removeCategory(row: EditableCategory): Promise<void> {
 	const count = pendingCount(row)
 	if (!count) return dropRow(row, '')
-	const target = ref(NO_CATEGORY)
+	let target = NO_CATEGORY
 	const isConfirmed = await confirm({
 		title: key('remove_used_title', { label: row.label }),
 		description: key('remove_used_description', { count }, count),
@@ -179,9 +184,12 @@ async function removeCategory(row: EditableCategory): Promise<void> {
 		confirmLabel: key('remove'),
 		cancelLabel: t('dms_mailing.common.cancel'),
 		initialFocus: 'cancel',
-		body: moveBody(row, target, count),
+		fields: [moveField(row, count)],
+		onConfirm: async (values) => {
+			target = String(values[MOVE_FIELD_ID] ?? NO_CATEGORY)
+		},
 	})
-	if (isConfirmed) dropRow(row, fromCategoryOption(target.value))
+	if (isConfirmed) dropRow(row, fromCategoryOption(target))
 }
 
 function pickIcon(row: EditableCategory, icon: string): void {
