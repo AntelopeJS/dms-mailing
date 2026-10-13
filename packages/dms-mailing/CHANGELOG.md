@@ -1,6 +1,39 @@
 # Changelog
 
 
+## v0.4.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.4...v0.4.0)
+
+### 🚀 Enhancements
+
+- ⚠️  Port the mailing module to DMS v2 and its redesign ([#34](https://github.com/AntelopeJS/dms-mailing/pull/34))
+
+### 🩹 Fixes
+
+- **frontend-vue:** Send null to clear a template category ([#32](https://github.com/AntelopeJS/dms-mailing/pull/32))
+
+### 💅 Refactors
+
+- Namespace the gallery display id as mailing:gallery ([#33](https://github.com/AntelopeJS/dms-mailing/pull/33))
+
+### 📦 Build
+
+- **deps:** Require @antelopejs/interface-dms-mailing 0.7 ([#36](https://github.com/AntelopeJS/dms-mailing/pull/36))
+
+### 🏡 Chore
+
+- **playground:** Open module source ranges ([#30](https://github.com/AntelopeJS/dms-mailing/pull/30))
+- **release:** @antelopejs/interface-dms-mailing v0.7.0 ([a630cb8](https://github.com/AntelopeJS/dms-mailing/commit/a630cb8))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Port the mailing module to DMS v2 and its redesign ([#34](https://github.com/AntelopeJS/dms-mailing/pull/34))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.4
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.3...v0.3.4)
