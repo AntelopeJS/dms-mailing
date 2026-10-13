@@ -32,7 +32,7 @@ The v2 redesign neither reads what 0.3.x wrote nor takes its calls:
   as its JSON text, and always with the `marketing` category (it can be
   renamed, not removed: campaign rules depend on it).
 - **Interface.** The module implements `@antelopejs/interface-dms-mailing`
-  0.6, whose `SendStatus` adds `suppressed`.
+  0.7, whose `SendStatus` adds `suppressed`.
 - **Data.** A 0.3.x database is not read any more (settings rows without the
   tenant key, templates without version numbers, sends without a stage):
   start the module on an empty database.
@@ -353,7 +353,7 @@ DMS mailing module` publishes this package and refuses to run until the
 interface version its dependency range is floored at resolves on npm. Inside
 the workspace that same range resolves to the sibling package, through
 `link-workspace-packages`. The module implements the interface, so that range
-is capped below the next minor (`>=0.6.0 <0.7.0`): a breaking interface minor
+is capped below the next minor (`>=0.7.0 <0.8.0`): a breaking interface minor
 never reaches a module that does not implement it, and the release workflow
 refuses any other shape.
 
