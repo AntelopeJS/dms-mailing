@@ -22,7 +22,7 @@ async function readSettings() {
 }
 
 describe("[integration] webhook URL", () => {
-  it("starts with the API base URL the DMS is configured with", async () => {
+  it("starts with the dashboard URL the DMS is configured with", async () => {
     const settings = await readSettings();
     expect(
       settings.webhookUrl.startsWith(`${getBaseUrl()}${EVENTS_PATH}`),

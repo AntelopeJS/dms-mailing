@@ -109,6 +109,9 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.dms,
       config: {
         apiBaseUrl: `http://127.0.0.1:${API_PORT}`,
+        // No frontend server runs here: the dashboard URL is the API, whose
+        // paths the front proxy serves unchanged.
+        clientBaseUrl: `http://127.0.0.1:${API_PORT}`,
         auth: {
           jwtSecret: JWT_SECRET,
         },

@@ -10,6 +10,7 @@ import {
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetApiBaseUrl } from "@antelopejs/interface-dms/api-base-url";
+import { GetClientBaseUrl } from "@antelopejs/interface-dms/client-base-url";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -176,17 +177,23 @@ export class MailingSettingsController extends Controller(
   }
 
   /**
-   * The public API origin the DMS is configured with (`apiBaseUrl`), else
-   * this server's own. Never read from forwarding headers: the webhook test
-   * posts to it from the server.
+   * The origin a provider reaches the event route on: the dashboard's public
+   * URL (`clientBaseUrl`), whose proxy serves the route to anonymous callers
+   * as a declared public endpoint; else the API origin (`apiBaseUrl`), else
+   * this server's own. Always from the DMS configuration, never from
+   * forwarding headers: the webhook test posts to it from the server.
    */
-  private async apiOrigin(): Promise<string> {
-    return (await GetApiBaseUrl()) ?? this.ctx.url.origin;
+  private async publicOrigin(): Promise<string> {
+    return (
+      (await GetClientBaseUrl()) ??
+      (await GetApiBaseUrl()) ??
+      this.ctx.url.origin
+    );
   }
 
   /** The address the provider posts to, as the form shows it. */
   private async providerWebhookUrl(provider?: string): Promise<string> {
-    return webhookUrl(await this.apiOrigin(), provider, this.tenantId);
+    return webhookUrl(await this.publicOrigin(), provider, this.tenantId);
   }
 
   @Get("")

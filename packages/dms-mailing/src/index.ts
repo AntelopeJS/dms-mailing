@@ -8,7 +8,7 @@ import {
   unregisterAutomationNodes,
 } from "./automation";
 import { type DmsMailingConfig, setConfig } from "./config";
-import { FRONTEND_MODULE_NAME } from "./constants";
+import { API_BASE_PATH, FRONTEND_MODULE_NAME } from "./constants";
 import {
   ATTENTION_JOB,
   RETENTION_JOB,
@@ -18,6 +18,7 @@ import {
 } from "./crons";
 import { registerTenantExport, unregisterTenantExport } from "./hooks";
 import { registerRealtimeTopics } from "./realtime";
+import { WEBHOOK_SECRET_HEADER } from "./services/webhook-status";
 
 export * from "./data";
 export * from "./data-types";
@@ -27,6 +28,18 @@ export * from "./routes";
 export type { DmsMailingConfig } from "./config";
 
 const CRON_JOBS = [RETENTION_JOB, ATTENTION_JOB];
+
+/**
+ * The provider webhook (`/events/:provider/:tenantId`), served through the
+ * dashboard's public URL: the front proxy lets it through without an
+ * `Origin`, never sends it a session and relays the secret header, which the
+ * route checks itself.
+ */
+const PROVIDER_WEBHOOK_ENDPOINT = {
+  path: `${API_BASE_PATH}/events/*/*`,
+  methods: ["POST"],
+  headers: [WEBHOOK_SECRET_HEADER],
+};
 
 let scheduledJobs: ScheduledJob[] = [];
 
@@ -45,6 +58,7 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
     renderer: { name: "vue", version: "3" },
     options: { dmsMailing: {} },
     priority: 0,
+    publicEndpoints: [PROVIDER_WEBHOOK_ENDPOINT],
   });
 }
 
