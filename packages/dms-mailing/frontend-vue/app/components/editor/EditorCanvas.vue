@@ -4,8 +4,7 @@ import { useEditorContext } from '../../composables/useEditorContext'
 import { useEditorAnnouncements } from '../../composables/useEditorAnnouncements'
 import { TOKEN_DATA_KEY } from '../../utils/tokens'
 import type { TokenData } from '../../utils/tokens'
-import { brandingLogoUrl } from '../../utils/email-logo'
-import type { EmailBrandingConfig } from '../../utils/email-logo'
+import { emailLogoUrl } from '#dms-layout/app/emails/components/index'
 
 const DEVICE_WIDTHS: Record<string, number> = {
 	desktop: 600,
@@ -19,13 +18,21 @@ const SCROLL_OPTIONS: ScrollIntoViewOptions = {
 	behavior: 'smooth',
 }
 
+/** The DMS app config the e-mail logo is read from. */
+interface EmailBrandingConfig {
+	branding?: { logo?: { default?: { light?: string } } }
+}
+
 const { t } = useI18n()
 const { editor, session } = useEditorContext()
 useEditorAnnouncements(editor)
 
-/** The logo header the sent e-mail carries, when it can carry one. */
-const logoUrl = brandingLogoUrl(
-	useDmsAppConfig() as EmailBrandingConfig,
+/**
+ * The logo header the sent e-mail carries, when it can carry one: the check
+ * `EmailLayout` runs with `publicLogoOnly`.
+ */
+const logoUrl = emailLogoUrl(
+	(useDmsAppConfig() as EmailBrandingConfig).branding?.logo?.default?.light,
 	useDmsRuntimeConfig().public.dms?.clientBaseUrl ?? '',
 )
 
