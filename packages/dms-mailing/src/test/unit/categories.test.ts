@@ -4,6 +4,7 @@ import {
   keptCategories,
   reassignRemovedCategories,
 } from "../../services/categories";
+import { mailingSettingsForm } from "../../pages/settings/form";
 import { categoriesSchema } from "../../validation/settings.schema";
 import type { MailingTemplate } from "../../db";
 import type { TemplateCategory } from "../../types";
@@ -13,6 +14,15 @@ const CATEGORIES: TemplateCategory[] = [
   { id: "billing", label: "Billing", icon: "i-ph-file-text" },
   { id: "marketing", label: "Marketing", icon: "i-ph-sparkle" },
 ];
+
+const LABEL_REQUIRED = "$dms_mailing.settings.categories.label_required";
+const LABEL_DUPLICATE = "$dms_mailing.settings.categories.label_duplicate";
+
+interface JsonSchema {
+  properties: Record<string, JsonSchema>;
+  items: JsonSchema;
+  anyOf: JsonSchema[];
+}
 
 const template = (id: string, category?: string): MailingTemplate =>
   ({ _id: id, category }) as MailingTemplate;
@@ -91,6 +101,29 @@ describe("[unit] validation categoriesSchema", () => {
     ]);
     expect(result.success).to.equal(false);
     expect(result.error?.issues[0]?.path).to.deep.equal([3, "label"]);
+  });
+
+  it("names every blank row and every repeated one in one pass", () => {
+    const result = categoriesSchema.safeParse([
+      ...CATEGORIES,
+      { id: "category", label: "  ", icon: "i-ph-gift" },
+      { id: "orders-2", label: "Orders", icon: "i-ph-gift" },
+    ]);
+    expect(
+      result.error?.issues.map(({ path, message }) => ({ path, message })),
+    ).to.deep.equal([
+      { path: [3, "label"], message: LABEL_REQUIRED },
+      { path: [4, "label"], message: LABEL_DUPLICATE },
+    ]);
+  });
+
+  it("leaves the label's minimum out of the form's own check", () => {
+    const schema = mailingSettingsForm.serializeSync().options
+      ?.schema as JsonSchema;
+    const [list] = schema.properties.categories.anyOf;
+    const label = list?.items.properties.label;
+    expect(label).to.have.property("maxLength");
+    expect(label).to.not.have.property("minLength");
   });
 
   it("refuses a list without the marketing category", () => {

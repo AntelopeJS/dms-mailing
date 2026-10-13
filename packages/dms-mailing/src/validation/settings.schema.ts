@@ -21,6 +21,7 @@ const messageKey = (path: string): string => `$dms_mailing.settings.${path}`;
 const LABEL_REQUIRED = messageKey("categories.label_required");
 const CATEGORY_DUPLICATE = messageKey("categories.label_duplicate");
 const MARKETING_REQUIRED = messageKey("categories.marketing_required");
+const LABEL_PART = "label";
 const UNKNOWN_MOVE_TARGET = "$dms.field_errors.invalid";
 export const WEBHOOK_SECRET_TOO_SHORT = messageKey(
   "fields.webhookSecret.too_short",
@@ -30,7 +31,7 @@ const MISSING_VARIABLES_POLICIES = ["refuse", "send"] as const;
 
 export const categorySchema = z.object({
   id: z.string().max(MAX_NAME_LENGTH).regex(SLUG_PATTERN),
-  label: z.string().trim().min(1, LABEL_REQUIRED).max(MAX_NAME_LENGTH),
+  label: z.string().trim().max(MAX_NAME_LENGTH),
   icon: z.string().regex(CATEGORY_ICON_PATTERN),
 });
 
@@ -61,16 +62,27 @@ function duplicateIssues(entries: CategoryEntry[]): CategoryIssue[] {
   const ids = new Set<string>();
   const issues: CategoryIssue[] = [];
   entries.forEach((entry, index) => {
-    if (!isKept(entry)) return;
+    if (!isKept(entry) || !entry.label) return;
     const label = entry.label.toLocaleLowerCase();
     if (labels.has(label))
-      issues.push({ message: CATEGORY_DUPLICATE, path: [index, "label"] });
+      issues.push({ message: CATEGORY_DUPLICATE, path: [index, LABEL_PART] });
     else if (ids.has(entry.id))
       issues.push({ message: CATEGORY_DUPLICATE, path: [index, "id"] });
     labels.add(label);
     ids.add(entry.id);
   });
   return issues;
+}
+
+/**
+ * A row left without a label. Checked with the whole list rather than as the
+ * label's own minimum, which the form would turn into a browser-side check:
+ * the server words it, under the row, together with the other row issues.
+ */
+function blankLabelIssues(entries: CategoryEntry[]): CategoryIssue[] {
+  return entries.flatMap((entry, index) =>
+    entry.label ? [] : [{ message: LABEL_REQUIRED, path: [index, LABEL_PART] }],
+  );
 }
 
 function marketingIssues(kept: Set<string>): CategoryIssue[] {
@@ -96,6 +108,7 @@ function refineCategoryEntries(
 ): void {
   const kept = new Set(entries.filter(isKept).map((entry) => entry.id));
   [
+    ...blankLabelIssues(entries),
     ...duplicateIssues(entries),
     ...marketingIssues(kept),
     ...moveIssues(entries, kept),
