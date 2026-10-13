@@ -585,7 +585,7 @@ Kept:
 | Workaround | Why |
 | --- | --- |
 | Hidden searchable "Send id" column | The table search still matches only a field with a column or a filter; finding a send by the id a log or a webhook names (SE-12) needs it. dms#226 is about `?record=` links, not search |
-| `SendDrawer` swaps to a linked send in place | Not a workaround any more: it no longer writes `?record=` (the DMS now also opens a row when a same-page link changes it, dms#226, and toasts a link to a row that is gone) |
+| `SendDrawer` swaps to a linked send in place | Not a workaround any more: it no longer writes `?record=` (the DMS now also opens a row when a same-page link changes it, dms#226, and opens a link to a row that is gone on an empty side panel: "This entry is no longer available") |
 | `MailingWebhookStatus` as a form field | A form section only holds fields, no display block |
 
 Planned but left out, because the module would look different: the
