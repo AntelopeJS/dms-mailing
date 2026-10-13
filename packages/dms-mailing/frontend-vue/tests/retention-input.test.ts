@@ -1,14 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-	computed,
-	createApp,
-	h,
-	inject,
-	nextTick,
-	onBeforeUnmount,
-	reactive,
-	type App,
-} from 'vue'
+import { computed, createApp, h, nextTick, reactive, type App } from 'vue'
 import RetentionInput from '../app/components/RetentionInput.vue'
 import {
 	flush,
@@ -26,7 +17,6 @@ vi.mock('../app/composables/useMailingApi', () => ({
 	useMailingApi: () => api,
 }))
 
-const FORM_VALIDATOR_KEY = Symbol('form-validator')
 const SAVED_DAYS = 90
 const DEBOUNCE_MS = 400
 
@@ -35,6 +25,7 @@ type Validator = () => boolean
 interface Harness {
 	state: { days: number; initial: number }
 	validators: Set<Validator>
+	submit: ReturnType<typeof vi.fn>
 	host: HTMLElement
 	app: App
 }
@@ -46,6 +37,15 @@ function preview(days: number, count: number): RetentionPreview {
 function mountRetention(): Harness {
 	const state = reactive({ days: SAVED_DAYS, initial: SAVED_DAYS })
 	const validators = new Set<Validator>()
+	const submit = vi.fn(async () => undefined)
+	vi.stubGlobal('useEnclosingForm', () => ({
+		submit,
+		addValidator: (validator: Validator) => {
+			validators.add(validator)
+			return () => validators.delete(validator)
+		},
+		focusField: async () => undefined,
+	}))
 	const host = document.createElement('div')
 	document.body.appendChild(host)
 	const app = createApp({
@@ -56,16 +56,12 @@ function mountRetention(): Harness {
 				'onUpdate:modelValue': (value: number) => (state.days = value),
 			}),
 	})
-	app.provide(FORM_VALIDATOR_KEY, (validator: Validator) => {
-		validators.add(validator)
-		return () => validators.delete(validator)
-	})
 	app.component('DmsSegmented', slotStub('DmsSegmented'))
 	app.component('UInputNumber', slotStub('UInputNumber'))
 	app.component('UAlert', slotStub('UAlert'))
 	app.config.warnHandler = () => undefined
 	app.mount(host)
-	return { state, validators, host, app }
+	return { state, validators, submit, host, app }
 }
 
 function segmented(host: HTMLElement): HTMLElement {
@@ -80,9 +76,6 @@ describe('RetentionInput', () => {
 		vi.useFakeTimers()
 		stubs = stubNuxtGlobals()
 		vi.stubGlobal('computed', computed)
-		vi.stubGlobal('inject', inject)
-		vi.stubGlobal('onBeforeUnmount', onBeforeUnmount)
-		vi.stubGlobal('FORM_VALIDATOR_KEY', FORM_VALIDATOR_KEY)
 		api.retentionPreview.mockImplementation(async (days: number) =>
 			preview(days, days < SAVED_DAYS ? 3 : 0),
 		)
@@ -118,6 +111,7 @@ describe('RetentionInput', () => {
 		expect(validator?.()).toBe(false)
 		await flush()
 		expect(stubs.confirmations).toHaveLength(1)
+		expect(harness.submit).toHaveBeenCalledTimes(1)
 		expect(validator?.()).toBe(true)
 	})
 
@@ -130,5 +124,6 @@ describe('RetentionInput', () => {
 		const [validator] = [...harness.validators]
 		expect(validator?.()).toBe(true)
 		expect(stubs.confirmations).toHaveLength(0)
+		expect(harness.submit).not.toHaveBeenCalled()
 	})
 })

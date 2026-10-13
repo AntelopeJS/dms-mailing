@@ -38,7 +38,7 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
 const api = useMailingApi()
 const { t, locale } = useI18n()
 const { confirm } = useConfirm()
-const registerValidator = inject(FORM_VALIDATOR_KEY, null)
+const form = useEnclosingForm()
 
 function toDays(value: number | string | null | undefined): number | null {
 	const raw = Number(value)
@@ -48,7 +48,6 @@ function toDays(value: number | string | null | undefined): number | null {
 const days = computed(() => toDays(props.modelValue ?? props.initialValue))
 const savedDays = computed(() => toDays(props.initialValue))
 
-const root = ref<HTMLElement | null>(null)
 const isCustomPicked = ref(false)
 let lastEmitted: number | null = null
 let confirmedDays: number | null = null
@@ -138,7 +137,7 @@ async function confirmDeletion(value: RetentionPreview): Promise<void> {
 	})
 	if (!isConfirmed) return
 	confirmedDays = value.days
-	root.value?.closest('form')?.requestSubmit()
+	await form?.submit()
 }
 
 /** Holds a save that deletes sends until it is confirmed. */
@@ -172,12 +171,11 @@ watch(
 	},
 )
 
-const unregisterValidator = registerValidator?.(guardSubmit)
-onBeforeUnmount(() => unregisterValidator?.())
+form?.addValidator(guardSubmit)
 </script>
 
 <template>
-	<div ref="root" class="flex flex-col gap-2">
+	<div class="flex flex-col gap-2">
 		<div class="flex flex-wrap items-center gap-2">
 			<DmsSegmented
 				v-model="choice"

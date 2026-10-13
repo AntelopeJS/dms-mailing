@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useControlError } from '#dms-ui/app/build/composables/form/useControlError'
 import { languageLabel } from '../utils/locales'
 
 interface LocaleSelectProps {
