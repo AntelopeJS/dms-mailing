@@ -6,6 +6,7 @@ export type ProblemKind =
 	| 'rejected_spam'
 	| 'spam_report'
 	| 'provider_timeout'
+	| 'provider_unreachable'
 	| 'rejected'
 	| 'provider_error'
 	| 'unsubscribed'
@@ -66,8 +67,14 @@ const PROBLEM_RULES: ProblemRule[] = [
 		kind: 'provider_timeout',
 		icon: 'i-ph-plugs',
 		statuses: ['failed'],
+		pattern: /time(d)? ?out|ETIMEDOUT|did ?n[o']t answer/i,
+	},
+	{
+		kind: 'provider_unreachable',
+		icon: 'i-ph-plugs',
+		statuses: ['failed'],
 		pattern:
-			/time(d)? ?out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|did ?n[o']t answer|unreachable/i,
+			/ECONNREFUSED|ECONNRESET|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|connection refused|unreachable/i,
 	},
 	{ kind: 'rejected', icon: 'i-ph-arrow-u-up-left', statuses: ['bounced'] },
 	{ kind: 'provider_error', icon: 'i-ph-warning', statuses: ['failed'] },
@@ -95,6 +102,7 @@ const NO_REASON_SUFFIX = '_no_reason'
  */
 const KINDS_ADVISING_SEND_AGAIN = new Set<ProblemKind>([
 	'provider_timeout',
+	'provider_unreachable',
 	'provider_error',
 ])
 const NO_ADVICE_SUFFIX = '_no_advice'

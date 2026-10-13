@@ -675,6 +675,11 @@
 					"description": "Nothing was delivered. Sending again is safe.",
 					"description_no_advice": "Nothing was delivered."
 				},
+				"provider_unreachable": {
+					"title": "{provider} couldn’t be reached",
+					"description": "The connection was refused or the server wasn’t found: nothing was delivered. Sending again is safe once the provider’s address is fixed.",
+					"description_no_advice": "The connection was refused or the server wasn’t found: nothing was delivered."
+				},
 				"rejected": {
 					"title": "The recipient’s server refused it",
 					"description": "{domain} sent it back: {error}",

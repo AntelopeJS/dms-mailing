@@ -43,6 +43,30 @@ describe('describeProblem', () => {
 		})
 	})
 
+	it.each([
+		['connect ECONNREFUSED 127.0.0.1:1025', 'provider_unreachable'],
+		['getaddrinfo ENOTFOUND smtp.example.test', 'provider_unreachable'],
+		['connect EHOSTUNREACH 10.0.0.9:587', 'provider_unreachable'],
+		['read ECONNRESET', 'provider_unreachable'],
+		['connect ETIMEDOUT 10.0.0.9:587', 'provider_timeout'],
+		['Connection timeout', 'provider_timeout'],
+	])('reads the failure "%s" as %s', (error, kind) => {
+		expect(describeProblem(send({ status: 'failed', error }))?.kind).toBe(kind)
+	})
+
+	it('tells an unreachable provider apart from a slow one', () => {
+		const problem = describeProblem(
+			send({ status: 'failed', error: 'connect ECONNREFUSED 127.0.0.1:1025' }),
+			'nodemailer',
+			false,
+		)
+		expect(problem).toMatchObject({
+			titleKey: 'dms_mailing.sends.problems.provider_unreachable.title',
+			descriptionKey:
+				'dms_mailing.sends.problems.provider_unreachable.description_no_advice',
+		})
+	})
+
 	it('falls back on a generic provider error', () => {
 		expect(
 			describeProblem(send({ status: 'failed', error: 'Invalid API key' }))

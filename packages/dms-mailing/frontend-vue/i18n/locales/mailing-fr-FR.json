@@ -675,6 +675,11 @@
 					"description": "Rien n’a été distribué. Le renvoyer est sans risque.",
 					"description_no_advice": "Rien n’a été distribué."
 				},
+				"provider_unreachable": {
+					"title": "{provider} est injoignable",
+					"description": "La connexion a été refusée ou le serveur est introuvable : rien n’a été distribué. Le renvoyer est sans risque une fois l’adresse du fournisseur corrigée.",
+					"description_no_advice": "La connexion a été refusée ou le serveur est introuvable : rien n’a été distribué."
+				},
 				"rejected": {
 					"title": "Le serveur du destinataire l’a refusé",
 					"description": "{domain} l’a refusé : {error}",
