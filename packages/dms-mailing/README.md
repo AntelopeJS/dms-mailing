@@ -12,7 +12,7 @@ dashboard and settings. It owns the data (tenant-scoped Mongo tables), renders
 e-mails through the DMS html-render chain and sends them through
 `@antelopejs/interface-email`.
 
-The module targets `@antelopejs/dms` 0.7 (0.7.11 or later) and `@antelopejs/dms-frontend` 0.5.
+The module targets `@antelopejs/dms` 0.7 (0.7.15 or later) and `@antelopejs/dms-frontend` 0.5 (0.5.4 or later).
 Like every DMS module, its pages live in the module's own sidebar (Mailing:
 Overview, Templates, Sends; Configure: Settings, Suppression list) and are
 reserved to the platform owner. The design decisions behind the v2 screens are recorded in
@@ -174,16 +174,21 @@ config: {
 ```
 
 The webhook URL of **Settings › Provider & webhook** starts with the DMS
-`apiBaseUrl` (read through `GetApiBaseUrl`): set it in the `dms` module's
-config to the API's public origin as soon as a real provider has to reach the
-webhook. The URL never follows the headers of the request that reads it.
+`clientBaseUrl`, the dashboard's public origin (read through
+`GetClientBaseUrl`): set it in the `dms` module's config as soon as a real
+provider has to reach the webhook. The module declares the route a public
+endpoint of the dashboard, so the frontend server's proxy lets a provider's
+`POST` through without an `Origin`, never sends it a session and relays the
+`x-mailing-webhook-secret` header. The URL never follows the headers of the
+request that reads it. A provider already posting to the API origin
+(`apiBaseUrl`) keeps working: the path and the header are the same.
 
 ## Webhook contract
 
 The module has one generic event format. Provider events are posted to
 
 ```
-POST <apiBaseUrl>/api/mailing/events/<provider>/<tenantId>
+POST <clientBaseUrl>/api/mailing/events/<provider>/<tenantId>
 ```
 
 the URL **Settings › Provider & webhook** shows, ready to copy. `<provider>`
@@ -195,7 +200,7 @@ header (Settings › Provider & webhook; rotating it invalidates the old one at
 once). The body is JSON:
 
 ```sh
-curl -X POST https://api.example.com/api/mailing/events/postmark/<tenantId> \
+curl -X POST https://dms.example.com/api/mailing/events/postmark/<tenantId> \
   -H "Content-Type: application/json" \
   -H "x-mailing-webhook-secret: <secret>" \
   -d '{"messageId":"<provider message id>","type":"bounced","at":"2026-09-09T10:00:00.000Z","details":{"reason":"550 5.1.1 No such user","bounceType":"hard","eventId":"<provider event id>"}}'
@@ -281,10 +286,10 @@ export async function relayPostmark(event: PostmarkEvent): Promise<void> {
 ```
 
 A module of the same project can skip HTTP altogether and call
-`RecordEmailEvent(tenantId, event)` from the public interface. As long as the
-DMS front-end proxy refuses cross-site `POST`s without an `Origin` header and
-does not forward `x-mailing-webhook-secret`, the provider or the relay must
-reach the API directly: that is why the URL starts with the DMS `apiBaseUrl`.
+`RecordEmailEvent(tenantId, event)` from the public interface. A provider or
+a relay posts through the dashboard's URL, as a public endpoint the module
+declares (`AddFrontendModule({ publicEndpoints })`), or straight to the API on
+`apiBaseUrl` when it is reachable: the path and the header are the same.
 
 ## Retention
 

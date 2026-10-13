@@ -33,19 +33,19 @@ resolves:
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-dms` | `>=0.5.6 <1.0.0` (module and playground; 0.5.6 exposes `GetApiBaseUrl`) |
-| `@antelopejs/interface-data-api` | `>=0.2.0 <1.0.0` |
-| `@antelopejs/interface-database` | `>=0.1.8 <1.0.0` |
+| `@antelopejs/interface-dms` | `>=0.5.10 <1.0.0` (module and playground; 0.5.10 types `publicEndpoints` and visible `queryParamFilters`) |
+| `@antelopejs/interface-data-api` | `>=0.2.1 <1.0.0` |
+| `@antelopejs/interface-database` | `>=0.1.9 <1.0.0` (interface-data-api 0.2.1 calls its `IsStream`) |
 | `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.7.11 <0.8.0` (0.7.10 ships `GetApiBaseUrl` and the side panel not-found state) |
+| `@antelopejs/dms` (shared module sources) | `>=0.7.15 <0.8.0` (0.7.15 ships the fixes listed in §12) |
 | `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
-| `@antelopejs/dms-frontend` (playground) | `0.5.3` |
-| `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.2 <0.6.0` |
+| `@antelopejs/dms-frontend` (playground) | `0.5.4` |
+| `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.4 <0.6.0` (public endpoints, e-mails without SSR markers) |
 
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
 keeps `<1.0.0` with its floor raised to 0.4. What pins the runtime is the
-`@antelopejs/dms` module range (`>=0.7.11 <0.8.0`) in the shared module
+`@antelopejs/dms` module range (`>=0.7.15 <0.8.0`) in the shared module
 sources, which the tests and the playground both boot.
 
 ### Q1.2 What breaks at compile time or at registration?
@@ -567,17 +567,25 @@ compatibility shim and nothing the DMS already provides. What changed:
   (`KpiCardData`).
 - **Needs attention** became a TableView tab (§Q3.6).
 
-Workarounds kept, each waiting on a DMS defect, to remove in a follow-up:
+Workarounds removed once the DMS fixed their defect (dms 0.7.15,
+interface-dms 0.5.10, dms-frontend 0.5.4):
 
-| Workaround | DMS defect |
+| Workaround | Replaced by |
 | --- | --- |
-| Webhook URL on the API origin (`GetApiBaseUrl`), not the front's | The front proxy refuses a `POST` without `Origin` and does not forward `x-mailing-webhook-secret` |
-| `stripRenderMarkers` (`services/render.ts`) | `GenerateHtml` keeps Vue SSR comment markers in e-mail HTML |
-| `EmailMailingTemplate.vue` forks `EmailLayout` | `EmailLayout` forces the subject as `h1` with a separator, and keeps SVG / localhost logos |
-| `MailingSuppressionFilter` banner | A `queryParamFilters` filter is hidden, with no chip to clear it |
-| `RetentionInput` re-submits through `requestSubmit()` | Form validators are synchronous: no confirmation before a submit |
-| E11000 caught in `services/notify.ts` | `createIdempotently` throws on a duplicate key with other parameters |
-| Hidden searchable "Send id" column | The table search matches only a field with a column or a filter, so finding a send by id needs a hidden column |
+| Webhook URL on the API origin (`GetApiBaseUrl`), not the front's | The module declares `POST /api/mailing/events/*/*` with the `x-mailing-webhook-secret` header in `AddFrontendModule({ publicEndpoints })` (dms#230, dms-frontend#108): the front proxy lets it through without an `Origin` and without a session. The URL now starts with `GetClientBaseUrl()` (the dashboard's public origin, the one a provider can reach), falling back to `GetApiBaseUrl()`; it is still read from the configuration only, never from request headers, so the server-side "Send a test event" cannot be pointed elsewhere |
+| `stripRenderMarkers` (`services/render.ts`) | `GenerateHtml` drops Vue's SSR markers (dms-frontend#107) |
+| `EmailMailingTemplate.vue` forks `EmailLayout`, `utils/email-logo.ts` | `EmailLayout` without `title`, `:divider="false"`, `logo-alt=""`, `public-logo-only`, the viewport and `<title>` in its `head` slot (dms#223); the editor canvas calls the exported `emailLogoUrl` |
+| `MailingSuppressionFilter` banner | `queryParamFilters.email` with `visible: true` and a label: a removable chip (dms#228) |
+| `RetentionInput` re-submits through `requestSubmit()` | `useEnclosingForm()`: `addValidator` holds the save, `submit()` sends it once confirmed (dms#225) |
+| E11000 caught in `services/notify.ts` | `createIdempotently` treats a reused key as already delivered (dms#222); the key is now namespaced `mailing:problems:<slug>:<hour>`, as the DMS docs ask |
+| `useControlError` imported from `#dms-ui/app/build/…` | The public, auto-imported composable (dms#224) |
+
+Kept:
+
+| Workaround | Why |
+| --- | --- |
+| Hidden searchable "Send id" column | The table search still matches only a field with a column or a filter; finding a send by the id a log or a webhook names (SE-12) needs it. dms#226 is about `?record=` links, not search |
+| `SendDrawer` swaps to a linked send in place | Not a workaround any more: it no longer writes `?record=` (the DMS now also opens a row when a same-page link changes it, dms#226, and toasts a link to a row that is gone) |
 | `MailingWebhookStatus` as a form field | A form section only holds fields, no display block |
 
 Planned but left out, because the module would look different: the
