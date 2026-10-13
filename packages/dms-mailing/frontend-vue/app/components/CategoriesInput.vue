@@ -344,7 +344,7 @@ onMounted(loadUsage)
 						</template>
 					</div>
 					<template #error="{ error }">
-						<span v-if="error" role="alert" data-category-error>
+						<span v-if="error" role="alert">
 							{{ error }}
 						</span>
 					</template>
@@ -370,13 +370,3 @@ onMounted(loadUsage)
 		</div>
 	</div>
 </template>
-
-<style>
-/*
- * A row error shows under its row only: the field's own error line, which
- * repeats the first error of any row, stays hidden while a row shows one.
- */
-:has(> [data-categories-input] [data-category-error]) > [data-slot='error'] {
-	display: none;
-}
-</style>
