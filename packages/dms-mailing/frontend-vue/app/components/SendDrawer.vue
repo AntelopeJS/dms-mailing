@@ -475,8 +475,17 @@ onMounted(() => {
 						size="sm"
 						:icon="suppression.icon"
 						:title="t(suppression.titleKey, suppression.params)"
-						:description="t(suppression.descriptionKey, suppression.params)"
 					>
+						<template #description>
+							<span
+								class="text-highlighted block truncate font-mono text-[12px]"
+								:title="suppression.params.email"
+								data-suppressed-address
+							>
+								{{ suppression.params.email }}
+							</span>
+							{{ t(suppression.descriptionKey, suppression.params) }}
+						</template>
 						<template v-if="suppression.hasListLink" #actions>
 							<UButton
 								size="xs"

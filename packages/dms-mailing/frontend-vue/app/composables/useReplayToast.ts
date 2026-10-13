@@ -45,7 +45,9 @@ export function useReplayToast() {
 			toast.add({
 				color: 'warning',
 				icon: 'i-ph-prohibit',
-				title: t('dms_mailing.suppressions.notice.not_sent.title', { email }),
+				title: t('dms_mailing.suppressions.notice.not_sent.toast_title', {
+					email,
+				}),
 				description: suppressedReason(result.error),
 				actions: [
 					{

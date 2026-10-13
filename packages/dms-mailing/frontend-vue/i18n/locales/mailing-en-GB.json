@@ -1339,7 +1339,8 @@
 			},
 			"notice": {
 				"not_sent": {
-					"title": "Not sent: {email} is on the suppression list",
+					"title": "Not sent: this address is on the suppression list",
+					"toast_title": "Not sent: {email} is on the suppression list",
 					"description": "{reason}, since {date}. Reactivate the address to send to it again.",
 					"reason": "{reason}. Reactivate the address to send to it again."
 				},
@@ -1348,7 +1349,7 @@
 					"description": "It has been reactivated since: you can send this e-mail again."
 				},
 				"on_list": {
-					"title": "{email} receives nothing any more",
+					"title": "This address receives nothing any more",
 					"description": "On the suppression list since {date} ({reason})."
 				},
 				"open_list": "Suppression list"

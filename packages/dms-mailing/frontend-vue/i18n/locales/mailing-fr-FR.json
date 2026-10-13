@@ -1339,7 +1339,8 @@
 			},
 			"notice": {
 				"not_sent": {
-					"title": "Non envoyé : {email} est dans la liste d’exclusion",
+					"title": "Non envoyé : cette adresse est dans la liste d’exclusion",
+					"toast_title": "Non envoyé : {email} est dans la liste d’exclusion",
 					"description": "{reason}, depuis le {date}. Réactivez l’adresse pour lui écrire de nouveau.",
 					"reason": "{reason}. Réactivez l’adresse pour lui écrire de nouveau."
 				},
@@ -1348,7 +1349,7 @@
 					"description": "Elle a été réactivée depuis : vous pouvez renvoyer cet e-mail."
 				},
 				"on_list": {
-					"title": "{email} ne reçoit plus rien",
+					"title": "Cette adresse ne reçoit plus rien",
 					"description": "Dans la liste d’exclusion depuis le {date} ({reason})."
 				},
 				"open_list": "Liste d’exclusion"
