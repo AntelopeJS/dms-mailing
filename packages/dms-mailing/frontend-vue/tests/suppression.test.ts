@@ -4,7 +4,6 @@ import {
 	isSuppressedStatus,
 	reasonKey,
 	suppressedReasonOf,
-	suppressionFilterOf,
 	suppressionNotice,
 	suppressionRoute,
 	type SuppressionSummary,
@@ -150,17 +149,6 @@ describe('a suppressed send in the drawer', () => {
 })
 
 describe('the suppression list narrowed by a link', () => {
-	it('reads the address of ?email=, nothing without one', () => {
-		expect(suppressionFilterOf({ email: 'ana@example.com' })).toBe(
-			'ana@example.com',
-		)
-		expect(suppressionFilterOf({ email: ['ana@example.com'] })).toBe(
-			'ana@example.com',
-		)
-		expect(suppressionFilterOf({ email: ' ' })).toBe(null)
-		expect(suppressionFilterOf({})).toBe(null)
-	})
-
 	it('reads the reason a suppressed send keeps, nothing for another error', () => {
 		expect(suppressedReasonOf('$dms_mailing.errors.suppressed.manual')).toBe(
 			'manual',

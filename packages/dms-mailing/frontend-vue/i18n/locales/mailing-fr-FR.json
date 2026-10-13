@@ -1099,10 +1099,6 @@
 			"rendering": {
 				"name": "Rendu reçu",
 				"description": "L’e-mail tel que le destinataire l’a reçu."
-			},
-			"suppression_filter": {
-				"name": "Filtre de la liste d’exclusion",
-				"description": "Signale qu’un lien a restreint la liste d’exclusion à une adresse, et permet de revenir à la liste complète."
 			}
 		},
 		"new_template": {
@@ -1351,10 +1347,6 @@
 					"description": "Dans la liste d’exclusion depuis le {date} ({reason})."
 				},
 				"open_list": "Liste d’exclusion"
-			},
-			"filter": {
-				"title": "Seule l’adresse {email} est affichée",
-				"clear": "Afficher toutes les adresses"
 			}
 		},
 		"history": {

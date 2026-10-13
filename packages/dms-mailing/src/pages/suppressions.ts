@@ -4,7 +4,6 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { ButtonVariant } from "@antelopejs/interface-dms/base/types";
-import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { API_BASE_PATH, MODULE_ID, SENDS_PATH } from "../constants";
 import { SuppressionsTableAPI } from "../data/suppressions-table";
 import { SUPPRESSION_REASONS, type SuppressionReason } from "../types";
@@ -49,20 +48,23 @@ export class SuppressionsPageController extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  /** Says when a link narrowed the list to one address, and widens it back. */
-  static filter = CustomComponent("MailingSuppressionFilter").meta({
-    name: "$dms_mailing.permissions.suppression_filter.name",
-    description: "$dms_mailing.permissions.suppression_filter.description",
-    icon: "i-ph-funnel",
-  });
-
   static table = TableView(SuppressionsTableAPI, {
     caption: key("caption"),
     labelKey: "email",
     rowIdKey: "_id",
     defaultSort: { field: "createdAt", desc: true },
-    /** The send drawer links to an address's entry: `?email=<address>`. */
-    queryParamFilters: { email: { field: "email", mode: "is" } },
+    /**
+     * The send drawer links to an address's entry: `?email=<address>`, shown
+     * as a chip the user removes to see every address again.
+     */
+    queryParamFilters: {
+      email: {
+        field: "email",
+        mode: "is",
+        visible: true,
+        label: key("cols.email"),
+      },
+    },
     searchPlaceholder: key("search"),
     pageSize: PAGE_SIZE,
     views: {

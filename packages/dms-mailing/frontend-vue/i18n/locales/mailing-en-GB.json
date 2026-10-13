@@ -1099,10 +1099,6 @@
 			"rendering": {
 				"name": "Received rendering",
 				"description": "The e-mail as the recipient received it."
-			},
-			"suppression_filter": {
-				"name": "Suppression list filter",
-				"description": "Says when a link narrowed the suppression list to one address, and widens it back."
 			}
 		},
 		"new_template": {
@@ -1351,10 +1347,6 @@
 					"description": "On the suppression list since {date} ({reason})."
 				},
 				"open_list": "Suppression list"
-			},
-			"filter": {
-				"title": "Only {email} is shown",
-				"clear": "Show every address"
 			}
 		},
 		"history": {

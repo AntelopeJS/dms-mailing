@@ -72,18 +72,6 @@ export function suppressionRoute(email: string): SuppressionRoute {
 	}
 }
 
-/**
- * The address the suppression list is narrowed to by its `?email=`, `null`
- * when it shows every address.
- */
-export function suppressionFilterOf(
-	query: Record<string, unknown>,
-): string | null {
-	const value = query[EMAIL_QUERY_KEY]
-	const email = Array.isArray(value) ? value[0] : value
-	return typeof email === 'string' && email.trim() ? email.trim() : null
-}
-
 const notice = (
 	key: string,
 	tone: SuppressionNotice['tone'],
