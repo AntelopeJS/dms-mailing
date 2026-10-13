@@ -15,6 +15,8 @@ const HTTP_OK = 200;
 const TABLE = "/api/mailing/tables/templates";
 const TEMPLATES_ENTRY = "templates.json";
 const SETTINGS_ENTRY = "settings.json";
+const TEMPLATE_VERSIONS_ENTRY = "template-versions.json";
+const SUPPRESSIONS_ENTRY = "suppressions.json";
 const EXPORTED_SLUG = "exported-template";
 const SINGLE_ROW_PAGE = 1;
 const LIST_ALL = 100;
@@ -67,6 +69,8 @@ describe("[integration] tenant export", () => {
     expect(contribution).to.equal(undefined);
     expect([...archive.entries.keys()]).to.have.members([
       TEMPLATES_ENTRY,
+      TEMPLATE_VERSIONS_ENTRY,
+      SUPPRESSIONS_ENTRY,
       SETTINGS_ENTRY,
     ]);
     const templates = parsed<TemplateRow[]>(archive, TEMPLATES_ENTRY);

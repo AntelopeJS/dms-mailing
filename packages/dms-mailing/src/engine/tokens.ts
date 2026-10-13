@@ -2,10 +2,21 @@ import { getPath, isPresent } from "./paths";
 
 export const TOKEN_PATTERN = /\{\{\s*([A-Za-z0-9_.[\]]+)\s*\}\}/g;
 
+/**
+ * How a token without a value prints. `preview` keeps it visible so an author
+ * sees what is missing; `send` blanks it, so a recipient never reads braces.
+ */
+export type InterpolationMode = "preview" | "send";
+
 export interface InterpolationResult {
   text: string;
   missing: string[];
 }
+
+const MISSING_TOKEN: Record<InterpolationMode, (token: string) => string> = {
+  preview: (token) => token,
+  send: () => "",
+};
 
 export function extractTokens(text: string): string[] {
   const found = new Set<string>();
@@ -21,13 +32,14 @@ function formatValue(value: unknown): string {
 export function interpolate(
   text: string,
   data: Record<string, unknown>,
+  mode: InterpolationMode = "preview",
 ): InterpolationResult {
   const missing = new Set<string>();
   const output = text.replace(TOKEN_PATTERN, (token, path: string) => {
     const value = getPath(data, path);
     if (!isPresent(value)) {
       missing.add(path);
-      return token;
+      return MISSING_TOKEN[mode](token);
     }
     return formatValue(value);
   });

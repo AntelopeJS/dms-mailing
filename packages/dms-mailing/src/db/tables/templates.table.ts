@@ -40,23 +40,68 @@ export class MailingTemplate extends Table {
   @Field("string")
   declare status: TemplateStatus;
 
-  /** JSON-serialized TemplateContent, replaced in place on every save. */
+  /**
+   * JSON-serialized TemplateContent customers receive: the last published
+   * version. Only a publish writes it.
+   */
   @Field("string")
   declare json_content: string;
 
-  /** JSON-serialized VariableDefinition[] declared for this template. */
+  /**
+   * JSON-serialized TemplateContent the editor saves while drafting. Blank when
+   * nothing is waiting to be published.
+   */
+  @Field("string")
+  declare json_draft?: string;
+
+  /** Whether `json_draft` holds changes customers do not receive yet. */
+  @Field("boolean")
+  declare isDraftPending?: boolean;
+
+  @Field("date")
+  declare draftUpdatedAt?: Date;
+
+  @Field("string")
+  declare draftUpdatedBy?: string;
+
+  /**
+   * Moves on with every write of `json_draft`; a save or a publish carrying
+   * an older one is refused. 0 for a new template.
+   */
+  @Field("number")
+  declare draftRevision: number;
+
+  /** Version customers receive; 0 until a first publish. */
+  @Field("number")
+  declare publishedVersion: number;
+
+  @Field("string")
+  declare publishedBy?: string;
+
+  /**
+   * JSON-serialized VariableDefinition[] of the contract callers send
+   * against: the published declarations (the working ones until a first
+   * publish). Only a publish changes them on a published template.
+   */
   @Field("string")
   declare json_variables: string;
+
+  /**
+   * JSON-serialized VariableDefinition[] the draft declares, published with
+   * its content. Blank when the draft declares what `json_variables` does.
+   */
+  @Field("string")
+  declare json_variables_draft?: string;
 
   /** JSON-serialized data set used by the preview and the test send. */
   @Field("string")
   declare json_test_data: string;
 
   /**
-   * Locale codes present in the current version's content, comma-separated.
+   * Locale codes present in the content customers receive (the draft's until
+   * a first publish), comma-separated.
    * Denormalised so a template row can show its coverage without loading the
-   * version. Blank on rows written before this field existed: unknown, not
-   * "none".
+   * version.
    */
   @Field("string")
   declare locales: string;
@@ -66,4 +111,21 @@ export class MailingTemplate extends Table {
 
   @Field("date")
   declare publishedAt?: Date;
+
+  /**
+   * Why the template needs a look (`stale_draft`, `never_sent`,
+   * `missing_locale`), comma-separated; blank when nothing does. Kept by the
+   * attention refresh, never by an edit.
+   */
+  @Field("string")
+  declare attention: string;
+
+  /** Whether `attention` names a reason: what the templates tab filters on. */
+  @Index()
+  @Field("boolean")
+  declare needsAttention: boolean;
+
+  /** When the template last left `live` by an unpublish. */
+  @Field("date")
+  declare unpublishedAt?: Date;
 }

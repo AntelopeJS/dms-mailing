@@ -11,6 +11,12 @@ const ESCAPES: Record<string, string> = {
 export const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (char) => ESCAPES[char] ?? char);
 
+const LINE_BREAK = /\r?\n/g;
+
+/** Escaped text whose line breaks survive as `<br>`, as typed in the editor. */
+const escapeLines = (value: string): string =>
+  escapeHtml(value).replace(LINE_BREAK, "<br>");
+
 const SAFE_SCHEMES = ["http:", "https:", "mailto:"];
 const BLOCKED_HREF = "#";
 const SCHEME_PATTERN = /^\s*([a-z][a-z0-9+.-]*):/i;
@@ -19,54 +25,88 @@ const SCHEME_PATTERN = /^\s*([a-z][a-z0-9+.-]*):/i;
  * A link target can be an interpolated variable, so it is data the sender does
  * not control. Escaping the entities keeps it inside the attribute; this keeps
  * the scheme to one a mail client may follow. A target with no scheme is
- * relative (or still an unresolved token) and passes through.
+ * relative (or still an unresolved token) and passes through; a blocked one
+ * becomes `blocked`.
  */
-export const safeUrl = (value: string): string => {
+export const safeUrl = (
+  value: string,
+  blocked: string = BLOCKED_HREF,
+): string => {
   const scheme = SCHEME_PATTERN.exec(value);
   if (!scheme) return value;
   return SAFE_SCHEMES.includes(scheme[1]!.toLowerCase() + ":")
     ? value
-    : BLOCKED_HREF;
+    : blocked;
 };
 
+/**
+ * The font, palette and spacing below are those of the DMS e-mail layout
+ * (`emailStyles` of the dms-layout), so an e-mail looks the same whichever
+ * renderer drew it.
+ */
 const FONT =
-  "font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif";
-const TEXT_COLOR = "#4c545c";
-const HEADING_COLOR = "#16181b";
-const BORDER_COLOR = "#e7e9ec";
-const MUTED_COLOR = "#98a0a8";
-const SURFACE_COLOR = "#f7f8fa";
-const BUTTON_STYLE =
-  "display:inline-block;padding:12px 22px;border-radius:6px;background:#111417;color:#ffffff;text-decoration:none;font-weight:600";
+  "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+const WRAP = "overflow-wrap:anywhere;word-break:break-word";
+const TEXT_COLOR = "#525252";
+const HEADING_COLOR = "#1a1a1a";
+const BORDER_COLOR = "#e4e4e7";
+const MUTED_COLOR = "#71717a";
+const PAGE_COLOR = "#f6f9fc";
+const CODE_SURFACE = "#f4f4f5";
+const CODE_COLOR = "#18181b";
+const CODE_FONT = "font-family:'SF Mono',Monaco,'Courier New',monospace";
+const TEXT_STYLE = `${FONT};font-size:15px;line-height:1.6;color:${TEXT_COLOR};${WRAP}`;
+const BLOCK_SPACING = "margin:0 0 16px";
+const BUTTON_STYLE = `display:inline-block;padding:12px 24px;border-radius:6px;background:${CODE_COLOR};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600`;
+const DIVIDER = `<hr style="border:0;border-top:1px solid ${BORDER_COLOR};margin:32px 0">`;
+const FOOTER_STYLE = `${FONT};font-size:12px;line-height:1.5;color:${MUTED_COLOR};text-align:center;margin:0;${WRAP}`;
+const FOOTER_LINK_SEPARATOR = " · ";
 const CONTENT_WIDTH = 600;
+const VIEWPORT = "width=device-width, initial-scale=1";
 
 type BlockHtml = (block: ResolvedBlock) => string;
 
 const link = (label: string, href: string): string =>
   href
-    ? `<a href="${escapeHtml(safeUrl(href))}" style="color:${TEXT_COLOR}">${escapeHtml(label)}</a>`
+    ? `<a href="${escapeHtml(safeUrl(href))}" style="color:${MUTED_COLOR};text-decoration:underline">${escapeHtml(label)}</a>`
     : "";
 
-const cellStyle = (weight: string, color: string): string =>
-  `${FONT};font-size:13px;font-weight:${weight};padding:11px 14px;color:${color}`;
+const row = (label: string, value: string, weight: string): string =>
+  `<tr><td style="${TEXT_STYLE};font-weight:${weight}">${escapeHtml(label)}</td><td align="right" style="${TEXT_STYLE};font-weight:${weight};text-align:right">${escapeHtml(value)}</td></tr>`;
+
+const table = (rows: string): string =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="${BLOCK_SPACING}">${rows}</table>`;
 
 const TEXT_RENDERERS: Record<string, BlockHtml> = {
   heading: (block) =>
     block.type === "heading"
-      ? `<h1 style="${FONT};font-size:${block.size}px;color:${HEADING_COLOR};text-align:${block.align};margin:0 0 12px">${escapeHtml(block.text)}</h1>`
+      ? `<h1 style="${FONT};font-size:${block.size}px;font-weight:600;color:${HEADING_COLOR};text-align:${block.align};margin:0 0 24px;${WRAP}">${escapeLines(block.text)}</h1>`
       : "",
   paragraph: (block) =>
     block.type === "paragraph"
-      ? `<p style="${FONT};font-size:14px;line-height:1.6;color:${TEXT_COLOR};text-align:${block.align};margin:0 0 18px">${escapeHtml(block.text)}</p>`
+      ? `<p style="${TEXT_STYLE};text-align:${block.align};${BLOCK_SPACING}">${escapeLines(block.text)}</p>`
       : "",
   code: (block) =>
     block.type === "code"
-      ? `<div style="${FONT};font-size:27px;letter-spacing:.32em;text-align:center;padding:18px;border:1px dashed ${BORDER_COLOR};border-radius:8px;margin:0 0 16px">${escapeHtml(block.text)}</div>`
+      ? `<div style="background:${CODE_SURFACE};border-radius:6px;margin:24px 0;padding:20px;text-align:center"><p style="${CODE_FONT};font-size:32px;font-weight:700;letter-spacing:6px;color:${CODE_COLOR};margin:0;${WRAP}">${escapeHtml(block.text)}</p></div>`
       : "",
   button: (block) =>
     block.type === "button"
-      ? `<div style="text-align:${block.align};margin:0 0 18px"><a href="${escapeHtml(safeUrl(block.href))}" style="${FONT};${BUTTON_STYLE}">${escapeHtml(block.text)}</a></div>`
+      ? `<div style="text-align:${block.align};margin:24px 0"><a href="${escapeHtml(safeUrl(block.href))}" style="${FONT};${BUTTON_STYLE}">${escapeHtml(block.text)}</a></div>`
       : "",
+};
+
+const footerHtml = (block: ResolvedBlock): string => {
+  if (block.type !== "footer") return "";
+  const links = [
+    link(block.unsubscribeLabel, block.unsubscribeUrl),
+    link(block.preferencesLabel, block.preferencesUrl),
+  ]
+    .filter(Boolean)
+    .join(FOOTER_LINK_SEPARATOR);
+  if (!block.text.trim() && !links) return "";
+  const linkLine = links ? `<br>${links}` : "";
+  return `${DIVIDER}<p style="${FOOTER_STYLE}">${escapeLines(block.text)}${linkLine}</p>`;
 };
 
 const LAYOUT_RENDERERS: Record<string, BlockHtml> = {
@@ -76,28 +116,14 @@ const LAYOUT_RENDERERS: Record<string, BlockHtml> = {
       : "",
   list: (block) =>
     block.type === "list"
-      ? `<table role="presentation" width="100%" style="border:1px solid ${BORDER_COLOR};border-radius:8px;margin:0 0 18px">${block.rows
-          .map(
-            (row) =>
-              `<tr><td style="${cellStyle("400", TEXT_COLOR)}">${escapeHtml(row.label)}</td><td align="right" style="${cellStyle("400", HEADING_COLOR)}">${escapeHtml(row.value)}</td></tr>`,
-          )
-          .join("")}</table>`
+      ? table(
+          block.rows.map((item) => row(item.label, item.value, "400")).join(""),
+        )
       : "",
   total: (block) =>
-    block.type === "total"
-      ? `<table role="presentation" width="100%" style="margin:0 0 18px"><tr><td style="${cellStyle("600", HEADING_COLOR)};background:${SURFACE_COLOR}">${escapeHtml(block.label)}</td><td align="right" style="${cellStyle("600", HEADING_COLOR)};background:${SURFACE_COLOR}">${escapeHtml(block.value)}</td></tr></table>`
-      : "",
-  divider: () =>
-    `<hr style="border:0;border-top:1px solid ${BORDER_COLOR};margin:10px 0 18px">`,
-  footer: (block) =>
-    block.type === "footer"
-      ? `<div style="${FONT};font-size:11px;line-height:1.6;color:${MUTED_COLOR};border-top:1px solid ${BORDER_COLOR};padding:16px 0 0">${escapeHtml(block.text)}<br>${[
-          link(block.unsubscribeLabel, block.unsubscribeUrl),
-          link(block.preferencesLabel, block.preferencesUrl),
-        ]
-          .filter(Boolean)
-          .join(" · ")}</div>`
-      : "",
+    block.type === "total" ? table(row(block.label, block.value, "600")) : "",
+  divider: () => DIVIDER,
+  footer: footerHtml,
 };
 
 const RENDERERS: Record<ResolvedBlock["type"], BlockHtml> = {
@@ -105,12 +131,24 @@ const RENDERERS: Record<ResolvedBlock["type"], BlockHtml> = {
   ...LAYOUT_RENDERERS,
 } as Record<ResolvedBlock["type"], BlockHtml>;
 
+const FOOTER_TYPE = "footer";
+
+const renderBlocks = (blocks: ResolvedBlock[]): string =>
+  blocks.map((block) => RENDERERS[block.type](block)).join("");
+
+/**
+ * The e-mail without the DMS front end: the same blocks, in the same order and
+ * look as the Vue template, the footer last, under its divider.
+ */
 export function renderFallbackHtml(
   email: ResolvedEmail,
   locale: string,
 ): string {
-  const body = email.blocks
-    .map((block) => RENDERERS[block.type](block))
-    .join("");
-  return `<!DOCTYPE html><html lang="${escapeHtml(locale)}"><head><meta charset="utf-8"><title>${escapeHtml(email.subject)}</title></head><body style="margin:0;background:${SURFACE_COLOR}"><span style="display:none;max-height:0;overflow:hidden">${escapeHtml(email.preheader)}</span><table role="presentation" width="100%"><tr><td align="center" style="padding:26px"><table role="presentation" width="${CONTENT_WIDTH}" style="max-width:${CONTENT_WIDTH}px;background:#ffffff;border-radius:10px"><tr><td style="padding:26px">${body}</td></tr></table></td></tr></table></body></html>`;
+  const body = renderBlocks(
+    email.blocks.filter((block) => block.type !== FOOTER_TYPE),
+  );
+  const footer = renderBlocks(
+    email.blocks.filter((block) => block.type === FOOTER_TYPE),
+  );
+  return `<!DOCTYPE html><html lang="${escapeHtml(locale)}"><head><meta charset="utf-8"><meta name="viewport" content="${VIEWPORT}"><title>${escapeHtml(email.subject)}</title></head><body style="margin:0;background:${PAGE_COLOR};${FONT}"><span style="display:none;max-height:0;overflow:hidden">${escapeHtml(email.preheader)}</span><table role="presentation" width="100%"><tr><td align="center" style="padding:20px 0 48px"><table role="presentation" width="${CONTENT_WIDTH}" style="max-width:${CONTENT_WIDTH}px;width:100%;background:#ffffff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1)"><tr><td style="padding:40px">${body}${footer}</td></tr></table></td></tr></table></body></html>`;
 }

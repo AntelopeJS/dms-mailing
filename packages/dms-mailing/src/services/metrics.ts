@@ -21,6 +21,13 @@ export function readAudience(raw: string | null | undefined): SendAudience {
   return AUDIENCE_BY_NAME[raw ?? ""] ?? BUSINESS_AUDIENCE;
 }
 
+const STATS_WINDOW_DAYS = 30;
+
+/** Where the per-template figures start: the last 30 days. */
+export function statsWindowStart(now: number = Date.now()): Date {
+  return new Date(now - STATS_WINDOW_DAYS * DAY_MS);
+}
+
 export function forAudience(
   sends: SendSummary[],
   audience: SendAudience,
@@ -28,6 +35,10 @@ export function forAudience(
   return sends.filter(AUDIENCE_KEEPS[audience]);
 }
 
+/**
+ * The counters of a set of sends and the rates drawn from them. A rate is
+ * `null` when its base is empty: "no e-mail delivered" is not "0 % opened".
+ */
 export interface Totals {
   sends: number;
   queued: number;
@@ -39,11 +50,14 @@ export interface Totals {
   failed: number;
   spam: number;
   unsubscribed: number;
-  deliverability: number;
-  openRate: number;
-  clickRate: number;
+  deliverability: number | null;
+  openRate: number | null;
+  clickRate: number | null;
   latencyMedian: number;
 }
+
+/** Reads one figure out of the totals; `null` when it cannot be stated. */
+export type TotalsExtractor = (totals: Totals) => number | null;
 
 export interface SeriesPoint {
   x: string;
@@ -53,6 +67,13 @@ export interface SeriesPoint {
 export interface DateRange {
   from: Date;
   to: Date;
+}
+
+/** The provider features the Overview's figures depend on. */
+export interface ProviderTracking {
+  name: string;
+  openTracking: boolean;
+  clickTracking: boolean;
 }
 
 const PERCENT = 100;
@@ -67,9 +88,11 @@ const DELIVERED_LIKE: SendStatus[] = [
   "spam",
 ];
 const OPENED_LIKE: SendStatus[] = ["opened", "clicked"];
+/** Statuses only an event reported by the provider can set. */
+const PROVIDER_EVENT_STATUSES: SendStatus[] = [...DELIVERED_LIKE, "bounced"];
 
-export const ratio = (part: number, whole: number): number =>
-  whole ? (part / whole) * PERCENT : 0;
+export const ratio = (part: number, whole: number): number | null =>
+  whole ? (part / whole) * PERCENT : null;
 
 const countIf = (
   sends: SendSummary[],
@@ -81,18 +104,36 @@ const byStatus =
   (send: SendSummary): boolean =>
     send.status === status;
 
+const isDelivered = (send: SendSummary): boolean =>
+  DELIVERED_LIKE.includes(send.status);
+
+/**
+ * Engagement outlives the final status: a send opened, clicked and then
+ * unsubscribed (or reported as spam) was still opened and clicked, and a
+ * click implies an open the pixel may have missed.
+ */
+const wasClicked = (send: SendSummary): boolean =>
+  isDelivered(send) && (send.status === "clicked" || send.clicks > 0);
+
+const wasOpened = (send: SendSummary): boolean =>
+  isDelivered(send) &&
+  (OPENED_LIKE.includes(send.status) || send.opens > 0 || send.clicks > 0);
+
 function median(values: number[]): number {
   if (!values.length) return 0;
   const sorted = [...values].sort((left, right) => left - right);
   return sorted[Math.floor(sorted.length / 2)] as number;
 }
 
-export function aggregate(sends: SendSummary[]): Totals {
-  const delivered = countIf(sends, (send) =>
-    DELIVERED_LIKE.includes(send.status),
-  );
-  const opened = countIf(sends, (send) => OPENED_LIKE.includes(send.status));
-  const clicked = countIf(sends, byStatus("clicked"));
+/** A send to a suppressed address never left: no figure counts it. */
+export const leftForProvider = (send: SendSummary): boolean =>
+  send.status !== "suppressed";
+
+export function aggregate(logged: SendSummary[]): Totals {
+  const sends = logged.filter(leftForProvider);
+  const delivered = countIf(sends, isDelivered);
+  const opened = countIf(sends, wasOpened);
+  const clicked = countIf(sends, wasClicked);
   return {
     sends: sends.length,
     queued: countIf(sends, byStatus("queued")),
@@ -107,22 +148,55 @@ export function aggregate(sends: SendSummary[]): Totals {
     deliverability: ratio(delivered, sends.length),
     openRate: ratio(opened, delivered),
     clickRate: ratio(clicked, delivered),
-    latencyMedian: median(sends.map((send) => send.latencyMs)),
+    latencyMedian: median(sends.flatMap((send) => send.latencyMs ?? [])),
   };
 }
 
-export function deltaPercent(current: number, previous: number): number {
-  if (!previous) return 0;
+/**
+ * The change from `previous` to `current`, in percent; `null` when no share
+ * can be stated, a preceding zero included: growth away from nothing is
+ * unbounded, and a "0 %" stand-in would read as "no change".
+ */
+export function deltaPercent(
+  current: number | null,
+  previous: number | null,
+): number | null {
+  if (current === null || !previous) return null;
   return Number(
     (((current - previous) / previous) * PERCENT).toFixed(DELTA_PRECISION),
   );
 }
 
+const showsProviderEvent = (send: SendSummary): boolean =>
+  PROVIDER_EVENT_STATUSES.includes(send.status) ||
+  send.opens > 0 ||
+  send.clicks > 0;
+
+/**
+ * Whether the window's delivery figures are unmeasured: the provider tracks
+ * nothing itself (SMTP) and no event came back by webhook either, so every
+ * send stays "sent" and a 0 % deliverability would be a false alarm. Unknown
+ * capabilities (the provider unreachable) claim nothing.
+ */
+export function isDeliveryUntracked(
+  sends: SendSummary[],
+  tracking: ProviderTracking | null,
+): boolean {
+  if (!tracking || tracking.openTracking || tracking.clickTracking)
+    return false;
+  return sends.length > 0 && !sends.some(showsProviderEvent);
+}
+
 const dayKey = (date: Date): string =>
   date.toISOString().slice(0, DAY_KEY_LENGTH);
 
+interface DayBucket {
+  x: string;
+  sends: SendSummary[];
+}
+
 /**
- * One point per day of the window, counted from the window's own boundaries.
+ * One bucket per day of the window, counted from the window's own boundaries.
  *
  * The DMS period selector cuts on *local* midnights, so a UTC+2 tenant asks for
  * 2026-09-03T22:00Z → 2026-09-10T21:59:59.999Z. Buckets are therefore offsets
@@ -137,24 +211,59 @@ const dayKey = (date: Date): string =>
  * to drop it, so a send made today was missing from the chart while the KPI
  * still counted it.
  */
+function dailyBuckets(sends: SendSummary[], from: Date, to: Date): DayBucket[] {
+  const start = from.getTime();
+  const dayCount = Math.max(1, Math.ceil((to.getTime() - start) / DAY_MS));
+  const buckets: DayBucket[] = Array.from({ length: dayCount }, (_, index) => ({
+    x: dayKey(new Date(start + index * DAY_MS + DAY_MS / 2)),
+    sends: [],
+  }));
+  for (const send of sends) {
+    const offset = new Date(send.createdAt).getTime() - start;
+    if (offset < 0 || offset >= dayCount * DAY_MS) continue;
+    buckets[Math.floor(offset / DAY_MS)]?.sends.push(send);
+  }
+  return buckets;
+}
+
+/** The number of sends of each day of the window. */
 export function dailySeries(
   sends: SendSummary[],
   from: Date,
   to: Date,
 ): SeriesPoint[] {
-  const start = from.getTime();
-  const span = to.getTime() - start;
-  const dayCount = Math.max(1, Math.ceil(span / DAY_MS));
-  const counts: number[] = Array.from({ length: dayCount }, () => 0);
-  for (const send of sends) {
-    const offset = new Date(send.createdAt).getTime() - start;
-    if (offset < 0 || offset >= dayCount * DAY_MS) continue;
-    const index = Math.floor(offset / DAY_MS);
-    counts[index] = (counts[index] ?? 0) + 1;
-  }
-  return counts.map((y, index) => ({
-    x: dayKey(new Date(start + index * DAY_MS + DAY_MS / 2)),
-    y,
+  return dailyBuckets(sends, from, to).map((bucket) => ({
+    x: bucket.x,
+    y: bucket.sends.length,
+  }));
+}
+
+/**
+ * One figure's own value for each day of the window, the trend a KPI's
+ * sparkline draws. A day the figure cannot be stated on (a rate without
+ * deliveries) is left out rather than drawn as a fall to zero.
+ */
+export function dailyValues(
+  sends: SendSummary[],
+  range: DateRange,
+  extract: TotalsExtractor,
+): number[] {
+  return dailyBuckets(sends, range.from, range.to)
+    .map((bucket) => extract(aggregate(bucket.sends)))
+    .filter((value): value is number => value !== null);
+}
+
+/**
+ * Lays a comparison series on the current one's axis, day 1 on day 1, so the
+ * two periods overlap instead of standing side by side.
+ */
+export function alignSeries(
+  points: SeriesPoint[],
+  axis: SeriesPoint[],
+): SeriesPoint[] {
+  return points.slice(0, axis.length).map((point, index) => ({
+    x: (axis[index] as SeriesPoint).x,
+    y: point.y,
   }));
 }
 

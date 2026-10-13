@@ -9,6 +9,6 @@ describe('block components', () => {
 		)
 	})
 	it('routes the if block to the editor branch component', () => {
-		expect(BLOCK_COMPONENT_NAMES.if).toBe('DmsMailingEditorIfBlock')
+		expect(BLOCK_COMPONENT_NAMES.if).toBe('MailingEditorIfBlock')
 	})
 })

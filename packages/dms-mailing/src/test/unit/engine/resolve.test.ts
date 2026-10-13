@@ -174,3 +174,73 @@ describe("[unit] engine/resolve system variables", () => {
     expect(email.missing).to.deep.equal(["order.ref"]);
   });
 });
+
+describe("[unit] engine/resolve urls and send mode", () => {
+  const content = {
+    subject: "Hi {{user.firstName}}",
+    preheader: "",
+    blocks: [
+      {
+        id: "hero",
+        type: "hero" as const,
+        imageUrl: "{{image}}",
+        alt: "{{alt}}",
+        visibleIf: null,
+      },
+      {
+        id: "b",
+        type: "button" as const,
+        text: "Go",
+        href: "{{link}}",
+        align: "left" as const,
+        visibleIf: null,
+      },
+      {
+        id: "f",
+        type: "footer" as const,
+        text: "",
+        unsubscribeLabel: "Unsubscribe",
+        preferencesLabel: "Preferences",
+        visibleIf: null,
+      },
+    ],
+  };
+
+  // Both renderers (the Vue e-mail and the fallback) draw what the resolver
+  // hands them, so the scheme filter belongs here.
+  it("neutralises a link or image whose scheme carries code", () => {
+    const email = resolveEmail(content, {
+      image: "javascript:alert(1)",
+      alt: "A",
+      link: "javascript:alert(1)",
+      unsubscribeUrl: "data:text/html,x",
+    });
+    const [hero, button, footer] = email.blocks;
+    expect(hero?.type === "hero" && hero.imageUrl).to.equal("");
+    expect(button?.type === "button" && button.href).to.equal("#");
+    expect(footer?.type === "footer" && footer.unsubscribeUrl).to.equal("#");
+  });
+
+  it("keeps the safe ones", () => {
+    const email = resolveEmail(content, {
+      image: "https://x.test/a.png",
+      link: "mailto:a@b.test",
+    });
+    const [hero, button] = email.blocks;
+    expect(hero?.type === "hero" && hero.imageUrl).to.equal(
+      "https://x.test/a.png",
+    );
+    expect(button?.type === "button" && button.href).to.equal(
+      "mailto:a@b.test",
+    );
+  });
+
+  it("blanks missing values in send mode and keeps them in preview", () => {
+    expect(resolveEmail(content, {}).subject).to.equal("Hi {{user.firstName}}");
+    const sent = resolveEmail(content, {}, "send");
+    expect(sent.subject).to.equal("Hi ");
+    expect(sent.missing).to.include("user.firstName");
+    const button = sent.blocks[1];
+    expect(button?.type === "button" && button.href).to.equal("");
+  });
+});

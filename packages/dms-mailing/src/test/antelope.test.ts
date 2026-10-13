@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
-import { SHARED_MODULE_SOURCES } from "../antelope-modules";
+import { SHARED_MODULE_SOURCES } from "./antelope-modules";
 
 const API_PORT = 5019;
 const JWT_SECRET = "test-jwt-secret";
@@ -108,6 +108,10 @@ export default defineConfig({
     dms: {
       source: SHARED_MODULE_SOURCES.dms,
       config: {
+        apiBaseUrl: `http://127.0.0.1:${API_PORT}`,
+        // No frontend server runs here: the dashboard URL is the API, whose
+        // paths the front proxy serves unchanged.
+        clientBaseUrl: `http://127.0.0.1:${API_PORT}`,
         auth: {
           jwtSecret: JWT_SECRET,
         },

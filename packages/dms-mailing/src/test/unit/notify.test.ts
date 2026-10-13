@@ -1,71 +1,82 @@
 import { expect } from "chai";
+import type { SendSummary } from "../../db";
 import {
-  type BounceNotificationInput,
-  bounceIdempotencyKey,
-  bounceNotification,
-  deliverBounceNotification,
-  type IdempotentNotificationTarget,
+  crossesThreshold,
+  type ProblemNotificationInput,
+  problemRate,
+  problemsIdempotencyKey,
+  problemsNotification,
+  problemWindowOf,
   shouldNotify,
 } from "../../services/notify";
+import type { SendStatus } from "../../types";
 
-const OWNER_IDS = ["owner-1", "owner-2"];
-
-const INPUT: BounceNotificationInput = {
+const INPUT: ProblemNotificationInput = {
   sendId: "send-1",
   templateSlug: "welcome",
-  recipientEmail: "a@b.test",
   type: "bounced",
+  isTest: false,
 };
 
-interface RecordedDelivery {
-  userIds: string[];
-  idempotencyKey: string;
-}
+const AT = new Date("2026-10-11T14:20:00.000Z");
 
-function recordingTarget(
-  recorded: RecordedDelivery[],
-): IdempotentNotificationTarget {
-  return {
-    toUsersIdempotently: (userIds, idempotencyKey) => {
-      recorded.push({ userIds, idempotencyKey });
-      return Promise.resolve();
-    },
-  };
-}
+const summary = (status: SendStatus, isTest = false): SendSummary =>
+  ({ status, isTest }) as SendSummary;
 
 describe("[unit] services/notify", () => {
-  it("notifies once per problem status, never for happy events", () => {
-    expect(shouldNotify("bounced")).to.equal(true);
-    expect(shouldNotify("spam")).to.equal(true);
-    expect(shouldNotify("opened")).to.equal(false);
+  it("only weighs the problems of real sends", () => {
+    expect(shouldNotify(INPUT)).to.equal(true);
+    expect(shouldNotify({ ...INPUT, type: "spam" })).to.equal(true);
+    expect(shouldNotify({ ...INPUT, type: "opened" })).to.equal(false);
+    expect(shouldNotify({ ...INPUT, isTest: true })).to.equal(false);
   });
 
-  it("builds a notification pointing at the sends page", () => {
-    const notification = bounceNotification(INPUT);
-    expect(notification.linkTo).to.equal("/modules/mailing/sends?tab=problems");
+  it("counts a template's hour without its tests", () => {
+    const window = problemWindowOf([
+      summary("bounced"),
+      summary("failed"),
+      summary("delivered"),
+      summary("bounced", true),
+    ]);
+    expect(window).to.deep.equal({ sends: 3, problems: 2 });
+    expect(problemRate(window)).to.equal(67);
+  });
+
+  it("alerts past a count and a share of the hour's sends", () => {
+    expect(crossesThreshold({ sends: 3, problems: 2 })).to.equal(false);
+    expect(crossesThreshold({ sends: 200, problems: 3 })).to.equal(false);
+    expect(crossesThreshold({ sends: 40, problems: 3 })).to.equal(true);
+  });
+
+  it("aggregates the problems and opens the send that tipped them", () => {
+    const notification = problemsNotification(INPUT, {
+      sends: 20,
+      problems: 4,
+    });
+    expect(notification.title).to.equal(
+      "$dms_mailing.notifications.problems_title",
+    );
+    expect(notification.linkTo).to.equal(
+      "/modules/mailing/sends?view=problems&record=send-1",
+    );
     expect(notification.params).to.deep.equal({
+      count: 4,
       slug: "welcome",
-      email: "a@b.test",
+      rate: 20,
     });
   });
 
-  it("keys a bounce on the send it belongs to and its event type", () => {
-    expect(bounceIdempotencyKey(INPUT)).to.equal("send-1:bounced");
-    expect(bounceIdempotencyKey({ ...INPUT, type: "spam" })).to.equal(
-      "send-1:spam",
+  it("keys one notification per template and clock hour", () => {
+    const key = problemsIdempotencyKey(INPUT, AT);
+    expect(key).to.match(/^mailing:problems:welcome:\d+$/);
+    expect(problemsIdempotencyKey({ ...INPUT, sendId: "other" }, AT)).to.equal(
+      key,
     );
-  });
-
-  it("delivers through the idempotent path with a stable key", async () => {
-    const recorded: RecordedDelivery[] = [];
-    const target = recordingTarget(recorded);
-
-    await deliverBounceNotification(target, OWNER_IDS, INPUT);
-    await deliverBounceNotification(target, OWNER_IDS, INPUT);
-
-    expect(recorded).to.deep.equal([
-      { userIds: OWNER_IDS, idempotencyKey: "send-1:bounced" },
-      { userIds: OWNER_IDS, idempotencyKey: "send-1:bounced" },
-    ]);
+    expect(
+      problemsIdempotencyKey({ ...INPUT, templateSlug: "invoice" }, AT),
+    ).to.not.equal(key);
+    expect(
+      problemsIdempotencyKey(INPUT, new Date("2026-10-11T15:01:00.000Z")),
+    ).to.not.equal(key);
   });
 });

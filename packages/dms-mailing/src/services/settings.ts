@@ -11,7 +11,7 @@ import {
   type TemplateCategory,
 } from "../types";
 
-const SECRET_BYTES = 24;
+export const WEBHOOK_SECRET_BYTES = 24;
 
 function defaults(): MailingSettingsValues {
   return {
@@ -21,7 +21,7 @@ function defaults(): MailingSettingsValues {
     senderName: "",
     senderEmail: "",
     replyTo: "",
-    webhookSecret: randomBytes(SECRET_BYTES).toString("hex"),
+    webhookSecret: randomBytes(WEBHOOK_SECRET_BYTES).toString("hex"),
     categories: DEFAULT_CATEGORIES,
   };
 }
@@ -48,9 +48,7 @@ function toRow(values: MailingSettingsValues): Partial<MailingSettings> {
 export async function findSettings(
   tenantId: string,
 ): Promise<MailingSettingsValues | undefined> {
-  const existing = await GetModel(SettingsModel, tenantId).getSingleton(
-    tenantId,
-  );
+  const existing = await GetModel(SettingsModel, tenantId).get(tenantId);
   return existing ? toValues(existing) : undefined;
 }
 
@@ -88,9 +86,8 @@ export async function saveSettings(
   values: MailingSettingsValues,
 ): Promise<MailingSettingsValues> {
   const model = GetModel(SettingsModel, tenantId);
-  const existing = await model.getSingleton(tenantId);
-  if (existing) await model.update(existing._id, toRow(values));
-  else if (!(await insertKeyedSettings(tenantId, values)))
+  const isStored = Boolean(await model.get(tenantId));
+  if (isStored || !(await insertKeyedSettings(tenantId, values)))
     await model.update(tenantId, toRow(values));
   return values;
 }
@@ -100,4 +97,51 @@ export function findCategory(
   id: string,
 ): TemplateCategory | undefined {
   return categories.find((category) => category.id === id);
+}
+
+/** What a send does when a variable it needs is missing. */
+export type MissingVariablesPolicy = "refuse" | "send";
+
+const REFUSE_POLICY: MissingVariablesPolicy = "refuse";
+const SEND_POLICY: MissingVariablesPolicy = "send";
+
+export function missingVariablesPolicy(
+  values: MailingSettingsValues,
+): MissingVariablesPolicy {
+  return values.blockOnMissingVariables ? REFUSE_POLICY : SEND_POLICY;
+}
+
+/** The form-only field folded back into `blockOnMissingVariables`. */
+const MISSING_VARIABLES_KEY = "missingVariables";
+const CLEARED_VALUE = "";
+/** The patch with each cleared field (`null`) as the empty value it stores. */
+export function clearedToEmpty(
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(patch).map(([key, value]) => [key, value ?? CLEARED_VALUE]),
+  );
+}
+
+/**
+ * The settings once `patch` (the fields a form changed, `null` for a cleared
+ * one) is laid over the stored ones, the missing-variables choice folded back
+ * into its boolean.
+ */
+export function mergeSettingsPatch(
+  current: MailingSettingsValues,
+  patch: Record<string, unknown>,
+): MailingSettingsValues {
+  const written = Object.fromEntries(
+    Object.entries(clearedToEmpty(patch)).filter(
+      ([key]) => key !== MISSING_VARIABLES_KEY,
+    ),
+  );
+  const policy = patch.missingVariables;
+  const isChoice = policy === REFUSE_POLICY || policy === SEND_POLICY;
+  const guard =
+    isChoice && !("blockOnMissingVariables" in patch)
+      ? { blockOnMissingVariables: policy === REFUSE_POLICY }
+      : {};
+  return { ...current, ...written, ...guard } as MailingSettingsValues;
 }

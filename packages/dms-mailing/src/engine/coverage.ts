@@ -35,7 +35,8 @@ const COLLECTORS: Record<Block["type"], PathCollector> = {
 const isUserPath = (path: string): boolean =>
   !SYSTEM_VARIABLE_PATHS.includes(path);
 
-export function collectVariablePaths(content: LocaleContent): string[] {
+/** Every path the content references, the system ones included. */
+export function collectReferencedPaths(content: LocaleContent): string[] {
   const paths = new Set<string>(textTokens(content.subject, content.preheader));
   walkBlocks(content.blocks, (block) => {
     for (const path of COLLECTORS[block.type](block)) {
@@ -43,7 +44,11 @@ export function collectVariablePaths(content: LocaleContent): string[] {
     }
     if (block.visibleIf) paths.add(normalizePath(block.visibleIf.path));
   });
-  return [...paths].filter(isUserPath).sort();
+  return [...paths].sort();
+}
+
+export function collectVariablePaths(content: LocaleContent): string[] {
+  return collectReferencedPaths(content).filter(isUserPath);
 }
 
 /** Every variable path the content references, across all of its locales. */

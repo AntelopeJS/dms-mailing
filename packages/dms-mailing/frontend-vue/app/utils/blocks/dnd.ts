@@ -1,5 +1,5 @@
 import type { Block } from '../../types/mailing'
-import type { PaletteEntry } from './factory'
+import type { BlockContext, PaletteEntry } from './factory'
 import { createBlock } from './factory'
 
 export const DRAG_GROUP = { name: 'mailing-blocks' }
@@ -10,6 +10,10 @@ export const PALETTE_GROUP = {
 }
 export const DRAG_HANDLE = '.mailing-drag-handle'
 
-export function cloneFromPalette(entry: PaletteEntry): Block {
-	return createBlock(entry.type)
+/** The block a tile dropped on the canvas becomes, shaped by its template. */
+export function cloneFromPalette(
+	entry: PaletteEntry,
+	context: BlockContext = {},
+): Block {
+	return createBlock(entry.type, context)
 }

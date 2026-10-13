@@ -35,6 +35,15 @@ await RecordEmailEvent(tenantId, {
 });
 ```
 
+A template whose footer links to an unsubscribe or a preferences page
+expects `unsubscribeUrl` / `preferencesUrl` in `variables` (required for the
+`marketing` category); a link without its URL is left out of the e-mail.
+
+A recipient on the workspace's suppression list (a hard bounce, a spam
+complaint, an unsubscription or a manual entry) gets no e-mail: its result
+has the status `suppressed`. A hard `bounced`, a `spam` or an `unsubscribed`
+event recorded through `RecordEmailEvent` puts the address on that list.
+
 Declaring this package as a dependency is what wires a consumer to whichever
 module implements the interface; the implementation lives in
 `@antelopejs/dms-mailing` and is documented

@@ -3,7 +3,10 @@ import type { Block } from '../app/types/mailing'
 import {
 	collectContentPaths,
 	collectPaths,
+	isPresent,
+	pathBreakSegments,
 	pathsInBlocks,
+	readPath,
 } from '../app/utils/paths'
 
 const blocks: Block[] = [
@@ -124,5 +127,25 @@ describe('collectContentPaths', () => {
 			},
 		}
 		expect(collectContentPaths(content)).toEqual(['real.one'])
+	})
+})
+
+describe('readPath', () => {
+	it('reads nested values and array paths like the engine', () => {
+		const data = { order: { lines: [1, 2], total: 0, note: null } }
+		expect(readPath(data, 'order.total')).toBe(0)
+		expect(readPath(data, 'order.lines[]')).toEqual([1, 2])
+		expect(readPath(data, ' order.missing.deep ')).toBeUndefined()
+		expect(readPath(data, 'constructor')).toBeUndefined()
+		expect(isPresent(readPath(data, 'order.note'))).toBe(false)
+		expect(isPresent(readPath(data, 'order.total'))).toBe(true)
+	})
+})
+
+describe('pathBreakSegments', () => {
+	it('cuts a path after each dot, so it wraps between names', () => {
+		expect(pathBreakSegments('order.number')).toEqual(['order.', 'number'])
+		expect(pathBreakSegments('items[].name')).toEqual(['items[].', 'name'])
+		expect(pathBreakSegments('firstName')).toEqual(['firstName'])
 	})
 })

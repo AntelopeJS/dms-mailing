@@ -33,7 +33,7 @@ export class TemplateCategoryType extends DataType {
   }
 
   protected defaultInputComponent() {
-    return CustomComponent("DmsMailingCategoryInput")
+    return CustomComponent("MailingCategoryInput")
       .options(this.options)
       .serializeSync();
   }

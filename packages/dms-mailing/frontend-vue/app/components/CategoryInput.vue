@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { useTemplateCategories } from '../composables/useTemplateCategories'
 import {
+	DEFAULT_CATEGORY_ICON,
 	fromCategoryOption,
 	NO_CATEGORY,
 	toCategoryOption,
 } from '../utils/categories'
-import type { TemplateCategory } from '../types/mailing'
 
 interface CategoryInputProps {
 	modelValue?: string | null
@@ -20,19 +21,25 @@ const props = withDefaults(defineProps<CategoryInputProps>(), {
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
-const api = useMailingApi()
 const { t } = useI18n()
 
-const categories = ref<TemplateCategory[]>([])
+const { categories } = useTemplateCategories()
 const selected = ref<string>(
 	toCategoryOption(props.modelValue ?? props.initialValue),
 )
 
+const UNCATEGORISED_ICON = 'i-ph-tray'
+
 const items = computed(() => [
-	{ label: t('dms_mailing.templates.uncategorised'), value: NO_CATEGORY },
+	{
+		label: t('dms_mailing.templates.uncategorised'),
+		value: NO_CATEGORY,
+		icon: UNCATEGORISED_ICON,
+	},
 	...categories.value.map((entry) => ({
 		label: entry.label,
 		value: entry.id,
+		icon: entry.icon || DEFAULT_CATEGORY_ICON,
 	})),
 ])
 
@@ -42,22 +49,14 @@ watch(
 		selected.value = toCategoryOption(value)
 	},
 )
-
-onMounted(async () => {
-	try {
-		const response = await api.listCategories()
-		categories.value = response.categories
-	} catch {
-		categories.value = []
-	}
-})
 </script>
 
 <template>
-	<USelect
+	<DmsSelect
 		v-model="selected"
 		:items="items"
 		value-key="value"
+		:deselectable="false"
 		:disabled="disabled"
 		class="w-full"
 		@update:model-value="

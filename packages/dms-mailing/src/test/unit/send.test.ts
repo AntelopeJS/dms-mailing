@@ -7,10 +7,15 @@ import {
   type DeliveredMessage,
   type DeliveryInput,
   deliverEach,
+  MANUAL_SEND_SOURCE,
+  messageFor,
+  missingManualVariables,
   type PreparedSend,
   recordAll,
+  refusedMissing,
   type SendRecordInput,
 } from "../../services/send";
+import type { MailingTemplate } from "../../db";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
 
 const TRANSPORT_FAILURE = "socket hang up";
@@ -20,9 +25,13 @@ const RECIPIENTS = ["first@test.local", "second@test.local"];
 const PREPARED: PreparedSend = {
   content: { locales: {} },
   locale: "en",
+  requestedLocale: "en",
+  version: 1,
   templateId: "template-1",
   slug: "welcome",
   tenantId: "tenant-1",
+  category: "",
+  attention: "",
 };
 
 const SETTINGS: MailingSettingsValues = {
@@ -157,5 +166,67 @@ describe("[unit] services/send result aggregation", () => {
     ]);
 
     expect(aggregated.status).to.equal("queued");
+  });
+});
+
+describe("[unit] services/send manual real sends", () => {
+  const template = {
+    json_variables: JSON.stringify([
+      { path: "user.firstName", type: "string", required: true },
+      { path: "reset.url", type: "url", required: true },
+      { path: "promo", type: "string", required: false },
+    ]),
+  } as MailingTemplate;
+  const manual = {
+    ...PARAMS,
+    source: MANUAL_SEND_SOURCE,
+    variables: { user: { firstName: "Julie" } },
+  };
+
+  it("names the required variables a manual real send lacks", () => {
+    expect(missingManualVariables(template, manual)).to.deep.equal([
+      "reset.url",
+    ]);
+  });
+
+  it("leaves tests and API calls to the workspace setting", () => {
+    expect(
+      missingManualVariables(template, { ...manual, isTest: true }),
+    ).to.deep.equal([]);
+    expect(
+      missingManualVariables(template, { ...manual, source: "shop" }),
+    ).to.deep.equal([]);
+  });
+});
+
+describe("[unit] services/send message parts", () => {
+  it("sends the plain-text part next to the HTML", () => {
+    const message = messageFor({ ...input(RECIPIENTS), text: "Hello" }, "a@b");
+    expect(message.text).to.equal("Hello");
+    expect(message.html).to.equal("<p>Hello</p>");
+    expect(message.providerOptions).to.equal(undefined);
+  });
+});
+
+describe("[unit] services/send missing system URLs", () => {
+  const SYSTEM = ["unsubscribeUrl"];
+
+  it("refuses an API send only when the workspace blocks on missing values", () => {
+    expect(refusedMissing(PARAMS, false, ["a"], SYSTEM)).to.deep.equal([]);
+    expect(refusedMissing(PARAMS, true, ["a"], SYSTEM)).to.deep.equal([
+      "a",
+      "unsubscribeUrl",
+    ]);
+  });
+
+  it("always refuses a manual real send without its unsubscribe URL", () => {
+    const manual = { ...PARAMS, source: MANUAL_SEND_SOURCE };
+    expect(refusedMissing(manual, false, ["a"], SYSTEM)).to.deep.equal(SYSTEM);
+  });
+
+  it("never holds a test send for an unsubscribe URL", () => {
+    const test = { ...PARAMS, source: MANUAL_SEND_SOURCE, isTest: true };
+    expect(refusedMissing(test, false, [], SYSTEM)).to.deep.equal([]);
+    expect(refusedMissing(test, true, ["a"], SYSTEM)).to.deep.equal(["a"]);
   });
 });

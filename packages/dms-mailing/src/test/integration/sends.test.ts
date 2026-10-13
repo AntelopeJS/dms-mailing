@@ -104,7 +104,16 @@ describe("[integration] sends", () => {
       category: "orders",
     });
     const id = created.data[0] as string;
-    await client.post(`/api/mailing/templates/${id}/publish`, {});
+    await client.post(`/api/mailing/templates/${id}/content`, {
+      content: {
+        locales: { en: { subject: "Real send", preheader: "", blocks: [] } },
+      },
+    });
+    const published = await client.post(
+      `/api/mailing/templates/${id}/publish`,
+      {},
+    );
+    expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
     const sent = await client.post(`/api/mailing/templates/${id}/send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -121,7 +130,7 @@ describe("[integration] sends", () => {
   it("records one send per recipient of a multi-recipient test send", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    const list = await client.get(`${TABLE}/list`);
+    const list = await client.get(`${TABLE}/list?limit=100`);
     const id = (
       list.data.results.find(
         (item: TemplateRow) => item.slug === "test-send",
@@ -143,12 +152,10 @@ describe("[integration] sends", () => {
   it("refuses to send when required variables are missing and blocking is on", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    const settings = await client.get("/api/mailing/settings");
-    await client.post("/api/mailing/settings", {
-      ...settings.data,
+    await client.put("/api/mailing/settings", {
       blockOnMissingVariables: true,
     });
-    const list = await client.get(`${TABLE}/list`);
+    const list = await client.get(`${TABLE}/list?limit=100`);
     const id = (
       list.data.results.find(
         (item: TemplateRow) => item.slug === "test-send",
@@ -176,8 +183,7 @@ describe("[integration] sends", () => {
       { to: ["sofie@example.test"], locale: "en", data: {} },
     );
     expect(blocked.status).to.equal(HTTP_UNPROCESSABLE);
-    await client.post("/api/mailing/settings", {
-      ...settings.data,
+    await client.put("/api/mailing/settings", {
       blockOnMissingVariables: false,
     });
   });

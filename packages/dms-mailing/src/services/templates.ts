@@ -1,9 +1,25 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { DEFAULT_FALLBACK_LOCALE, LOCALE_LIST_SEPARATOR } from "../constants";
-import { type MailingTemplate, TemplateModel } from "../db";
+import {
+  DEFAULT_FALLBACK_LOCALE,
+  HTTP_NOT_FOUND,
+  LOCALE_LIST_SEPARATOR,
+} from "../constants";
+import {
+  type MailingTemplate,
+  type MailingTemplateVersion,
+  TemplateModel,
+  TemplateVersionModel,
+} from "../db";
+import { diffContents, diffVariables, type TemplateChange } from "../engine";
+import {
+  refreshAttentionIfFlagged,
+  refreshTemplateAttention,
+} from "./template-attention";
 import type {
   Block,
   LocaleContent,
+  TemplateAttentionReason,
   TemplateContent,
   VariableDefinition,
 } from "../types";
@@ -18,22 +34,105 @@ export function localesOf(content: TemplateContent): string {
   return Object.keys(content.locales).join(LOCALE_LIST_SEPARATOR);
 }
 
-export function parseContent(template: MailingTemplate): TemplateContent {
-  return JSON.parse(
-    template.json_content || '{"locales":{}}',
-  ) as TemplateContent;
+const EMPTY_CONTENT = '{"locales":{}}';
+const NEVER_PUBLISHED = 0;
+const STALE_DRAFT: TemplateAttentionReason = "stale_draft";
+const VERSION_NOT_FOUND = "$dms_mailing.errors.version_not_found";
+const TEMPLATE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
+
+/** The template `id` names; 404 when there is none. */
+export async function requireTemplate(
+  model: TemplateModel,
+  id: string,
+): Promise<MailingTemplate> {
+  const template = await model.get(id);
+  if (!template) throw new HTTPResult(HTTP_NOT_FOUND, TEMPLATE_NOT_FOUND);
+  return template;
 }
 
+/** The content customers receive: the last published version. */
+export function parseContent(template: MailingTemplate): TemplateContent {
+  return JSON.parse(template.json_content || EMPTY_CONTENT) as TemplateContent;
+}
+
+export function hasDraft(template: MailingTemplate): boolean {
+  return Boolean(template.json_draft);
+}
+
+/** The content the editor works on: the draft, or the published content. */
+export function workingContent(template: MailingTemplate): TemplateContent {
+  if (!template.json_draft) return parseContent(template);
+  return JSON.parse(template.json_draft) as TemplateContent;
+}
+
+/** The version customers receive; 0 for a template never published. */
+export function publishedVersionOf(template: MailingTemplate): number {
+  return template.publishedVersion;
+}
+
+export function isPublished(template: MailingTemplate): boolean {
+  return publishedVersionOf(template) > NEVER_PUBLISHED;
+}
+
+/**
+ * The published variable declarations: the contract real sends are checked
+ * against. A template never published carries those it was created with.
+ */
 export function parseVariables(
   template: MailingTemplate,
 ): VariableDefinition[] {
-  return JSON.parse(template.json_variables || "[]") as VariableDefinition[];
+  return JSON.parse(template.json_variables) as VariableDefinition[];
+}
+
+/**
+ * The declarations the editor works on: the draft's, else the published
+ * ones. A copy starts with a draft that declares the published ones.
+ */
+export function workingVariables(
+  template: MailingTemplate,
+): VariableDefinition[] {
+  if (!hasDraft(template) || !template.json_variables_draft)
+    return parseVariables(template);
+  return JSON.parse(template.json_variables_draft) as VariableDefinition[];
+}
+
+/** A template's working state: what a publish would ship. */
+export interface TemplateDraft {
+  content: TemplateContent;
+  variables: VariableDefinition[];
+}
+
+/**
+ * What `draft` would change for customers and for the callers' contract. A
+ * template never published has nothing to compare against: every locale and
+ * every declaration of its draft is new.
+ */
+function changesOf(
+  template: MailingTemplate,
+  draft: TemplateDraft,
+): TemplateChange[] {
+  const wasPublished = isPublished(template);
+  const published = wasPublished ? parseContent(template) : { locales: {} };
+  const declared = wasPublished ? parseVariables(template) : [];
+  return [
+    ...diffContents(published, draft.content),
+    ...diffVariables(declared, draft.variables),
+  ];
+}
+
+/** What the draft would change for customers and for callers. */
+export function pendingChanges(template: MailingTemplate): TemplateChange[] {
+  if (!hasDraft(template)) return [];
+  return changesOf(template, {
+    content: workingContent(template),
+    variables: workingVariables(template),
+  });
 }
 
 export function parseTestData(
   template: MailingTemplate,
 ): Record<string, unknown> {
-  return JSON.parse(template.json_test_data || "{}") as Record<string, unknown>;
+  return JSON.parse(template.json_test_data) as Record<string, unknown>;
 }
 
 interface FooterLabels {
@@ -53,77 +152,319 @@ const FOOTER_LABELS: Record<string, FooterLabels> = {
 
 const FOOTER_BLOCK_ID = "footer";
 
-export function blankContent(locale: string): TemplateContent {
+/** A footer in `locale`: its legal line and the labels of its two links. */
+export function footerBlock(locale: string, text = ""): Block {
   const labels = FOOTER_LABELS[locale] ?? (FOOTER_LABELS.en as FooterLabels);
-  const footer: Block = {
+  return {
     id: FOOTER_BLOCK_ID,
     type: "footer",
-    text: "",
+    text,
     unsubscribeLabel: labels.unsubscribe,
     preferencesLabel: labels.preferences,
     visibleIf: null,
   };
+}
+
+export function blankContent(locale: string): TemplateContent {
   return {
-    locales: { [locale]: { subject: "", preheader: "", blocks: [footer] } },
+    locales: {
+      [locale]: { subject: "", preheader: "", blocks: [footerBlock(locale)] },
+    },
   };
 }
 
+const FIRST_DRAFT_REVISION = 0;
+
+/** A new template needs no look until the attention refresh says so. */
+const NO_ATTENTION = { attention: "", needsAttention: false };
+
+/** Whether a writer that last saw `revision` is behind the stored draft. */
+export function isStaleRevision(
+  template: MailingTemplate,
+  revision: number | undefined,
+): boolean {
+  return revision !== undefined && revision !== template.draftRevision;
+}
+
+function draftWriteFields(
+  template: MailingTemplate,
+  author: string,
+): Partial<MailingTemplate> {
+  return {
+    draftRevision: template.draftRevision + 1,
+    draftUpdatedAt: new Date(),
+    draftUpdatedBy: author,
+    updatedBy: author,
+  };
+}
+
+/** Whether `draft` is exactly what customers and callers already have. */
+function isPublishedDraft(
+  template: MailingTemplate,
+  draft: TemplateDraft,
+): boolean {
+  return isPublished(template) && changesOf(template, draft).length === 0;
+}
+
 /**
- * The single writer of a template's content. Replaces it in place and keeps the
- * denormalised `locales` column in step; there is no version history.
+ * The single writer of the editor's work: content and variable declarations
+ * land in the draft, never in what customers receive or what callers are
+ * checked against. A draft put back as it was published is no draft. A
+ * template never published keeps its `locales` column on the draft, so the
+ * gallery shows what the draft covers. Answers the draft's new revision.
  */
-export async function saveContent(
+export async function saveDraft(
   tenantId: string,
-  templateId: string,
-  content: TemplateContent,
+  template: MailingTemplate,
+  draft: TemplateDraft,
+  author: string,
+): Promise<number> {
+  const { content, variables } = draft;
+  const locales = isPublished(template) ? {} : { locales: localesOf(content) };
+  const isClean = isPublishedDraft(template, draft);
+  const fields = draftWriteFields(template, author);
+  await GetModel(TemplateModel, tenantId).update(template._id, {
+    json_draft: isClean ? "" : JSON.stringify(content),
+    json_variables_draft: isClean ? "" : JSON.stringify(variables),
+    isDraftPending: !isClean,
+    ...fields,
+    ...locales,
+  });
+  await refreshAttentionIfFlagged(tenantId, template, STALE_DRAFT);
+  return fields.draftRevision as number;
+}
+
+export async function discardDraft(
+  tenantId: string,
+  template: MailingTemplate,
   author: string,
 ): Promise<void> {
-  await GetModel(TemplateModel, tenantId).update(templateId, {
+  await GetModel(TemplateModel, tenantId).update(template._id, {
+    json_draft: "",
+    json_variables_draft: "",
+    isDraftPending: false,
+    ...draftWriteFields(template, author),
+  });
+}
+
+/** What a published version changed from the one before. */
+export function parseVersionChanges(
+  row: MailingTemplateVersion,
+): TemplateChange[] {
+  return JSON.parse(row.json_changes) as TemplateChange[];
+}
+
+/** The declarations a published version shipped with. */
+export function parseVersionVariables(
+  row: MailingTemplateVersion,
+): VariableDefinition[] {
+  return JSON.parse(row.json_variables) as VariableDefinition[];
+}
+
+/**
+ * Copies a published version into the draft, declarations included: the
+ * normal review and publish then apply. Restoring what customers already
+ * receive leaves no draft. Answers the draft's new revision.
+ */
+export function restoreVersionAsDraft(
+  tenantId: string,
+  template: MailingTemplate,
+  row: MailingTemplateVersion,
+  author: string,
+): Promise<number> {
+  const draft = {
+    content: parseVersionContent(row),
+    variables: parseVersionVariables(row),
+  };
+  return saveDraft(tenantId, template, draft, author);
+}
+
+/** Locales whose subject is blank: a send would go out without one. */
+export function localesWithoutSubject(content: TemplateContent): string[] {
+  return Object.entries(content.locales)
+    .filter(([, locale]) => !locale.subject.trim())
+    .map(([code]) => code);
+}
+
+export interface PublishOutcome {
+  version: number;
+  changes: TemplateChange[];
+}
+
+/** What a publish ships: the working content and declarations. */
+interface Shipment {
+  content: TemplateContent;
+  variables: string;
+  version: number;
+  changes: TemplateChange[];
+}
+
+/**
+ * Keeps `shipment` as a version row for the history and makes it what
+ * customers receive, the draft cleared.
+ */
+async function ship(
+  tenantId: string,
+  template: MailingTemplate,
+  shipment: Shipment,
+  author: string,
+): Promise<void> {
+  const { content, variables, version, changes } = shipment;
+  const shipped = {
     json_content: JSON.stringify(content),
+    json_variables: variables,
     locales: localesOf(content),
+    publishedAt: new Date(),
+    publishedBy: author,
+  };
+  await GetModel(TemplateVersionModel, tenantId).insert({
+    ...shipped,
+    templateId: template._id,
+    version,
+    json_changes: JSON.stringify(changes),
+  });
+  await GetModel(TemplateModel, tenantId).update(template._id, {
+    ...shipped,
+    json_draft: "",
+    json_variables_draft: "",
+    isDraftPending: false,
+    draftRevision: template.draftRevision + 1,
+    status: "live",
+    publishedVersion: version,
     updatedBy: author,
   });
 }
 
-/** The content-bearing fields of a template, for copying it onto another. */
+/**
+ * Ships the working content: it becomes what `SendTemplate` sends, a version
+ * row keeps it for the history, and the draft is cleared. Re-publishing a
+ * template whose draft changes nothing makes it live again without a version.
+ */
+export async function publishTemplate(
+  tenantId: string,
+  template: MailingTemplate,
+  author: string,
+): Promise<PublishOutcome> {
+  const previous = publishedVersionOf(template);
+  const changes = pendingChanges(template);
+  const isUnchanged = previous > NEVER_PUBLISHED && changes.length === 0;
+  const version = isUnchanged ? previous : previous + 1;
+  if (isUnchanged) await markLive(tenantId, template, previous, author);
+  else
+    await ship(
+      tenantId,
+      template,
+      {
+        content: workingContent(template),
+        variables: JSON.stringify(workingVariables(template)),
+        version,
+        changes,
+      },
+      author,
+    );
+  await refreshTemplateAttention(tenantId);
+  return { version, changes };
+}
+
+/** Puts `version` back live; a draft equal to it is dropped on the way. */
+async function markLive(
+  tenantId: string,
+  template: MailingTemplate,
+  version: number,
+  author: string,
+): Promise<void> {
+  const draft = hasDraft(template)
+    ? {
+        json_draft: "",
+        json_variables_draft: "",
+        isDraftPending: false,
+        draftRevision: template.draftRevision + 1,
+      }
+    : {};
+  await GetModel(TemplateModel, tenantId).update(template._id, {
+    status: "live",
+    publishedVersion: version,
+    publishedAt: template.publishedAt ?? new Date(),
+    updatedBy: author,
+    ...draft,
+  });
+}
+
+/** The content a send of `version` carried: the draft's for a test of one. */
+export async function contentOfVersion(
+  tenantId: string,
+  template: MailingTemplate,
+  version: number,
+): Promise<TemplateContent> {
+  if (!version) return workingContent(template);
+  const row = await GetModel(TemplateVersionModel, tenantId).getVersion(
+    template._id,
+    version,
+  );
+  if (!row) throw new HTTPResult(HTTP_NOT_FOUND, VERSION_NOT_FOUND);
+  return parseVersionContent(row);
+}
+
+export function parseVersionContent(
+  row: MailingTemplateVersion,
+): TemplateContent {
+  return JSON.parse(row.json_content) as TemplateContent;
+}
+
+/**
+ * The content-bearing fields of a template, for copying it onto another. The
+ * copy starts as a draft of the source's working content: it was never
+ * published, so customers receive nothing from it yet.
+ */
 export function contentFieldsOf(
   source: MailingTemplate,
 ): Partial<MailingTemplate> {
+  const content = workingContent(source);
   return {
-    json_content: source.json_content,
-    json_variables: source.json_variables,
+    json_content: "",
+    json_draft: JSON.stringify(content),
+    isDraftPending: true,
+    json_variables: JSON.stringify(workingVariables(source)),
+    json_variables_draft: "",
     json_test_data: source.json_test_data,
-    locales: source.locales,
+    locales: localesOf(content),
+    publishedVersion: NEVER_PUBLISHED,
+    draftRevision: FIRST_DRAFT_REVISION,
+    ...NO_ATTENTION,
   };
 }
 
 /**
- * Seeds a freshly created template: a copy of `source` when one was chosen,
- * the blank footer-only content otherwise.
+ * Seeds a freshly created template with the content fields its creation
+ * picked: a copy of another template, a starter, or the blank footer-only page.
  */
 export async function initializeTemplate(
   tenantId: string,
   templateId: string,
-  locale: string,
   author: string,
-  source?: MailingTemplate,
+  fields: Partial<MailingTemplate>,
 ): Promise<void> {
-  const content = source
-    ? contentFieldsOf(source)
-    : blankFields(blankContent(locale));
   await GetModel(TemplateModel, tenantId).update(templateId, {
     status: "draft",
     json_variables: "[]",
     json_test_data: "{}",
-    ...content,
+    ...fields,
     updatedBy: author,
   });
+  await refreshTemplateAttention(tenantId);
 }
 
-function blankFields(content: TemplateContent): Partial<MailingTemplate> {
+export function blankFields(
+  content: TemplateContent,
+): Partial<MailingTemplate> {
   return {
-    json_content: JSON.stringify(content),
+    json_content: "",
+    json_draft: JSON.stringify(content),
+    isDraftPending: true,
     locales: localesOf(content),
+    publishedVersion: NEVER_PUBLISHED,
+    draftRevision: FIRST_DRAFT_REVISION,
+    ...NO_ATTENTION,
   };
 }
 
@@ -138,18 +479,40 @@ export function localeContentOf(
   return content.locales[locale];
 }
 
+const LOCALE_PART_SEPARATOR = /[-_]/;
+
+/**
+ * The codes a requested locale may match, most precise first: as asked, then
+ * its base language ("fr-BE" and "FR" both reach "fr").
+ */
+function requestedCandidates(wanted: string | undefined): string[] {
+  if (!wanted) return [];
+  const [language = wanted] = wanted.split(LOCALE_PART_SEPARATOR);
+  return [wanted, language];
+}
+
+/**
+ * The locale a send renders: the requested one (matched regardless of case,
+ * or by its base language), else the tenant fallback, else English, else
+ * whatever the content carries.
+ */
 export function pickLocale(
   content: TemplateContent,
   wanted: string | undefined,
   fallback: string,
 ): string {
   const available = Object.keys(content.locales);
-  const candidates = [wanted, fallback, DEFAULT_FALLBACK_LOCALE, available[0]];
-  return (
-    candidates.find((locale): locale is string =>
-      Boolean(locale && content.locales[locale]),
-    ) ?? DEFAULT_FALLBACK_LOCALE
-  );
+  const byCode = new Map(available.map((code) => [code.toLowerCase(), code]));
+  const candidates = [
+    ...requestedCandidates(wanted),
+    fallback,
+    DEFAULT_FALLBACK_LOCALE,
+    available[0],
+  ];
+  const match = candidates
+    .map((locale) => (locale ? byCode.get(locale.toLowerCase()) : undefined))
+    .find((code): code is string => Boolean(code));
+  return match ?? DEFAULT_FALLBACK_LOCALE;
 }
 
 export function displayName(user: TemplateAuthor): string {

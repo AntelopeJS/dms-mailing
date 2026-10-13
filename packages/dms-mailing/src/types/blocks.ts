@@ -29,3 +29,9 @@ export type {
 
 /** Internal to the module: templates are never exposed by status. */
 export type TemplateStatus = "draft" | "live" | "archived";
+
+/** Why a template needs a look on the templates page. */
+export type TemplateAttentionReason =
+  | "stale_draft"
+  | "never_sent"
+  | "missing_locale";

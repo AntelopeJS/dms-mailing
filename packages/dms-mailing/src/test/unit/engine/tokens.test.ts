@@ -24,3 +24,23 @@ describe("[unit] engine/tokens", () => {
     expect(result.missing).to.deep.equal(["nothing"]);
   });
 });
+
+describe("[unit] engine/tokens send mode", () => {
+  // A real send never shows a recipient the braces of a missing value; the
+  // preview keeps them so the author sees the gap.
+  it("blanks a missing token but still reports it", () => {
+    const result = interpolate(
+      "Hi {{customer.firstName}}, ref {{order.ref}}",
+      { order: { ref: "A1" } },
+      "send",
+    );
+    expect(result.text).to.equal("Hi , ref A1");
+    expect(result.missing).to.deep.equal(["customer.firstName"]);
+  });
+  it("leaves what breaks the token grammar as typed", () => {
+    expect(
+      interpolate("{{user-name}} {{first name}}", { "user-name": "B" }, "send")
+        .text,
+    ).to.equal("{{user-name}} {{first name}}");
+  });
+});

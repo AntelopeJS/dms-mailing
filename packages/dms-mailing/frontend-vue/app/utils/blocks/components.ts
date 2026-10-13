@@ -1,14 +1,14 @@
 import type { BlockType } from '../../types/mailing'
 
 export const BLOCK_COMPONENT_NAMES: Record<BlockType, string> = {
-	hero: 'DmsMailingBlockHero',
-	heading: 'DmsMailingBlockHeading',
-	paragraph: 'DmsMailingBlockParagraph',
-	code: 'DmsMailingBlockCode',
-	list: 'DmsMailingBlockList',
-	total: 'DmsMailingBlockTotal',
-	button: 'DmsMailingBlockButton',
-	if: 'DmsMailingEditorIfBlock',
-	divider: 'DmsMailingBlockDivider',
-	footer: 'DmsMailingBlockFooter',
+	hero: 'MailingBlockHero',
+	heading: 'MailingBlockHeading',
+	paragraph: 'MailingBlockParagraph',
+	code: 'MailingBlockCode',
+	list: 'MailingBlockList',
+	total: 'MailingBlockTotal',
+	button: 'MailingBlockButton',
+	if: 'MailingEditorIfBlock',
+	divider: 'MailingBlockDivider',
+	footer: 'MailingBlockFooter',
 }

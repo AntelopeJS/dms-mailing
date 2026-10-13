@@ -5,7 +5,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
-import type { SendEventType } from "../../types";
+import type { SendStatus } from "../../types";
 
 export const MAILING_SEND_EVENTS_TABLE_NAME = "mailing_send_events";
 
@@ -18,8 +18,12 @@ export class MailingSendEvent extends Table {
   @Field("string")
   declare sendId: string;
 
+  /**
+   * A provider event, or the status the send started with (`suppressed`
+   * when nothing was sent).
+   */
   @Field("string")
-  declare type: SendEventType;
+  declare type: SendStatus;
 
   @Field("date")
   declare at: Date;

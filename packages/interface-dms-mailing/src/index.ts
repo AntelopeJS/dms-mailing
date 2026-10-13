@@ -160,7 +160,11 @@ export interface SendTemplateResult {
   results?: SendTemplateResult[];
 }
 
-/** Delivery event reported by an e-mail provider webhook. */
+/**
+ * Delivery event reported by an e-mail provider webhook. A hard `bounced`, a
+ * `spam` complaint or an `unsubscribed` event puts the address on the
+ * tenant's suppression list.
+ */
 export interface EmailEvent {
   provider: string;
   messageId: string;
@@ -180,18 +184,18 @@ export type SendEventType =
   | "failed"
   | "unsubscribed";
 
-export type SendStatus =
-  | "queued"
-  | "sent"
-  | "delivered"
-  | "opened"
-  | "clicked"
-  | "bounced"
-  | "spam"
-  | "failed"
-  | "unsubscribed";
+/**
+ * Where a send stands. `suppressed` never comes from a provider: the address
+ * is on the tenant's suppression list (a hard bounce, a spam complaint, an
+ * unsubscription or a manual entry), so nothing was sent to it.
+ */
+export type SendStatus = SendEventType | "suppressed";
 
-/** Renders a live template and sends it to the given recipients. */
+/**
+ * Renders a live template and sends it to the given recipients. A recipient
+ * on the suppression list gets no e-mail: its entry in `results` says
+ * `suppressed`.
+ */
 export const SendTemplate =
   InterfaceFunction<
     (slug: string, params: SendTemplateParams) => Promise<SendTemplateResult>

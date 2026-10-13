@@ -2,18 +2,23 @@ import "./permissions";
 import "./db";
 import path from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
-import { Logging } from "@antelopejs/interface-core/logging";
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
-import type { ScheduledTask } from "node-cron";
 import {
   registerAutomationNodes,
   unregisterAutomationNodes,
 } from "./automation";
 import { type DmsMailingConfig, setConfig } from "./config";
-import { FRONTEND_MODULE_NAME } from "./constants";
-import { RETENTION_CRON_NAME, scheduleRetention, stopRetention } from "./crons";
+import { API_BASE_PATH, FRONTEND_MODULE_NAME } from "./constants";
+import {
+  ATTENTION_JOB,
+  RETENTION_JOB,
+  type ScheduledJob,
+  scheduleJob,
+  stopJob,
+} from "./crons";
 import { registerTenantExport, unregisterTenantExport } from "./hooks";
 import { registerRealtimeTopics } from "./realtime";
+import { WEBHOOK_SECRET_HEADER } from "./services/webhook-status";
 
 export * from "./data";
 export * from "./data-types";
@@ -22,7 +27,21 @@ export * from "./quick-actions";
 export * from "./routes";
 export type { DmsMailingConfig } from "./config";
 
-let retentionTask: ScheduledTask | undefined;
+const CRON_JOBS = [RETENTION_JOB, ATTENTION_JOB];
+
+/**
+ * The provider webhook (`/events/:provider/:tenantId`), served through the
+ * dashboard's public URL: the front proxy lets it through without an
+ * `Origin`, never sends it a session and relays the secret header, which the
+ * route checks itself.
+ */
+const PROVIDER_WEBHOOK_ENDPOINT = {
+  path: `${API_BASE_PATH}/events/*/*`,
+  methods: ["POST"],
+  headers: [WEBHOOK_SECRET_HEADER],
+};
+
+let scheduledJobs: ScheduledJob[] = [];
 
 export async function construct(config: DmsMailingConfig = {}): Promise<void> {
   setConfig(config);
@@ -39,6 +58,7 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
     renderer: { name: "vue", version: "3" },
     options: { dmsMailing: {} },
     priority: 0,
+    publicEndpoints: [PROVIDER_WEBHOOK_ENDPOINT],
   });
 }
 
@@ -48,15 +68,11 @@ export function destroy(): void {
 }
 
 export function start(): void {
-  retentionTask = scheduleRetention();
+  scheduledJobs = CRON_JOBS.map(scheduleJob);
 }
 
 export async function stop(): Promise<void> {
-  const task = retentionTask;
-  retentionTask = undefined;
-  try {
-    await stopRetention(task);
-  } catch (error) {
-    Logging.Error(`Cron '${RETENTION_CRON_NAME}' failed to stop:`, error);
-  }
+  const jobs = scheduledJobs;
+  scheduledJobs = [];
+  await Promise.all(jobs.map(stopJob));
 }

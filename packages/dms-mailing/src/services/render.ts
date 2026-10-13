@@ -23,6 +23,7 @@ export async function renderEmailHtml(
 ): Promise<string> {
   if (!getConfig().useHtmlRender) return renderFallbackHtml(email, locale);
   try {
+    // The DMS renderer already drops Vue's SSR markers (dms-frontend 0.5.4).
     return await GenerateHtml(MailingEmailTemplate, { locale, email });
   } catch (error) {
     Logging.Warn(

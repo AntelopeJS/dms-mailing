@@ -1,6 +1,12 @@
 export const MODULE_ID = "mailing";
 export const API_BASE_PATH = "/api/mailing";
 export const TABLES_BASE_PATH = `${API_BASE_PATH}/tables`;
+export const MODULE_BASE_PATH = `/modules/${MODULE_ID}`;
+export const TEMPLATES_PATH = `${MODULE_BASE_PATH}/templates`;
+export const SENDS_PATH = `${MODULE_BASE_PATH}/sends`;
+export const SETTINGS_PATH = `${MODULE_BASE_PATH}/settings`;
+export const NEW_TEMPLATE_BUTTON_ID = "create";
+export const NEW_TEMPLATE_ACTION_ID = "mailing.new-template";
 export const FRONTEND_MODULE_NAME = "@antelopejs/dms-mailing-frontend-vue";
 export const EMAIL_TEMPLATE_NAME = "EmailMailingTemplate";
 
@@ -29,7 +35,17 @@ export const HTTP_UNPROCESSABLE = 422;
 
 export const LOCALE_LIST_SEPARATOR = ",";
 
-export const SYSTEM_VARIABLE_PATHS = ["unsubscribeUrl", "preferencesUrl"];
+/** The status of a template taken out of use. */
+export const ARCHIVED_STATUS = "archived";
+
+export const UNSUBSCRIBE_URL_PATH = "unsubscribeUrl";
+export const PREFERENCES_URL_PATH = "preferencesUrl";
+
+/** The URLs a caller passes for the footer links, not declared by hand. */
+export const SYSTEM_VARIABLE_PATHS = [
+  UNSUBSCRIBE_URL_PATH,
+  PREFERENCES_URL_PATH,
+];
 
 /**
  * Ceiling on a metrics window. `from`/`to` are plain query parameters, and the

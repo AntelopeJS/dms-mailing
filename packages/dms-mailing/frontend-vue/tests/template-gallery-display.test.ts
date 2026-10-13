@@ -22,9 +22,8 @@ describe('template gallery display plugin', () => {
 			'registerTableViewDisplay',
 			(registration: DisplayRegistration) => registrations.push(registration),
 		)
-		const { default: setup } = await import(
-			'../app/plugins/template-gallery-display'
-		)
+		const { default: setup } =
+			await import('../app/plugins/template-gallery-display')
 		setup()
 		expect(registrations.map((registration) => registration.id)).toEqual([
 			'mailing:gallery',
