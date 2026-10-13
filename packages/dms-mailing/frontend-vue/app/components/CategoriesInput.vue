@@ -10,6 +10,7 @@ import {
 	iconName,
 	keptCategories,
 	moveRow,
+	newCategoryIcon,
 	NO_CATEGORY,
 	redirectMoves,
 	serializeCategories,
@@ -42,7 +43,6 @@ const emit = defineEmits<{
 }>()
 
 const KEY_PREFIX = 'dms_mailing.settings.categories.'
-const NEW_ICON = CATEGORY_ICONS[0] ?? DEFAULT_CATEGORY_ICON
 const HANDLE_SELECTOR = '[data-drag-handle]'
 const MOVE_UP = -1
 const MOVE_DOWN = 1
@@ -118,7 +118,7 @@ function addCategory(): void {
 		key: keyOf(),
 		id: '',
 		label: '',
-		icon: NEW_ICON,
+		icon: newCategoryIcon(rows.value),
 		isNew: true,
 	})
 }

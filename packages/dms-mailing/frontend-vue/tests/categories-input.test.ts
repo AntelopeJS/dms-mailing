@@ -120,4 +120,20 @@ describe('CategoriesInput', () => {
 		).toBe('categories.1.label')
 	})
 
+	it('starts a new row with an icon no other row uses', async () => {
+		mounted = mountInput()
+		await flush()
+		const add = mounted.host.querySelector<HTMLElement>(
+			'button[label="dms_mailing.settings.categories.add"]',
+		)
+		add?.click()
+		await flush()
+		const pickers = mounted.host.querySelectorAll(
+			'button[aria-label="dms_mailing.settings.categories.change_icon"]',
+		)
+		expect(pickers).toHaveLength(CATEGORIES.length + 1)
+		expect(pickers[CATEGORIES.length]?.getAttribute('data-icon')).toBe(
+			'i-ph-lock',
+		)
+	})
 })

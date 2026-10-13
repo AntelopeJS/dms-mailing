@@ -30,6 +30,17 @@ export const DEFAULT_CATEGORY_ICON = 'i-ph-folder'
 
 const ICON_PREFIX = 'i-ph-'
 
+/**
+ * The icon a new category starts with: the first one of the picker no
+ * category uses yet, so a new row never looks like an existing one.
+ */
+export function newCategoryIcon(categories: TemplateCategory[]): string {
+	const used = new Set(categories.map((category) => category.icon))
+	return (
+		CATEGORY_ICONS.find((icon) => !used.has(icon)) ?? DEFAULT_CATEGORY_ICON
+	)
+}
+
 /** The i18n key part naming an icon (`megaphone` for `i-ph-megaphone`). */
 export function iconName(icon: string): string {
 	return icon.startsWith(ICON_PREFIX)

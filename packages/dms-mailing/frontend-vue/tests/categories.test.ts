@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
 	CATEGORY_ICONS,
+	DEFAULT_CATEGORY_ICON,
 	categoryMoves,
 	iconName,
 	keptCategories,
 	moveRow,
+	newCategoryIcon,
 	redirectMoves,
 	withMoves,
 	fromCategoryOption,
@@ -175,5 +177,21 @@ describe('iconName', () => {
 	it('names an icon for its i18n label', () => {
 		expect(iconName('i-ph-megaphone')).toBe('megaphone')
 		expect(iconName('i-ph-shopping-cart')).toBe('shopping_cart')
+	})
+})
+
+describe('newCategoryIcon', () => {
+	it('picks the first icon no category uses yet', () => {
+		expect(newCategoryIcon(CATEGORIES)).toBe(CATEGORY_ICONS[1])
+		expect(newCategoryIcon([])).toBe(CATEGORY_ICONS[0])
+	})
+
+	it('falls back to the default once every icon is taken', () => {
+		const all = CATEGORY_ICONS.map((icon, index) => ({
+			id: `c${index}`,
+			label: `C${index}`,
+			icon,
+		}))
+		expect(newCategoryIcon(all)).toBe(DEFAULT_CATEGORY_ICON)
 	})
 })
