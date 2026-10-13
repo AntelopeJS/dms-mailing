@@ -536,6 +536,7 @@
 				"replayed_by": "Renvoyé le {date}",
 				"replay_of": "Cet envoi répète un envoi précédent",
 				"see_send": "Voir l’envoi",
+				"send_unavailable": "Impossible d’ouvrir cet envoi",
 				"not_handed": "Non transmis au fournisseur"
 			},
 			"empty": {

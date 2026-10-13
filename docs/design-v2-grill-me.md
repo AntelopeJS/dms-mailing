@@ -579,13 +579,13 @@ interface-dms 0.5.10, dms-frontend 0.5.4):
 | `RetentionInput` re-submits through `requestSubmit()` | `useEnclosingForm()`: `addValidator` holds the save, `submit()` sends it once confirmed (dms#225) |
 | E11000 caught in `services/notify.ts` | `createIdempotently` treats a reused key as already delivered (dms#222); the key is now namespaced `mailing:problems:<slug>:<hour>`, as the DMS docs ask |
 | `useControlError` imported from `#dms-ui/app/build/…` | The public, auto-imported composable (dms#224) |
+| `SendDrawer` keeps the linked send it opened in local state ("See the send") | The panel's `showRow` prop (dms#252, dms 0.7.21): the DMS reads the send from the rows shown or the sends table's `get` route, makes it the open row (highlight, position, `?record=`) and remounts the drawer on it; a send it cannot read shows an error toast |
 
 Kept:
 
 | Workaround | Why |
 | --- | --- |
 | Hidden searchable "Send id" column | The table search still matches only a field with a column or a filter; finding a send by the id a log or a webhook names (SE-12) needs it. dms#226 is about `?record=` links, not search |
-| `SendDrawer` swaps to a linked send in place | Not a workaround any more: it no longer writes `?record=` (the DMS now also opens a row when a same-page link changes it, dms#226, and opens a link to a row that is gone on an empty side panel: "This entry is no longer available") |
 | `MailingWebhookStatus` as a form field | A form section only holds fields, no display block |
 
 Planned but left out, because the module would look different: the

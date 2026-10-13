@@ -37,6 +37,8 @@ interface SendDrawerProps {
 	sendId?: string
 	rowData?: SendRow
 	onSuccessCallback?: () => void
+	/** Shows another send of the table in this panel (DMS `showRow`). */
+	showRow?: (row: object | string) => Promise<void>
 }
 
 interface StatTrioItem {
@@ -87,18 +89,14 @@ const { copy } = useClipboard()
 
 const KeyValueList = resolveComponent('DmsKeyValueList') as Component
 
-/** A linked send opened from this drawer, in place of the row's. */
-const openedId = ref<string | null>(null)
-const sendId = computed(
-	() => openedId.value ?? props.rowData?._id ?? props.sendId ?? '',
-)
+const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
 const detail = ref<SendDetailResponse | null>(null)
 const tracking = ref<TimelineTracking | null>(null)
 const loading = ref(false)
 const sending = ref(false)
 
 const send = computed<DrawerSend | null>(
-	() => detail.value?.send ?? (openedId.value ? null : props.rowData) ?? null,
+	() => detail.value?.send ?? props.rowData ?? null,
 )
 const key = (path: string, params: Record<string, unknown> = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
@@ -257,13 +255,15 @@ async function loadTracking(): Promise<void> {
 }
 
 /**
- * Opens a linked send in this drawer. The URL keeps the row the table opened,
- * which the DMS clears when the drawer closes.
+ * Opens a linked send in this panel: the DMS reads it (from the rows shown or
+ * the table's `get` route) and remounts the drawer on it.
  */
-function showSend(id: string): void {
-	openedId.value = id
-	detail.value = null
-	void load()
+async function showSend(id: string): Promise<void> {
+	try {
+		await props.showRow?.(id)
+	} catch {
+		toast.add({ color: 'error', title: key('send_unavailable') })
+	}
 }
 
 function settle(): void {
@@ -514,12 +514,13 @@ onMounted(() => {
 						>
 							<template #actions>
 								<UButton
+									v-if="showRow"
 									size="xs"
 									color="neutral"
 									variant="outline"
 									trailing-icon="i-ph-arrow-right"
 									:label="key('see_send')"
-									@click="showSend(link.id)"
+									@click="void showSend(link.id)"
 								/>
 							</template>
 						</DmsBanner>
