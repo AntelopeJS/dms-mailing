@@ -2,9 +2,6 @@ import { expect } from "chai";
 import type { SendSummary } from "../../db";
 import {
   crossesThreshold,
-  deliverProblemsNotification,
-  type IdempotentNotificationTarget,
-  isAlreadyNotified,
   type ProblemNotificationInput,
   problemRate,
   problemsIdempotencyKey,
@@ -14,8 +11,6 @@ import {
 } from "../../services/notify";
 import type { SendStatus } from "../../types";
 
-const OWNER_IDS = ["owner-1", "owner-2"];
-
 const INPUT: ProblemNotificationInput = {
   sendId: "send-1",
   templateSlug: "welcome",
@@ -24,22 +19,6 @@ const INPUT: ProblemNotificationInput = {
 };
 
 const AT = new Date("2026-10-11T14:20:00.000Z");
-
-interface RecordedDelivery {
-  userIds: string[];
-  idempotencyKey: string;
-}
-
-function recordingTarget(
-  recorded: RecordedDelivery[],
-): IdempotentNotificationTarget {
-  return {
-    toUsersIdempotently: (userIds, idempotencyKey) => {
-      recorded.push({ userIds, idempotencyKey });
-      return Promise.resolve();
-    },
-  };
-}
 
 const summary = (status: SendStatus, isTest = false): SendSummary =>
   ({ status, isTest }) as SendSummary;
@@ -89,6 +68,7 @@ describe("[unit] services/notify", () => {
 
   it("keys one notification per template and clock hour", () => {
     const key = problemsIdempotencyKey(INPUT, AT);
+    expect(key).to.match(/^mailing:problems:welcome:\d+$/);
     expect(problemsIdempotencyKey({ ...INPUT, sendId: "other" }, AT)).to.equal(
       key,
     );
@@ -98,45 +78,5 @@ describe("[unit] services/notify", () => {
     expect(
       problemsIdempotencyKey(INPUT, new Date("2026-10-11T15:01:00.000Z")),
     ).to.not.equal(key);
-  });
-
-  it("delivers through the idempotent path with the hour's key", async () => {
-    const recorded: RecordedDelivery[] = [];
-    const target = recordingTarget(recorded);
-    const key = problemsIdempotencyKey(INPUT, AT);
-
-    await deliverProblemsNotification(target, OWNER_IDS, key);
-
-    expect(recorded).to.deep.equal([
-      { userIds: OWNER_IDS, idempotencyKey: key },
-    ]);
-  });
-
-  it("takes the hour's key already used as already notified", async () => {
-    const duplicate = Object.assign(
-      new Error("E11000 duplicate key error collection: user_notifications"),
-      { code: 11000 },
-    );
-    const target: IdempotentNotificationTarget = {
-      toUsersIdempotently: () => Promise.reject(duplicate),
-    };
-    await deliverProblemsNotification(target, OWNER_IDS, "welcome:1");
-    expect(
-      isAlreadyNotified(new Error("MongoBulkWriteError: E11000")),
-    ).to.equal(true);
-    expect(isAlreadyNotified(new Error("connection lost"))).to.equal(false);
-  });
-
-  it("still reports another delivery failure", async () => {
-    const target: IdempotentNotificationTarget = {
-      toUsersIdempotently: () => Promise.reject(new Error("connection lost")),
-    };
-    let caught: unknown;
-    try {
-      await deliverProblemsNotification(target, OWNER_IDS, "welcome:1");
-    } catch (error) {
-      caught = error;
-    }
-    expect(String(caught)).to.contain("connection lost");
   });
 });

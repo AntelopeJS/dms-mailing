@@ -23,10 +23,6 @@ export interface ProblemWindow {
   problems: number;
 }
 
-export interface IdempotentNotificationTarget {
-  toUsersIdempotently(userIds: string[], idempotencyKey: string): Promise<void>;
-}
-
 export interface ProblemNotificationData extends NotificationData {
   linkTo: string;
   params: Record<string, string | number>;
@@ -42,16 +38,11 @@ const PERCENT = 100;
 const SENDS_PAGE = "/modules/mailing/sends";
 const PROBLEMS_VIEW = "problems";
 const IDEMPOTENCY_KEY_SEPARATOR = ":";
+// The DMS keys notifications across every module: ours carry the module's name.
+const IDEMPOTENCY_KEY_PREFIX = "mailing:problems";
 const PROBLEMS_ICON = "i-ph-warning";
 const PROBLEMS_TITLE = "$dms_mailing.notifications.problems_title";
 const PROBLEMS_DESCRIPTION = "$dms_mailing.notifications.problems_description";
-const DUPLICATE_KEY_CODE = 11000;
-const DUPLICATE_KEY_MESSAGE = /E11000|duplicate key/i;
-
-interface CodedError {
-  code?: unknown;
-}
-
 /** Only a real send's problem counts: a test bouncing is the tester's business. */
 export function shouldNotify(input: ProblemNotificationInput): boolean {
   return PROBLEM_STATUSES.includes(input.type) && !input.isTest;
@@ -104,37 +95,18 @@ export function problemsNotification(
   };
 }
 
-/** One notification per template and clock hour, however many problems follow. */
+/**
+ * One notification per template and clock hour, however many problems follow:
+ * the DMS keeps the first delivery under a key and ignores the later ones.
+ */
 export function problemsIdempotencyKey(
   input: ProblemNotificationInput,
   at: Date,
 ): string {
   const hour = Math.floor(at.getTime() / ALERT_WINDOW_MS);
-  return `${input.templateSlug}${IDEMPOTENCY_KEY_SEPARATOR}${hour}`;
-}
-
-/**
- * Whether the store refused a notification because the hour's key already
- * has one. Later problems of the hour carry other figures, which the DMS
- * reports as a duplicate key rather than as the same delivery.
- */
-export function isAlreadyNotified(error: unknown): boolean {
-  const code = (error as CodedError | null)?.code;
-  return (
-    code === DUPLICATE_KEY_CODE || DUPLICATE_KEY_MESSAGE.test(String(error))
+  return [IDEMPOTENCY_KEY_PREFIX, input.templateSlug, hour].join(
+    IDEMPOTENCY_KEY_SEPARATOR,
   );
-}
-
-export async function deliverProblemsNotification(
-  target: IdempotentNotificationTarget,
-  userIds: string[],
-  idempotencyKey: string,
-): Promise<void> {
-  try {
-    await target.toUsersIdempotently(userIds, idempotencyKey);
-  } catch (error) {
-    if (!isAlreadyNotified(error)) throw error;
-  }
 }
 
 async function tenantOwnerIds(tenantId: string): Promise<string[]> {
@@ -173,8 +145,7 @@ async function sendProblemsNotification(
     .linkTo(data.linkTo)
     .params(data.params)
     .build();
-  await deliverProblemsNotification(
-    notification,
+  await notification.toUsersIdempotently(
     userIds,
     problemsIdempotencyKey(input, now),
   );
