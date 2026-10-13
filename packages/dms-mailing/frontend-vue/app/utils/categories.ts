@@ -36,9 +36,7 @@ const ICON_PREFIX = 'i-ph-'
  */
 export function newCategoryIcon(categories: TemplateCategory[]): string {
 	const used = new Set(categories.map((category) => category.icon))
-	return (
-		CATEGORY_ICONS.find((icon) => !used.has(icon)) ?? DEFAULT_CATEGORY_ICON
-	)
+	return CATEGORY_ICONS.find((icon) => !used.has(icon)) ?? DEFAULT_CATEGORY_ICON
 }
 
 /** The i18n key part naming an icon (`megaphone` for `i-ph-megaphone`). */

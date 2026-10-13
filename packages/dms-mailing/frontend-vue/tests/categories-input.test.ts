@@ -115,9 +115,9 @@ describe('CategoriesInput', () => {
 		const shown = alerts(mounted.host)
 		expect(shown).toHaveLength(1)
 		expect(shown[0]?.textContent?.trim()).toBe(ROW_ERROR)
-		expect(
-			shown[0]?.closest('[data-row]')?.getAttribute('data-row'),
-		).toBe('categories.1.label')
+		expect(shown[0]?.closest('[data-row]')?.getAttribute('data-row')).toBe(
+			'categories.1.label',
+		)
 	})
 
 	it('starts a new row with an icon no other row uses', async () => {
