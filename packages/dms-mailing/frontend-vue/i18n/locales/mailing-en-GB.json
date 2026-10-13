@@ -12,7 +12,7 @@
 				}
 			},
 			"stale_drafts": {
-				"description": "Never published, unchanged for over a week.",
+				"description": "Never published, idle for over a week.",
 				"title": "{count} draft left untouched | {count} drafts left untouched",
 				"action": "Publish or archive"
 			},
@@ -28,7 +28,7 @@
 			},
 			"unused_live": {
 				"description": "{names}: check the slug your code calls.",
-				"title": "{count} live template not sent in this period | {count} live templates not sent in this period",
+				"title": "{count} live template unused this period | {count} live templates unused this period",
 				"action": "Check the slugs"
 			},
 			"missing_locales": {
@@ -43,7 +43,7 @@
 			},
 			"sender_missing": {
 				"title": "No sender address",
-				"description": "E-mails go out from the provider’s default address.",
+				"description": "E-mails use the provider’s default address.",
 				"action": "Set the sender"
 			},
 			"more_names": "{names} and {count} more"
@@ -438,7 +438,7 @@
 			"bounces": "Bounces",
 			"click_rate": "Click rate",
 			"deliverability": "Deliverability",
-			"domain_sends": "Open rate of delivered e-mails, domains with 5 or more deliveries",
+			"domain_sends": "Domains with 5 or more deliveries",
 			"domains": "Open rate by domain",
 			"open_rate": "Open rate",
 			"previous": "Previous period",

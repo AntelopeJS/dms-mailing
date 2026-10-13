@@ -125,6 +125,11 @@ const activity = Grid({ gap: GRID_GAP }).child(
         periodScope: OVERVIEW_PERIOD_SCOPE,
         realtimeTopic: MAILING_SENDS_TOPIC,
         groupByDay: false,
+        /**
+         * A third of the row: titles and template names wrap rather than
+         * end in an ellipsis with no way to read them.
+         */
+        wrap: true,
         fillHeight: true,
         skeletonCount: ATTENTION_SKELETON_ROWS,
         empty: {

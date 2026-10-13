@@ -12,7 +12,7 @@
 				}
 			},
 			"stale_drafts": {
-				"description": "Jamais publié, inchangé depuis plus d’une semaine. | Jamais publié, inchangé depuis plus d’une semaine. | Jamais publiés, inchangés depuis plus d’une semaine.",
+				"description": "Jamais publié, intact depuis plus d’une semaine. | Jamais publié, intact depuis plus d’une semaine. | Jamais publiés, intacts depuis plus d’une semaine.",
 				"title": "{count} brouillon laissé de côté | {count} brouillon laissé de côté | {count} brouillons laissés de côté",
 				"action": "Publier ou archiver"
 			},
@@ -28,7 +28,7 @@
 			},
 			"unused_live": {
 				"description": "{names} : vérifiez le slug appelé par votre code.",
-				"title": "{count} modèle en ligne sans envoi sur la période | {count} modèle en ligne sans envoi sur la période | {count} modèles en ligne sans envoi sur la période",
+				"title": "{count} modèle en ligne inutilisé sur la période | {count} modèle en ligne inutilisé sur la période | {count} modèles en ligne inutilisés sur la période",
 				"action": "Vérifier les slugs"
 			},
 			"missing_locales": {
@@ -43,7 +43,7 @@
 			},
 			"sender_missing": {
 				"title": "Aucune adresse d’expéditeur",
-				"description": "Les e-mails partent avec l’adresse par défaut du fournisseur.",
+				"description": "Les e-mails utilisent l’adresse par défaut du fournisseur.",
 				"action": "Définir l’expéditeur"
 			},
 			"more_names": "{names} et {count} autre | {names} et {count} autre | {names} et {count} autres"
@@ -438,7 +438,7 @@
 			"bounces": "Rebonds",
 			"click_rate": "Taux de clic",
 			"deliverability": "Délivrabilité",
-			"domain_sends": "Taux d’ouverture des e-mails distribués, domaines avec au moins 5 e-mails distribués",
+			"domain_sends": "Domaines avec 5 distributions ou plus",
 			"domains": "Taux d’ouverture par domaine",
 			"open_rate": "Taux d’ouverture",
 			"previous": "Période précédente",
