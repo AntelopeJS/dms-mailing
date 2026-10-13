@@ -46,12 +46,17 @@ const STATUS_ITEMS = SEND_STATUSES.map((value) => ({
 }));
 
 /**
- * Narrow enough for the status to show next to it on a phone, between the
- * recipient and the pinned row actions (about 340px of table at 390px).
+ * Column widths, in px, sized so the visible columns fit a 1440px window
+ * without clipping: an address next to its "Resolved" or "Test" badge, a
+ * provider error such as `connect ECONNREFUSED 127.0.0.1:2525` under the
+ * status, the longest slugs. A phone scrolls the table sideways.
  */
-const RECIPIENT_COLUMN_WIDTH = 180;
-const STATUS_COLUMN_WIDTH = 220;
-const NARROW_COLUMN_WIDTH = 120;
+const RECIPIENT_COLUMN_WIDTH = 278;
+const STATUS_COLUMN_WIDTH = 250;
+const TEMPLATE_COLUMN_WIDTH = 162;
+const LOCALE_COLUMN_WIDTH = 104;
+const LATENCY_COLUMN_WIDTH = 128;
+const SENT_AT_COLUMN_WIDTH = 126;
 
 const PROBLEM_STAGE: SendStage = "problem";
 
@@ -172,6 +177,7 @@ export class SendsTableAPI extends DataController(
       filterOnly: true,
     }),
     filterable: true,
+    size: TEMPLATE_COLUMN_WIDTH,
     display: new DefaultDisplays.MonoDisplay({}),
   })
   declare templateSlug: string;
@@ -193,7 +199,7 @@ export class SendsTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.sends.cols.locale",
     type: new DefaultDataTypes.StringType({}),
-    size: NARROW_COLUMN_WIDTH,
+    size: LOCALE_COLUMN_WIDTH,
     display: new DefaultDisplays.TwoLineDisplay({
       primaryField: "localeLabel",
       subField: "localeFallback",
@@ -224,12 +230,17 @@ export class SendsTableAPI extends DataController(
   })
   declare requestedLocale: string;
 
+  /**
+   * Hidden by default: the side panel shows it under "Origin", and the room
+   * goes to the recipient and the provider's error.
+   */
   @Listable()
   @Exported()
   @Access(AccessMode.ReadOnly)
   @Column({
     name: "$dms_mailing.sends.cols.source",
     type: new DefaultDataTypes.StringType({}),
+    isVisible: false,
     display: new DefaultDisplays.MonoDisplay({}),
   })
   declare source: string;
@@ -241,7 +252,7 @@ export class SendsTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.sends.cols.latencyMs",
     type: new DefaultDataTypes.NumberType({}),
-    size: NARROW_COLUMN_WIDTH,
+    size: LATENCY_COLUMN_WIDTH,
     display: new DefaultDisplays.DurationDisplay({ unit: "ms" }),
   })
   declare latencyMs: number | null;
@@ -253,6 +264,7 @@ export class SendsTableAPI extends DataController(
   @Column({
     name: "$dms_mailing.sends.cols.createdAt",
     type: new DefaultDataTypes.DateType({}),
+    size: SENT_AT_COLUMN_WIDTH,
     display: new DefaultDisplays.RelativeDateDisplay({ style: "relative" }),
   })
   declare createdAt: Date;
