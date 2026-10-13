@@ -1,6 +1,43 @@
 # Changelog
 
 
+## v0.7.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.5.0...v0.7.0)
+
+### 🚀 Enhancements
+
+- **frontend-vue:** Declare the @antelopejs/dms-frontend releases the layer supports ([#27](https://github.com/AntelopeJS/dms-mailing/pull/27))
+- ⚠️  Port the mailing module to DMS v2 and its redesign ([#34](https://github.com/AntelopeJS/dms-mailing/pull/34))
+
+### 🩹 Fixes
+
+- **db:** Stop the mailing webhook from creating settings and key the settings row per tenant ([#24](https://github.com/AntelopeJS/dms-mailing/pull/24))
+- **deps:** Relax @antelopejs/interface-database to >=0.1.7 <1.0.0 ([#26](https://github.com/AntelopeJS/dms-mailing/pull/26))
+- **deps:** Cap @antelopejs/interface-dms-mailing below the next minor and check interface ranges ([#29](https://github.com/AntelopeJS/dms-mailing/pull/29))
+- **frontend-vue:** Send null to clear a template category ([#32](https://github.com/AntelopeJS/dms-mailing/pull/32))
+
+### 💅 Refactors
+
+- Namespace the gallery display id as mailing:gallery ([#33](https://github.com/AntelopeJS/dms-mailing/pull/33))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms-mailing v0.3.1 ([abc7c03](https://github.com/AntelopeJS/dms-mailing/commit/abc7c03))
+- **release:** @antelopejs/dms-mailing v0.3.2 ([f374a31](https://github.com/AntelopeJS/dms-mailing/commit/f374a31))
+- **release:** @antelopejs/dms-mailing v0.3.3 ([2f9d6cf](https://github.com/AntelopeJS/dms-mailing/commit/2f9d6cf))
+- **release:** @antelopejs/dms-mailing v0.3.4 ([2b0280b](https://github.com/AntelopeJS/dms-mailing/commit/2b0280b))
+- **playground:** Open module source ranges ([#30](https://github.com/AntelopeJS/dms-mailing/pull/30))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Port the mailing module to DMS v2 and its redesign ([#34](https://github.com/AntelopeJS/dms-mailing/pull/34))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.5.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.4.0...v0.5.0)
