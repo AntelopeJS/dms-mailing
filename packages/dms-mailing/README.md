@@ -12,7 +12,7 @@ dashboard and settings. It owns the data (tenant-scoped Mongo tables), renders
 e-mails through the DMS html-render chain and sends them through
 `@antelopejs/interface-email`.
 
-The module targets `@antelopejs/dms` 0.7 (0.7.20 or later) and `@antelopejs/dms-frontend` 0.5 (0.5.5 or later).
+The module targets `@antelopejs/dms` 0.7 (0.7.21 or later) and `@antelopejs/dms-frontend` 0.5 (0.5.5 or later).
 Like every DMS module, its pages live in the module's own sidebar (Mailing:
 Overview, Templates, Sends; Configure: Settings, Suppression list) and are
 reserved to the platform owner. The design decisions behind the v2 screens are recorded in
