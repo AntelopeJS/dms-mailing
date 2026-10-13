@@ -17,27 +17,14 @@ export interface MailingEmailProps {
 const MailingEmailTemplate =
   RegisterHtmlTemplate<MailingEmailProps>(EMAIL_TEMPLATE_NAME);
 
-/**
- * The markers Vue's server renderer leaves: fragments (`<!--[-->`, `<!--]-->`),
- * empty and `v-if` placeholders (`<!---->` in production, `<!--v-if-->` in
- * development) and teleport anchors. Noise in a sent message, and some filters
- * weigh it. Outlook's conditional comments (`<!--[if mso]>`) are not touched.
- */
-const SSR_MARKERS =
-  /<!--(?:\[|\]|v-if|teleport(?: start| end)?(?: anchor)?|)-->/g;
-
-export const stripRenderMarkers = (html: string): string =>
-  html.replace(SSR_MARKERS, "");
-
 export async function renderEmailHtml(
   email: ResolvedEmail,
   locale: string,
 ): Promise<string> {
   if (!getConfig().useHtmlRender) return renderFallbackHtml(email, locale);
   try {
-    return stripRenderMarkers(
-      await GenerateHtml(MailingEmailTemplate, { locale, email }),
-    );
+    // The DMS renderer already drops Vue's SSR markers (dms-frontend 0.5.4).
+    return await GenerateHtml(MailingEmailTemplate, { locale, email });
   } catch (error) {
     Logging.Warn(
       `[dms-mailing] html-render unavailable, using fallback: ${String(error)}`,

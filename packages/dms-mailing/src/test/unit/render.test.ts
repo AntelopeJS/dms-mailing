@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { setConfig } from "../../config";
-import { renderEmailHtml, stripRenderMarkers } from "../../services/render";
+import { renderEmailHtml } from "../../services/render";
 import type { ResolvedEmail } from "../../types";
 
 const EMAIL: ResolvedEmail = {
@@ -19,21 +19,5 @@ describe("[unit] services/render", () => {
     const html = await renderEmailHtml(EMAIL, "en");
     expect(html).to.include("<title>S</title>");
     expect(html).to.include("Hello");
-  });
-});
-
-describe("[unit] services/render markers", () => {
-  it("drops Vue's fragment markers but keeps Outlook's conditional comments", () => {
-    const html =
-      "<!--[--><p>a</p><!--]--><!----><!--[if mso]><b>x</b><![endif]-->";
-    expect(stripRenderMarkers(html)).to.equal(
-      "<p>a</p><!--[if mso]><b>x</b><![endif]-->",
-    );
-  });
-
-  it("drops the v-if placeholders and teleport anchors of a development build", () => {
-    const html =
-      "<!--v-if--><p>a</p><!--teleport start--><!--teleport end--><!--teleport start anchor--><!--teleport anchor-->";
-    expect(stripRenderMarkers(html)).to.equal("<p>a</p>");
   });
 });
