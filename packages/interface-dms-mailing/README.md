@@ -46,8 +46,8 @@ event recorded through `RecordEmailEvent` puts the address on that list.
 
 Declaring this package as a dependency is what wires a consumer to whichever
 module implements the interface; the implementation lives in
-`@antelopejs/dms-mailing` and is documented
-[there](https://github.com/AntelopeJS/dms-mailing/tree/main/packages/dms-mailing).
+`@antelopejs/dms-mailing` and is documented at
+[dms.antelopejs.com/docs/modules/mailing](https://dms.antelopejs.com/docs/modules/mailing/extending).
 
 ## License
 

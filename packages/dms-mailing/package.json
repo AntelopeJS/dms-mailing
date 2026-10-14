@@ -14,6 +14,7 @@
     "!dist/.tsbuildinfo",
     "!dist/test",
     "frontend-vue",
+    "skills",
     "src",
     "!src/test"
   ],
@@ -90,6 +91,9 @@
     "implements": [
       "@antelopejs/interface-dms-mailing"
     ],
-    "test": "src/test/antelope.test.ts"
+    "test": "src/test/antelope.test.ts",
+    "skills": [
+      "./skills"
+    ]
   }
 }

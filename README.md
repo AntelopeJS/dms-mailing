@@ -4,7 +4,7 @@ Mailing for the AntelopeJS DMS, released from this workspace as two packages.
 
 | Package | Directory | What it holds |
 | --- | --- | --- |
-| `@antelopejs/dms-mailing` | [`packages/dms-mailing`](./packages/dms-mailing) | The module itself: template library, block editor, send log, delivery metrics. Its README documents the module. |
+| `@antelopejs/dms-mailing` | [`packages/dms-mailing`](./packages/dms-mailing) | The module itself: template library, block editor, send log, delivery metrics. Documented at [dms.antelopejs.com/docs/modules/mailing](https://dms.antelopejs.com/docs/modules/mailing). |
 | `@antelopejs/interface-dms-mailing` | [`packages/interface-dms-mailing`](./packages/interface-dms-mailing) | The interface other modules consume: `SendTemplate` and `RecordEmailEvent`. |
 
 Both are public packages on npm, published under the `@antelopejs` scope with
