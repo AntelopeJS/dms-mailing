@@ -101,7 +101,9 @@ export default defineConfig({
       source: {
         type: "local",
         path: ".",
-        installCommand: ["pnpm build"],
+        // CI builds the module once before the run and sets DMS_PREBUILT, so
+        // the harness does not build it a second time.
+        installCommand: process.env.DMS_PREBUILT ? [] : ["pnpm build"],
       },
       config: { useHtmlRender: false },
     },

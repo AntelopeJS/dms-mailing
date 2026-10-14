@@ -45,10 +45,10 @@
     "release": "pnpm --filter @antelopejs/interface-dms-mailing build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
     "prepack": "pnpm run build",
     "test": "pnpm run test:backend && pnpm run test:layer",
-    "test:backend": "pnpm run build && ajs module test .",
+    "test:backend": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && ajs module test .",
     "test:layer": "cd frontend-vue && pnpm test",
-    "test:unit": "pnpm run build && DMS_MAILING_TEST_DIR=dist/test/unit ajs module test .",
-    "test:integration": "pnpm run build && DMS_MAILING_TEST_DIR=dist/test/integration ajs module test ."
+    "test:unit": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/unit ajs module test .",
+    "test:integration": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/integration ajs module test ."
   },
   "dependencies": {
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
