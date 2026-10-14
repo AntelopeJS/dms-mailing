@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import VariablePath from '../app/components/VariablePath.vue'
 import { mount, stubNuxtGlobals } from './helpers/nuxt-globals'

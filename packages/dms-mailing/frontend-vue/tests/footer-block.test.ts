@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, provide, ref } from 'vue'
 import FooterBlockView from '../app/components/blocks/Footer.vue'

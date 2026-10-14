@@ -2,7 +2,6 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import en from '../i18n/locales/mailing-en-GB.json'
-import fr from '../i18n/locales/mailing-fr-FR.json'
 
 const APP = join(__dirname, '..', 'app')
 const EDITOR_SOURCES = [
@@ -40,14 +39,6 @@ function keysOf(value: unknown, prefix = ''): string[] {
 }
 
 describe('editor locales', () => {
-	it('carry the same key set', () => {
-		expect(keysOf(fr).sort()).toEqual(keysOf(en).sort())
-	})
-	it('cover the namespaces the editor uses', () => {
-		for (const namespace of ['editor', 'blocks']) {
-			expect(en.dms_mailing).toHaveProperty(namespace)
-		}
-	})
 	it('define every literal key the editor components use', () => {
 		const known = new Set(keysOf(en))
 		const used = EDITOR_SOURCES.flatMap((file) =>

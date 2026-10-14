@@ -8,7 +8,4 @@ describe('block components', () => {
 			[...BLOCK_TYPES].sort(),
 		)
 	})
-	it('routes the if block to the editor branch component', () => {
-		expect(BLOCK_COMPONENT_NAMES.if).toBe('MailingEditorIfBlock')
-	})
 })

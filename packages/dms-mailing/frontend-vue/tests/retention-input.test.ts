@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, createApp, h, nextTick, reactive, type App } from 'vue'
 import RetentionInput from '../app/components/RetentionInput.vue'

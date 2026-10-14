@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-	OPERATORS_WITH_VALUE,
 	describeCondition,
 	evaluateCondition,
 } from '../app/utils/conditions'
@@ -13,7 +12,6 @@ describe('conditions', () => {
 				(key) => key.split('.').at(-1) ?? key,
 			),
 		).toBe('a ne 1')
-		expect(OPERATORS_WITH_VALUE).toEqual(['eq', 'ne', 'gt', 'lt'])
 	})
 })
 

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, onBeforeUnmount, ref } from 'vue'
 import OverviewGate from '../app/components/OverviewGate.vue'

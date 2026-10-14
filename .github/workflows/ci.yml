@@ -16,43 +16,79 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The checks run as parallel jobs: a pull request waits for the slowest one,
+# not for their sum.
 jobs:
-  ubuntu:
+  lint:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      # Installs the pnpm version pinned in the root `packageManager`, and puts
-      # it on PATH before setup-node, which needs it to read the pnpm store.
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
-
-      - uses: actions/setup-node@v4
-        with:
-          # .nvmrc is the version of record. oxlint needs at least 22.18 to
-          # read a TypeScript config, which every value there clears.
-          node-version-file: .nvmrc
-          cache: pnpm
-          # The workspace lockfile is at the root; the packages have none.
-          cache-dependency-path: pnpm-lock.yaml
-
-      # `...` pulls in the workspace interface package the module depends on,
-      # and nothing else: the playground and the Vue layer are separate
-      # projects with their own lockfiles. pnpm installs the workspace root
-      # alongside the selection, which the packages' lint configs need: they
-      # import the shared config at the root, whose own `oxlint` and
-      # `@antelopejs/tooling-configs` imports resolve from the root.
-      - run: pnpm install --filter @antelopejs/dms-mailing... --frozen-lockfile
-      - run: pnpm --dir packages/dms-mailing/frontend-vue install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - run: pnpm --dir packages/interface-dms-mailing lint
-      - run: pnpm --dir packages/interface-dms-mailing typecheck
-      - run: pnpm --dir packages/interface-dms-mailing build
+      # Also lints the Vue layer.
       - run: pnpm --dir packages/dms-mailing lint
-      # oxlint's type-aware pass degrades to `any` on a broken tsconfig
-      # without failing, so the typecheck is what catches it.
-      - run: pnpm --dir packages/dms-mailing typecheck
       # Unused dependencies only. `pnpm knip:all` also reports dead files and
       # exports, which need a human to confirm, so they stay out of the gate.
       - run: pnpm --dir packages/dms-mailing knip
+
+  build-types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # Builds the interface, which also typechecks it.
+      - uses: ./.github/actions/setup
+      # oxlint's type-aware pass degrades to `any` on a broken tsconfig
+      # without failing, so a typecheck is what catches it. The build compiles
+      # the same tsconfig as `typecheck`, so it is that typecheck.
       - run: pnpm --dir packages/dms-mailing build
-      - run: pnpm --dir packages/dms-mailing test
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # The harness resolves the DMS stack's npm modules into this folder
+      # (`cacheFolder` in src/test/antelope.test.ts). It checks the registry
+      # for newer versions on every run, so a stale cache only costs a
+      # download, never an old module.
+      - uses: actions/cache@v4
+        with:
+          path: packages/dms-mailing/.antelope/cache
+          key: antelope-${{ runner.os }}-${{ hashFiles('packages/dms-mailing/src/test/antelope-modules.ts', 'pnpm-lock.yaml') }}
+          restore-keys: antelope-${{ runner.os }}-
+      # mongodb-memory-server downloads mongod on first use; keyed on the
+      # version the test config pins.
+      - id: mongo
+        run: echo "version=$(grep -oP 'MONGO_BINARY_VERSION = "\K[^"]+' packages/dms-mailing/src/test/antelope.test.ts)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ steps.mongo.outputs.version }}
+      - run: pnpm --dir packages/dms-mailing build
+      # Built once above: DMS_PREBUILT keeps both the script and the harness's
+      # install command from building the module again.
+      - run: pnpm --dir packages/dms-mailing test:backend
+        env:
+          DMS_PREBUILT: "1"
+
+  layer-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --dir packages/dms-mailing test:layer
+
+  # Branch protection requires the check of the single job this workflow used
+  # to have: it now stands for all of them, and fails if any did not pass.
+  ubuntu:
+    if: always()
+    needs: [lint, build-types, backend-tests, layer-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1

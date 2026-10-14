@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RealSendModal from '../app/components/RealSendModal.vue'
 import RecipientsField from '../app/components/RecipientsField.vue'

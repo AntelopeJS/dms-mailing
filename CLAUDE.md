@@ -25,3 +25,6 @@ The test scripts all live in `packages/dms-mailing`; the root forwards only
   SMTP fixture) then `test:layer` (vitest over the Vue layer). Both run on
   their own too, and `test:unit` / `test:integration` narrow the backend run to
   one folder.
+- The backend scripts build the module first, and the test harness builds it
+  again as the local module's `installCommand`. With `DMS_PREBUILT=1` (set in
+  CI after its single build) both skip the build and test the existing `dist/`.
