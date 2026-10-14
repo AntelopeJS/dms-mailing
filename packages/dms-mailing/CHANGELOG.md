@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.4.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.4.0...v0.4.1)
+
+### 🤖 CI
+
+- Speed up pipeline ([#38](https://github.com/AntelopeJS/dms-mailing/pull/38))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.3.4...v0.4.0)
