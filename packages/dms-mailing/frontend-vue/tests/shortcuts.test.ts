@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { isTypingTarget, matchShortcut } from '../app/utils/shortcuts'
 import type { KeyStroke } from '../app/utils/shortcuts'

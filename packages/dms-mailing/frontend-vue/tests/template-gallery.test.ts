@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplateGallery from '../app/components/TemplateGallery.vue'

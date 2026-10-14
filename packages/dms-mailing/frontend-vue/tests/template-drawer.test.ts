@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DuplicateModal from '../app/components/DuplicateModal.vue'
 import StarterGallery from '../app/components/StarterGallery.vue'
