@@ -144,7 +144,7 @@ export class TemplatesPageController extends PageController(
           label: "$dms_mailing.templates.actions.open_editor",
           icon: "i-ph-pencil-simple",
           isDefault: true,
-          target: { type: "page", url: `${TEMPLATES_PATH}/{_id}` },
+          target: { type: "page", url: `${TEMPLATES_PATH}/{{row._id}}` },
         },
         {
           label: "$dms_mailing.templates.actions.details",
@@ -184,7 +184,7 @@ export class TemplatesPageController extends PageController(
           rule: { field: "status", notEquals: ARCHIVED_STATUS },
           target: {
             type: "api",
-            url: `${API_BASE_PATH}/templates/{_id}/archive`,
+            url: `${API_BASE_PATH}/templates/{{row._id}}/archive`,
             method: "POST",
             successMessage: "$dms_mailing.templates.actions.archived",
           },
@@ -200,7 +200,7 @@ export class TemplatesPageController extends PageController(
           rule: { field: "status", equals: ARCHIVED_STATUS },
           target: {
             type: "api",
-            url: `${API_BASE_PATH}/templates/{_id}/restore`,
+            url: `${API_BASE_PATH}/templates/{{row._id}}/restore`,
             method: "POST",
             successMessage: "$dms_mailing.templates.actions.restored",
           },
