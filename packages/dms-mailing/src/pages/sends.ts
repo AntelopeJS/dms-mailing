@@ -122,7 +122,7 @@ const sendAgainAction = (isTest: boolean): SendRowAction => ({
   },
   target: {
     type: "api",
-    url: `${API_BASE_PATH}/sends/{_id}/replay`,
+    url: `${API_BASE_PATH}/sends/{{row._id}}/replay`,
     method: "POST",
     successMessage: "$dms_mailing.sends.actions.sent_again",
   },
@@ -152,7 +152,7 @@ const suppressedAddressAction: SendRowAction = {
   },
   target: {
     type: "page",
-    url: `${SUPPRESSIONS_PAGE}?email={suppressionAddress}`,
+    url: `${SUPPRESSIONS_PAGE}?email={{row.suppressionAddress}}`,
   },
 };
 

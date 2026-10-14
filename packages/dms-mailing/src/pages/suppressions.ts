@@ -133,7 +133,7 @@ export class SuppressionsPageController extends PageController(
           showLabel: true,
           target: {
             type: "api",
-            url: `${SUPPRESSIONS_URL}/{_id}`,
+            url: `${SUPPRESSIONS_URL}/{{row._id}}`,
             method: "DELETE",
             successMessage: key("actions.reactivated"),
           },
@@ -149,7 +149,7 @@ export class SuppressionsPageController extends PageController(
           label: key("actions.see_send"),
           icon: "i-ph-paper-plane-tilt",
           rule: { field: "sendId", notEquals: "" },
-          target: { type: "page", url: `${SENDS_PATH}?record={sendId}` },
+          target: { type: "page", url: `${SENDS_PATH}?record={{row.sendId}}` },
         },
       ],
     },
