@@ -3,7 +3,6 @@ import type {
 	PreviewResponse,
 	PreviewVersion,
 	ProviderInfo,
-	RetentionPreview,
 	SendDetailResponse,
 	SendHtmlResponse,
 	StarterSummary,
@@ -18,8 +17,7 @@ import type {
 	TemplateVersionSummary,
 	VariableDefinition,
 } from '../types/mailing'
-import type { SetupFacts } from '../utils/overview-setup'
-import type { WebhookStatus, WebhookTestResult } from '../utils/webhook-status'
+import type { WebhookTestResult } from '../utils/webhook-status'
 
 const BASE = '/api/mailing'
 
@@ -187,8 +185,9 @@ export interface StarterPreviewResponse {
 }
 
 /**
- * The single place that knows the mailing endpoints; every component reads
- * through it so a route change is a one-file edit.
+ * The mailing endpoints a component writes to, or reads on a click (a drawer,
+ * a dialog). What a page renders is read through `useMailingReads`, with the
+ * same paths.
  */
 export function useMailingApi() {
 	const { $authFetch } = useAuthFetch()
@@ -197,9 +196,6 @@ export function useMailingApi() {
 
 	return {
 		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
-		setupFacts: () => $authFetch<SetupFacts>(mailingPath('metrics', 'setup')),
-		webhookStatus: () =>
-			$authFetch<WebhookStatus>(mailingPath('settings', 'webhook-status')),
 		webhookTest: () =>
 			post<WebhookTestResult>(mailingPath('settings', 'webhook-test'), {}),
 		templateContent: (id: string) =>
@@ -212,8 +208,6 @@ export function useMailingApi() {
 				query: { id },
 				body: details,
 			}),
-		listCategories: () =>
-			$authFetch<CategoriesResponse>(mailingPath('templates', 'categories')),
 		listTemplates: () =>
 			$authFetch<TemplateListResponse>(
 				mailingPath('tables', 'templates', 'list'),
@@ -243,10 +237,6 @@ export function useMailingApi() {
 		performance: (id: string) =>
 			$authFetch<TemplatePerformance>(
 				mailingPath('templates', id, 'performance'),
-			),
-		templatesOverview: () =>
-			$authFetch<TemplateOverviewResponse>(
-				mailingPath('templates', 'overview'),
 			),
 		starters: () =>
 			$authFetch<StartersResponse>(mailingPath('templates', 'starters')),
@@ -297,15 +287,6 @@ export function useMailingApi() {
 			$authFetch<SendHtmlResponse>(mailingPath('sends', id, 'html')),
 		replay: (id: string, to?: string) =>
 			post<SendResult>(mailingPath('sends', id, 'replay'), to ? { to } : {}),
-		retentionPreview: (days: number) =>
-			$authFetch<RetentionPreview>(
-				mailingPath('settings', 'retention-preview'),
-				{ query: { days: String(days) } },
-			),
-		categoryUsage: () =>
-			$authFetch<CategoryUsageResponse>(
-				mailingPath('settings', 'category-usage'),
-			),
 	}
 }
 

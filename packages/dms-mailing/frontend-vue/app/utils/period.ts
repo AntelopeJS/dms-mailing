@@ -25,11 +25,6 @@ export function minutesSince(
 	return elapsed > 0 ? Math.floor(elapsed / MINUTE_MS) : 0
 }
 
-/** Formats a date as HH:MM in `locale`. */
-export function formatClock(value: Date | string, locale: string): string {
-	return new Date(value).toLocaleTimeString(locale, CLOCK_FORMAT)
-}
-
 /** Whether `at` falls within the next 24 hours: "tonight" rather than a date. */
 export function isWithinADay(at: Date | string, now: Date): boolean {
 	const delay = new Date(at).getTime() - now.getTime()

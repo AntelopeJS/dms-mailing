@@ -2,6 +2,7 @@
 import { useTemplateCategories } from '../composables/useTemplateCategories'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
+import { useStarters } from '../composables/useMailingReads'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import {
 	HTTP_CONFLICT,
@@ -24,17 +25,18 @@ const { processApiMessage } = useTranslation()
 const overlays = useTemplateDrawer()
 
 const localized = useLocalizedDefaults()
-const storedStarters = ref<StarterSummary[]>([])
-const starters = computed(() => localized.starters(storedStarters.value))
+const starterList = useStarters()
+/** The starters, none when the read failed. */
+const starters = computed(() =>
+	localized.starters(
+		starterList.error.value ? [] : (starterList.data.value?.starters ?? []),
+	),
+)
 const { categories } = useTemplateCategories()
-const loading = ref(true)
+const loading = computed(
+	() => !starterList.data.value && !starterList.error.value,
+)
 const creatingId = ref<string | null>(null)
-
-onMounted(async () => {
-	const starterList = await api.starters().catch(() => ({ starters: [] }))
-	storedStarters.value = starterList.starters
-	loading.value = false
-})
 
 function knownCategory(id: string): string | undefined {
 	return categories.value.some((category) => category.id === id)

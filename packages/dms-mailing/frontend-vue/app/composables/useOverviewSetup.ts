@@ -1,13 +1,21 @@
-import type { Ref } from 'vue'
+import { computed, type ComputedRef } from 'vue'
+import { useSetupFacts } from './useMailingReads'
+import { needsSetup } from '../utils/overview-setup'
 
-const HIDES_PERIOD_KEY = 'mailing-setup-hides-period:'
+/** The period scope of the Overview page, whose dashboard the setup gates. */
+const OVERVIEW_PERIOD_SCOPE = 'mailing-overview'
 
 /**
  * Whether the page header should hold its period selector back for `scope`:
- * the setup card stands in for the dashboard, so there is no figure for a
- * period to filter. Shared between the Overview gate, which sets it, and the
- * page header, which reads it.
+ * on the Overview, while the setup card stands in for the dashboard, there is
+ * no figure for a period to filter. Read from the setup facts the Overview
+ * gate shows (one request for both), so a server render hides it as the
+ * browser does.
  */
-export function useSetupHidesPeriod(scope: string | undefined): Ref<boolean> {
-	return useDmsState<boolean>(`${HIDES_PERIOD_KEY}${scope ?? ''}`, () => false)
+export function useSetupHidesPeriod(
+	scope: string | undefined,
+): ComputedRef<boolean> {
+	if (scope !== OVERVIEW_PERIOD_SCOPE) return computed(() => false)
+	const { data } = useSetupFacts()
+	return computed(() => !!data.value && needsSetup(data.value))
 }

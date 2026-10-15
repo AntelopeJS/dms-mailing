@@ -9,13 +9,8 @@ import {
 	stubNuxtGlobals,
 	type Mounted,
 } from './helpers/nuxt-globals'
+import { stubApiData, type ApiDataStub } from './helpers/api-data'
 import type { TemplateCategory } from '../app/types/mailing'
-
-vi.mock('../app/composables/useMailingApi', () => ({
-	useMailingApi: () => ({
-		categoryUsage: async () => ({ counts: {} }),
-	}),
-}))
 
 vi.mock('../app/composables/useLocalizedDefaults', () => ({
 	useLocalizedDefaults: () => ({
@@ -70,17 +65,19 @@ const ButtonStub = defineComponent({
 			h('button', { ...attrs, 'data-icon': props.icon }),
 })
 
+const GLOBALS = {
+	UFormField: FormFieldStub,
+	UButton: ButtonStub,
+	UPopover: slotStub('UPopover'),
+	DmsEyebrow: slotStub('DmsEyebrow'),
+	DmsInputText: slotStub('DmsInputText'),
+}
+
 function mountInput(): Mounted {
 	return mount(
 		CategoriesInput,
 		{ modelValue: CATEGORIES, initialValue: CATEGORIES },
-		{
-			UFormField: FormFieldStub,
-			UButton: ButtonStub,
-			UPopover: slotStub('UPopover'),
-			DmsEyebrow: slotStub('DmsEyebrow'),
-			DmsInputText: slotStub('DmsInputText'),
-		},
+		GLOBALS,
 	)
 }
 
@@ -90,10 +87,43 @@ function alerts(host: HTMLElement): HTMLElement[] {
 
 describe('CategoriesInput', () => {
 	let mounted: Mounted | undefined
+	let api: ApiDataStub
 
 	beforeEach(() => {
 		stubNuxtGlobals()
 		formErrors.clear()
+		api = stubApiData()
+		api.respond(() => ({ counts: {} }))
+	})
+
+	it('shows how many templates each category holds, read again once saved', async () => {
+		api.respond(() => ({ counts: { orders: 2 } }))
+		const saved = reactive({ value: CATEGORIES })
+		mounted = mount(
+			defineComponent({
+				setup: () => () =>
+					h(CategoriesInput, {
+						modelValue: saved.value,
+						initialValue: saved.value,
+					}),
+			}),
+			{},
+			GLOBALS,
+		)
+		await flush()
+		expect(mounted.host.textContent).toContain(
+			'dms_mailing.settings.categories.usage count=2',
+		)
+		expect(api.reads).toEqual([
+			{ url: '/api/mailing/settings/category-usage', query: {} },
+		])
+		api.respond(() => ({ counts: { orders: 3 } }))
+		saved.value = [...CATEGORIES]
+		await flush()
+		expect(api.reads).toHaveLength(2)
+		expect(mounted.host.textContent).toContain(
+			'dms_mailing.settings.categories.usage count=3',
+		)
 	})
 
 	afterEach(() => {

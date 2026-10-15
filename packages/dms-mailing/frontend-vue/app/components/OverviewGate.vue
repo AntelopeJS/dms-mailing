@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { useMailingApi } from '../composables/useMailingApi'
-import { useSetupHidesPeriod } from '../composables/useOverviewSetup'
+import { useSetupFacts } from '../composables/useMailingReads'
 import {
 	isSetupComplete,
 	needsSetup,
 	setupSteps,
-	type SetupFacts,
 	type SetupStep,
 	type SetupStepState,
 } from '../utils/overview-setup'
@@ -16,7 +14,6 @@ defineProps<MailingComponentProps>()
 
 type GateState = 'loading' | 'error' | 'ready'
 
-const OVERVIEW_PERIOD_SCOPE = 'mailing-overview'
 const NEW_TEMPLATE_MODAL = 'MailingNewTemplateModal'
 const NEW_TEMPLATE_MODAL_SIZE = 'lg'
 const KEY_PREFIX = 'dms_mailing.setup.'
@@ -34,14 +31,24 @@ const STEP_BUTTON_VARIANTS: Record<SetupStepState, 'solid' | 'outline'> = {
 	todo: 'outline',
 }
 
-const api = useMailingApi()
 const { t } = useI18n()
 const { open: openModal } = useModal()
-const hidesPeriod = useSetupHidesPeriod(OVERVIEW_PERIOD_SCOPE)
 
-const facts = ref<SetupFacts | null>(null)
-const state = ref<GateState>('loading')
+const { data: facts, error, status, refresh } = useSetupFacts()
+/**
+ * The header's period selector sets up once the dashboard has: a server
+ * render, which renders the dashboard once the facts are in, would otherwise
+ * set the selector up first and render the cards with a period the browser's
+ * cards do not have yet as they hydrate.
+ */
+const DashboardRendered = holdPageHeaderActions()
 const isResumed = ref(false)
+
+/** A failure shows once its retry is over; the facts read last stay meanwhile. */
+const state = computed<GateState>(() => {
+	if (facts.value) return 'ready'
+	return error.value && status.value !== 'pending' ? 'error' : 'loading'
+})
 
 const steps = computed<SetupStep[]>(() =>
 	facts.value ? setupSteps(facts.value) : [],
@@ -63,22 +70,12 @@ const errorActions = computed(() => [
 	{
 		label: key('retry'),
 		icon: 'i-ph-arrows-clockwise',
-		onClick: () => void load(),
+		onClick: () => void refresh(),
 	},
 ])
 
 const stepDescription = (step: SetupStep): string =>
 	key(`steps.${step.id}.${step.state === 'done' ? 'done' : 'description'}`)
-
-async function load(): Promise<void> {
-	state.value = 'loading'
-	try {
-		facts.value = await api.setupFacts()
-		state.value = 'ready'
-	} catch {
-		state.value = 'error'
-	}
-}
 
 function createTemplate(): void {
 	const modal = openModal({
@@ -86,17 +83,9 @@ function createTemplate(): void {
 		component: resolveComponent(NEW_TEMPLATE_MODAL) as Component,
 		size: NEW_TEMPLATE_MODAL_SIZE,
 	})
-	void modal.result.then(load, load)
+	const reread = () => refresh()
+	void modal.result.then(reread, reread)
 }
-
-watch(isBlocking, (blocking) => {
-	hidesPeriod.value = blocking
-})
-
-onMounted(load)
-onBeforeUnmount(() => {
-	hidesPeriod.value = false
-})
 </script>
 
 <template>
@@ -217,4 +206,5 @@ onBeforeUnmount(() => {
 
 		<slot v-if="showsDashboard" />
 	</div>
+	<DashboardRendered />
 </template>
