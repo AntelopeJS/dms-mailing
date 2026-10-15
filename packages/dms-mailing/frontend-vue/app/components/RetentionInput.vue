@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useDebounceFn } from '@vueuse/core'
-import { useMailingApi } from '../composables/useMailingApi'
+import { refDebounced } from '@vueuse/core'
+import { useRetentionPreview } from '../composables/useMailingReads'
 import {
 	clampRetention,
-	formatClock,
+	CLOCK_FORMAT,
 	isWithinADay,
 	MAX_RETENTION_DAYS,
 	MIN_RETENTION_DAYS,
@@ -35,8 +35,8 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
 	day: 'numeric',
 }
 
-const api = useMailingApi()
 const { t, locale } = useI18n()
+const { dateTimeFormat } = useRegionalFormat()
 const { confirm } = useConfirm()
 const form = useEnclosingForm()
 
@@ -56,7 +56,13 @@ const isCustom = computed(
 		isCustomPicked.value ||
 		(days.value !== null && retentionChoice(days.value) === RETENTION_CUSTOM),
 )
-const preview = ref<RetentionPreview | null>(null)
+/** The days the preview reads, once the choice holds still. */
+const previewDays = refDebounced(days, PREVIEW_DEBOUNCE_MS)
+const previewRead = useRetentionPreview(previewDays)
+/** A failed read shows no preview. */
+const preview = computed<RetentionPreview | null>(() =>
+	previewRead.error.value ? null : previewRead.data.value,
+)
 
 const key = (
 	path: string,
@@ -99,8 +105,8 @@ function previewParams(value: RetentionPreview): Record<string, unknown> {
 	return {
 		when: isWithinADay(value.nextRunAt, new Date())
 			? key('tonight')
-			: new Date(value.nextRunAt).toLocaleDateString(locale.value, DATE_FORMAT),
-		time: formatClock(value.nextRunAt, locale.value),
+			: dateTimeFormat(DATE_FORMAT).format(new Date(value.nextRunAt)),
+		time: dateTimeFormat(CLOCK_FORMAT).format(new Date(value.nextRunAt)),
 		count: new Intl.NumberFormat(locale.value).format(value.count),
 		duration: key('days', { count: value.days }, value.days),
 	}
@@ -147,22 +153,6 @@ function guardSubmit(): boolean {
 	void confirmDeletion(value)
 	return false
 }
-
-const loadPreview = useDebounceFn(async (value: number) => {
-	try {
-		preview.value = await api.retentionPreview(value)
-	} catch {
-		preview.value = null
-	}
-}, PREVIEW_DEBOUNCE_MS)
-
-watch(
-	days,
-	(value) => {
-		if (value) void loadPreview(value)
-	},
-	{ immediate: true },
-)
 
 watch(
 	() => props.modelValue,

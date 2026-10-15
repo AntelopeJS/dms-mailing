@@ -1,20 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, onBeforeUnmount, ref } from 'vue'
+import { defineComponent, h, onBeforeUnmount } from 'vue'
 import OverviewGate from '../app/components/OverviewGate.vue'
+import { useSetupHidesPeriod } from '../app/composables/useOverviewSetup'
 import type { SetupFacts } from '../app/utils/overview-setup'
+import { stubApiData, type ApiDataStub } from './helpers/api-data'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 
-const api = { setupFacts: vi.fn() }
-const hidesPeriod = ref(false)
-
-vi.mock('../app/composables/useMailingApi', () => ({
-	useMailingApi: () => api,
-}))
-
-vi.mock('../app/composables/useOverviewSetup', () => ({
-	useSetupHidesPeriod: () => hidesPeriod,
-}))
+let api: ApiDataStub
+const SETUP_URL = '/api/mailing/metrics/setup'
 
 interface ButtonAction {
 	label: string
@@ -63,6 +57,15 @@ const Gate = defineComponent({
 	setup: () => () => h(OverviewGate, null, { default: () => h(Dashboard) }),
 })
 
+/** What the page header renders of the period selector. */
+const PeriodHolder = defineComponent({
+	props: { scope: { type: String, default: undefined } },
+	setup: (props) => {
+		const hidesPeriod = useSetupHidesPeriod(props.scope)
+		return () => h('span', { 'data-hides-period': String(hidesPeriod.value) })
+	},
+})
+
 const GLOBALS = {
 	DmsCard: slotStub('DmsCard'),
 	DmsEmptyState: EmptyStateStub,
@@ -85,8 +88,10 @@ const facts = (overrides: Partial<SetupFacts> = {}): SetupFacts => ({
 beforeEach(() => {
 	stubNuxtGlobals()
 	vi.stubGlobal('onBeforeUnmount', onBeforeUnmount)
-	api.setupFacts.mockReset()
-	hidesPeriod.value = false
+	vi.stubGlobal('holdPageHeaderActions', () =>
+		defineComponent({ setup: () => () => null }),
+	)
+	api = stubApiData()
 })
 
 afterEach(() => {
@@ -96,34 +101,44 @@ afterEach(() => {
 
 describe('OverviewGate', () => {
 	it('mounts nothing of the dashboard before the facts are known', () => {
-		api.setupFacts.mockReturnValue(new Promise(() => undefined))
+		api.respond(() => new Promise(() => undefined))
 		const { host } = mount(Gate, {}, GLOBALS)
 		expect(host.querySelector('[data-dashboard]')).toBeNull()
 		expect(host.querySelector('[data-stub="USkeleton"]')).not.toBeNull()
 	})
 
 	it('says the facts failed to load and retries', async () => {
-		api.setupFacts.mockRejectedValueOnce(new Error('500'))
-		api.setupFacts.mockResolvedValueOnce(facts())
+		api.respond(() => Promise.reject(new Error('500')))
 		const { host } = mount(Gate, {}, GLOBALS)
 		await flush()
 		expect(host.querySelector('[data-dashboard]')).toBeNull()
+		expect(api.reads).toEqual([{ url: SETUP_URL, query: {} }])
+		api.respond(() => facts())
 		host.querySelector<HTMLButtonElement>('[data-empty-state] button')?.click()
 		await flush()
 		expect(host.querySelector('[data-dashboard]')).not.toBeNull()
 	})
 
 	it('holds the dashboard and the period back while nothing can be sent', async () => {
-		api.setupFacts.mockResolvedValue(facts({ liveTemplateCount: 0 }))
+		api.respond(() => facts({ liveTemplateCount: 0 }))
 		const { host } = mount(Gate, {}, GLOBALS)
 		await flush()
 		expect(host.querySelector('[data-dashboard]')).toBeNull()
 		expect(host.querySelectorAll('[data-step]')).toHaveLength(4)
-		expect(hidesPeriod.value).toBe(true)
+	})
+
+	it('hides the overview header period from the same facts, on no other page', async () => {
+		api.respond(() => facts({ liveTemplateCount: 0 }))
+		const overview = mount(PeriodHolder, { scope: 'mailing-overview' })
+		const sends = mount(PeriodHolder, { scope: 'mailing-sends' })
+		await flush()
+		expect(overview.host.innerHTML).toContain('data-hides-period="true"')
+		expect(sends.host.innerHTML).toContain('data-hides-period="false"')
+		expect(api.reads).toEqual([{ url: SETUP_URL, query: {} }])
 	})
 
 	it('lets an unfinished setup be resumed above the dashboard', async () => {
-		api.setupFacts.mockResolvedValue(facts({ hasTestSend: false }))
+		api.respond(() => facts({ hasTestSend: false }))
 		const { host } = mount(Gate, {}, GLOBALS)
 		await flush()
 		expect(host.querySelector('[data-dashboard]')).not.toBeNull()
@@ -135,11 +150,10 @@ describe('OverviewGate', () => {
 		await flush()
 		expect(host.querySelectorAll('[data-step]')).toHaveLength(4)
 		expect(host.querySelector('[data-dashboard]')).not.toBeNull()
-		expect(hidesPeriod.value).toBe(false)
 	})
 
 	it('offers no resume once every step is done', async () => {
-		api.setupFacts.mockResolvedValue(facts())
+		api.respond(() => facts())
 		const { host } = mount(Gate, {}, GLOBALS)
 		await flush()
 		expect(host.textContent).not.toContain('dms_mailing.setup.resume')

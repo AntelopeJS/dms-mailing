@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMailingApi } from '../composables/useMailingApi'
+import { useProviderInfo } from '../composables/useMailingReads'
 import { useSetupHidesPeriod } from '../composables/useOverviewSetup'
 import { presetShortLabelKey } from '../utils/period'
 import type { Component } from 'vue'
@@ -26,13 +26,18 @@ const props = withDefaults(defineProps<PageHeaderProps>(), {
 	showProvider: true,
 })
 
-const api = useMailingApi()
 const { t } = useI18n()
 
 const StatusPill = resolveComponent('DmsStatusPill') as Component
 const PeriodSelector = resolveComponent('DmsPeriodSelector') as Component
 
-const provider = ref<ProviderInfo | null>(null)
+/** Shown as "no provider" when the read fails. */
+const NO_PROVIDER: ProviderInfo = { name: '', connected: false, features: null }
+
+const providerRead = useProviderInfo(() => props.showProvider)
+const provider = computed<ProviderInfo | null>(() =>
+	providerRead.error.value ? NO_PROVIDER : providerRead.data.value,
+)
 const hidesPeriod = useSetupHidesPeriod(props.periodScope)
 
 const presetLabels = computed(() =>
@@ -82,15 +87,6 @@ function renderPeriod() {
 }
 
 usePageHeaderActions(() => [renderProvider(), renderPeriod()])
-
-onMounted(async () => {
-	if (!props.showProvider) return
-	try {
-		provider.value = await api.provider()
-	} catch {
-		provider.value = { name: '', connected: false, features: null }
-	}
-})
 </script>
 
 <template>
