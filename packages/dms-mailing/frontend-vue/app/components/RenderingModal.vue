@@ -95,10 +95,7 @@ async function load(): Promise<void> {
 	loading.value = true
 	failed.value = false
 	try {
-		const [html] = await Promise.all([
-			readHtml(),
-			loadSend(),
-		])
+		const [html] = await Promise.all([readHtml(), loadSend()])
 		rendering.value = html
 	} catch (error) {
 		failed.value = true

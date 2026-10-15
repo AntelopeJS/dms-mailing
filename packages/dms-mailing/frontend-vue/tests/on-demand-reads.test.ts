@@ -27,8 +27,7 @@ afterEach(() => {
 	vi.unstubAllGlobals()
 })
 
-const inScope = <T>(setup: () => T): T =>
-	effectScope().run(setup) as T
+const inScope = <T>(setup: () => T): T => effectScope().run(setup) as T
 
 describe('reads made on demand', () => {
 	it('read nothing until asked, then the current URL each time', async () => {
