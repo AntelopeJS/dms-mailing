@@ -180,7 +180,7 @@ async function submit(): Promise<void> {
 						:ui="{ base: 'font-mono' }"
 						:disabled="loading"
 						:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
-						@update:model-value="(value) => onSlugInput(String(value))"
+						@update:model-value="(value: unknown) => onSlugInput(String(value))"
 					/>
 				</template>
 			</FormFieldRow>
