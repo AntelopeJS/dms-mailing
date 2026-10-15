@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, onBeforeUnmount } from 'vue'
+import { createApp, defineComponent, h, onBeforeUnmount } from 'vue'
 import OverviewGate from '../app/components/OverviewGate.vue'
 import { useSetupHidesPeriod } from '../app/composables/useOverviewSetup'
 import type { SetupFacts } from '../app/utils/overview-setup'
@@ -150,6 +150,30 @@ describe('OverviewGate', () => {
 		await flush()
 		expect(host.querySelectorAll('[data-step]')).toHaveLength(4)
 		expect(host.querySelector('[data-dashboard]')).not.toBeNull()
+	})
+
+	it('takes the props the page renderer adds without a fragment warning', async () => {
+		api.respond(() => facts())
+		const warnings: string[] = []
+		const app = createApp(() =>
+			h(
+				OverviewGate,
+				{ childCount: 0, routeParams: {} },
+				{ default: () => h(Dashboard) },
+			),
+		)
+		Object.entries(GLOBALS).forEach(([name, value]) =>
+			app.component(name, value),
+		)
+		app.config.warnHandler = (message) => warnings.push(message)
+		app.mount(document.body.appendChild(document.createElement('div')))
+		await flush()
+		app.unmount()
+		expect(
+			warnings.filter((message) =>
+				message.includes('Extraneous non-props attributes'),
+			),
+		).toEqual([])
 	})
 
 	it('offers no resume once every step is done', async () => {

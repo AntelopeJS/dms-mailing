@@ -11,6 +11,7 @@ import type { Component } from 'vue'
 import type { MailingComponentProps } from '../types/component'
 
 defineProps<MailingComponentProps>()
+defineOptions({ inheritAttrs: false })
 
 type GateState = 'loading' | 'error' | 'ready'
 
