@@ -2,6 +2,7 @@
 import { onMounted, watch } from 'vue'
 import type { TemplateContentResponse } from '../../types/mailing'
 import { useMailingApi } from '../../composables/useMailingApi'
+import { useEditorReads } from '../../composables/useMailingReads'
 import { provideEditorContext } from '../../composables/useEditorContext'
 import { useEditorActions } from '../../composables/useEditorActions'
 import { useEditorSession } from '../../composables/useEditorSession'
@@ -49,9 +50,12 @@ function reportFailure(error: unknown): void {
 	})
 }
 
+const reads = useEditorReads(props.templateId)
+
 const session = useEditorSession({
 	editor,
 	api,
+	reads,
 	templateId: props.templateId,
 	loaded: props.loaded,
 	onError: reportFailure,
@@ -61,6 +65,7 @@ const actions = useEditorActions({
 	editor,
 	session,
 	api,
+	reads,
 	templateId: props.templateId,
 	reload: props.reload,
 	onError: reportFailure,

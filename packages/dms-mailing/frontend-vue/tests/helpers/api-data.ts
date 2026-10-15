@@ -12,6 +12,7 @@ export type ApiBackend = (read: ApiRead) => unknown
 interface ApiDataOptions {
 	query?: MaybeRefOrGetter<Record<string, unknown> | undefined>
 	pick?: string[]
+	immediate?: boolean
 }
 
 export interface ApiDataStub {
@@ -31,7 +32,7 @@ function picked(value: unknown, keys: string[] | undefined): unknown {
  * Stands in for the DMS's `useApiData` (an auto-import the layer's tests do
  * not have): reads the URL, and again whenever it or its query changes, from
  * `respond`'s backend, with the result's `data`, `error`, `status` and
- * `refresh()`. Whether the server renders it and hands it over is the DMS's
+ * `refresh()`; with `immediate: false`, only once `execute()` asks. Whether the server renders it and hands it over is the DMS's
  * and the renderer's, proven on the playground.
  */
 export function stubApiData(): ApiDataStub {
@@ -70,13 +71,15 @@ export function stubApiData(): ApiDataStub {
 					status.value = 'error'
 				}
 			}
-			watch(
-				() => JSON.stringify(request()),
-				() => void refresh(),
-				{
-					immediate: true,
-				},
-			)
+			// A read made on demand (`immediate: false`) waits for `execute()`.
+			if (options.immediate !== false)
+				watch(
+					() => JSON.stringify(request()),
+					() => void refresh(),
+					{
+						immediate: true,
+					},
+				)
 			return {
 				data,
 				error,
@@ -99,4 +102,72 @@ export function stubRegionalFormat(): void {
 		dateTimeFormat: (options: Intl.DateTimeFormatOptions) =>
 			new Intl.DateTimeFormat('en', options),
 	}))
+}
+
+/** The read routes of the mailing API, as a component's tests mock them. */
+export interface MailingReadMocks {
+	templateContent?: (id: string) => unknown
+	performance?: (id: string) => unknown
+	changes?: (id: string) => unknown
+	versions?: (id: string) => unknown
+	listTemplates?: () => unknown
+	starters?: () => unknown
+	starterPreview?: (id: string, locale?: string) => unknown
+	send?: (id: string) => unknown
+	sendHtml?: (id: string) => unknown
+	provider?: () => unknown
+}
+
+type ReadRoute = (
+	mocks: MailingReadMocks,
+	match: RegExpExecArray,
+	read: ApiRead,
+) => unknown
+
+const READ_ROUTES: Array<[RegExp, ReadRoute]> = [
+	[/^\/api\/mailing\/templates\/starters$/, (m) => m.starters?.()],
+	[
+		/^\/api\/mailing\/templates\/starters\/([^/]+)\/preview$/,
+		(m, [, id], { query }) =>
+			m.starterPreview?.(id!, query.locale as string | undefined),
+	],
+	[
+		/^\/api\/mailing\/templates\/([^/]+)\/content$/,
+		(m, [, id]) => m.templateContent?.(id!),
+	],
+	[
+		/^\/api\/mailing\/templates\/([^/]+)\/performance$/,
+		(m, [, id]) => m.performance?.(id!),
+	],
+	[
+		/^\/api\/mailing\/templates\/([^/]+)\/changes$/,
+		(m, [, id]) => m.changes?.(id!),
+	],
+	[
+		/^\/api\/mailing\/templates\/([^/]+)\/versions$/,
+		(m, [, id]) => m.versions?.(id!),
+	],
+	[/^\/api\/mailing\/tables\/templates\/list$/, (m) => m.listTemplates?.()],
+	[/^\/api\/mailing\/sends\/([^/]+)\/html$/, (m, [, id]) => m.sendHtml?.(id!)],
+	[/^\/api\/mailing\/sends\/([^/]+)$/, (m, [, id]) => m.send?.(id!)],
+	[/^\/api\/mailing\/provider$/, (m) => m.provider?.()],
+]
+
+/**
+ * A backend answering the reads a component makes on demand with the
+ * test's mocks of them, and the others (or a read with no mock) with
+ * `fallback`.
+ */
+export function mailingReads(
+	mocks: MailingReadMocks,
+	fallback: ApiBackend = () => ({}),
+): ApiBackend {
+	return (read) => {
+		for (const [pattern, route] of READ_ROUTES) {
+			const match = pattern.exec(read.url)
+			const answer = match ? route(mocks, match, read) : undefined
+			if (answer !== undefined) return answer
+		}
+		return fallback(read)
+	}
 }

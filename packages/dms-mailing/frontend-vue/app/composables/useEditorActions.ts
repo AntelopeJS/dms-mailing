@@ -1,5 +1,6 @@
 import type { Component } from 'vue'
 import type { MailingApi } from './useMailingApi'
+import type { EditorReads } from './useMailingReads'
 import type { EditorSession } from './useEditorSession'
 import { isDraftConflict } from './useEditorSession'
 import type { EditorState } from './useTemplateEditor'
@@ -34,6 +35,7 @@ export interface ActionDeps {
 	editor: EditorState
 	session: EditorSession
 	api: MailingApi
+	reads: EditorReads
 	templateId: string
 	reload: () => Promise<void>
 	onError: (error: unknown) => void
@@ -163,7 +165,7 @@ async function runPublish(deps: ActionDeps, tools: ActionTools): Promise<void> {
  * editor's last write is a conflict: the review would not show what ships.
  */
 async function refreshChanges(deps: ActionDeps): Promise<boolean> {
-	const response = await deps.api.changes(deps.templateId).catch(() => null)
+	const response = await deps.reads.changes().catch(() => null)
 	if (!response) return true
 	const { state } = deps.session
 	if (response.revision !== state.revision) {

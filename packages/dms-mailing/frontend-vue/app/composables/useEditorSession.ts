@@ -8,6 +8,7 @@ import type {
 	TemplateRow,
 } from '../types/mailing'
 import type { MailingApi, TemplateDetails } from './useMailingApi'
+import type { EditorReads } from './useMailingReads'
 import type { EditorState } from './useTemplateEditor'
 import type { TokenFieldHandle } from './useEditorContext'
 import { deepClone } from '../utils/clone'
@@ -64,6 +65,7 @@ export interface SessionState {
 export interface SessionDeps {
 	editor: EditorState
 	api: MailingApi
+	reads: EditorReads
 	templateId: string
 	loaded: TemplateContentResponse
 	onError: (error: unknown) => void
@@ -142,7 +144,7 @@ export function retryDelay(failures: number): number {
 }
 
 function createSaver(deps: SessionDeps, state: SessionState) {
-	const { editor, api, templateId, onError } = deps
+	const { editor, api, reads, templateId, onError } = deps
 	let timer: ReturnType<typeof setTimeout> | null = null
 	let inFlight: Promise<boolean> | null = null
 	let failures = 0
@@ -207,7 +209,7 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 	async function overwrite(): Promise<boolean> {
 		cancel()
 		if (inFlight) await inFlight
-		const latest = await api.changes(templateId).catch(() => null)
+		const latest = await reads.changes().catch(() => null)
 		if (!latest) return false
 		state.revision = latest.revision
 		return run()
@@ -249,7 +251,7 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 }
 
 function createRecordActions(
-	{ api, templateId }: SessionDeps,
+	{ api, reads, templateId }: SessionDeps,
 	state: SessionState,
 ) {
 	return {
@@ -274,7 +276,7 @@ function createRecordActions(
 			state.testDataSource = state.savedTestDataSource
 		},
 		async loadPerformance(): Promise<void> {
-			state.performance = await api.performance(templateId).catch(() => null)
+			state.performance = await reads.performance().catch(() => null)
 		},
 	}
 }

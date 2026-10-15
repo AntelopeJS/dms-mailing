@@ -10,7 +10,7 @@ import {
 	typeInto,
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
-import { stubApiData } from './helpers/api-data'
+import { mailingReads, stubApiData } from './helpers/api-data'
 
 const api = {
 	listTemplates: vi.fn(),
@@ -55,13 +55,20 @@ beforeEach(() => {
 			},
 		],
 	})
-	stubApiData().respond(({ url }) => {
-		if (url !== '/api/mailing/templates/categories')
-			throw new Error(`unexpected read ${url}`)
-		return {
-			categories: [{ id: 'billing', label: 'Billing', icon: 'i-ph-file-text' }],
-		}
-	})
+	stubApiData().respond(
+		mailingReads(
+			{ listTemplates: api.listTemplates, starters: api.starters },
+			({ url }) => {
+				if (url !== '/api/mailing/templates/categories')
+					throw new Error(`unexpected read ${url}`)
+				return {
+					categories: [
+						{ id: 'billing', label: 'Billing', icon: 'i-ph-file-text' },
+					],
+				}
+			},
+		),
+	)
 	api.createTemplate.mockResolvedValue(['new-id'])
 })
 

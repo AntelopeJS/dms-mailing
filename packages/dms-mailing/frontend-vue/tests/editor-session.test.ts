@@ -73,6 +73,10 @@ function setup(): Harness {
 			harness.session = useEditorSession({
 				editor: harness.editor,
 				api: api as unknown as MailingApi,
+				reads: {
+					changes: () => api.changes('t1'),
+					performance: async () => null as never,
+				},
 				templateId: 't1',
 				loaded: LOADED,
 				onError: (error) => errors.push(error),

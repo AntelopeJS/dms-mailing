@@ -163,9 +163,9 @@ const emptyDescription = computed(() =>
 		: t('dms_mailing.templates.empty.view_description'),
 )
 
+/** The rows, and with them the template count and the figures. */
 function refreshAll(): void {
 	void props.context.refresh()
-	refreshFigures()
 }
 
 function openRow(row: TemplateRow): void {

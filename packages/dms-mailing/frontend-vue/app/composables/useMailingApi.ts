@@ -2,16 +2,11 @@ import type {
 	FunnelStep,
 	PreviewResponse,
 	PreviewVersion,
-	ProviderInfo,
-	SendDetailResponse,
-	SendHtmlResponse,
 	StarterSummary,
 	SuppressionSummary,
 	TemplateChange,
 	TemplateContent,
 	TemplateCategory,
-	TemplateContentResponse,
-	TemplatePerformance,
 	TemplateRow,
 	TemplateStats,
 	TemplateVersionSummary,
@@ -22,7 +17,7 @@ import type { WebhookTestResult } from '../utils/webhook-status'
 const BASE = '/api/mailing'
 
 /** Far above any real tenant's template count; the data-api caps at 100. */
-const TEMPLATE_LIST_LIMIT = '100'
+export const TEMPLATE_LIST_LIMIT = '100'
 
 /**
  * Joins the module's API segments. Exported on its own so the path shape stays
@@ -185,8 +180,8 @@ export interface StarterPreviewResponse {
 }
 
 /**
- * The mailing endpoints a component writes to, or reads on a click (a drawer,
- * a dialog). What a page renders is read through `useMailingReads`, with the
+ * The mailing endpoints a component writes to, and the previews it renders
+ * from a draft it sends. Every read goes through `useMailingReads`, with the
  * same paths.
  */
 export function useMailingApi() {
@@ -195,24 +190,14 @@ export function useMailingApi() {
 		$authFetch<T>(path, { method: 'POST', body })
 
 	return {
-		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
 		webhookTest: () =>
 			post<WebhookTestResult>(mailingPath('settings', 'webhook-test'), {}),
-		templateContent: (id: string) =>
-			$authFetch<TemplateContentResponse>(
-				mailingPath('templates', id, 'content'),
-			),
 		saveTemplateDetails: (id: string, details: TemplateDetails) =>
 			$authFetch<unknown>(mailingPath('tables', 'templates', 'edit'), {
 				method: 'PUT',
 				query: { id },
 				body: details,
 			}),
-		listTemplates: () =>
-			$authFetch<TemplateListResponse>(
-				mailingPath('tables', 'templates', 'list'),
-				{ query: { limit: TEMPLATE_LIST_LIMIT, sortKey: 'name' } },
-			),
 		createTemplate: (input: CreateTemplateInput) =>
 			post<string[]>(mailingPath('tables', 'templates', 'new'), input),
 		saveContent: (id: string, input: SaveContentInput) =>
@@ -225,25 +210,10 @@ export function useMailingApi() {
 				},
 				keepalive: input.keepalive,
 			}),
-		changes: (id: string) =>
-			$authFetch<ChangesResponse>(mailingPath('templates', id, 'changes')),
-		versions: (id: string) =>
-			$authFetch<VersionsResponse>(mailingPath('templates', id, 'versions')),
 		restoreVersion: (id: string, version: number, revision?: number) =>
 			post<RestoreVersionResponse>(
 				mailingPath('templates', id, 'versions', String(version), 'restore'),
 				{ revision },
-			),
-		performance: (id: string) =>
-			$authFetch<TemplatePerformance>(
-				mailingPath('templates', id, 'performance'),
-			),
-		starters: () =>
-			$authFetch<StartersResponse>(mailingPath('templates', 'starters')),
-		starterPreview: (starterId: string, locale?: string) =>
-			$authFetch<StarterPreviewResponse>(
-				mailingPath('templates', 'starters', starterId, 'preview'),
-				{ query: locale ? { locale } : {} },
 			),
 		publish: (id: string, revision?: number) =>
 			post<PublishResponse>(mailingPath('templates', id, 'publish'), {
@@ -281,10 +251,6 @@ export function useMailingApi() {
 			post<TestSendResponse>(mailingPath('templates', id, 'send'), input),
 		testSend: (id: string, input: TestSendInput) =>
 			post<TestSendResponse>(mailingPath('templates', id, 'test-send'), input),
-		send: (id: string) =>
-			$authFetch<SendDetailResponse>(mailingPath('sends', id)),
-		sendHtml: (id: string) =>
-			$authFetch<SendHtmlResponse>(mailingPath('sends', id, 'html')),
 		replay: (id: string, to?: string) =>
 			post<SendResult>(mailingPath('sends', id, 'replay'), to ? { to } : {}),
 	}

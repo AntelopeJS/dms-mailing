@@ -6,6 +6,10 @@ import NewTemplateSourceTile from './NewTemplateSourceTile.vue'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import {
+	useStartersRead,
+	useTemplateListRead,
+} from '../composables/useMailingReads'
+import {
 	HTTP_CONFLICT,
 	apiErrorMessage,
 	apiErrorStatus,
@@ -85,6 +89,8 @@ const source = ref<SourceChoice>(
 const isSubmitted = ref(false)
 const saving = ref(false)
 const templates = ref<TemplateRow[]>([])
+const readTemplates = useTemplateListRead()
+const readStarters = useStartersRead()
 const localized = useLocalizedDefaults()
 const storedStarters = ref<StarterSummary[]>([])
 const starters = computed(() => localized.starters(storedStarters.value))
@@ -94,8 +100,8 @@ const templateSearch = ref('')
 
 onMounted(async () => {
 	const [templateList, starterList] = await Promise.all([
-		api.listTemplates().catch(() => ({ results: [] as TemplateRow[] })),
-		api.starters().catch(() => ({ starters: [] as StarterSummary[] })),
+		readTemplates().catch(() => ({ results: [] as TemplateRow[] })),
+		readStarters().catch(() => ({ starters: [] as StarterSummary[] })),
 	])
 	templates.value = templateList.results
 	storedStarters.value = starterList.starters

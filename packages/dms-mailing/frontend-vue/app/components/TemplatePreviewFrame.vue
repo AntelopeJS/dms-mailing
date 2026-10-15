@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useDebounceFn, useIntersectionObserver } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
+import { useStarterPreviewRead } from '../composables/useMailingReads'
 import type {
 	PreviewResponse,
 	PreviewVersion,
@@ -62,6 +63,10 @@ const emit = defineEmits<{ resolved: [PreviewResponse] }>()
 const api = useMailingApi()
 const { locale: uiLocale } = useI18n()
 
+const readStarterPreview = useStarterPreviewRead(
+	() => props.starterId,
+	() => props.locale ?? uiLocale.value,
+)
 const fetchedHtml = ref('')
 const loading = ref(false)
 const height = ref(FALLBACK_HEIGHT)
@@ -86,11 +91,8 @@ useIntersectionObserver(box, ([entry]) => {
 	if (entry?.isIntersecting) isVisible.value = true
 })
 
-async function fetchStarter(starterId: string): Promise<void> {
-	const preview = await api.starterPreview(
-		starterId,
-		props.locale ?? uiLocale.value,
-	)
+async function fetchStarter(): Promise<void> {
+	const preview = await readStarterPreview()
 	fetchedHtml.value = preview.html
 }
 
@@ -111,7 +113,7 @@ async function load(): Promise<void> {
 	loading.value = true
 	try {
 		await (props.starterId
-			? fetchStarter(props.starterId)
+			? fetchStarter()
 			: fetchTemplate(props.templateId as string))
 	} catch {
 		fetchedHtml.value = ''

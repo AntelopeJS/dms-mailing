@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMailingApi } from '../composables/useMailingApi'
+import { useSendHtmlRead, useSendRead } from '../composables/useMailingReads'
 import type { SendHtmlResponse, SendRow } from '../types/mailing'
 
 type RenderingView = 'desktop' | 'mobile' | 'html'
@@ -44,7 +44,6 @@ const FRAME_WIDTHS: Record<RenderingView, string> = {
 	html: '100%',
 }
 
-const api = useMailingApi()
 const { t, locale } = useI18n()
 
 const view = ref<RenderingView>('desktop')
@@ -54,6 +53,8 @@ const loading = ref(false)
 const failed = ref(false)
 
 const sendIdValue = computed(() => props.rowData?._id ?? props.sendId ?? '')
+const readSend = useSendRead(sendIdValue)
+const readHtml = useSendHtmlRead(sendIdValue)
 const key = (path: string, params: Record<string, unknown> = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
 
@@ -85,7 +86,7 @@ const meta = computed(() => {
 
 async function loadSend(): Promise<void> {
 	if (send.value) return
-	const detail = await api.send(sendIdValue.value)
+	const detail = await readSend()
 	send.value = detail.send
 }
 
@@ -95,7 +96,7 @@ async function load(): Promise<void> {
 	failed.value = false
 	try {
 		const [html] = await Promise.all([
-			api.sendHtml(sendIdValue.value),
+			readHtml(),
 			loadSend(),
 		])
 		rendering.value = html

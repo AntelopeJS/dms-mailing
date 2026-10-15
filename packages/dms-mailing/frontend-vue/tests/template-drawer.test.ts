@@ -17,7 +17,7 @@ import {
 	typeInto,
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
-import { stubApiData } from './helpers/api-data'
+import { mailingReads, stubApiData } from './helpers/api-data'
 
 const api = {
 	templateContent: vi.fn(),
@@ -115,11 +115,21 @@ beforeEach(() => {
 	stubs = stubNuxtGlobals()
 	menuGroups = []
 	starters = []
-	stubApiData().respond(({ url }) => {
-		if (url === '/api/mailing/templates/categories') return { categories: [] }
-		if (url === '/api/mailing/templates/starters') return { starters }
-		throw new Error(`unexpected read ${url}`)
-	})
+	stubApiData().respond(
+		mailingReads(
+			{
+				templateContent: api.templateContent,
+				performance: api.performance,
+				listTemplates: api.listTemplates,
+			},
+			({ url }) => {
+				if (url === '/api/mailing/templates/categories')
+					return { categories: [] }
+				if (url === '/api/mailing/templates/starters') return { starters }
+				throw new Error(`unexpected read ${url}`)
+			},
+		),
+	)
 	api.performance.mockResolvedValue({
 		id: 't1',
 		slug: 'order-confirmed',
