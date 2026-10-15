@@ -12,7 +12,7 @@ dashboard and settings. It owns the data (tenant-scoped Mongo tables), renders
 e-mails through the DMS html-render chain and sends them through
 `@antelopejs/interface-email`.
 
-The module targets `@antelopejs/dms` 0.8 (0.8.4 or later: its `useApiData` reads what the pages render on the server) and `@antelopejs/dms-frontend` 0.5 (0.5.7 or later).
+The module targets `@antelopejs/dms` 0.9, `@antelopejs/interface-dms` 0.7 and `@antelopejs/dms-frontend` 0.6. Every read goes through the DMS's `useApiData`: what a page renders is read by the server render and handed to the browser; what a drawer, a dialog, a preview frame or the editor shows is read when it opens or asks (`immediate: false`, `useMailingReads`).
 Like every DMS module, its pages live in the module's own sidebar (Mailing:
 Overview, Templates, Sends; Configure: Settings, Suppression list) and are
 reserved to the platform owner. The design decisions behind the v2 screens are recorded in
