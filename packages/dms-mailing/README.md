@@ -1,33 +1,48 @@
+<div align="center">
+
 # @antelopejs/dms-mailing
 
-<div align="center">
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&labelColor=000000"></a>
-<a href="https://discord.gg/sjK28QHrA7"><img src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" alt="Discord"></a>
-<a href="https://antelopejs.com"><img src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" alt="Documentation"></a>
+<a href="https://www.npmjs.com/package/@antelopejs/dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
+<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://dms.antelopejs.com/docs/modules/mailing"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+
+E-mail templates, sends and delivery metrics for the AntelopeJS DMS.
+
 </div>
 
-Mailing module for the AntelopeJS DMS: a template library with a block-based
-e-mail editor, drafts and published versions, a send log with delivery
-metrics, a suppression list and a provider webhook. Other modules send through
-[`@antelopejs/interface-dms-mailing`](../interface-dms-mailing).
+![The Mailing overview: reach, engagement and list health for the last 30 days](https://raw.githubusercontent.com/AntelopeJS/dms-mailing/main/packages/dms-mailing/docs/images/overview.png)
 
-![The Mailing overview](./docs/images/overview.png)
+## What it does
 
-**Documentation: [dms.antelopejs.com/docs/modules/mailing](https://dms.antelopejs.com/docs/modules/mailing)**
-(sources in [`docs/`](./docs); design decisions in
-[`docs/design/design-v2-grill-me.md`](./docs/design/design-v2-grill-me.md)).
+- Designs e-mail templates in a block editor, with typed variables, conditions, lists and live test data.
+- Keeps edits in draft and publishes them as versions, in several locales.
+- Sends a template by its slug from your code, an automation or the dashboard, through any `@antelopejs/interface-email` provider.
+- Logs every send with the provider's timeline, and turns delivery, open and click events into an overview.
+- Protects your sender reputation with a suppression list fed by bounces, complaints and unsubscriptions.
 
-## Installation
+## Install
+
+Run the AntelopeJS CLI from the root of a project that already loads `@antelopejs/dms`, and add an e-mail provider if the project has none:
 
 ```bash
 ajs project modules add @antelopejs/dms-mailing
+ajs project modules add @antelopejs/nodemailer
 ```
 
-The module targets `@antelopejs/dms` 0.9, `@antelopejs/interface-dms` 0.7 and
-`@antelopejs/dms-frontend` 0.6, and needs a module implementing
-`@antelopejs/interface-email`. See
-[Installation](https://dms.antelopejs.com/docs/modules/mailing/installation)
-and [Configuration](https://dms.antelopejs.com/docs/modules/mailing/configuration).
+## Quick start
+
+In development, send to a throwaway Ethereal inbox:
+
+```ts
+// antelope.config.ts
+nodemailer: {
+  source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.5 <1.0.0" },
+  config: { ethereal: true },
+},
+```
+
+Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). Create a template from a starter such as **Order confirmation**, publish it, then send it from any module through [`@antelopejs/interface-dms-mailing`](https://github.com/AntelopeJS/dms-mailing/tree/main/packages/interface-dms-mailing):
 
 ```ts
 import { SendTemplate } from "@antelopejs/interface-dms-mailing";
@@ -39,74 +54,33 @@ await SendTemplate("order-confirmation", {
 });
 ```
 
-## Claude Code skill
+## Compatibility
 
-The package ships the `dms-mailing` skill in [`skills/`](./skills), declared
-in `package.json` under `antelopeJs.skills`.
-
-## Layout
-
-| Path | What it holds |
+| Package | Version |
 | --- | --- |
-| `src/index.ts` | Module lifecycle (`construct`/`start`/`stop`/`destroy`); registers the Vue frontend module, the automation nodes, the tenant-export contributor, the realtime topics and the crons. |
-| `src/pages/` | The DMS pages: `overview`, `templates`, the editor (`templates/:id`), `sends`, `settings` and `suppressions`, all inside the module sidebar. Every custom block carries a `.meta()` with i18n keys. |
-| `src/data/` | The `TableView` data controllers behind `/api/mailing/tables/*`. |
-| `src/routes/` | The HTTP API under `/api/mailing` (templates, sends, events, metrics, settings, provider, suppressions). |
-| `src/engine/` | The pure-TS rendering engine: block tree + variables → resolved e-mail. |
-| `../interface-dms-mailing/` | The separately published public AntelopeJS interface (see below). |
-| `src/automation/` | The `dms-automation` action and trigger. |
-| `src/crons/` | The daily, replay-safe send-log retention job and the hourly refresh of the templates needing attention. |
-| `src/hooks/` | The tenant data export contributor. |
-| `docs/` | The user guide published on the DMS site, its images, and the design notes (`docs/design/`). |
-| `skills/` | The `dms-mailing` Claude Code skill. |
-| `frontend-vue/` | Vue module registered under the `Mailing` component prefix: gallery display, template and send drawers, test / real send dialogs, the three-pane block editor, the overview and settings blocks, `dms.email.ts` server template entry and the `mailing-*.json` i18n catalogs. Its own composables and utils are imported by path, not auto-imported. |
-| `playground/` | Standalone AntelopeJS project wiring this module to the DMS, Mongo, the API server and the mailer, for local development. |
+| `@antelopejs/dms` | `>=0.9.0 <1.0.0` |
+| `@antelopejs/interface-dms` | `>=0.7.0 <1.0.0` |
+| `@antelopejs/dms-frontend` (renderer) | `>=0.6.0 <0.7.0` |
+| `@antelopejs/interface-dms-mailing` | `>=0.7.0 <0.8.0` |
+| E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
 
-## Development
+On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
 
-```sh
-pnpm install
-pnpm --dir frontend-vue install
-pnpm --dir playground install
+## Documentation
 
-pnpm dev            # backend + module, watching src/
-pnpm frontend:dev   # the DMS front-end, in another terminal
-```
+- [Introduction](https://dms.antelopejs.com/docs/modules/mailing/introduction)
+- [Installation](https://dms.antelopejs.com/docs/modules/mailing/installation)
+- [Configuration](https://dms.antelopejs.com/docs/modules/mailing/configuration)
+- [Usage](https://dms.antelopejs.com/docs/modules/mailing/usage/overview)
+- [Extending](https://dms.antelopejs.com/docs/modules/mailing/extending): sending from code, provider events and webhooks, automations
+- [FAQ](https://dms.antelopejs.com/docs/modules/mailing/faq)
 
-The backend listens on `http://localhost:5010` and needs a MongoDB on
-`mongodb://localhost:27017` (database `playground_dms_mailing`); set
-`MONGO_URL` to point the playground at another instance. E-mails go to an
-Ethereal account, or to a local SMTP server when `SMTP_PORT` is set.
+The guide's sources live in [`packages/dms-mailing/docs`](https://github.com/AntelopeJS/dms-mailing/tree/main/packages/dms-mailing/docs). The module ships the `dms-mailing` Claude Code skill in [`packages/dms-mailing/skills`](https://github.com/AntelopeJS/dms-mailing/tree/main/packages/dms-mailing/skills), declared under `antelopeJs.skills`.
 
-Both packages are public on npm, published under the `@antelopejs` scope with
-npm trusted publishing and provenance. The interface package must be released
-before `@antelopejs/dms-mailing`. Each package has its own manual workflow:
-`Release DMS mailing interface` publishes `../interface-dms-mailing`, `Release
-DMS mailing module` publishes this package and refuses to run until the
-interface version its dependency range is floored at resolves on npm. Inside
-the workspace that same range resolves to the sibling package, through
-`link-workspace-packages`. The module implements the interface, so that range
-is capped below the next minor (`>=0.7.0 <0.8.0`): a breaking interface minor
-never reaches a module that does not implement it, and the release workflow
-refuses any other shape.
+## Contributing
 
-## Conventions
+This package lives in the [`AntelopeJS/dms-mailing`](https://github.com/AntelopeJS/dms-mailing) pnpm workspace, next to `@antelopejs/interface-dms-mailing`. Read [CONTRIBUTING.md](https://github.com/AntelopeJS/dms-mailing/blob/main/CONTRIBUTING.md) and the [repository README](https://github.com/AntelopeJS/dms-mailing#contributing) for the development commands.
 
-Every backend-declared text uses the `$key` convention: a string starting with
-`$` is resolved against the i18n catalogs by the front-end. Add keys to
-`frontend-vue/i18n/locales/mailing-en-GB.json` and its French counterpart.
+## License
 
-Every read goes through the DMS's `useApiData`: what a page renders is read by
-the server render and handed to the browser; what a drawer, a dialog, a preview
-frame or the editor shows is read when it opens or asks (`immediate: false`,
-`useMailingReads`). Writes stay on `useMailingApi`.
-
-## Checks
-
-```sh
-pnpm lint        # oxlint + oxfmt + the layer's eslint
-pnpm typecheck   # tsc --noEmit on tsconfig.json
-pnpm knip        # unused dependencies
-pnpm build       # tsconfig.json -> dist/
-pnpm test        # backend (mocha through `ajs module test`) + layer (vitest)
-```
+[Apache-2.0](./LICENSE)
