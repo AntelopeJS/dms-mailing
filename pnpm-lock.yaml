@@ -116,7 +116,7 @@ importers:
   packages/interface-dms-mailing:
     dependencies:
       '@antelopejs/interface-core':
-        specifier: '>=0.1.1 <1.0.0'
+        specifier: '>=0.2.3 <1.0.0'
         version: 0.2.3
       '@antelopejs/interface-email':
         specifier: '>=0.0.5 <1.0.0'
