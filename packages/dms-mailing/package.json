@@ -1,6 +1,19 @@
 {
   "name": "@antelopejs/dms-mailing",
   "version": "0.5.0",
+  "description": "E-mail templates for the AntelopeJS DMS: a block editor with drafts and versions, a send log, delivery metrics and a suppression list.",
+  "keywords": [
+    "antelopejs",
+    "dms",
+    "dms-module",
+    "email",
+    "mailing",
+    "templates"
+  ],
+  "homepage": "https://dms.antelopejs.com/docs/modules/mailing",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/dms-mailing/issues"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -14,6 +27,7 @@
     "!dist/.tsbuildinfo",
     "!dist/test",
     "frontend-vue",
+    "skills",
     "src",
     "!src/test"
   ],
@@ -53,7 +67,7 @@
   "dependencies": {
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
-    "@antelopejs/interface-core": ">=0.1.1 <1.0.0",
+    "@antelopejs/interface-core": ">=0.2.3 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.2.1 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.9 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.7 <1.0.0",
@@ -64,7 +78,7 @@
     "zod": "~3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.13.4 <2",
+    "@antelopejs/core": ">=1.15.2 <2",
     "@antelopejs/tooling-configs": ">=0.0.7 <1.0.0",
     "@types/chai": "^4.3.20",
     "@types/mocha": "^10",
@@ -90,6 +104,9 @@
     "implements": [
       "@antelopejs/interface-dms-mailing"
     ],
-    "test": "src/test/antelope.test.ts"
+    "test": "src/test/antelope.test.ts",
+    "skills": [
+      "./skills"
+    ]
   }
 }

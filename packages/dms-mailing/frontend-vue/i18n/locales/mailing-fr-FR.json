@@ -804,7 +804,7 @@
 				},
 				"webhookUrl": {
 					"label": "URL du webhook",
-					"description": "Votre fournisseur, ou le relais qui traduit ses événements, les envoie ici avec le secret ci-dessous. Le README du module décrit le format."
+					"description": "Votre fournisseur, ou le relais qui traduit ses événements, les envoie ici avec le secret ci-dessous. La documentation du module décrit le format."
 				},
 				"webhookStatus": {
 					"label": "État du webhook",

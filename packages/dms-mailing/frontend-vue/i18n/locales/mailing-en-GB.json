@@ -804,7 +804,7 @@
 				},
 				"webhookUrl": {
 					"label": "Webhook URL",
-					"description": "Your provider, or the relay that translates its events, posts them here with the secret below. The module README describes the format."
+					"description": "Your provider, or the relay that translates its events, posts them here with the secret below. The module documentation describes the format."
 				},
 				"webhookStatus": {
 					"label": "Webhook status",
