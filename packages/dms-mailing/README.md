@@ -66,6 +66,16 @@ await SendTemplate("order-confirmation", {
 
 On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
 
+## Slugs
+
+Sends find a template by its slug, so a slug belongs to one template per
+workspace. The database interface has no unique index, so the primary key of
+`mailing_template_slugs` does that job: creating or duplicating a template
+claims its slug there, and of two creations racing for one slug the second
+gets `409 duplicate_slug` instead of a second template. Deleting a template
+frees its slug. Templates created before the claims existed need no
+migration: a new template still cannot take their slug.
+
 ## Documentation
 
 - [Introduction](https://dms.antelopejs.com/docs/modules/mailing/introduction)

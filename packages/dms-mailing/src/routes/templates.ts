@@ -37,6 +37,7 @@ import {
   type TemplateStats,
 } from "../services/template-stats";
 import {
+  assertSlugClaimed,
   contentFieldsOf,
   contentOfVersion,
   discardDraft,
@@ -536,6 +537,7 @@ export class TemplatesController extends Controller(
       ...contentFieldsOf(source),
       updatedBy: this.author,
     });
+    await assertSlugClaimed(this.tenantId, slug, copyId as string);
     await refreshTemplateAttention(this.tenantId);
     return { id: copyId };
   }

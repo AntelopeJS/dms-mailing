@@ -55,11 +55,13 @@ import { findCategory, getSettings } from "../services/settings";
 import { findStarter, starterFields } from "../services/starters";
 import { refreshTemplateAttention } from "../services/template-attention";
 import {
+  assertSlugClaimed,
   blankContent,
   blankFields,
   contentFieldsOf,
   displayName,
   initializeTemplate,
+  releaseTemplateSlugs,
 } from "../services/templates";
 import type { TemplateCategory } from "../types";
 
@@ -142,29 +144,6 @@ function assertKnownCategory(
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
 }
 
-const creationTime = (template: MailingTemplate) =>
-  new Date(template.createdAt).getTime();
-
-/**
- * Nothing in the database keeps slugs unique, so two creations racing past
- * the free-slug check both land: the earliest one stays, a later one is
- * removed again and refused like any taken slug.
- */
-async function assertFirstOfSlug(
-  model: TemplateModel,
-  slug: string,
-  templateId: string,
-): Promise<void> {
-  const [first] = (await model.getBy("slug", slug)).sort(
-    (left, right) =>
-      creationTime(left) - creationTime(right) ||
-      left._id.localeCompare(right._id),
-  );
-  if (!first || first._id === templateId) return;
-  await model.delete(templateId);
-  throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
-}
-
 /** The creation's seed, and the body to store: slug and name trimmed. */
 function parseCreation(body: Buffer | string) {
   const raw = parseBody(body);
@@ -209,7 +188,7 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
         ...rest,
       )) as string[];
       const templateId = ids[0] as string;
-      await assertFirstOfSlug(model, seed.slug, templateId);
+      await assertSlugClaimed(tenantId, seed.slug, templateId);
       const user = await authenticateTenantRequest(ctx);
       await initializeTemplate(tenantId, templateId, displayName(user), fields);
       return ids;
@@ -270,14 +249,15 @@ export function afterDelete(tenantId: string, ids: string[]): AfterWrite {
     await Promise.all(
       ids.map((id) => versions.getAll(id, "templateId").delete().run()),
     );
+    await releaseTemplateSlugs(tenantId, ids);
     await refreshTemplateAttention(tenantId);
   };
 }
 
 /**
- * Sends resolve templates by slug and nothing enforces its uniqueness but the
- * create checks, so a slug never changes once set; a category must be one the
- * settings declare, and a name holds more than spaces.
+ * Sends resolve templates by slug and only the create paths claim it, so a
+ * slug never changes once set; a category must be one the settings declare,
+ * and a name holds more than spaces.
  */
 export async function assertEditable(
   tenantId: string,
