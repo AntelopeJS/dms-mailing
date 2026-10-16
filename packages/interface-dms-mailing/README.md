@@ -51,14 +51,18 @@ A recipient on the workspace's suppression list gets no e-mail: its result has t
 
 ## Compatibility
 
-| Package | Version |
+The implementation is `@antelopejs/dms-mailing >=0.5.0`. The interface declares these dependencies:
+
+<!-- docs-compat: ./package.json#dependencies -->
+
+| Package | Range |
 | --- | --- |
-| `@antelopejs/dms-mailing` (implementation) | `>=0.5.0` |
-| `@antelopejs/interface-core` | `>=0.1.1 <1.0.0` |
+| `@antelopejs/interface-core` | `>=0.2.3 <1.0.0` |
 | `@antelopejs/interface-email` | `>=0.0.5 <1.0.0` |
 
 ## Documentation
 
+- [Consumer reference](./docs/1.index.md): signatures, results, failures, tenant boundaries and template types
 - [Extending the mailing module](https://dms.antelopejs.com/docs/modules/mailing/extending): sending from code, what a recipient receives, provider webhooks, automations
 - [Mailing module guide](https://dms.antelopejs.com/docs/modules/mailing)
 
