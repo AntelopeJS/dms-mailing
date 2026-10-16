@@ -23,6 +23,8 @@ https://dms.antelopejs.com/docs/modules/mailing (sending from code and the webho
 
 - `ajs project modules add @antelopejs/dms-mailing`, plus a module implementing `@antelopejs/interface-email`
   (`@antelopejs/nodemailer`, `config: { ethereal: true }` in dev).
+- Mailing 0.5 requires `@antelopejs/dms` >=0.9 (interface-dms 0.7, renderer `@antelopejs/dms-frontend` 0.6);
+  0.4 is the DMS 0.8 line. `@antelopejs/interface-dms-mailing` stays 0.7, so callers do not change.
 - Module option: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML).
 - Set the DMS `clientBaseUrl`: the webhook URL and the e-mail logo are built on it.
 - Per-workspace settings (sender, missing-variable guard, fallback locale, webhook secret, retention,
