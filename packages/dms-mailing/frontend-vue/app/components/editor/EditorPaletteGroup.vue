@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import draggable from 'vuedraggable'
+import { ref } from 'vue'
+import { useSortableList } from '../../composables/useSortableList'
 import {
 	PALETTE_GROUP,
 	cloneFromPalette,
@@ -23,23 +24,22 @@ const emit = defineEmits<{ add: [PaletteEntry] }>()
 
 const { t } = useI18n()
 
-const clone = (entry: PaletteEntry) =>
-	cloneFromPalette(entry, props.blockContext())
+const root = ref<HTMLElement | null>(null)
+
+// A tile stays in the palette: the canvas receives the block it stands for.
+useSortableList(root, () => props.entries, {
+	group: PALETTE_GROUP,
+	sort: false,
+	disabled: () => props.disabled,
+	clone: (entry) => cloneFromPalette(entry, props.blockContext()),
+})
 </script>
 
 <template>
 	<section>
 		<DmsEyebrow :label="title" class="mb-2 block" />
-		<draggable
-			:list="entries"
-			:group="PALETTE_GROUP"
-			:clone="clone"
-			:sort="false"
-			:disabled="disabled"
-			item-key="type"
-			class="grid grid-cols-2 gap-1.5"
-		>
-			<template #item="{ element }">
+		<div ref="root" class="grid grid-cols-2 gap-1.5">
+			<template v-for="element in entries" :key="element.type">
 				<button
 					type="button"
 					class="border-default bg-default text-toned hover:border-primary/60 hover:text-highlighted group flex min-h-9 cursor-grab items-center gap-2 rounded-md border px-2.5 py-1 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-50"
@@ -61,6 +61,6 @@ const clone = (entry: PaletteEntry) =>
 					</span>
 				</button>
 			</template>
-		</draggable>
+		</div>
 	</section>
 </template>

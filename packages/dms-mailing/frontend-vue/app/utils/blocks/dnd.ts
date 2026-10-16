@@ -9,6 +9,8 @@ export const PALETTE_GROUP = {
 	put: false,
 }
 export const DRAG_HANDLE = '.mailing-drag-handle'
+/** The blocks of a list, not the insert point that ends it. */
+export const DRAG_ITEM = '>[data-drag-item]'
 
 /** The block a tile dropped on the canvas becomes, shaped by its template. */
 export function cloneFromPalette(

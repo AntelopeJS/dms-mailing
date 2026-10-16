@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import draggable from 'vuedraggable'
+import { useSortableList } from '../composables/useSortableList'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useCategoryUsage } from '../composables/useMailingReads'
 import { isMarketingCategory } from '../utils/system-variables'
@@ -219,6 +219,14 @@ async function moveBy(index: number, offset: number): Promise<void> {
 	handles?.[moved.index]?.focus()
 }
 
+const rowList = ref<HTMLElement | null>(null)
+
+useSortableList(rowList, () => rows.value, {
+	handle: HANDLE_SELECTOR,
+	disabled: () => props.disabled,
+	onEnd: onEdit,
+})
+
 watch(source, (value) => {
 	if (serializeCategories(value) === lastEmitted) return
 	rows.value = toRows(value)
@@ -243,15 +251,8 @@ watch(
 		ref="root"
 		class="border-default flex flex-col overflow-hidden rounded-lg border"
 	>
-		<draggable
-			v-model="rows"
-			item-key="key"
-			:handle="HANDLE_SELECTOR"
-			:disabled="disabled"
-			class="divide-default flex flex-col divide-y"
-			@end="onEdit"
-		>
-			<template #item="{ element, index }">
+		<div ref="rowList" class="divide-default flex flex-col divide-y">
+			<template v-for="(element, index) in rows" :key="element.key">
 				<UFormField
 					:name="labelFieldName(index)"
 					:error-pattern="rowErrorPattern(index)"
@@ -343,7 +344,7 @@ watch(
 					</template>
 				</UFormField>
 			</template>
-		</draggable>
+		</div>
 
 		<p v-if="!rows.length" class="text-muted px-4 py-3 text-[12.5px]">
 			{{ key('empty') }}
