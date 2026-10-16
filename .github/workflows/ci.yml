@@ -39,6 +39,15 @@ jobs:
       - uses: actions/checkout@v4
       # Builds the interface, which also typechecks it.
       - uses: ./.github/actions/setup
+      - uses: AntelopeJS/tooling-configs/actions/docs@310e3d861b2da2244902854379176c91e1ebc68e
+        with:
+          files: |
+            README.md
+            packages/dms-mailing/README.md
+            packages/dms-mailing/docs
+            packages/interface-dms-mailing/README.md
+            packages/interface-dms-mailing/docs
+          typescript-project: packages/interface-dms-mailing/docs/tsconfig.json
       # oxlint's type-aware pass degrades to `any` on a broken tsconfig
       # without failing, so a typecheck is what catches it. The build compiles
       # the same tsconfig as `typecheck`, so it is that typecheck.
