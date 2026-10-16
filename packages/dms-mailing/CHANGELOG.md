@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v0.5.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.4.1...v0.5.0)
+
+### 🚀 Enhancements
+
+- ⚠️  Migrate to DMS 0.9 and renderer 0.6 ([#41](https://github.com/AntelopeJS/dms-mailing/pull/41))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Migrate to DMS 0.9 and renderer 0.6 ([#41](https://github.com/AntelopeJS/dms-mailing/pull/41))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.4.0...v0.4.1)
