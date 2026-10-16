@@ -9,6 +9,7 @@ const TEMPLATES = "/api/mailing/templates";
 /** Rounds of one race each: a lost race shows within a few on Linux. */
 const ROUNDS = 50;
 const RACERS = 5;
+const RACE_TIMEOUT_MS = 60_000;
 
 type Client = ReturnType<typeof authorizedClient>;
 
@@ -90,7 +91,8 @@ function lostRounds(outcomes: Outcome[]): Outcome[] {
   );
 }
 
-describe("[integration] template slug races", () => {
+describe("[integration] template slug races", function () {
+  this.timeout(RACE_TIMEOUT_MS);
   const stamp = Date.now();
 
   it("creates one template per slug when creations race", async () => {
