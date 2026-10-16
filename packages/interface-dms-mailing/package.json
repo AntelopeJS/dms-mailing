@@ -1,7 +1,18 @@
 {
   "name": "@antelopejs/interface-dms-mailing",
   "version": "0.7.0",
-  "description": "AntelopeJS interface for DMS mailing",
+  "description": "AntelopeJS interface for the DMS mailing module: send templates and report e-mail events from any module.",
+  "keywords": [
+    "antelopejs",
+    "dms",
+    "email",
+    "interface",
+    "mailing"
+  ],
+  "homepage": "https://dms.antelopejs.com/docs/modules/mailing/extending",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/dms-mailing/issues"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

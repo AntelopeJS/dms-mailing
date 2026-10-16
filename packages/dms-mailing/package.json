@@ -1,6 +1,19 @@
 {
   "name": "@antelopejs/dms-mailing",
   "version": "0.5.0",
+  "description": "E-mail templates for the AntelopeJS DMS: a block editor with drafts and versions, a send log, delivery metrics and a suppression list.",
+  "keywords": [
+    "antelopejs",
+    "dms",
+    "dms-module",
+    "email",
+    "mailing",
+    "templates"
+  ],
+  "homepage": "https://dms.antelopejs.com/docs/modules/mailing",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/dms-mailing/issues"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
