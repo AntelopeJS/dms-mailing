@@ -17,6 +17,7 @@ import {
 	typeInto,
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
+import { mailingReads, stubApiData } from './helpers/api-data'
 
 const api = {
 	templateContent: vi.fn(),
@@ -29,12 +30,12 @@ const api = {
 	listTemplates: vi.fn(),
 	duplicate: vi.fn(),
 	starters: vi.fn(),
-	listCategories: vi.fn(),
 	createTemplate: vi.fn(),
 	saveTemplateDetails: vi.fn(),
 }
 
-vi.mock('../app/composables/useMailingApi', () => ({
+vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
+	...(await importOriginal<object>()),
 	useMailingApi: () => api,
 }))
 
@@ -108,9 +109,27 @@ const globals = {
 
 let stubs: NuxtStubs
 
+let starters: unknown[] = []
+
 beforeEach(() => {
 	stubs = stubNuxtGlobals()
 	menuGroups = []
+	starters = []
+	stubApiData().respond(
+		mailingReads(
+			{
+				templateContent: api.templateContent,
+				performance: api.performance,
+				listTemplates: api.listTemplates,
+			},
+			({ url }) => {
+				if (url === '/api/mailing/templates/categories')
+					return { categories: [] }
+				if (url === '/api/mailing/templates/starters') return { starters }
+				throw new Error(`unexpected read ${url}`)
+			},
+		),
+	)
 	api.performance.mockResolvedValue({
 		id: 't1',
 		slug: 'order-confirmed',
@@ -403,18 +422,15 @@ describe('DuplicateModal', () => {
 
 describe('StarterGallery', () => {
 	beforeEach(() => {
-		api.starters.mockResolvedValue({
-			starters: [
-				{
-					id: 'order-confirmed',
-					name: 'Order confirmation',
-					slug: 'order-confirmed',
-					category: 'orders',
-					locales: ['en'],
-				},
-			],
-		})
-		api.listCategories.mockResolvedValue({ categories: [] })
+		starters = [
+			{
+				id: 'order-confirmed',
+				name: 'Order confirmation',
+				slug: 'order-confirmed',
+				category: 'orders',
+				locales: ['en'],
+			},
+		]
 	})
 
 	it('creates a starter as a draft and opens it', async () => {

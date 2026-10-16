@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable'
 import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
-import { useMailingApi } from '../composables/useMailingApi'
+import { useCategoryUsage } from '../composables/useMailingReads'
 import { isMarketingCategory } from '../utils/system-variables'
 import {
 	CATEGORY_ICONS,
@@ -53,7 +53,6 @@ const MOVE_FIELD_COMPONENT = 'DmsSelect'
 const LABEL_PART = 'label'
 const ROW_FIELD_UI = { error: 'mt-1 ps-9 text-[12px]' }
 
-const api = useMailingApi()
 const { t } = useI18n()
 const localized = useLocalizedDefaults()
 const { confirm } = useConfirm()
@@ -65,7 +64,11 @@ const root = ref<HTMLElement | null>(null)
 const source = computed(() => props.modelValue ?? props.initialValue ?? [])
 const rows = ref<EditableCategory[]>(toRows(source.value))
 const removed = ref<CategoryEntry[]>(movesOf(source.value))
-const usage = ref<Record<string, number>>({})
+const usageRead = useCategoryUsage()
+/** Templates per category; none known while the read is missing or failed. */
+const usage = computed<Record<string, number>>(() =>
+	usageRead.error.value ? {} : (usageRead.data.value?.counts ?? {}),
+)
 const pickerOpen = ref<string | null>(null)
 let lastEmitted = serializeCategories(currentEntries())
 
@@ -216,14 +219,6 @@ async function moveBy(index: number, offset: number): Promise<void> {
 	handles?.[moved.index]?.focus()
 }
 
-async function loadUsage(): Promise<void> {
-	try {
-		usage.value = (await api.categoryUsage()).counts
-	} catch {
-		usage.value = {}
-	}
-}
-
 watch(source, (value) => {
 	if (serializeCategories(value) === lastEmitted) return
 	rows.value = toRows(value)
@@ -238,11 +233,9 @@ watch(
 		rows.value
 			.filter((row) => row.isNew && saved.has(row.id))
 			.forEach((row) => (row.isNew = false))
-		void loadUsage()
+		void usageRead.refresh()
 	},
 )
-
-onMounted(loadUsage)
 </script>
 
 <template>

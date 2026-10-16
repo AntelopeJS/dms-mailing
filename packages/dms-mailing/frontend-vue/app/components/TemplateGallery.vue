@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { useTemplateCategories } from '../composables/useTemplateCategories'
 import { useEventListener } from '@vueuse/core'
-import { useMailingApi } from '../composables/useMailingApi'
+import {
+	useTemplatesOverview,
+	useTemplateTotal,
+} from '../composables/useMailingReads'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import {
 	groupByCategory,
@@ -44,28 +47,32 @@ const ALL_TAB = 'all'
 
 const props = defineProps<TemplateGalleryProps>()
 
-const api = useMailingApi()
 const { t } = useI18n()
 const overlays = useTemplateDrawer()
 
 const { categories } = useTemplateCategories()
-const statsById = ref(new Map<string, TemplateStats>())
-const templateCount = ref<number | null>(null)
+const overview = useTemplatesOverview()
+const total = useTemplateTotal()
 
-async function loadStats(): Promise<void> {
-	const response = await api.templatesOverview().catch(() => ({ items: [] }))
-	statsById.value = new Map(response.items.map((entry) => [entry.id, entry]))
+/** Each template's figures; none for a failed read. */
+const statsById = computed(
+	() =>
+		new Map<string, TemplateStats>(
+			(overview.error.value ? [] : (overview.data.value?.items ?? [])).map(
+				(entry) => [entry.id, entry],
+			),
+		),
+)
+/** How many templates the tenant has; unknown while read or once failed. */
+const templateCount = computed<number | null>(() =>
+	total.error.value ? null : (total.data.value?.total ?? null),
+)
+
+/** The template count and the figures, read again with the rows. */
+function refreshFigures(): void {
+	void overview.refresh()
+	void total.refresh()
 }
-
-async function loadTemplates(): Promise<void> {
-	const response = await api.listTemplates().catch(() => null)
-	templateCount.value = response ? response.total : null
-}
-
-onMounted(() => {
-	void loadStats()
-	void loadTemplates()
-})
 
 /** The page of the table on screen: its query and its page index. */
 const viewKeyOf = (): string =>
@@ -86,8 +93,7 @@ watch(
 		const isRefresh = viewKey === shownViewKey
 		shownViewKey = viewKey
 		if (!isRefresh) return
-		void loadStats()
-		void loadTemplates()
+		refreshFigures()
 	},
 )
 
@@ -157,10 +163,9 @@ const emptyDescription = computed(() =>
 		: t('dms_mailing.templates.empty.view_description'),
 )
 
+/** The rows, and with them the template count and the figures. */
 function refreshAll(): void {
 	void props.context.refresh()
-	void loadStats()
-	void loadTemplates()
 }
 
 function openRow(row: TemplateRow): void {

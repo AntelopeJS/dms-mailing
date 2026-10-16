@@ -12,15 +12,15 @@ import {
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
 
-const api = {
-	listCategories: vi.fn(),
-	templatesOverview: vi.fn(),
-	listTemplates: vi.fn(),
-}
+import {
+	stubApiData,
+	stubRegionalFormat,
+	type ApiDataStub,
+} from './helpers/api-data'
 
-vi.mock('../app/composables/useMailingApi', () => ({
-	useMailingApi: () => api,
-}))
+const CATEGORIES_URL = '/api/mailing/templates/categories'
+const OVERVIEW_URL = '/api/mailing/templates/overview'
+const LIST_URL = '/api/mailing/tables/templates/list'
 
 const RECENT = new Date(Date.now() - 3_600_000).toISOString()
 
@@ -114,22 +114,32 @@ const globals = {
 }
 
 let stubs: NuxtStubs
+let api: ApiDataStub
 let routeQuery: Record<string, unknown> = {}
+let templateTotal = 3
+
+const readsOf = (url: string) => api.reads.filter((read) => read.url === url)
 
 beforeEach(() => {
 	stubs = stubNuxtGlobals()
+	stubRegionalFormat()
 	routeQuery = {}
+	templateTotal = 3
 	vi.stubGlobal('useDmsRoute', () => ({ query: routeQuery }))
-	api.listCategories.mockResolvedValue({
-		categories: [
-			{ id: 'orders', label: 'Orders', icon: 'i-ph-package' },
-			{ id: 'billing', label: 'Billing', icon: 'i-ph-file-text' },
-		],
+	api = stubApiData()
+	api.respond(({ url }) => {
+		if (url === CATEGORIES_URL)
+			return {
+				categories: [
+					{ id: 'orders', label: 'Orders', icon: 'i-ph-package' },
+					{ id: 'billing', label: 'Billing', icon: 'i-ph-file-text' },
+				],
+			}
+		if (url === OVERVIEW_URL)
+			return { items: [stats('live', 6812), stats('missing', 12)] }
+		if (url === LIST_URL) return { results: [LIVE], total: templateTotal }
+		throw new Error(`unexpected read ${url}`)
 	})
-	api.templatesOverview.mockResolvedValue({
-		items: [stats('live', 6812), stats('missing', 12)],
-	})
-	api.listTemplates.mockResolvedValue({ results: [], total: 3 })
 })
 
 afterEach(() => {
@@ -206,21 +216,32 @@ describe('TemplateGallery', () => {
 		cleared.unmount()
 	})
 
+	it('reads the template count alone, not the rows', async () => {
+		const view = mount(
+			TemplateGallery,
+			{ context: context({ items: [LIVE] }) },
+			globals,
+		)
+		await flush()
+		expect(readsOf(LIST_URL)).toEqual([
+			{ url: LIST_URL, query: { limit: '1' } },
+		])
+		view.unmount()
+	})
+
 	it('reloads the figures when the table refreshes, not when it pages', async () => {
-		api.listTemplates.mockClear()
-		api.templatesOverview.mockClear()
 		const ctx = reactive(context({ items: [LIVE] }))
 		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
-		expect(api.listTemplates).toHaveBeenCalledTimes(1)
+		expect(readsOf(LIST_URL)).toHaveLength(1)
 		ctx.items = [LIVE]
 		await flush()
-		expect(api.listTemplates).toHaveBeenCalledTimes(2)
-		expect(api.templatesOverview).toHaveBeenCalledTimes(2)
+		expect(readsOf(LIST_URL)).toHaveLength(2)
+		expect(readsOf(OVERVIEW_URL)).toHaveLength(2)
 		ctx.pagination.pageIndex = 1
 		ctx.items = [MISSING_DE]
 		await flush()
-		expect(api.listTemplates).toHaveBeenCalledTimes(2)
+		expect(readsOf(LIST_URL)).toHaveLength(2)
 		view.unmount()
 	})
 
@@ -262,7 +283,7 @@ describe('TemplateGallery', () => {
 	})
 
 	it('shows the starters on a first run', async () => {
-		api.listTemplates.mockResolvedValue({ results: [], total: 0 })
+		templateTotal = 0
 		const view = mount(
 			TemplateGallery,
 			{ context: context({ items: [] }) },

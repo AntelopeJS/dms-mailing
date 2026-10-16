@@ -2,6 +2,7 @@
 import { TEMPLATES_PATH } from '../utils/pages'
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
+import { useProviderRead, useSendRead } from '../composables/useMailingReads'
 import { useReplayToast } from '../composables/useReplayToast'
 import {
 	describeProblem,
@@ -90,6 +91,8 @@ const { copy } = useClipboard()
 const KeyValueList = resolveComponent('DmsKeyValueList') as Component
 
 const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
+const readSend = useSendRead(sendId)
+const readProvider = useProviderRead()
 const detail = ref<SendDetailResponse | null>(null)
 const tracking = ref<TimelineTracking | null>(null)
 const loading = ref(false)
@@ -231,7 +234,7 @@ async function load(): Promise<void> {
 	if (!sendId.value) return
 	loading.value = true
 	try {
-		detail.value = await api.send(sendId.value)
+		detail.value = await readSend()
 	} catch (error) {
 		useApiError(error)
 	} finally {
@@ -242,7 +245,7 @@ async function load(): Promise<void> {
 /** The provider's tracking, so the timeline waits only for what it reports. */
 async function loadTracking(): Promise<void> {
 	try {
-		const provider = await api.provider()
+		const provider = await readProvider()
 		tracking.value = provider.features
 			? {
 					openTracking: !!provider.features.openTracking,

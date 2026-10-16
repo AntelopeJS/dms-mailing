@@ -148,16 +148,29 @@ export type OnDate = (date: string) => string
 
 const bareDate: OnDate = (date) => date
 
+/** How a card writes a date more than a day old ("Sep 27"). */
+export const CARD_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+	month: 'short',
+	day: '2-digit',
+}
+
 /**
  * A date as a card reads it: "2 hr. ago" / "5 min. ago" within a day, "Sep 27"
  * after. `onDate` dresses the absolute one only, so a sentence written around
  * it ("Edited {date}") reads right in both cases. Empty for an unreadable date.
+ * `dateFormat` writes the absolute one: a component passes the DMS's regional
+ * one (`useRegionalFormat().dateTimeFormat(CARD_DATE_FORMAT)`), whose day is
+ * the reader's, on a server render too.
  */
 export function formatCardDate(
 	date: string | null | undefined,
 	now: Date,
 	locale: string,
 	onDate: OnDate = bareDate,
+	dateFormat: Intl.DateTimeFormat = new Intl.DateTimeFormat(
+		locale,
+		CARD_DATE_FORMAT,
+	),
 ): string {
 	const time = date ? new Date(date).getTime() : Number.NaN
 	if (Number.isNaN(time)) return ''
@@ -172,12 +185,7 @@ export function formatCardDate(
 	if (elapsed < HOURS_PER_DAY * MS_PER_HOUR) {
 		return relative.format(-Math.round(elapsed / MS_PER_HOUR), 'hour')
 	}
-	return onDate(
-		new Intl.DateTimeFormat(locale, {
-			month: 'short',
-			day: '2-digit',
-		}).format(new Date(time)),
-	)
+	return onDate(dateFormat.format(new Date(time)))
 }
 
 /**
@@ -194,12 +202,16 @@ export function formatCardSince(
 	date: string | null | undefined,
 	now: Date,
 	locale: string,
+	dateFormat?: Intl.DateTimeFormat,
 ): CardSince | null {
 	const time = date ? new Date(date).getTime() : Number.NaN
 	if (Number.isNaN(time)) return null
 	const elapsed = Math.max(0, now.getTime() - time)
 	if (elapsed >= HOURS_PER_DAY * MS_PER_HOUR)
-		return { kind: 'date', text: formatCardDate(date, now, locale) }
+		return {
+			kind: 'date',
+			text: formatCardDate(date, now, locale, undefined, dateFormat),
+		}
 	const isHours = elapsed >= MS_PER_HOUR
 	const amount = Math.max(
 		1,

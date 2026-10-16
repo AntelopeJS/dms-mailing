@@ -2,6 +2,7 @@
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
+import { useTemplateContentRead } from '../composables/useMailingReads'
 import type { SendResult, TestSendInput } from '../composables/useMailingApi'
 import { apiErrorMessage } from '../utils/api-error'
 import { sendLogRoute } from '../utils/send-link'
@@ -54,6 +55,7 @@ const { user } = useCurrentUser()
 const { uniqueLocales } = useUniqueLocales()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
+const readContent = useTemplateContentRead(templateId)
 const detail = ref<TemplateContentResponse | null>(null)
 const ownEmail = (user.value as SignedInUser | null)?.email
 const recipients = ref<string[]>(ownEmail ? [ownEmail] : [])
@@ -65,7 +67,7 @@ const sending = ref(false)
 onMounted(async () => {
 	if (!templateId.value) return
 	try {
-		detail.value = await api.templateContent(templateId.value)
+		detail.value = await readContent()
 		locale.value ||= detail.value.fallbackLocale
 	} catch (error) {
 		toast.add({

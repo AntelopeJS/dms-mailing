@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { formatCardDate, formatCardSince, firstName } from '../utils/gallery'
+import {
+	CARD_DATE_FORMAT,
+	formatCardDate,
+	formatCardSince,
+	firstName,
+} from '../utils/gallery'
 import { localeChipClass, localeChips } from '../utils/locales'
 import {
 	cardFooter,
@@ -47,6 +52,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { dateTimeFormat } = useRegionalFormat()
 const { uniqueLocales } = useUniqueLocales()
 
 const isLive = computed(() => props.template.status === 'live')
@@ -85,8 +91,12 @@ const isNeverSent = computed(() => props.attention.includes('never_sent'))
 const footer = computed(() => cardFooter(props.template, props.stats))
 
 const footerDate = computed(() =>
-	formatCardDate(footer.value.at, new Date(), locale.value, (date) =>
-		t('dms_mailing.common.on_date', { date }),
+	formatCardDate(
+		footer.value.at,
+		new Date(),
+		locale.value,
+		(date) => t('dms_mailing.common.on_date', { date }),
+		dateTimeFormat(CARD_DATE_FORMAT),
 	),
 )
 
@@ -107,7 +117,12 @@ const openRateLabel = computed(() =>
 
 /** "live for 1 hr" within a day, "live since Sep 27" after. */
 const liveSince = computed(() =>
-	formatCardSince(footer.value.at, new Date(), locale.value),
+	formatCardSince(
+		footer.value.at,
+		new Date(),
+		locale.value,
+		dateTimeFormat(CARD_DATE_FORMAT),
+	),
 )
 
 const FOOTER_TEXTS: Partial<Record<CardFooterKind, () => string>> = {

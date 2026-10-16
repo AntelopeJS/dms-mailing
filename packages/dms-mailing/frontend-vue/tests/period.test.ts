@@ -1,21 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
 	clampRetention,
-	formatClock,
 	isWithinADay,
 	minutesSince,
 	presetShortLabelKey,
 	RETENTION_CUSTOM,
 	retentionChoice,
 } from '../app/utils/period'
-
-describe('formatClock', () => {
-	it('reads a 24-hour clock whatever the locale', () => {
-		const afternoon = new Date(2026, 9, 11, 17, 5)
-		expect(formatClock(afternoon, 'en')).toBe('17:05')
-		expect(formatClock(afternoon, 'fr-FR')).toBe('17:05')
-	})
-})
 
 describe('presetShortLabelKey', () => {
 	it('maps a preset id onto an i18n key', () => {

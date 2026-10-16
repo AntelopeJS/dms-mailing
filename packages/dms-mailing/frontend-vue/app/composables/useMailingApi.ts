@@ -2,29 +2,22 @@ import type {
 	FunnelStep,
 	PreviewResponse,
 	PreviewVersion,
-	ProviderInfo,
-	RetentionPreview,
-	SendDetailResponse,
-	SendHtmlResponse,
 	StarterSummary,
 	SuppressionSummary,
 	TemplateChange,
 	TemplateContent,
 	TemplateCategory,
-	TemplateContentResponse,
-	TemplatePerformance,
 	TemplateRow,
 	TemplateStats,
 	TemplateVersionSummary,
 	VariableDefinition,
 } from '../types/mailing'
-import type { SetupFacts } from '../utils/overview-setup'
-import type { WebhookStatus, WebhookTestResult } from '../utils/webhook-status'
+import type { WebhookTestResult } from '../utils/webhook-status'
 
 const BASE = '/api/mailing'
 
 /** Far above any real tenant's template count; the data-api caps at 100. */
-const TEMPLATE_LIST_LIMIT = '100'
+export const TEMPLATE_LIST_LIMIT = '100'
 
 /**
  * Joins the module's API segments. Exported on its own so the path shape stays
@@ -187,8 +180,9 @@ export interface StarterPreviewResponse {
 }
 
 /**
- * The single place that knows the mailing endpoints; every component reads
- * through it so a route change is a one-file edit.
+ * The mailing endpoints a component writes to, and the previews it renders
+ * from a draft it sends. Every read goes through `useMailingReads`, with the
+ * same paths.
  */
 export function useMailingApi() {
 	const { $authFetch } = useAuthFetch()
@@ -196,29 +190,14 @@ export function useMailingApi() {
 		$authFetch<T>(path, { method: 'POST', body })
 
 	return {
-		provider: () => $authFetch<ProviderInfo>(mailingPath('provider')),
-		setupFacts: () => $authFetch<SetupFacts>(mailingPath('metrics', 'setup')),
-		webhookStatus: () =>
-			$authFetch<WebhookStatus>(mailingPath('settings', 'webhook-status')),
 		webhookTest: () =>
 			post<WebhookTestResult>(mailingPath('settings', 'webhook-test'), {}),
-		templateContent: (id: string) =>
-			$authFetch<TemplateContentResponse>(
-				mailingPath('templates', id, 'content'),
-			),
 		saveTemplateDetails: (id: string, details: TemplateDetails) =>
 			$authFetch<unknown>(mailingPath('tables', 'templates', 'edit'), {
 				method: 'PUT',
 				query: { id },
 				body: details,
 			}),
-		listCategories: () =>
-			$authFetch<CategoriesResponse>(mailingPath('templates', 'categories')),
-		listTemplates: () =>
-			$authFetch<TemplateListResponse>(
-				mailingPath('tables', 'templates', 'list'),
-				{ query: { limit: TEMPLATE_LIST_LIMIT, sortKey: 'name' } },
-			),
 		createTemplate: (input: CreateTemplateInput) =>
 			post<string[]>(mailingPath('tables', 'templates', 'new'), input),
 		saveContent: (id: string, input: SaveContentInput) =>
@@ -231,29 +210,10 @@ export function useMailingApi() {
 				},
 				keepalive: input.keepalive,
 			}),
-		changes: (id: string) =>
-			$authFetch<ChangesResponse>(mailingPath('templates', id, 'changes')),
-		versions: (id: string) =>
-			$authFetch<VersionsResponse>(mailingPath('templates', id, 'versions')),
 		restoreVersion: (id: string, version: number, revision?: number) =>
 			post<RestoreVersionResponse>(
 				mailingPath('templates', id, 'versions', String(version), 'restore'),
 				{ revision },
-			),
-		performance: (id: string) =>
-			$authFetch<TemplatePerformance>(
-				mailingPath('templates', id, 'performance'),
-			),
-		templatesOverview: () =>
-			$authFetch<TemplateOverviewResponse>(
-				mailingPath('templates', 'overview'),
-			),
-		starters: () =>
-			$authFetch<StartersResponse>(mailingPath('templates', 'starters')),
-		starterPreview: (starterId: string, locale?: string) =>
-			$authFetch<StarterPreviewResponse>(
-				mailingPath('templates', 'starters', starterId, 'preview'),
-				{ query: locale ? { locale } : {} },
 			),
 		publish: (id: string, revision?: number) =>
 			post<PublishResponse>(mailingPath('templates', id, 'publish'), {
@@ -291,21 +251,8 @@ export function useMailingApi() {
 			post<TestSendResponse>(mailingPath('templates', id, 'send'), input),
 		testSend: (id: string, input: TestSendInput) =>
 			post<TestSendResponse>(mailingPath('templates', id, 'test-send'), input),
-		send: (id: string) =>
-			$authFetch<SendDetailResponse>(mailingPath('sends', id)),
-		sendHtml: (id: string) =>
-			$authFetch<SendHtmlResponse>(mailingPath('sends', id, 'html')),
 		replay: (id: string, to?: string) =>
 			post<SendResult>(mailingPath('sends', id, 'replay'), to ? { to } : {}),
-		retentionPreview: (days: number) =>
-			$authFetch<RetentionPreview>(
-				mailingPath('settings', 'retention-preview'),
-				{ query: { days: String(days) } },
-			),
-		categoryUsage: () =>
-			$authFetch<CategoryUsageResponse>(
-				mailingPath('settings', 'category-usage'),
-			),
 	}
 }
 

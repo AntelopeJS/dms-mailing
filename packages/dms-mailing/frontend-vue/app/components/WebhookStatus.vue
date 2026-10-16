@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMailingApi } from '../composables/useMailingApi'
-import { formatCardDate } from '../utils/gallery'
+import { useWebhookStatus } from '../composables/useMailingReads'
+import { CARD_DATE_FORMAT, formatCardDate } from '../utils/gallery'
 import {
 	type WebhookLineTone,
 	type WebhookStatus,
@@ -33,9 +34,14 @@ const TONE_CLASSES: Record<WebhookLineTone, string> = {
 const api = useMailingApi()
 const toast = useToast()
 const { t, locale } = useI18n()
+const { dateTimeFormat } = useRegionalFormat()
 
-const status = ref<WebhookStatus | null>(null)
-const isLoading = ref(true)
+const read = useWebhookStatus()
+/** The status read, `null` when the read failed. */
+const status = computed<WebhookStatus | null>(() =>
+	read.error.value ? null : read.data.value,
+)
+const isLoading = computed(() => !read.data.value && !read.error.value)
 const isTesting = ref(false)
 
 const lines = computed(() =>
@@ -51,17 +57,15 @@ function lineText(line: WebhookStatusLine): string {
 }
 
 function lineTime(line: WebhookStatusLine): string {
-	return line.at ? formatCardDate(line.at, new Date(), locale.value) : ''
-}
-
-async function load(): Promise<void> {
-	try {
-		status.value = await api.webhookStatus()
-	} catch {
-		status.value = null
-	} finally {
-		isLoading.value = false
-	}
+	return line.at
+		? formatCardDate(
+				line.at,
+				new Date(),
+				locale.value,
+				undefined,
+				dateTimeFormat(CARD_DATE_FORMAT),
+			)
+		: ''
 }
 
 async function sendTest(): Promise<void> {
@@ -69,7 +73,8 @@ async function sendTest(): Promise<void> {
 	isTesting.value = true
 	try {
 		const result = await api.webhookTest()
-		status.value = result.status
+		read.data.value = result.status
+		read.error.value = null
 		const message = webhookTestMessage(result)
 		toast.add({
 			color: message.color,
@@ -84,8 +89,6 @@ async function sendTest(): Promise<void> {
 		isTesting.value = false
 	}
 }
-
-onMounted(() => void load())
 </script>
 
 <template>

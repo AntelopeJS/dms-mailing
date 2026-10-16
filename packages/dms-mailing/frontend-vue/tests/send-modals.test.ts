@@ -17,6 +17,7 @@ import {
 	typeInto,
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
+import { mailingReads, stubApiData } from './helpers/api-data'
 
 const api = {
 	templateContent: vi.fn(),
@@ -25,7 +26,8 @@ const api = {
 	realSend: vi.fn(),
 }
 
-vi.mock('../app/composables/useMailingApi', () => ({
+vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
+	...(await importOriginal<object>()),
 	useMailingApi: () => api,
 }))
 
@@ -102,6 +104,11 @@ let stubs: NuxtStubs
 
 beforeEach(() => {
 	stubs = stubNuxtGlobals('camille@acme.com')
+	stubApiData().respond(
+		mailingReads({ templateContent: api.templateContent }, ({ url }) => {
+			throw new Error(`unexpected read ${url}`)
+		}),
+	)
 	api.preview.mockResolvedValue({
 		html: '',
 		subject: '20% off every chair',

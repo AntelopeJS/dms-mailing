@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { TemplateContentResponse } from '../types/mailing'
-import { useMailingApi } from '../composables/useMailingApi'
+import { useTemplateContentRead } from '../composables/useMailingReads'
 import { useRecordLabel } from '../composables/useEditorContext'
 import { templateIdFrom } from '../utils/editor-route'
 import { TEMPLATES_PATH } from '../utils/pages'
@@ -15,10 +15,10 @@ const props = defineProps<Props>()
 
 const { t } = useI18n()
 const route = useDmsRoute()
-const api = useMailingApi()
 const setRecordLabel = useRecordLabel()
 
 const templateId = computed(() => templateIdFrom(props.routeParams, route.path))
+const readContent = useTemplateContentRead(templateId)
 const locale = ref<string | null>(
 	route.query.locale ? String(route.query.locale) : null,
 )
@@ -31,7 +31,7 @@ const generation = ref(0)
 async function load(): Promise<void> {
 	failed.value = false
 	try {
-		loaded.value = await api.templateContent(templateId.value)
+		loaded.value = await readContent()
 		setRecordLabel(loaded.value.template.name)
 		generation.value += 1
 	} catch {

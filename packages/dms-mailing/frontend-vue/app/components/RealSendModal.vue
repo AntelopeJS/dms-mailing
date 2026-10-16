@@ -4,6 +4,7 @@ import { onBeforeUnmount } from 'vue'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
+import { useTemplateContentRead } from '../composables/useMailingReads'
 import type { SendResult } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import { apiErrorMessage } from '../utils/api-error'
@@ -64,6 +65,7 @@ const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
+const readContent = useTemplateContentRead(templateId)
 const detail = ref<TemplateContentResponse | null>(null)
 const loading = ref(true)
 const recipients = ref<string[]>([])
@@ -104,7 +106,7 @@ const missingRequired = computed(() =>
 onMounted(async () => {
 	if (!templateId.value) return
 	try {
-		detail.value = await api.templateContent(templateId.value)
+		detail.value = await readContent()
 		values.value = initialSendValues(fields.value, detail.value.testData)
 		locale.value = detail.value.fallbackLocale
 	} catch (error) {

@@ -8,15 +8,14 @@ import {
 	stubNuxtGlobals,
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
+import {
+	stubApiData,
+	stubRegionalFormat,
+	type ApiDataStub,
+} from './helpers/api-data'
 import type { RetentionPreview } from '../app/types/mailing'
 
-const api = {
-	retentionPreview: vi.fn(),
-}
-
-vi.mock('../app/composables/useMailingApi', () => ({
-	useMailingApi: () => api,
-}))
+const PREVIEW_URL = '/api/mailing/settings/retention-preview'
 
 const SAVED_DAYS = 90
 const DEBOUNCE_MS = 400
@@ -71,15 +70,37 @@ function segmented(host: HTMLElement): HTMLElement {
 
 describe('RetentionInput', () => {
 	let stubs: NuxtStubs
+	let api: ApiDataStub
 	let harness: Harness | undefined
 
 	beforeEach(() => {
 		vi.useFakeTimers()
 		stubs = stubNuxtGlobals()
 		vi.stubGlobal('computed', computed)
-		api.retentionPreview.mockImplementation(async (days: number) =>
-			preview(days, days < SAVED_DAYS ? 3 : 0),
+		stubRegionalFormat()
+		api = stubApiData()
+		api.respond(({ query }) => {
+			const days = Number(query.days)
+			return preview(days, days < SAVED_DAYS ? 3 : 0)
+		})
+	})
+
+	it('reads the saved days at once, then the days picked once they hold still', async () => {
+		harness = mountRetention()
+		await flush()
+		expect(api.reads).toEqual([
+			{ url: PREVIEW_URL, query: { days: String(SAVED_DAYS) } },
+		])
+		expect(harness.host.textContent).toContain(
+			'dms_mailing.settings.retention.preview_none',
 		)
+		harness.state.days = 30
+		await nextTick()
+		harness.state.days = 365
+		await nextTick()
+		await vi.advanceTimersByTimeAsync(DEBOUNCE_MS)
+		await flush()
+		expect(api.reads.map((read) => read.query.days)).toEqual(['90', '365'])
 	})
 
 	afterEach(() => {

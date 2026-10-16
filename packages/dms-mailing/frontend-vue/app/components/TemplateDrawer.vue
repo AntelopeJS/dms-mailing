@@ -5,6 +5,10 @@ import {
 	useMailingApi,
 	type TemplateDetails,
 } from '../composables/useMailingApi'
+import {
+	useTemplateContentRead,
+	useTemplatePerformanceRead,
+} from '../composables/useMailingReads'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import { apiErrorMessage } from '../utils/api-error'
 import { formatCardDate } from '../utils/gallery'
@@ -106,6 +110,8 @@ const LIFECYCLE: Record<LifecycleAction, LifecycleSpec> = {
 }
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
+const readContent = useTemplateContentRead(templateId)
+const readPerformance = useTemplatePerformanceRead(templateId)
 const detail = ref<TemplateContentResponse | null>(null)
 const performance = ref<TemplatePerformance | null>(null)
 const loading = ref(true)
@@ -129,8 +135,8 @@ async function load(): Promise<void> {
 	loading.value = true
 	try {
 		const [content, stats] = await Promise.all([
-			api.templateContent(templateId.value),
-			api.performance(templateId.value).catch(() => null),
+			readContent(),
+			readPerformance().catch(() => null),
 		])
 		detail.value = content
 		performance.value = stats

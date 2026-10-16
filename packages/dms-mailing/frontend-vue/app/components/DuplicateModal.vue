@@ -3,6 +3,10 @@ import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
 import {
+	useTemplateContentRead,
+	useTemplateListRead,
+} from '../composables/useMailingReads'
+import {
 	HTTP_CONFLICT,
 	apiErrorMessage,
 	apiErrorStatus,
@@ -32,6 +36,8 @@ const { t } = useI18n()
 const { processApiMessage } = useTranslation()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
+const readTemplates = useTemplateListRead()
+const readContent = useTemplateContentRead(templateId)
 const source = ref<TemplateRow | null>(props.rowData ?? null)
 const takenSlugs = ref(new Set<string>())
 const name = ref('')
@@ -49,13 +55,13 @@ function prefill(template: TemplateRow): void {
 }
 
 onMounted(async () => {
-	const list = await api.listTemplates().catch(() => ({ results: [] }))
+	const list = await readTemplates().catch(() => ({ results: [] }))
 	takenSlugs.value = new Set(list.results.map((row: TemplateRow) => row.slug))
 	source.value ??=
 		list.results.find((row: TemplateRow) => row._id === templateId.value) ??
 		null
 	if (!source.value && templateId.value) {
-		const detail = await api.templateContent(templateId.value).catch(() => null)
+		const detail = await readContent().catch(() => null)
 		source.value = detail?.template ?? null
 	}
 	if (source.value) prefill(source.value)
@@ -174,7 +180,7 @@ async function submit(): Promise<void> {
 						:ui="{ base: 'font-mono' }"
 						:disabled="loading"
 						:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
-						@update:model-value="(value) => onSlugInput(String(value))"
+						@update:model-value="(value: unknown) => onSlugInput(String(value))"
 					/>
 				</template>
 			</FormFieldRow>

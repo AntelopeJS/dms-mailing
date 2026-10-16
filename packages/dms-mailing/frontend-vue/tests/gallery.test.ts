@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	UNCATEGORISED_GROUP_ID,
 	firstName,
+	CARD_DATE_FORMAT,
 	formatCardDate,
 	formatCardSince,
 	groupByCategory,
@@ -90,6 +91,21 @@ describe('formatCardDate', () => {
 
 	it('reads older ones as a short date', () => {
 		expect(formatCardDate('2026-09-27T09:00:00Z', now, 'en')).toBe('Sep 27')
+	})
+
+	it("writes the date with the formatter given: a server writes the reader's day", () => {
+		const late = '2026-09-27T02:00:00Z'
+		const inZone = (timeZone: string) =>
+			new Intl.DateTimeFormat('en', { ...CARD_DATE_FORMAT, timeZone })
+		expect(
+			formatCardDate(late, now, 'en', undefined, inZone('Europe/Paris')),
+		).toBe('Sep 27')
+		expect(
+			formatCardDate(late, now, 'en', undefined, inZone('America/New_York')),
+		).toBe('Sep 26')
+		expect(
+			formatCardSince(late, now, 'en', inZone('America/New_York')),
+		).toEqual({ kind: 'date', text: 'Sep 26' })
 	})
 
 	it('answers nothing for an unreadable date', () => {
