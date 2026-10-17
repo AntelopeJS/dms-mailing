@@ -147,13 +147,19 @@ async function publishEmailEvent(
 const eventIdOf = (details: Record<string, unknown> | undefined): string =>
   textOf(details?.eventId);
 
+type StoredEventIdentity = Pick<
+  MailingSendEvent,
+  "type" | "at" | "json_details"
+>;
+type IncomingEventIdentity = Pick<EmailEvent, "type" | "at" | "details">;
+
 /**
  * Whether a stored event is the one a webhook delivers again: the same
  * provider event id, or the same type, time and details when it has none.
  */
 export function isSameEvent(
-  stored: MailingSendEvent,
-  event: EmailEvent,
+  stored: StoredEventIdentity,
+  event: IncomingEventIdentity,
 ): boolean {
   const eventId = eventIdOf(event.details);
   if (eventId) {

@@ -37,8 +37,18 @@ describe("[integration] send import", () => {
         provider: "brevo",
         providerMessageId: "brevo-msg-1",
         events: [
-          { type: "clicked", at: new Date(sentAt.getTime() + 3_600_000) },
+          {
+            type: "clicked",
+            at: new Date(sentAt.getTime() + 3_600_000),
+            details: { eventId: "click-1" },
+          },
+          {
+            type: "clicked",
+            at: new Date(sentAt.getTime() + 3_700_000),
+            details: { eventId: "click-1" },
+          },
           { type: "delivered", at: new Date(sentAt.getTime() + 60_000) },
+          { type: "opened", at: new Date(sentAt.getTime() + 1_800_000) },
           { type: "opened", at: new Date(sentAt.getTime() + 1_800_000) },
         ],
       },

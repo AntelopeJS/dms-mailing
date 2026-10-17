@@ -22,6 +22,7 @@ import { DeclarationError, parseDeclared } from "./declaration-error";
 import {
   applyEvent,
   errorAfter,
+  isSameEvent,
   isSoftBounce,
   type SendCounters,
 } from "./events";
@@ -49,10 +50,26 @@ function importedSendIdOf(tenantId: string, importId: string): string {
 const addressOf = (to: ParsedImportedSend["to"]) =>
   typeof to === "string" ? { email: to } : to;
 
-/** The events in the order they happened; one `sent` when none is given. */
+/** Chronological events, with the webhook's retry deduplication rules. */
 function timelineOf(send: ParsedImportedSend): ImportedEvent[] {
   if (!send.events.length) return [{ type: DEFAULT_EVENT, at: send.sentAt }];
-  return [...send.events].sort((left, right) => +left.at - +right.at);
+  const timeline: ImportedEvent[] = [];
+  for (const entry of [...send.events].sort(
+    (left, right) => +left.at - +right.at,
+  )) {
+    const repeated = timeline.some((stored) =>
+      isSameEvent(
+        {
+          type: stored.type as SendEventType,
+          at: stored.at,
+          json_details: JSON.stringify(stored.details ?? {}),
+        },
+        { ...entry, type: entry.type as SendEventType },
+      ),
+    );
+    if (!repeated) timeline.push(entry);
+  }
+  return timeline;
 }
 
 /** The send's columns once its events are applied, as a webhook would. */
