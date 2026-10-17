@@ -217,6 +217,25 @@ describe("[integration] template declarations", () => {
     expect(await versionsOf(api, first.templateId)).to.deep.equal([1]);
   });
 
+  it("previews a declared template the way a gallery card asks", async () => {
+    const { DeclareTemplate } = await mailing();
+    const declared = await DeclareTemplate(
+      declaration(`declared-thumbnail-${stamp}`),
+    );
+    const api = await client();
+    // The card of a live template: its published version, no locale.
+    const preview = await api.post(
+      `${TEMPLATES}/${declared.templateId}/preview`,
+      { version: "published" },
+    );
+    expect(preview.status, JSON.stringify(preview.data)).to.equal(HTTP_OK);
+    expect(preview.data).to.include({
+      locale: "en",
+      subject: "Your order is ready",
+    });
+    expect(preview.data.html).to.include("Hello Sofie");
+  });
+
   it("creates declarations racing on a fresh slug only once", async () => {
     const { DeclareTemplate } = await mailing();
     const slug = `declared-race-${stamp}`;
