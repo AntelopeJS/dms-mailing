@@ -87,6 +87,9 @@ export async function declareMailingContent(tenantId: string) {
 - `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
   dates (demo data, migration): no delivery, no suppression/automation/realtime; skipped when `importId` was
   already imported. Retention still applies (90 days default).
+- `ImportSends({ tenantId, scope, replace: true, sends })` makes `sends` the whole data set of `scope`: changed
+  entries rewritten, unlisted ones removed (`sends: []` empties the scope); live sends and other scopes untouched.
+  Rebuild it only from records live sends do not cover, or e-mails appear twice.
 
 ## Gotchas
 

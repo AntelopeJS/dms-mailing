@@ -30,6 +30,7 @@ import {
 import { categoriesSchema } from "../validation/settings.schema";
 import { DeclarationError, parseDeclared } from "./declaration-error";
 import { fingerprintOf } from "./fingerprint";
+import { inQueue } from "./serial-queue";
 import { findCategory, getSettings, saveSettings } from "./settings";
 import {
   assertSlugClaimed,
@@ -337,26 +338,13 @@ type DeclaredCategories = Record<string, string>;
 const categoryFingerprint = (category: Omit<TemplateCategory, "id">) =>
   fingerprintOf({ label: category.label, icon: category.icon });
 
-/** Category declarations of one tenant run one after the other. */
-const categoryQueues = new Map<string, Promise<unknown>>();
-
 /**
- * Runs `task` after the tenant's previous category declaration: each one
- * rewrites the whole category list, and a project declaring several at once
+ * Settings writers of one tenant run one after the other: each rewrites the
+ * whole settings row, and a project declaring several categories at once
  * must not lose any to a concurrent write.
  */
-function inTenantQueue<T>(
-  tenantId: string,
-  task: () => Promise<T>,
-): Promise<T> {
-  const previous = categoryQueues.get(tenantId) ?? Promise.resolve();
-  const next = previous.then(task, task);
-  categoryQueues.set(
-    tenantId,
-    next.catch(() => undefined),
-  );
-  return next;
-}
+const settingsQueueKey = (tenantId: string): string =>
+  `${tenantId}\nsettings`;
 
 async function readDeclaredCategories(
   tenantId: string,
@@ -446,5 +434,7 @@ export function declareTemplateCategory(
     "invalid_category",
     `category declaration "${String(input?.id)}"`,
   );
-  return inTenantQueue(declaration.tenantId, () => applyCategory(declaration));
+  return inQueue(settingsQueueKey(declaration.tenantId), () =>
+    applyCategory(declaration),
+  );
 }

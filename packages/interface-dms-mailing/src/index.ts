@@ -307,14 +307,32 @@ export interface ImportedSend {
 export interface SendImport {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
+  /**
+   * Names the data set these sends belong to (`demo-history`,
+   * `brevo-2026`), recorded on every send written. Runs of one scope are
+   * serialized within the process.
+   */
+  scope?: string;
+  /**
+   * Makes `sends` the whole content of `scope`, which it then requires: an
+   * entry that changed since it was imported is rewritten, and a send of the
+   * scope no longer listed is removed with its events. Sends made by
+   * `SendTemplate` or the dashboard, and sends of other scopes or imported
+   * without one, are never touched. `sends: []` removes the whole scope.
+   */
+  replace?: boolean;
   sends: ImportedSend[];
 }
 
 export interface ImportSendsResult {
   /** Sends written by this call. */
   imported: number;
-  /** Sends whose `importId` was already imported, left untouched. */
+  /** Sends a replacing call rewrote because their entry changed. */
+  replaced: number;
+  /** Sends whose `importId` was already imported as given, left untouched. */
   skipped: number;
+  /** Sends of the scope a replacing call no longer listed, removed. */
+  removed: number;
   /** The send id of every entry, in the order given. */
   sendIds: string[];
 }
@@ -348,8 +366,10 @@ export const DeclareTemplateCategory =
 /**
  * Writes past sends and their events into the send log with their own dates:
  * an import, not a send. Nothing is delivered, and no suppression,
- * automation or notification follows. Idempotent on each `importId`. Waits
- * for the module and its database when called early.
+ * automation or notification follows. Idempotent on each `importId`; with
+ * `replace` and a `scope`, idempotent on the whole data set, so a project can
+ * import it again after reseeding. Waits for the module and its database
+ * when called early.
  * Deduplicates events like the webhook. Batches are not transactional; retry
  * a partial failure with the same immutable payload and authorized tenantId.
  */
