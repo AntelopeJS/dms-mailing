@@ -67,7 +67,6 @@ jobs:
         with:
           path: packages/dms-mailing/.antelope/cache
           key: antelope-${{ runner.os }}-${{ hashFiles('packages/dms-mailing/src/test/antelope-modules.ts', 'packages/*/pnpm-lock.yaml') }}
-          restore-keys: antelope-${{ runner.os }}-
       # mongodb-memory-server downloads mongod on first use; keyed on the
       # version the test config pins.
       - id: mongo

@@ -9,15 +9,15 @@ importers:
   .:
     dependencies:
       '@antelopejs/interface-core':
-        specifier: '>=0.2.3 <1.0.0'
-        version: 0.2.3
+        specifier: '>=0.2.4 <1.0.0'
+        version: 0.2.4
       '@antelopejs/interface-email':
-        specifier: '>=0.0.5 <1.0.0'
-        version: 0.0.5(@antelopejs/interface-core@0.2.3)
+        specifier: '>=0.0.6 <1.0.0'
+        version: 0.0.6(@antelopejs/interface-core@0.2.4)
     devDependencies:
       '@antelopejs/tooling-configs':
-        specifier: '>=0.0.7 <1.0.0'
-        version: 0.0.8(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: '>=0.0.9 <1.0.0'
+        version: 0.0.9(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -44,16 +44,16 @@ importers:
         version: 6.0.3
 packages:
 
-  '@antelopejs/interface-core@0.2.3':
-    resolution: {integrity: sha512-Vn4XdMhNcqwyuSnIRmyAMDtYVNa8p2EWvTemPndTFzfa8y7l3RC4rkAEYKpPnMTbVWCNmgL/kSssMTvykCWjyA==}
+  '@antelopejs/interface-core@0.2.4':
+    resolution: {integrity: sha512-2qF6/KwahCQvvNuC/piUvPWD4wq2Npmco941HMg2/bMBoJKbhMH16WcXXRvPYznNSkU0U+6vqK6KE+2N5NojSA==}
 
-  '@antelopejs/interface-email@0.0.5':
-    resolution: {integrity: sha512-VVF4p/KRb07uCyse3WzKU1MbYFK1Eoi2L22ID05uaom8qy/TOPVy7KjFGg/VoHITjpwa/x6+L25EwrlG6lo9Cg==}
+  '@antelopejs/interface-email@0.0.6':
+    resolution: {integrity: sha512-GpMv5SQoWKQlxJTsHqMzljJCFKoRnHqLR+OmxaYmsxw0ur9Lzugq+oZpXnUnzaxAG1VX3MiNFrD3CT4BorgYDQ==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.0.3 <1.0.0'
+      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@0.0.8':
-    resolution: {integrity: sha512-0oYe8o6if5cO444akfSuwfwiCQJtSeGXcJUM85K1uS11ir99p/QPRXYhAtiKBTpHBfGgeXKgm/KLaeWH5nThIg==}
+  '@antelopejs/tooling-configs@0.0.9':
+    resolution: {integrity: sha512-ceAS76KVZ1zDbXldNg/6cVDA9Xsh5FCG4WQgt51W0aJbv9XvpNDVuS53QCIyDL8Pwj0QaCCuK3a4p/QSAgCdDg==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -1687,15 +1687,15 @@ packages:
     resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 snapshots:
 
-  '@antelopejs/interface-core@0.2.3':
+  '@antelopejs/interface-core@0.2.4':
     dependencies:
       reflect-metadata: 0.2.2
 
-  '@antelopejs/interface-email@0.0.5(@antelopejs/interface-core@0.2.3)':
+  '@antelopejs/interface-email@0.0.6(@antelopejs/interface-core@0.2.4)':
     dependencies:
-      '@antelopejs/interface-core': 0.2.3
+      '@antelopejs/interface-core': 0.2.4
 
-  '@antelopejs/tooling-configs@0.0.8(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
+  '@antelopejs/tooling-configs@0.0.9(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
     dependencies:
       '@oxlint/plugins': 1.81.0
     optionalDependencies:

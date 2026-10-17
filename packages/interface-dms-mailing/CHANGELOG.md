@@ -1,6 +1,54 @@
 # Changelog
 
 
+## v0.7.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.7.0...v0.7.1)
+
+### 🚀 Enhancements
+
+- ⚠️  Migrate to DMS 0.9 and renderer 0.6 ([#41](https://github.com/AntelopeJS/dms-mailing/pull/41))
+
+### 🔥 Performance
+
+- **editor:** Drag with SortableJS through useSortable instead of vuedraggable ([#43](https://github.com/AntelopeJS/dms-mailing/pull/43))
+
+### 🩹 Fixes
+
+- **deps:** Move to @antelopejs/core 1.15.2, @antelopejs/interface-core 0.2.3 and @antelopejs/interface-dms 0.7.1 ([#42](https://github.com/AntelopeJS/dms-mailing/pull/42))
+- **templates:** Keep each slug to one template when creations race ([#44](https://github.com/AntelopeJS/dms-mailing/pull/44))
+
+### 📖 Documentation
+
+- Add user guide, screenshots and dms-mailing skill ([#39](https://github.com/AntelopeJS/dms-mailing/pull/39))
+- Streamline agent guidance ([#45](https://github.com/AntelopeJS/dms-mailing/pull/45))
+- Establish the mailing consumer reference ([#46](https://github.com/AntelopeJS/dms-mailing/pull/46))
+- Make dense guide sections easier to scan ([#47](https://github.com/AntelopeJS/dms-mailing/pull/47))
+
+### 📦 Build
+
+- **deps:** Require @antelopejs/interface-dms-mailing 0.7 ([#36](https://github.com/AntelopeJS/dms-mailing/pull/36))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms-mailing v0.4.0 ([bde97fb](https://github.com/AntelopeJS/dms-mailing/commit/bde97fb))
+- **release:** @antelopejs/dms-mailing v0.4.1 ([60bc570](https://github.com/AntelopeJS/dms-mailing/commit/60bc570))
+- **release:** @antelopejs/dms-mailing v0.5.0 ([5701b22](https://github.com/AntelopeJS/dms-mailing/commit/5701b22))
+- **release:** Prepare mailing interface 0.7.1 ([#49](https://github.com/AntelopeJS/dms-mailing/pull/49))
+
+### 🤖 CI
+
+- Speed up pipeline ([#38](https://github.com/AntelopeJS/dms-mailing/pull/38))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Migrate to DMS 0.9 and renderer 0.6 ([#41](https://github.com/AntelopeJS/dms-mailing/pull/41))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio
+
 ## v0.7.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.5.0...v0.7.0)
