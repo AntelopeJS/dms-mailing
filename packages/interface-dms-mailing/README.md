@@ -53,7 +53,7 @@ A recipient on the workspace's suppression list gets no e-mail: its result has t
 
 ## Compatibility
 
-The implementation is `@antelopejs/dms-mailing >=0.5.0`; `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends` need the first release implementing interface 0.8, which depends on `>=0.8.0 <0.9.0`. The interface declares these dependencies:
+The implementation is `@antelopejs/dms-mailing >=0.5.0`; `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends` need the first release implementing interface 0.8, which depends on `>=0.8.0 <0.9.0`. `DeclareSender` and the `scope` / `replace` options of `ImportSends` need interface 0.9 and the first release implementing it (`>=0.9.0 <0.10.0`). The interface declares these dependencies:
 
 <!-- docs-compat: ./package.json#dependencies -->
 
