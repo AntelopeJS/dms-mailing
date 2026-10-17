@@ -1,6 +1,6 @@
 ---
 name: dms-mailing
-description: Sends and manages transactional e-mail with the @antelopejs/dms-mailing module of the AntelopeJS DMS. Use when installing or configuring dms-mailing, sending a template from code with SendTemplate, reporting provider events with RecordEmailEvent or the webhook, designing templates (blocks, variables, locales, versions), or debugging suppressed, refused, missing-variable or fallback-locale sends.
+description: Sends and manages transactional e-mail with the @antelopejs/dms-mailing module of the AntelopeJS DMS. Use when installing or configuring dms-mailing, sending a template from code with SendTemplate, shipping templates or categories as code with DeclareTemplate / DeclareTemplateCategory, importing past sends with ImportSends, reporting provider events with RecordEmailEvent or the webhook, designing templates (blocks, variables, locales, versions), or debugging suppressed, refused, missing-variable or fallback-locale sends.
 icon: i-lucide-mail
 category: messaging
 tags: [email, templates, transactional, webhook, dms-module]
@@ -24,7 +24,8 @@ https://dms.antelopejs.com/docs/modules/mailing (sending from code and the webho
 - `ajs project modules add @antelopejs/dms-mailing`, plus a module implementing `@antelopejs/interface-email`
   (`@antelopejs/nodemailer`, `config: { ethereal: true }` in dev).
 - Mailing 0.5 requires `@antelopejs/dms` >=0.9 (interface-dms 0.7, renderer `@antelopejs/dms-frontend` 0.6);
-  0.4 is the DMS 0.8 line. `@antelopejs/interface-dms-mailing` stays 0.7, so callers do not change.
+  0.4 is the DMS 0.8 line. `@antelopejs/interface-dms-mailing` 0.8 adds the declaration and import calls;
+  `SendTemplate` / `RecordEmailEvent` callers do not change.
 - Module option: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML).
 - Set the DMS `clientBaseUrl`: the webhook URL and the e-mail logo are built on it.
 - Per-workspace settings (sender, missing-variable guard, fallback locale, webhook secret, retention,
@@ -52,6 +53,41 @@ const result = await SendTemplate("order-confirmed", {
   HTTP: `POST <clientBaseUrl>/api/mailing/events/<provider>/<tenantId>` with header `x-mailing-webhook-secret`.
 - Automation (if `interface-dms-automation` is loaded): action `mailing.send-template`, trigger `mailing.email-event`.
 
+## Ship templates as code
+
+```typescript
+import { DeclareTemplate, DeclareTemplateCategory, ImportSends } from "@antelopejs/interface-dms-mailing";
+
+export async function declareMailingContent(tenantId: string) {
+  await DeclareTemplateCategory({ tenantId, id: "subscriptions", label: "Subscriptions", icon: "i-ph-repeat" }); // before templates naming it
+  const { outcome } = await DeclareTemplate({
+    tenantId, slug: "subscription-renewed", name: "Subscription renewed", category: "subscriptions",
+    content: { locales: { en: { subject: "Your {{plan.name}} plan is renewed", preheader: "", blocks: [] } } },
+    variables: [{ path: "plan.name", type: "string", required: true }],
+    testData: { plan: { name: "Pro" } },
+  }); // created | updated | unchanged | kept
+}
+```
+
+- Require explicit non-blank `tenantId` for declarations and imports, including an explicitly selected default tenant.
+  The application must authorize the target and establish provisioning readiness.
+- For SaaS initialization, follow the consumer reference's **Initialize new SaaS workspaces** section:
+  register the durable `created` consumer synchronously in `construct()`, without awaiting declarations,
+  before startup reconciliation; deduplicate `operationId`, bind resources
+  durably, then return a receipt. Mailing registers no consumer. `start()` is process-global, not per tenant;
+  `TENANT_BEING_PROVISIONED` is prepayment and is not the durable `created` transition.
+  Deployment updates/backfills require an authorized inventory and `IsWorkspaceProvisioningCommitted`, failing closed.
+- Idempotent on the tenant's slug, published at once (v1, version rows, slug claim, attention refresh: a normal template).
+- Rule: same declaration → `unchanged`; changed declaration → `updated` only if the template is live, has no
+  draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
+  A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.
+- Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
+- Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,
+  `nothing_to_publish`, `invalid_category`; invalid tenant input rejects before writes. Storage errors can occur after publication.
+- `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
+  dates (demo data, migration): no delivery, no suppression/automation/realtime; skipped when `importId` was
+  already imported. Retention still applies (90 days default).
+
 ## Gotchas
 
 - `status: "suppressed"` = address on the suppression list (hard bounce, spam, unsubscribe, manual). Never retry.
@@ -61,3 +97,5 @@ const result = await SendTemplate("order-confirmed", {
 - The template slug is fixed at creation: code depends on it.
 - `mailing.send` permission gates every route that reaches recipients; writes publish on realtime topic `mailing:sends`.
 - 0.4+ does not read a 0.3 database and moved the webhook path (tenant in the URL).
+- nodemailer `ethereal: true` creates its account online at startup: offline, the whole project fails to
+  start (nodemailer's `construct()` throws, before Mailing runs). Use a local SMTP server (Mailpit) offline.

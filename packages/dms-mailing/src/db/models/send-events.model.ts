@@ -23,6 +23,19 @@ export class SendEventModel extends BasicDataModel(
     return false;
   }
 
+  /**
+   * Writes an imported event under its own id, unless an interrupted run of
+   * the same import already did.
+   */
+  async insertImported(event: MailingSendEvent): Promise<void> {
+    if (await this.get(event._id)) return;
+    try {
+      await this.insert(event);
+    } catch (error) {
+      if (!(await this.get(event._id))) throw error;
+    }
+  }
+
   /** Keyset pagination remains stable when overlapping sweeps delete earlier rows. */
   listAfter(after: string, size: number): Promise<MailingSendEvent[]> {
     return this.table

@@ -206,3 +206,152 @@ export const RecordEmailEvent =
   InterfaceFunction<
     (tenantId: string, event: EmailEvent) => Promise<boolean>
   >();
+
+/**
+ * A template a project ships as code. `slug` is the stable key the caller
+ * chooses: declaring it again never creates a second template.
+ */
+export interface TemplateDeclaration {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  slug: string;
+  name: string;
+  /** A category id the workspace settings declare; none when absent. */
+  category?: string;
+  /** What customers receive, per locale. Every locale needs a subject. */
+  content: TemplateContent;
+  /** The variables callers send, checked like the editor's declarations. */
+  variables?: VariableDefinition[];
+  /** The data set the editor's preview and test send use. */
+  testData?: Record<string, unknown>;
+  /** Shown as the author of what the declaration writes; `system` when absent. */
+  author?: string;
+}
+
+/**
+ * What a declaration did:
+ *
+ * - `created`: initial publication completed (including a resumed seed), v1.
+ * - `updated`: the declaration changed since the last call and the template
+ *   was still exactly as last declared, so the new one was published.
+ * - `unchanged`: the declaration is already applied; content is not changed.
+ *   An interrupted history insert may be repaired. This does not imply live status.
+ * - `kept`: the declaration changed but the template was edited, unpublished,
+ *   archived or holds a draft since (or was made in the dashboard under that
+ *   slug), so it was left as it is.
+ */
+export type DeclarationOutcome = "created" | "updated" | "unchanged" | "kept";
+
+export interface DeclareTemplateResult {
+  templateId: string;
+  slug: string;
+  outcome: DeclarationOutcome;
+  /** Last published version, or 0; not a guarantee that the template is live. */
+  version: number;
+}
+
+/** A template category a project ships as code, keyed by its `id`. */
+export interface TemplateCategoryDeclaration {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  id: string;
+  label: string;
+  /** A Phosphor icon name, such as `i-ph-tag`. */
+  icon: string;
+}
+
+export interface DeclareTemplateCategoryResult {
+  id: string;
+  outcome: DeclarationOutcome;
+}
+
+/**
+ * A provider event of an imported send. Its `at` is kept as given: the
+ * timeline and the metrics read it.
+ */
+export interface ImportedSendEvent {
+  type: SendEventType;
+  at: Date;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * A send that happened elsewhere (another provider, a demo data set), written
+ * into the send log as it was. `importId` is the stable key the caller
+ * chooses within a tenant: importing it again skips a retained send. Retention
+ * also removes this deduplication record. Keep retry payloads immutable.
+ */
+export interface ImportedSend {
+  importId: string;
+  /** A template of the workspace; its published version is recorded. */
+  templateSlug: string;
+  to: EmailAddress;
+  /** When it was sent: the send's date in the log and in every metric. */
+  sentAt: Date;
+  /** Locale it was sent in; the workspace fallback locale when absent. */
+  locale?: string;
+  variables?: Record<string, unknown>;
+  provider?: string;
+  providerMessageId?: string;
+  /** Labels the send log; `import` when absent. */
+  source?: string;
+  isTest?: boolean;
+  /**
+   * What happened to it, in any order. The send's status, counters and
+   * error follow from them as if a webhook had reported them; without any,
+   * the send is `sent`.
+   */
+  events?: ImportedSendEvent[];
+}
+
+export interface SendImport {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  sends: ImportedSend[];
+}
+
+export interface ImportSendsResult {
+  /** Sends written by this call. */
+  imported: number;
+  /** Sends whose `importId` was already imported, left untouched. */
+  skipped: number;
+  /** The send id of every entry, in the order given. */
+  sendIds: string[];
+}
+
+/**
+ * Creates or refreshes a template from code. Newly created templates are
+ * published; existing lifecycle choices are preserved. Idempotent on `slug`
+ * within a tenant, and never overwrites what a user
+ * changed since the last declaration: see {@link DeclarationOutcome}. Waits
+ * for the module and its database when called early, not tenant provisioning.
+ * A storage error can reject after publication; retry the same declaration.
+ */
+export const DeclareTemplate =
+  InterfaceFunction<
+    (declaration: TemplateDeclaration) => Promise<DeclareTemplateResult>
+  >();
+
+/**
+ * Adds a template category to the workspace settings from code. Idempotent
+ * on `id`; a category a user relabelled or removed since is left as it is.
+ * Waits for the module and its database when called early.
+ * Serialization is process-local; coordinate concurrent settings writers.
+ */
+export const DeclareTemplateCategory =
+  InterfaceFunction<
+    (
+      declaration: TemplateCategoryDeclaration,
+    ) => Promise<DeclareTemplateCategoryResult>
+  >();
+
+/**
+ * Writes past sends and their events into the send log with their own dates:
+ * an import, not a send. Nothing is delivered, and no suppression,
+ * automation or notification follows. Idempotent on each `importId`. Waits
+ * for the module and its database when called early.
+ * Deduplicates events like the webhook. Batches are not transactional; retry
+ * a partial failure with the same immutable payload and authorized tenantId.
+ */
+export const ImportSends =
+  InterfaceFunction<(params: SendImport) => Promise<ImportSendsResult>>();
