@@ -58,10 +58,10 @@ const result = await SendTemplate("order-confirmed", {
 ```typescript
 import { DeclareTemplate, DeclareTemplateCategory, ImportSends } from "@antelopejs/interface-dms-mailing";
 
-export async function start() { // await in start(), never in construct() or a DATABASE_INITIALIZED handler
-  await DeclareTemplateCategory({ id: "subscriptions", label: "Subscriptions", icon: "i-ph-repeat" }); // before templates naming it
+export async function declareMailingContent(tenantId: string) {
+  await DeclareTemplateCategory({ tenantId, id: "subscriptions", label: "Subscriptions", icon: "i-ph-repeat" }); // before templates naming it
   const { outcome } = await DeclareTemplate({
-    slug: "subscription-renewed", name: "Subscription renewed", category: "subscriptions", // tenantId defaults to DEFAULT_TENANT_ID
+    tenantId, slug: "subscription-renewed", name: "Subscription renewed", category: "subscriptions",
     content: { locales: { en: { subject: "Your {{plan.name}} plan is renewed", preheader: "", blocks: [] } } },
     variables: [{ path: "plan.name", type: "string", required: true }],
     testData: { plan: { name: "Pro" } },
@@ -69,14 +69,21 @@ export async function start() { // await in start(), never in construct() or a D
 }
 ```
 
-- Idempotent on the slug, published at once (v1, version rows, slug claim, attention refresh: a normal template).
+- Require explicit non-blank `tenantId` for declarations and imports, including an explicitly selected default tenant.
+  The application must authorize the target and establish provisioning readiness.
+- For SaaS initialization, follow the consumer reference's **Initialize new SaaS workspaces** section:
+  register the durable `created` consumer before startup reconciliation; deduplicate `operationId`, bind resources
+  durably, then return a receipt. Mailing registers no consumer. `start()` is process-global, not per tenant;
+  `TENANT_BEING_PROVISIONED` is prepayment and is not the durable `created` transition.
+  Deployment updates/backfills require an authorized inventory and `IsWorkspaceProvisioningCommitted`, failing closed.
+- Idempotent on the tenant's slug, published at once (v1, version rows, slug claim, attention refresh: a normal template).
 - Rule: same declaration → `unchanged`; changed declaration → `updated` only if the template is live, has no
   draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
   A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.
 - Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
 - Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,
-  `nothing_to_publish`, `invalid_category`; nothing is written.
-- `ImportSends({ sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
+  `nothing_to_publish`, `invalid_category`; invalid tenant input rejects before writes. Storage errors can occur after publication.
+- `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
   dates (demo data, migration): no delivery, no suppression/automation/realtime; skipped when `importId` was
   already imported. Retention still applies (90 days default).
 
