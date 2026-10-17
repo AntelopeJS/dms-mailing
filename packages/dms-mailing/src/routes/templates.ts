@@ -22,6 +22,7 @@ import {
   collectContentVariablePaths,
   resolveEmail,
   type TemplateChange,
+  valueFormatOf,
 } from "../engine";
 import { type MailingTemplate, SendModel, TemplateModel } from "../db";
 import { TemplatesPageController } from "../pages/templates";
@@ -39,7 +40,6 @@ import {
 import {
   assertSlugClaimed,
   contentFieldsOf,
-  contentOfVersion,
   discardDraft,
   displayName,
   hasDraft,
@@ -55,6 +55,10 @@ import {
   publishedVersionOf,
   publishTemplate,
   saveDraft,
+  publishedSnapshot,
+  snapshotOfVersion,
+  type TemplateDraft,
+  workingSnapshot,
   workingContent,
   workingVariables,
   requireTemplate,
@@ -236,7 +240,12 @@ export class TemplatesController extends Controller(
     );
     const localeContent = localeContentOf(starter.content, locale);
     assert(localeContent, HTTP_UNPROCESSABLE, INVALID_CONTENT);
-    const email = resolveEmail(localeContent, starter.testDataFor(locale));
+    const email = resolveEmail(
+      localeContent,
+      starter.testDataFor(locale),
+      undefined,
+      valueFormatOf(locale, starter.variables),
+    );
     return { html: await renderEmailHtml(email, locale), locale };
   }
 
@@ -487,9 +496,12 @@ export class TemplatesController extends Controller(
       () => INVALID_CONTENT,
     );
     const template = await requireTemplate(this.templates, id);
-    const content =
-      (input.content as TemplateContent | undefined) ??
-      (await this.previewContent(template, input.version));
+    const { content, variables } = input.content
+      ? {
+          ...workingSnapshot(template),
+          content: input.content as TemplateContent,
+        }
+      : await this.previewSnapshot(template, input.version);
     const settings = await getSettings(this.tenantId);
     const locale = pickLocale(content, input.locale, settings.fallbackLocale);
     const localeContent = localeContentOf(content, locale);
@@ -497,6 +509,8 @@ export class TemplatesController extends Controller(
     const email = resolveEmail(
       localeContent,
       input.data ?? parseTestData(template),
+      undefined,
+      valueFormatOf(locale, variables),
     );
     const html = await renderEmailHtml(email, locale);
     return {
@@ -508,14 +522,14 @@ export class TemplatesController extends Controller(
     };
   }
 
-  private previewContent(
+  private previewSnapshot(
     template: MailingTemplate,
     version: "draft" | "published" | number | undefined,
-  ): Promise<TemplateContent> | TemplateContent {
-    if (version === "published") return parseContent(template);
+  ): Promise<TemplateDraft> | TemplateDraft {
+    if (version === "published") return publishedSnapshot(template);
     if (typeof version === "number")
-      return contentOfVersion(this.tenantId, template, version);
-    return workingContent(template);
+      return snapshotOfVersion(this.tenantId, template, version);
+    return workingSnapshot(template);
   }
 
   @Post("/:id/duplicate")

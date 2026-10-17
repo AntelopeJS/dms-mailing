@@ -46,6 +46,7 @@
 				"description": "Les e-mails utilisent l’adresse par défaut du fournisseur.",
 				"action": "Définir l’expéditeur"
 			},
+			"name_pair": "{first}, {second}",
 			"more_names": "{names} et {count} autre | {names} et {count} autre | {names} et {count} autres"
 		},
 		"blocks": {

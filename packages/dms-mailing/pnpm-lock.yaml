@@ -30,7 +30,7 @@ importers:
         specifier: '>=0.7.2 <1.0.0'
         version: 0.7.2(4266f05b78ff47df7f114a7ce109eeb7)
       '@antelopejs/interface-dms-mailing':
-        specifier: '>=0.7.1 <0.8.0'
+        specifier: '>=0.8.0 <0.9.0'
         version: link:../interface-dms-mailing
       '@antelopejs/interface-email':
         specifier: '>=0.0.6 <1.0.0'

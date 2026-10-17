@@ -215,6 +215,11 @@ export interface TemplateDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   slug: string;
+  /**
+   * Shown in the dashboard. A `$`-prefixed i18n key (`$acme.mails.welcome`)
+   * is read in each user's language, from translations the project's
+   * frontend module ships.
+   */
   name: string;
   /** A category id the workspace settings declare; none when absent. */
   category?: string;
@@ -255,6 +260,7 @@ export interface TemplateCategoryDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   id: string;
+  /** Shown in the dashboard; a `$`-prefixed i18n key, like a template's name. */
   label: string;
   /** A Phosphor icon name, such as `i-ph-tag`. */
   icon: string;
@@ -262,6 +268,25 @@ export interface TemplateCategoryDeclaration {
 
 export interface DeclareTemplateCategoryResult {
   id: string;
+  outcome: DeclarationOutcome;
+}
+
+/**
+ * The workspace's sender a project ships as code: what the settings'
+ * Sender section holds.
+ */
+export interface SenderDeclaration {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  /** The address e-mails are sent from. */
+  email: string;
+  /** The name shown next to it; none when absent. */
+  name?: string;
+  /** Where replies go; to the sender address when absent. */
+  replyTo?: string;
+}
+
+export interface DeclareSenderResult {
   outcome: DeclarationOutcome;
 }
 
@@ -307,14 +332,32 @@ export interface ImportedSend {
 export interface SendImport {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
+  /**
+   * Names the data set these sends belong to (`demo-history`,
+   * `brevo-2026`), recorded on every send written. Runs of one scope are
+   * serialized within the process.
+   */
+  scope?: string;
+  /**
+   * Makes `sends` the whole content of `scope`, which it then requires: an
+   * entry that changed since it was imported is rewritten, and a send of the
+   * scope no longer listed is removed with its events. Sends made by
+   * `SendTemplate` or the dashboard, and sends of other scopes or imported
+   * without one, are never touched. `sends: []` removes the whole scope.
+   */
+  replace?: boolean;
   sends: ImportedSend[];
 }
 
 export interface ImportSendsResult {
   /** Sends written by this call. */
   imported: number;
-  /** Sends whose `importId` was already imported, left untouched. */
+  /** Sends a replacing call rewrote because their entry changed. */
+  replaced: number;
+  /** Sends whose `importId` was already imported as given, left untouched. */
   skipped: number;
+  /** Sends of the scope a replacing call no longer listed, removed. */
+  removed: number;
   /** The send id of every entry, in the order given. */
   sendIds: string[];
 }
@@ -346,10 +389,25 @@ export const DeclareTemplateCategory =
   >();
 
 /**
+ * Sets the workspace's sender (from name, address, reply-to) from code. It is
+ * written on a workspace without a sender, refreshed while it still holds
+ * the last declaration, and otherwise left as a user set, changed or cleared
+ * it: see {@link DeclarationOutcome}. Waits for the module and its database
+ * when called early. Serialization with the category declarations is
+ * process-local; coordinate concurrent settings writers.
+ */
+export const DeclareSender =
+  InterfaceFunction<
+    (declaration: SenderDeclaration) => Promise<DeclareSenderResult>
+  >();
+
+/**
  * Writes past sends and their events into the send log with their own dates:
  * an import, not a send. Nothing is delivered, and no suppression,
- * automation or notification follows. Idempotent on each `importId`. Waits
- * for the module and its database when called early.
+ * automation or notification follows. Idempotent on each `importId`; with
+ * `replace` and a `scope`, idempotent on the whole data set, so a project can
+ * import it again after reseeding. Waits for the module and its database
+ * when called early.
  * Deduplicates events like the webhook. Batches are not transactional; retry
  * a partial failure with the same immutable payload and authorized tenantId.
  */

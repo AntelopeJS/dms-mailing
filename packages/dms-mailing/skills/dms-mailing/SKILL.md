@@ -24,8 +24,8 @@ https://dms.antelopejs.com/docs/modules/mailing (sending from code and the webho
 - `ajs project modules add @antelopejs/dms-mailing`, plus a module implementing `@antelopejs/interface-email`
   (`@antelopejs/nodemailer`, `config: { ethereal: true }` in dev).
 - Mailing 0.5 requires `@antelopejs/dms` >=0.9 (interface-dms 0.7, renderer `@antelopejs/dms-frontend` 0.6);
-  0.4 is the DMS 0.8 line. `@antelopejs/interface-dms-mailing` 0.8 adds the declaration and import calls;
-  `SendTemplate` / `RecordEmailEvent` callers do not change.
+  0.4 is the DMS 0.8 line. `@antelopejs/interface-dms-mailing` 0.8 adds the declaration and import calls,
+  0.9 `DeclareSender` and replacing imports; `SendTemplate` / `RecordEmailEvent` callers do not change.
 - Module option: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML).
 - Set the DMS `clientBaseUrl`: the webhook URL and the e-mail logo are built on it.
 - Per-workspace settings (sender, missing-variable guard, fallback locale, webhook secret, retention,
@@ -49,6 +49,8 @@ const result = await SendTemplate("order-confirmed", {
 - Only the **published** version is sent; drafts go out only as tests (`[TEST]` subject, out of the figures).
 - Variables are typed (`string`, `text`, `number`, `money`, `date`, `url`, `boolean`, `array`) and declared on
   the template; pass every required one.
+- Don't pre-format amounts and dates per locale: pass `{ value: 987420, currency: "EUR" }` (minor units) or a
+  `Date`, or an ISO string at a `date` path; the send locale formats them. Plain strings print as given.
 - In-process events: `RecordEmailEvent(tenantId, { provider, messageId, type, details })`.
   HTTP: `POST <clientBaseUrl>/api/mailing/events/<provider>/<tenantId>` with header `x-mailing-webhook-secret`.
 - Automation (if `interface-dms-automation` is loaded): action `mailing.send-template`, trigger `mailing.email-event`.
@@ -56,9 +58,10 @@ const result = await SendTemplate("order-confirmed", {
 ## Ship templates as code
 
 ```typescript
-import { DeclareTemplate, DeclareTemplateCategory, ImportSends } from "@antelopejs/interface-dms-mailing";
+import { DeclareSender, DeclareTemplate, DeclareTemplateCategory, ImportSends } from "@antelopejs/interface-dms-mailing";
 
 export async function declareMailingContent(tenantId: string) {
+  await DeclareSender({ tenantId, name: "Acme", email: "hello@acme.example" }); // kept once a user changes it
   await DeclareTemplateCategory({ tenantId, id: "subscriptions", label: "Subscriptions", icon: "i-ph-repeat" }); // before templates naming it
   const { outcome } = await DeclareTemplate({
     tenantId, slug: "subscription-renewed", name: "Subscription renewed", category: "subscriptions",
@@ -82,11 +85,18 @@ export async function declareMailingContent(tenantId: string) {
   draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
   A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.
 - Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
+- `name` / `label` may be `$` i18n keys (`$acme.mails.welcome`), translated in the dashboard from the project's
+  frontend locale files; a dashboard rename stores text (then `kept`).
+- `DeclareSender({ tenantId, email, name?, replyTo? })` fills the settings' sender with the same rule: written on a
+  workspace without one, `kept` once a user set, changed or cleared it; refusals use `invalid_sender`.
 - Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,
   `nothing_to_publish`, `invalid_category`; invalid tenant input rejects before writes. Storage errors can occur after publication.
 - `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
   dates (demo data, migration): no delivery, no suppression/automation/realtime; skipped when `importId` was
   already imported. Retention still applies (90 days default).
+- `ImportSends({ tenantId, scope, replace: true, sends })` makes `sends` the whole data set of `scope`: changed
+  entries rewritten, unlisted ones removed (`sends: []` empties the scope); live sends and other scopes untouched.
+  Rebuild it only from records live sends do not cover, or e-mails appear twice.
 
 ## Gotchas
 

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
-import { TOKEN_DATA_KEY, resolveToken, splitTokens } from '../utils/tokens'
+import {
+	TOKEN_DATA_KEY,
+	TOKEN_FORMAT_KEY,
+	resolveToken,
+	splitTokens,
+} from '../utils/tokens'
 
 type TokenVariant = 'paper' | 'ui'
 
@@ -38,6 +43,7 @@ const TOKEN_OPEN = '{{'
 const TOKEN_CLOSE = '}}'
 
 const data = inject(TOKEN_DATA_KEY, null)
+const format = inject(TOKEN_FORMAT_KEY, null)
 
 const parts = computed<RenderedPart[]>(() =>
 	splitTokens(props.text ?? '').map((part, key) => {
@@ -45,7 +51,7 @@ const parts = computed<RenderedPart[]>(() =>
 			return { key, kind: part.kind, value: part.value }
 		const token = `${TOKEN_OPEN}${part.value}${TOKEN_CLOSE}`
 		if (!data?.value) return { key, kind: 'token', value: token }
-		const resolved = resolveToken(part.value, data.value)
+		const resolved = resolveToken(part.value, data.value, format?.value)
 		return resolved.isPresent
 			? { key, kind: 'value', value: resolved.text }
 			: { key, kind: 'missing', value: token }

@@ -15,6 +15,7 @@ import {
 	redirectMoves,
 	serializeCategories,
 	toStoredCategories,
+	translationOf,
 	withMoves,
 	type CategoryEntry,
 	type EditableCategory,
@@ -90,10 +91,12 @@ const rowErrorPattern = (index: number): RegExp =>
 	new RegExp(`^${FIELD_NAME}\\.${index}\\.`)
 
 function toRows(value: CategoryEntry[]): EditableCategory[] {
-	return localized.categories(keptCategories(value)).map((category) => ({
+	const kept = keptCategories(value)
+	return localized.categories(kept).map((category, index) => ({
 		...category,
 		key: keyOf(),
 		isNew: false,
+		translated: translationOf(kept[index], category),
 	}))
 }
 

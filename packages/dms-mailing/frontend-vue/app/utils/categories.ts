@@ -1,4 +1,5 @@
 import type { TemplateCategory } from '../types/mailing'
+import { displayText, type OptionalTranslate } from './i18n-text'
 
 const ID_SEPARATOR = '-'
 
@@ -53,6 +54,36 @@ export function iconName(icon: string): string {
 export interface EditableCategory extends TemplateCategory {
 	key: string
 	isNew: boolean
+	/** Set when the row shows a translation of what is stored. */
+	translated?: TranslatedLabel
+}
+
+/** A label shown translated, and the text stored under it. */
+export interface TranslatedLabel {
+	stored: string
+	shown: string
+}
+
+/** How `stored` reads once localized as `shown`; none when it reads as is. */
+export function translationOf(
+	stored: TemplateCategory | undefined,
+	shown: TemplateCategory,
+): TranslatedLabel | undefined {
+	return stored && stored.label !== shown.label
+		? { stored: stored.label, shown: shown.label }
+		: undefined
+}
+
+/**
+ * The label a row stores: what it was translated from while its translation
+ * is left as shown, so saving the settings never writes a translation over
+ * a shipped label or a `$` key.
+ */
+function storedLabelOf(row: EditableCategory): string {
+	const label = row.label.trim()
+	return row.translated && label === row.translated.shown
+		? row.translated.stored
+		: label
 }
 
 const UNIQUE_SUFFIX_START = 2
@@ -82,7 +113,7 @@ export function toStoredCategories(
 		taken.add(id)
 		return {
 			id,
-			label: row.label.trim(),
+			label: storedLabelOf(row),
 			icon: row.icon || DEFAULT_CATEGORY_ICON,
 		}
 	})
@@ -201,9 +232,6 @@ export function toStoredCategory(
 	return value || null
 }
 
-/** Answers the text of an i18n key, or nothing when the catalog lacks it. */
-export type OptionalTranslate = (key: string) => string | undefined
-
 /** The labels the backend's `DEFAULT_CATEGORIES` (`src/types/settings.ts`) ship with. */
 const DEFAULT_CATEGORY_LABELS: Record<string, string> = {
 	orders: 'Orders',
@@ -225,8 +253,9 @@ export function defaultCategoryLabelKey(
 
 /**
  * The categories as the interface shows them: a shipped one still under its
- * original English label reads in the interface's language, a label someone
- * wrote stays as written. Nothing stored changes.
+ * original English label, and one declared under a `$` i18n key, read in the
+ * interface's language; a label someone wrote stays as written. Nothing
+ * stored changes.
  */
 export function localizeCategories(
 	categories: TemplateCategory[],
@@ -234,7 +263,7 @@ export function localizeCategories(
 ): TemplateCategory[] {
 	return categories.map((category) => {
 		const key = defaultCategoryLabelKey(category)
-		const label = key ? translate(key) : undefined
-		return label ? { ...category, label } : category
+		const label = key ? translate(key) : displayText(category.label, translate)
+		return label && label !== category.label ? { ...category, label } : category
 	})
 }

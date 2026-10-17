@@ -13,12 +13,11 @@ const { editor, session, actions, templateId } = useEditorContext()
 const localized = useLocalizedDefaults()
 
 const template = computed(() => session.state.template)
-const name = ref(template.value.name)
+/** The name as shown: a declared `$` key in the interface's language. */
+const shownName = computed(() => localized.name(template.value.name))
+const name = ref(shownName.value)
 
-watch(
-	() => template.value.name,
-	(value) => (name.value = value),
-)
+watch(shownName, (value) => (name.value = value))
 
 const categoryItems = computed(() => [
 	{ value: NO_CATEGORY, label: t(`${KEY}.no_category`), icon: 'i-ph-minus' },
@@ -40,8 +39,8 @@ async function persist(patch: Partial<TemplateDetails>): Promise<void> {
 
 function saveName(): void {
 	const trimmed = name.value.trim()
-	if (!trimmed || trimmed === template.value.name) {
-		name.value = template.value.name
+	if (!trimmed || trimmed === shownName.value) {
+		name.value = shownName.value
 		return
 	}
 	void persist({ name: trimmed })

@@ -138,6 +138,137 @@ describe("[integration] send import", () => {
     expect(suppressed.size).to.equal(0);
   });
 
+  describe("a replacing import", () => {
+    const scope = "demo-history";
+
+    function entry(importId: string, to: string): ImportedSend {
+      return { importId, templateSlug: SLUG, to, sentAt };
+    }
+
+    async function liveSend(): Promise<string> {
+      const { sends } = await models();
+      const [id] = await sends.insertSend({
+        templateId: "live-template",
+        templateSlug: SLUG,
+        locale: "en",
+        requestedLocale: "",
+        templateVersion: 1,
+        recipientEmail: "live@example.test",
+        status: "sent",
+        stage: "in_progress",
+        latencyMs: 12,
+        source: "test",
+        json_variables: "{}",
+        opens: 0,
+        clicks: 0,
+        isTest: false,
+      });
+      return id as string;
+    }
+
+    it("rewrites changed entries and removes the ones it no longer lists", async () => {
+      const { ImportSends } = await mailing();
+      const liveId = await liveSend();
+      const unscoped = await ImportSends({
+        tenantId,
+        sends: [entry("unscoped-1", "kept@example.test")],
+      });
+      const first = await ImportSends({
+        tenantId,
+        scope,
+        replace: true,
+        sends: [
+          {
+            ...entry("seed-a", "a@example.test"),
+            events: history()[1]?.events,
+          },
+          entry("seed-b", "b@example.test"),
+        ],
+      });
+      expect(first).to.include({ imported: 2, replaced: 0, removed: 0 });
+
+      const again = await ImportSends({
+        tenantId,
+        scope,
+        replace: true,
+        sends: [
+          entry("seed-a", "a2@example.test"),
+          entry("seed-c", "c@example.test"),
+        ],
+      });
+      expect(again).to.include({
+        imported: 1,
+        replaced: 1,
+        skipped: 0,
+        removed: 1,
+      });
+
+      const { sends, events } = await models();
+      const [rewritten, removed] = await Promise.all(
+        first.sendIds.map((id) => sends.get(id)),
+      );
+      expect(rewritten).to.include({
+        recipientEmail: "a2@example.test",
+        status: "sent",
+        importScope: scope,
+      });
+      const timeline = await events.getBySend(first.sendIds[0] as string);
+      expect(timeline.map((event) => event.type)).to.deep.equal(["sent"]);
+      expect(removed).to.equal(undefined);
+      expect(await events.getBySend(first.sendIds[1] as string)).to.have.length(
+        0,
+      );
+      expect(await sends.get(liveId)).to.include({ status: "sent" });
+      expect(await sends.get(unscoped.sendIds[0] as string)).to.not.equal(
+        undefined,
+      );
+    });
+
+    it("skips everything when run again with the same data set", async () => {
+      const { ImportSends } = await mailing();
+      const sends = [
+        entry("seed-a", "a2@example.test"),
+        entry("seed-c", "c@example.test"),
+      ];
+      const result = await ImportSends({
+        tenantId,
+        scope,
+        replace: true,
+        sends,
+      });
+      expect(result).to.include({
+        imported: 0,
+        replaced: 0,
+        skipped: 2,
+        removed: 0,
+      });
+    });
+
+    it("removes the whole scope with an empty list", async () => {
+      const { ImportSends } = await mailing();
+      const result = await ImportSends({
+        tenantId,
+        scope,
+        replace: true,
+        sends: [],
+      });
+      expect(result).to.include({ imported: 0, removed: 2 });
+      const { sends } = await models();
+      expect(await sends.listImported(scope)).to.have.length(0);
+    });
+
+    it("refuses to replace without a scope", async () => {
+      const { ImportSends } = await mailing();
+      const error = await ImportSends({
+        tenantId,
+        replace: true,
+        sends: [],
+      }).catch((reason: { code?: string; message: string }) => reason);
+      expect(error).to.include({ code: "invalid_import" });
+      expect((error as Error).message).to.match(/scope/);
+    });
+  });
+
   it("refuses the whole import when a template is unknown", async () => {
     const { ImportSends } = await mailing();
     const error = await ImportSends({
