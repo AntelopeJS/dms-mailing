@@ -11,7 +11,7 @@ import {
 const MAX_AUTHOR_LENGTH = MAX_NAME_LENGTH;
 const MAX_IMPORT_ID_LENGTH = 200;
 
-const tenantIdSchema = z.string().trim().min(1).optional();
+const tenantIdSchema = z.string().trim().min(1);
 
 /**
  * A template declared from code: the slug and name rules of the dashboard's

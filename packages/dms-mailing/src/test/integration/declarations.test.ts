@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import type {
   TemplateContent,
   TemplateDeclaration,
@@ -43,6 +44,7 @@ function declaration(
   overrides: Partial<TemplateDeclaration> = {},
 ): TemplateDeclaration {
   return {
+    tenantId: DEFAULT_TENANT_ID,
     slug,
     name: `Declared ${slug}`,
     category: "orders",
@@ -86,6 +88,93 @@ async function rowsWithSlug(slug: string): Promise<number> {
 
 describe("[integration] template declarations", () => {
   const stamp = Date.now();
+
+  it("rejects absent or blank tenants on all new APIs before writing", async () => {
+    const { DeclareTemplate, DeclareTemplateCategory, ImportSends } =
+      await mailing();
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { SettingsModel, SendModel, SendEventModel } =
+      await import("../../db");
+    const settings = GetModel(SettingsModel, DEFAULT_TENANT_ID);
+    const before = JSON.stringify(await settings.get(DEFAULT_TENANT_ID));
+    const events = GetModel(SendEventModel, DEFAULT_TENANT_ID);
+    const eventCount = await events.table.count().run();
+    const slug = `invalid-tenant-${stamp}`;
+    const { tenantId: _tenantId, ...withoutTenant } = declaration(slug);
+    const category = {
+      id: `invalid-${stamp}`,
+      label: "Invalid tenant",
+      icon: "i-ph-tag",
+    };
+    const sends = [
+      {
+        importId: `invalid-${stamp}`,
+        templateSlug: slug,
+        to: RECIPIENT,
+        sentAt: new Date(),
+      },
+    ];
+    // These calls are both compile-time contract checks and JavaScript boundary tests.
+    const calls = [
+      // @ts-expect-error tenantId is required
+      () => DeclareTemplate(withoutTenant),
+      // @ts-expect-error tenantId is required
+      () => DeclareTemplateCategory(category),
+      // @ts-expect-error tenantId is required
+      () => ImportSends({ sends }),
+    ];
+    for (const tenantId of ["", " \t\n "]) {
+      calls.push(
+        () => DeclareTemplate({ ...withoutTenant, tenantId }),
+        () => DeclareTemplateCategory({ ...category, tenantId }),
+        () => ImportSends({ sends, tenantId }),
+      );
+    }
+    const codes = ["invalid_template", "invalid_category", "invalid_import"];
+    for (const [index, call] of calls.entries()) {
+      let error: unknown;
+      try {
+        await call();
+      } catch (reason) {
+        error = reason;
+      }
+      expect(error).to.include({ code: codes[index % codes.length] });
+      expect((error as Error).message).to.include("tenantId");
+    }
+    expect(await rowsWithSlug(slug)).to.equal(0);
+    expect(JSON.stringify(await settings.get(DEFAULT_TENANT_ID))).to.equal(
+      before,
+    );
+    expect(
+      await GetModel(SendModel, DEFAULT_TENANT_ID).listForTemplate(
+        slug,
+        new Date(0),
+      ),
+    ).to.deep.equal([]);
+    expect(await events.table.count().run()).to.equal(eventCount);
+    // A valid explicit default tenant still supports all three APIs.
+    expect(
+      await DeclareTemplateCategory({
+        ...category,
+        id: "orders",
+        tenantId: DEFAULT_TENANT_ID,
+      }),
+    ).to.include({ outcome: "kept" });
+    await DeclareTemplate({ ...withoutTenant, tenantId: DEFAULT_TENANT_ID });
+    const imported = await ImportSends({ sends, tenantId: DEFAULT_TENANT_ID });
+    expect(imported.imported).to.equal(1);
+    expect(
+      await GetModel(SendModel, DEFAULT_TENANT_ID).get(imported.sendIds[0]!),
+    ).not.to.equal(undefined);
+    expect(
+      (
+        await GetModel(SendEventModel, DEFAULT_TENANT_ID).getBySend(
+          imported.sendIds[0]!,
+        )
+      ).length,
+    ).to.equal(1);
+  });
 
   it("creates a live template SendTemplate can use, once", async () => {
     const { DeclareTemplate, SendTemplate } = await mailing();

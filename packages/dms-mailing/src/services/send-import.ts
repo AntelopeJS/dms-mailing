@@ -5,7 +5,6 @@ import type {
   SendImport,
 } from "@antelopejs/interface-dms-mailing";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import {
   type ImportedSendRow,
   type MailingTemplate,
@@ -210,13 +209,12 @@ async function importOne(
 export async function importSends(
   input: SendImport,
 ): Promise<ImportSendsResult> {
-  const { tenantId: requested, sends } = parseDeclared(
+  const { tenantId, sends } = parseDeclared(
     sendImportSchema,
     input,
     "invalid_import",
     "send import",
   );
-  const tenantId = requested ?? DEFAULT_TENANT_ID;
   const templates = await templatesOf(tenantId, sends);
   const { fallbackLocale } = await getSettings(tenantId);
   const result: ImportSendsResult = { imported: 0, skipped: 0, sendIds: [] };

@@ -212,8 +212,8 @@ export const RecordEmailEvent =
  * chooses: declaring it again never creates a second template.
  */
 export interface TemplateDeclaration {
-  /** Workspace the template belongs to; the default tenant when absent. */
-  tenantId?: string;
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
   slug: string;
   name: string;
   /** A category id the workspace settings declare; none when absent. */
@@ -252,8 +252,8 @@ export interface DeclareTemplateResult {
 
 /** A template category a project ships as code, keyed by its `id`. */
 export interface TemplateCategoryDeclaration {
-  /** Workspace the category belongs to; the default tenant when absent. */
-  tenantId?: string;
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
   id: string;
   label: string;
   /** A Phosphor icon name, such as `i-ph-tag`. */
@@ -305,8 +305,8 @@ export interface ImportedSend {
 }
 
 export interface SendImport {
-  /** Workspace the sends belong to; the default tenant when absent. */
-  tenantId?: string;
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
   sends: ImportedSend[];
 }
 

@@ -8,7 +8,6 @@ import type {
 } from "@antelopejs/interface-dms-mailing";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import {
   type MailingTemplate,
   SettingsModel,
@@ -106,7 +105,7 @@ function assertKnownCategory(
 }
 
 function planTemplate(declaration: ParsedTemplateDeclaration): TemplatePlan {
-  const tenantId = declaration.tenantId ?? DEFAULT_TENANT_ID;
+  const { tenantId } = declaration;
   const { slug } = declaration;
   const state = asStored<DeclaredTemplateState>({
     name: declaration.name,
@@ -404,7 +403,7 @@ const WRITING_OUTCOMES = new Set<DeclarationOutcome>(["created", "updated"]);
 async function applyCategory(
   declaration: ParsedCategoryDeclaration,
 ): Promise<DeclareTemplateCategoryResult> {
-  const tenantId = declaration.tenantId ?? DEFAULT_TENANT_ID;
+  const { tenantId } = declaration;
   const category = {
     id: declaration.id,
     label: declaration.label,
@@ -447,7 +446,5 @@ export function declareTemplateCategory(
     "invalid_category",
     `category declaration "${String(input?.id)}"`,
   );
-  return inTenantQueue(declaration.tenantId ?? DEFAULT_TENANT_ID, () =>
-    applyCategory(declaration),
-  );
+  return inTenantQueue(declaration.tenantId, () => applyCategory(declaration));
 }
