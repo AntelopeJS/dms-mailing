@@ -72,7 +72,8 @@ export async function declareMailingContent(tenantId: string) {
 - Require explicit non-blank `tenantId` for declarations and imports, including an explicitly selected default tenant.
   The application must authorize the target and establish provisioning readiness.
 - For SaaS initialization, follow the consumer reference's **Initialize new SaaS workspaces** section:
-  register the durable `created` consumer before startup reconciliation; deduplicate `operationId`, bind resources
+  register the durable `created` consumer synchronously in `construct()`, without awaiting declarations,
+  before startup reconciliation; deduplicate `operationId`, bind resources
   durably, then return a receipt. Mailing registers no consumer. `start()` is process-global, not per tenant;
   `TENANT_BEING_PROVISIONED` is prepayment and is not the durable `created` transition.
   Deployment updates/backfills require an authorized inventory and `IsWorkspaceProvisioningCommitted`, failing closed.
