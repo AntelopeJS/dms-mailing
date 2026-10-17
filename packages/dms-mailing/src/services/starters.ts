@@ -5,7 +5,7 @@ import type {
   TemplateContent,
   VariableDefinition,
 } from "../types";
-import { footerForCategory } from "../engine";
+import { footerForCategory, formattingLocale } from "../engine";
 import { blankFields, footerBlock } from "./templates";
 
 /**
@@ -30,18 +30,6 @@ type StarterSource = Omit<StarterTemplate, "testData">;
 
 const DEFAULT_TEST_DATA_LOCALE = "en";
 const STARTER_CURRENCY = "EUR";
-
-/** `locale` when the runtime can format for it, English otherwise. */
-function formattingLocale(locale: string): string {
-  try {
-    return (
-      Intl.NumberFormat.supportedLocalesOf(locale)[0] ??
-      DEFAULT_TEST_DATA_LOCALE
-    );
-  } catch {
-    return DEFAULT_TEST_DATA_LOCALE;
-  }
-}
 
 /** The ordered item of the order starter's test data, by language. */
 const ORDER_LINE_NAMES: Record<string, string> = {

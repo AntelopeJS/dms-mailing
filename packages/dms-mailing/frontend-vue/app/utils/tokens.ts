@@ -1,5 +1,6 @@
 import type { InjectionKey, Ref } from 'vue'
 import { isPresent, readPath } from './paths'
+import { formatValue, type ValueFormat } from './value-format'
 
 /**
  * `token` is a `{{path}}` the engine fills in; `invalid` looks like one but
@@ -27,6 +28,14 @@ export type TokenData = Record<string, unknown> | null
  */
 export const TOKEN_DATA_KEY: InjectionKey<Ref<TokenData>> = Symbol(
 	'dms-mailing-token-data',
+)
+
+/**
+ * Provided next to the data: the locale the paper is in and the paths typed
+ * `date`, so a value reads on the paper as the recipient will read it.
+ */
+export const TOKEN_FORMAT_KEY: InjectionKey<Ref<ValueFormat>> = Symbol(
+	'dms-mailing-token-format',
 )
 
 /**
@@ -93,18 +102,15 @@ export function splitTokens(text: string): TextPart[] {
 	return splitRawSegments(text).map(({ kind, value }) => ({ kind, value }))
 }
 
-function formatValue(value: unknown): string {
-	return value instanceof Date ? value.toISOString() : String(value)
-}
-
 /** Reads one token path in `data`, formatted like the engine prints it. */
 export function resolveToken(
 	path: string,
 	data: Record<string, unknown>,
+	format?: ValueFormat,
 ): ResolvedToken {
 	const value = readPath(data, path)
 	return isPresent(value)
-		? { isPresent: true, text: formatValue(value) }
+		? { isPresent: true, text: formatValue(value, path, format) }
 		: { isPresent: false, text: path }
 }
 
@@ -113,11 +119,12 @@ export function interpolateText(
 	text: string,
 	data: Record<string, unknown>,
 	mode: InterpolationMode = 'preview',
+	format?: ValueFormat,
 ): string {
 	return splitTokens(text)
 		.map((part) => {
 			if (part.kind !== 'token') return part.value
-			const resolved = resolveToken(part.value, data)
+			const resolved = resolveToken(part.value, data, format)
 			return resolved.isPresent
 				? resolved.text
 				: MISSING_TOKEN[mode](part.value)

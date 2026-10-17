@@ -35,7 +35,7 @@ import {
   SendModel,
   TemplateModel,
 } from "../db";
-import { resolveEmail } from "../engine";
+import { resolveEmail, valueFormatOf } from "../engine";
 import type { InterpolationMode } from "../engine/tokens";
 import { SendsPageController } from "../pages/sends";
 import { readCapabilities } from "../services/provider";
@@ -65,6 +65,7 @@ import {
   pickLocale,
   publishedVersionOf,
   requireTemplate,
+  snapshotOfVersion,
 } from "../services/templates";
 import type {
   SendStatus,
@@ -396,7 +397,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
   async html(@Parameter("id", "param") id: string): Promise<SendHtmlResponse> {
     const send = await this.requireSend(id);
     const template = await requireTemplate(this.templates, send.templateId);
-    const content = await contentOfVersion(
+    const { content, variables } = await snapshotOfVersion(
       this.tenantId,
       template,
       send.templateVersion,
@@ -405,7 +406,12 @@ export class SendsController extends Controller(API_BASE_PATH) {
     const locale = pickLocale(content, send.locale, settings.fallbackLocale);
     const localeContent = localeContentOf(content, locale);
     assert(localeContent, HTTP_UNPROCESSABLE, INVALID_CONTENT);
-    const email = resolveEmail(localeContent, variablesOf(send), SEND_MODE);
+    const email = resolveEmail(
+      localeContent,
+      variablesOf(send),
+      SEND_MODE,
+      valueFormatOf(locale, variables),
+    );
     const version = send.templateVersion;
     return {
       html: await renderEmailHtml(email, locale),

@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 import type { HeroBlock } from '../../types/mailing'
-import { TOKEN_DATA_KEY, interpolateText } from '../../utils/tokens'
+import {
+	TOKEN_DATA_KEY,
+	TOKEN_FORMAT_KEY,
+	interpolateText,
+} from '../../utils/tokens'
 
 const TOKEN_OPEN = '{{'
 
@@ -11,9 +15,12 @@ interface Props {
 
 const props = defineProps<Props>()
 const data = inject(TOKEN_DATA_KEY, null)
+const format = inject(TOKEN_FORMAT_KEY, null)
 
 const interpolated = (text: string): string =>
-	data?.value ? interpolateText(text, data.value) : text
+	data?.value
+		? interpolateText(text, data.value, 'preview', format?.value)
+		: text
 
 const imageUrl = computed(() => interpolated(props.block.imageUrl))
 const alt = computed(() => interpolated(props.block.alt))

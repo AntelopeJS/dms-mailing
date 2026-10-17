@@ -27,6 +27,7 @@ const PREPARED: PreparedSend = {
   locale: "en",
   requestedLocale: "en",
   version: 1,
+  format: { locale: "en", datePaths: new Set() },
   templateId: "template-1",
   slug: "welcome",
   tenantId: "tenant-1",

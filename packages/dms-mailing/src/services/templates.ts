@@ -153,6 +153,25 @@ export interface TemplateDraft {
   variables: VariableDefinition[];
 }
 
+/** A snapshot and the version it belongs to; 0 for a draft. */
+export interface VersionedSnapshot extends TemplateDraft {
+  version: number;
+}
+
+/** What a publish would ship: the draft's content and declarations. */
+export const workingSnapshot = (template: MailingTemplate): TemplateDraft => ({
+  content: workingContent(template),
+  variables: workingVariables(template),
+});
+
+/** What customers receive: the published content and declarations. */
+export const publishedSnapshot = (
+  template: MailingTemplate,
+): TemplateDraft => ({
+  content: parseContent(template),
+  variables: parseVariables(template),
+});
+
 /**
  * What `draft` would change for customers and for the callers' contract. A
  * template never published has nothing to compare against: every locale and
@@ -431,19 +450,34 @@ export async function publishTemplate(
   return outcome;
 }
 
+/**
+ * The content and declarations a send of `version` carried: the draft's for
+ * a test of one.
+ */
+export async function snapshotOfVersion(
+  tenantId: string,
+  template: MailingTemplate,
+  version: number,
+): Promise<TemplateDraft> {
+  if (!version) return workingSnapshot(template);
+  const row = await GetModel(TemplateVersionModel, tenantId).getVersion(
+    template._id,
+    version,
+  );
+  if (!row) throw new HTTPResult(HTTP_NOT_FOUND, VERSION_NOT_FOUND);
+  return {
+    content: parseVersionContent(row),
+    variables: parseVersionVariables(row),
+  };
+}
+
 /** The content a send of `version` carried: the draft's for a test of one. */
 export async function contentOfVersion(
   tenantId: string,
   template: MailingTemplate,
   version: number,
 ): Promise<TemplateContent> {
-  if (!version) return workingContent(template);
-  const row = await GetModel(TemplateVersionModel, tenantId).getVersion(
-    template._id,
-    version,
-  );
-  if (!row) throw new HTTPResult(HTTP_NOT_FOUND, VERSION_NOT_FOUND);
-  return parseVersionContent(row);
+  return (await snapshotOfVersion(tenantId, template, version)).content;
 }
 
 export function parseVersionContent(

@@ -49,6 +49,8 @@ const result = await SendTemplate("order-confirmed", {
 - Only the **published** version is sent; drafts go out only as tests (`[TEST]` subject, out of the figures).
 - Variables are typed (`string`, `text`, `number`, `money`, `date`, `url`, `boolean`, `array`) and declared on
   the template; pass every required one.
+- Don't pre-format amounts and dates per locale: pass `{ value: 987420, currency: "EUR" }` (minor units) or a
+  `Date`, or an ISO string at a `date` path; the send locale formats them. Plain strings print as given.
 - In-process events: `RecordEmailEvent(tenantId, { provider, messageId, type, details })`.
   HTTP: `POST <clientBaseUrl>/api/mailing/events/<provider>/<tenantId>` with header `x-mailing-webhook-secret`.
 - Automation (if `interface-dms-automation` is loaded): action `mailing.send-template`, trigger `mailing.email-event`.
