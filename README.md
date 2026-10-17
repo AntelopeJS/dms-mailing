@@ -61,7 +61,7 @@ await SendTemplate("order-confirmation", {
 | `@antelopejs/dms` | `>=0.9.0 <1.0.0` |
 | `@antelopejs/interface-dms` | `>=0.7.1 <1.0.0` |
 | `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.6.1 <0.7.0` |
-| `@antelopejs/interface-dms-mailing` | `>=0.7.0 <0.8.0` |
+| `@antelopejs/interface-dms-mailing` | `>=0.8.0 <0.9.0` |
 | E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
 
 On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
@@ -107,7 +107,7 @@ pnpm test           # backend (unit and integration), then the frontend layer
 
 - Every backend-declared text uses the `$key` convention: a string starting with `$` is resolved against the i18n catalogs by the frontend. Add keys to `frontend-vue/i18n/locales/mailing-en-GB.json` and its French counterpart.
 - Every read goes through the DMS's `useApiData`: what a page renders is read by the server render and handed to the browser; what a drawer, a dialog, a preview frame or the editor shows is read when it opens (`immediate: false`, `useMailingReads`). Writes stay on `useMailingApi`.
-- The module implements the interface, so it caps its range below the next minor (`>=0.7.0 <0.8.0`); inside the workspace that range resolves to the sibling package. Release the interface first (**Release DMS mailing interface**), then the module (**Release DMS mailing module**), which refuses to run until the interface version its range is floored at resolves on npm.
+- The module implements the interface, so it caps its range below the next minor (`>=0.8.0 <0.9.0`); inside the workspace that range resolves to the sibling package. Release the interface first (**Release DMS mailing interface**), then the module (**Release DMS mailing module**), which refuses to run until the interface version its range is floored at resolves on npm.
 - `docs/design/design-v2-grill-me.md` records the decisions behind the v2 redesign.
 
 </details>
