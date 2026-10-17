@@ -266,6 +266,25 @@ export interface DeclareTemplateCategoryResult {
 }
 
 /**
+ * The workspace's sender a project ships as code: what the settings'
+ * Sender section holds.
+ */
+export interface SenderDeclaration {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  /** The address e-mails are sent from. */
+  email: string;
+  /** The name shown next to it; none when absent. */
+  name?: string;
+  /** Where replies go; to the sender address when absent. */
+  replyTo?: string;
+}
+
+export interface DeclareSenderResult {
+  outcome: DeclarationOutcome;
+}
+
+/**
  * A provider event of an imported send. Its `at` is kept as given: the
  * timeline and the metrics read it.
  */
@@ -361,6 +380,19 @@ export const DeclareTemplateCategory =
     (
       declaration: TemplateCategoryDeclaration,
     ) => Promise<DeclareTemplateCategoryResult>
+  >();
+
+/**
+ * Sets the workspace's sender (from name, address, reply-to) from code. It is
+ * written on a workspace without a sender, refreshed while it still holds
+ * the last declaration, and otherwise left as a user set, changed or cleared
+ * it: see {@link DeclarationOutcome}. Waits for the module and its database
+ * when called early. Serialization with the category declarations is
+ * process-local; coordinate concurrent settings writers.
+ */
+export const DeclareSender =
+  InterfaceFunction<
+    (declaration: SenderDeclaration) => Promise<DeclareSenderResult>
   >();
 
 /**

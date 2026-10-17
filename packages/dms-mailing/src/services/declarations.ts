@@ -31,7 +31,12 @@ import { categoriesSchema } from "../validation/settings.schema";
 import { DeclarationError, parseDeclared } from "./declaration-error";
 import { fingerprintOf } from "./fingerprint";
 import { inQueue } from "./serial-queue";
-import { findCategory, getSettings, saveSettings } from "./settings";
+import {
+  findCategory,
+  getSettings,
+  saveSettings,
+  settingsQueueKey,
+} from "./settings";
 import {
   assertSlugClaimed,
   blankFields,
@@ -337,14 +342,6 @@ type DeclaredCategories = Record<string, string>;
 
 const categoryFingerprint = (category: Omit<TemplateCategory, "id">) =>
   fingerprintOf({ label: category.label, icon: category.icon });
-
-/**
- * Settings writers of one tenant run one after the other: each rewrites the
- * whole settings row, and a project declaring several categories at once
- * must not lose any to a concurrent write.
- */
-const settingsQueueKey = (tenantId: string): string =>
-  `${tenantId}\nsettings`;
 
 async function readDeclaredCategories(
   tenantId: string,

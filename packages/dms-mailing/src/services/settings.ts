@@ -92,6 +92,14 @@ export async function saveSettings(
   return values;
 }
 
+/**
+ * The queue of the tenant's settings writers from code: each rewrites the
+ * whole row or several of its fields, and a project declaring several
+ * categories, or its sender, at once must not lose any to a concurrent write.
+ */
+export const settingsQueueKey = (tenantId: string): string =>
+  `${tenantId}\nsettings`;
+
 export function findCategory(
   categories: TemplateCategory[],
   id: string,
