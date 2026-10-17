@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   DeclarationOutcome,
   DeclareTemplateCategoryResult,
@@ -8,7 +9,14 @@ import type {
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
-import { type MailingTemplate, SettingsModel, TemplateModel } from "../db";
+import {
+  type MailingTemplate,
+  SettingsModel,
+  TemplateModel,
+  TemplateSlugModel,
+  TemplateVersionModel,
+  templateSlugIdOf,
+} from "../db";
 import type {
   TemplateCategory,
   TemplateContent,
@@ -33,9 +41,10 @@ import {
   parseTestData,
   parseVariables,
   publishedVersionOf,
-  publishTemplate,
+  publishSnapshot,
   requireTemplate,
-  saveDraft,
+  workingContent,
+  workingVariables,
 } from "./templates";
 
 /** Who a declaration's writes are shown as by default. */
@@ -43,6 +52,7 @@ const DECLARATION_AUTHOR = "system";
 
 const LIVE_STATUS = "live";
 const LOG_PREFIX = "[dms-mailing]";
+const MAX_DECLARATION_ATTEMPTS = 5;
 
 /** What a declaration fingerprints: everything a user may change after it. */
 interface DeclaredTemplateState {
@@ -95,9 +105,7 @@ function assertKnownCategory(
   );
 }
 
-async function planTemplate(
-  declaration: ParsedTemplateDeclaration,
-): Promise<TemplatePlan> {
+function planTemplate(declaration: ParsedTemplateDeclaration): TemplatePlan {
   const tenantId = declaration.tenantId ?? DEFAULT_TENANT_ID;
   const { slug } = declaration;
   const state = asStored<DeclaredTemplateState>({
@@ -108,8 +116,6 @@ async function planTemplate(
     testData: declaration.testData,
   });
   assertPublishable(state.content, slug);
-  const settings = await getSettings(tenantId);
-  assertKnownCategory(settings.categories, state.category, slug);
   return {
     tenantId,
     slug,
@@ -137,25 +143,29 @@ function currentFingerprint(template: MailingTemplate): string | null {
 function resultOf(
   template: MailingTemplate,
   outcome: DeclarationOutcome,
+  version = publishedVersionOf(template),
 ): DeclareTemplateResult {
   return {
     templateId: template._id,
     slug: template.slug,
     outcome,
-    version: publishedVersionOf(template),
+    version,
   };
 }
 
 /**
  * Inserts the template as a fresh draft of the declared content, claims its
- * slug like the dashboard's creation does, then publishes it as v1. Answers
- * `undefined` when a concurrent declaration claimed the slug first.
+ * slug like the dashboard's creation does. The seed is not an applied
+ * declaration: any caller can finish its first publication after a crash.
  */
 async function createDeclared(
   plan: TemplatePlan,
 ): Promise<MailingTemplate | undefined> {
   const { tenantId, slug, state, author } = plan;
   const model = GetModel(TemplateModel, tenantId);
+  const settings = await getSettings(tenantId);
+  assertKnownCategory(settings.categories, state.category, slug);
+  const revision = randomUUID();
   const [id] = await model.insert({
     slug,
     name: state.name,
@@ -165,7 +175,9 @@ async function createDeclared(
     json_variables: JSON.stringify(state.variables),
     json_test_data: JSON.stringify(state.testData),
     updatedBy: author,
-    declaredHash: plan.hash,
+    revision,
+    declarationSeedRevision: revision,
+    pendingDeclaredHash: plan.hash,
   });
   const templateId = id as string;
   try {
@@ -174,44 +186,65 @@ async function createDeclared(
     if (await model.getBySlug(slug)) return undefined;
     throw error;
   }
-  await publishTemplate(
-    tenantId,
-    await requireTemplate(model, templateId),
-    author,
-  );
   return requireTemplate(model, templateId);
 }
 
 /**
- * Ships the new declaration over a template still exactly as the last one
- * left it: the content and declarations through a draft and a publish (a
- * version row when they changed), then the other fields and the fingerprint.
+ * A slug claim, not an arbitrary candidate row, decides which template won
+ * concurrent creation. An unclaimed seed can be claimed by its next caller.
  */
-async function refreshDeclared(
-  plan: TemplatePlan,
-  template: MailingTemplate,
-): Promise<MailingTemplate> {
-  const { tenantId, state, author } = plan;
+async function declaredTemplate(
+  tenantId: string,
+  slug: string,
+): Promise<MailingTemplate | undefined> {
   const model = GetModel(TemplateModel, tenantId);
-  await saveDraft(
-    tenantId,
-    template,
-    { content: state.content, variables: state.variables },
-    author,
+  const claim = await GetModel(TemplateSlugModel, tenantId).get(
+    templateSlugIdOf(tenantId, slug),
   );
-  await publishTemplate(
-    tenantId,
-    await requireTemplate(model, template._id),
-    author,
+  const winner = claim && (await model.get(claim.templateId));
+  return winner || model.getBySlug(slug);
+}
+
+function isUnmodifiedSeed(template: MailingTemplate): boolean {
+  return Boolean(
+    template.pendingDeclaredHash &&
+    template.declarationSeedRevision &&
+    template.revision === template.declarationSeedRevision &&
+    template.status === "draft" &&
+    template.publishedVersion === 0,
   );
-  await model.update(template._id, {
-    name: state.name,
-    category: state.category,
-    json_test_data: JSON.stringify(state.testData),
-    declaredHash: plan.hash,
-    updatedBy: author,
-  });
-  return requireTemplate(model, template._id);
+}
+
+/** Finishes the stored seed, never substituting a later caller's declaration. */
+async function finishSeed(
+  tenantId: string,
+  template: MailingTemplate,
+): Promise<boolean> {
+  try {
+    await assertSlugClaimed(tenantId, template.slug, template._id);
+  } catch (error) {
+    const winner = await declaredTemplate(tenantId, template.slug);
+    if (winner && winner._id !== template._id) return false;
+    throw error;
+  }
+  const settings = await getSettings(tenantId);
+  assertKnownCategory(settings.categories, template.category, template.slug);
+  return Boolean(
+    await publishSnapshot(
+      tenantId,
+      template,
+      {
+        content: workingContent(template),
+        variables: workingVariables(template),
+      },
+      template.updatedBy,
+      {
+        declaredHash: template.pendingDeclaredHash,
+        pendingDeclaredHash: "",
+        declarationSeedRevision: "",
+      },
+    ),
+  );
 }
 
 /** Why an existing template is left alone, `null` when it may be refreshed. */
@@ -226,16 +259,41 @@ async function applyToExisting(
   plan: TemplatePlan,
   template: MailingTemplate,
 ): Promise<DeclareTemplateResult> {
-  if (template.declaredHash === plan.hash)
-    return resultOf(template, "unchanged");
-  const reason = keepReason(template);
-  if (reason) {
-    Logging.Info(
-      `${LOG_PREFIX} Kept template "${plan.slug}" as it is: ${reason}`,
-    );
-    return resultOf(template, "kept");
+  const { tenantId, state, author } = plan;
+  for (let attempt = 0; attempt < MAX_DECLARATION_ATTEMPTS; attempt++) {
+    if (isUnmodifiedSeed(template)) {
+      const created = await finishSeed(tenantId, template);
+      if (created && template.pendingDeclaredHash === plan.hash)
+        return resultOf(template, "created", 1);
+    } else {
+      await GetModel(TemplateVersionModel, tenantId).materialize(template);
+      if (template.publishedVersion > 0 && template.declaredHash === plan.hash)
+        return resultOf(template, "unchanged");
+      const reason = keepReason(template);
+      if (reason) {
+        Logging.Info(
+          `${LOG_PREFIX} Kept template "${plan.slug}" as it is: ${reason}`,
+        );
+        return resultOf(template, "kept");
+      }
+      const settings = await getSettings(tenantId);
+      assertKnownCategory(settings.categories, state.category, plan.slug);
+      const outcome = await publishSnapshot(tenantId, template, state, author, {
+        name: state.name,
+        category: state.category,
+        json_test_data: JSON.stringify(state.testData),
+        declaredHash: plan.hash,
+      });
+      if (outcome) return resultOf(template, "updated", outcome.version);
+    }
+    const current = await declaredTemplate(tenantId, plan.slug);
+    if (!current) break;
+    template = current;
   }
-  return resultOf(await refreshDeclared(plan, template), "updated");
+  throw new DeclarationError(
+    "declaration_conflict",
+    `Template "${plan.slug}" changed repeatedly; retry the declaration`,
+  );
 }
 
 /**
@@ -263,13 +321,15 @@ export async function declareTemplate(
     "invalid_template",
     `template declaration "${String(input?.slug)}"`,
   );
-  const plan = await planTemplate(declaration);
-  const model = GetModel(TemplateModel, plan.tenantId);
-  const existing = await model.getBySlug(plan.slug);
+  const plan = planTemplate(declaration);
+  const existing = await declaredTemplate(plan.tenantId, plan.slug);
   if (existing) return applyToExisting(plan, existing);
   const created = await createDeclared(plan);
-  if (created) return resultOf(created, "created");
-  const winner = (await model.getBySlug(plan.slug)) as MailingTemplate;
+  if (created) return applyToExisting(plan, created);
+  const winner = (await declaredTemplate(
+    plan.tenantId,
+    plan.slug,
+  )) as MailingTemplate;
   return applyToExisting(plan, winner);
 }
 

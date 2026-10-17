@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -68,6 +69,7 @@ async function claimTemplateSlug(
   const id = templateSlugIdOf(tenantId, slug);
   if (await claims.insertClaim(id, slug, templateId)) return true;
   const holder = await claims.get(id);
+  if (holder?.templateId === templateId) return true;
   if (holder) {
     const templates = GetModel(TemplateModel, tenantId);
     if (await templates.get(holder.templateId)) return false;
@@ -340,48 +342,69 @@ export interface PublishOutcome {
   changes: TemplateChange[];
 }
 
-/** What a publish ships: the working content and declarations. */
-interface Shipment {
-  content: TemplateContent;
-  variables: string;
-  version: number;
-  changes: TemplateChange[];
-}
-
 /**
- * Keeps `shipment` as a version row for the history and makes it what
- * customers receive, the draft cleared.
+ * Publishes a snapshot in one conditional write, including declaration
+ * metadata when supplied. A losing writer never inserts speculative history.
+ * The latest version is recoverable from the template after a failed history
+ * insert; before replacing it we must materialize the previous version.
  */
-async function ship(
+export async function publishSnapshot(
   tenantId: string,
   template: MailingTemplate,
-  shipment: Shipment,
+  draft: TemplateDraft,
   author: string,
-): Promise<void> {
-  const { content, variables, version, changes } = shipment;
-  const shipped = {
-    json_content: JSON.stringify(content),
-    json_variables: variables,
-    locales: localesOf(content),
-    publishedAt: new Date(),
-    publishedBy: author,
-  };
-  await GetModel(TemplateVersionModel, tenantId).insert({
+  metadata: Partial<MailingTemplate> = {},
+): Promise<PublishOutcome | undefined> {
+  const previous = publishedVersionOf(template);
+  const changes = changesOf(template, draft);
+  const isUnchanged = previous > NEVER_PUBLISHED && changes.length === 0;
+  const version = isUnchanged ? previous : previous + 1;
+  const versions = GetModel(TemplateVersionModel, tenantId);
+  await versions.materialize(template);
+  const shipped: Partial<MailingTemplate> = isUnchanged
+    ? {}
+    : {
+        json_content: JSON.stringify(draft.content),
+        json_variables: JSON.stringify(draft.variables),
+        locales: localesOf(draft.content),
+        publishedAt: new Date(),
+        publishedBy: author,
+      };
+  const history = isUnchanged
+    ? {}
+    : {
+        json_published_version: JSON.stringify({
+          ...shipped,
+          _id: randomUUID(),
+          templateId: template._id,
+          version,
+          json_changes: JSON.stringify(changes),
+        }),
+      };
+  const patch: Partial<MailingTemplate> = {
+    ...metadata,
     ...shipped,
-    templateId: template._id,
-    version,
-    json_changes: JSON.stringify(changes),
-  });
-  await GetModel(TemplateModel, tenantId).update(template._id, {
-    ...shipped,
+    ...history,
     json_draft: "",
     json_variables_draft: "",
     isDraftPending: false,
-    draftRevision: template.draftRevision + 1,
+    draftRevision:
+      template.draftRevision + Number(!isUnchanged || hasDraft(template)),
     status: "live",
     publishedVersion: version,
+    publishedAt: shipped.publishedAt ?? template.publishedAt ?? new Date(),
     updatedBy: author,
+  };
+  if (
+    !(await GetModel(TemplateModel, tenantId).publishIfCurrent(template, patch))
+  )
+    return undefined;
+  await versions.materialize({
+    json_published_version:
+      patch.json_published_version ?? template.json_published_version,
   });
+  await refreshTemplateAttention(tenantId);
+  return { version, changes };
 }
 
 /**
@@ -394,49 +417,18 @@ export async function publishTemplate(
   template: MailingTemplate,
   author: string,
 ): Promise<PublishOutcome> {
-  const previous = publishedVersionOf(template);
-  const changes = pendingChanges(template);
-  const isUnchanged = previous > NEVER_PUBLISHED && changes.length === 0;
-  const version = isUnchanged ? previous : previous + 1;
-  if (isUnchanged) await markLive(tenantId, template, previous, author);
-  else
-    await ship(
-      tenantId,
-      template,
-      {
-        content: workingContent(template),
-        variables: JSON.stringify(workingVariables(template)),
-        version,
-        changes,
-      },
-      author,
-    );
-  await refreshTemplateAttention(tenantId);
-  return { version, changes };
-}
-
-/** Puts `version` back live; a draft equal to it is dropped on the way. */
-async function markLive(
-  tenantId: string,
-  template: MailingTemplate,
-  version: number,
-  author: string,
-): Promise<void> {
-  const draft = hasDraft(template)
-    ? {
-        json_draft: "",
-        json_variables_draft: "",
-        isDraftPending: false,
-        draftRevision: template.draftRevision + 1,
-      }
-    : {};
-  await GetModel(TemplateModel, tenantId).update(template._id, {
-    status: "live",
-    publishedVersion: version,
-    publishedAt: template.publishedAt ?? new Date(),
-    updatedBy: author,
-    ...draft,
-  });
+  const outcome = await publishSnapshot(
+    tenantId,
+    template,
+    {
+      content: workingContent(template),
+      variables: workingVariables(template),
+    },
+    author,
+  );
+  if (!outcome)
+    throw new HTTPResult(HTTP_CONFLICT, "$dms_mailing.errors.draft_conflict");
+  return outcome;
 }
 
 /** The content a send of `version` carried: the draft's for a test of one. */

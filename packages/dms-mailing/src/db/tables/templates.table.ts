@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
 import {
+  attachModifier,
   CreationTime,
   Field,
   Index,
+  Modifier,
   RegisterTable,
   Table,
   UpdateTime,
@@ -136,4 +139,31 @@ export class MailingTemplate extends Table {
    */
   @Field("string")
   declare declaredHash?: string;
+
+  /** Every semantic edit invalidates a publication's optimistic snapshot. */
+  @Field("string")
+  declare revision?: string;
+
+  /** An unmodified declaration seed can be completed after a crashed creator. */
+  @Field("string")
+  declare declarationSeedRevision?: string;
+
+  @Field("string")
+  declare pendingDeclaredHash?: string;
+
+  /**
+   * Complete latest version row, committed atomically with its content. Its
+   * history row can be recovered after an interrupted publication.
+   */
+  @Field("string")
+  declare json_published_version?: string;
 }
+
+/** Covers model updates and generated data-api edits in the same database write. */
+class TemplateRevisionModifier extends Modifier {
+  update(object: Record<string, unknown>, field: string): void {
+    object[field] = randomUUID();
+  }
+}
+
+attachModifier(MailingTemplate, TemplateRevisionModifier, "revision", {});

@@ -141,6 +141,7 @@ describe("[integration] template declarations", () => {
       "unchanged",
       "unchanged",
     ]);
+    expect(results.map((result) => result.version)).to.deep.equal([1, 1, 1, 1]);
     expect(await rowsWithSlug(slug)).to.equal(1);
   });
 
@@ -162,6 +163,164 @@ describe("[integration] template declarations", () => {
       "Your new order is ready",
     );
     expect(await versionsOf(api, created.templateId)).to.deep.equal([2, 1]);
+  });
+
+  it("finishes a declaration whose creator failed immediately after inserting its seed", async () => {
+    const { DeclareTemplate } = await mailing();
+    const { TemplateModel } = await import("../../db");
+    const slug = `declared-interrupted-${stamp}`;
+    // Retain the original for fault injection; invoke it with the model receiver.
+    // oxlint-disable-next-line typescript/unbound-method
+    const insert = TemplateModel.prototype.insert;
+    TemplateModel.prototype.insert = async function (fields, options) {
+      const ids = await insert.call(this, fields, options);
+      if (!Array.isArray(fields) && fields.slug === slug)
+        throw new Error("Interrupted after seed insert");
+      return ids;
+    };
+    try {
+      const error = await DeclareTemplate(declaration(slug)).catch(
+        (reason: Error) => reason,
+      );
+      expect(error).to.be.instanceOf(Error);
+    } finally {
+      TemplateModel.prototype.insert = insert;
+    }
+    const resumed = await DeclareTemplate(declaration(slug));
+    expect(resumed).to.include({ outcome: "created", version: 1 });
+    expect(await rowsWithSlug(slug)).to.equal(1);
+    expect(await versionsOf(await client(), resumed.templateId)).to.deep.equal([
+      1,
+    ]);
+  });
+
+  it("preserves edits made after a declaration read its publication snapshot", async () => {
+    const { DeclareTemplate } = await mailing();
+    const { TemplateModel } = await import("../../db");
+    const api = await client();
+    const edits = [
+      async (id: string) =>
+        api.post(`${TEMPLATES}/${id}/content`, {
+          content: contentWith("User draft"),
+        }),
+      async (id: string) => api.post(`${TEMPLATES}/${id}/archive`, {}),
+      async (id: string) =>
+        api.put(`${TABLE}/edit?id=${id}`, {
+          name: "User name",
+          category: "billing",
+        }),
+      async (id: string) =>
+        api.post(`${TEMPLATES}/${id}/test-data`, { data: { user: true } }),
+      async (id: string) => {
+        const saved = await api.post(`${TEMPLATES}/${id}/content`, {
+          content: contentWith("User publication"),
+        });
+        expect(saved.status).to.equal(HTTP_OK);
+        return api.post(`${TEMPLATES}/${id}/publish`, {});
+      },
+    ];
+    for (const [index, edit] of edits.entries()) {
+      const slug = `declared-user-race-${index}-${stamp}`;
+      const created = await DeclareTemplate(declaration(slug));
+      // Invoke the saved implementation with the original receiver below.
+      // oxlint-disable-next-line typescript/unbound-method
+      const publish = TemplateModel.prototype.publishIfCurrent;
+      let edited = false;
+      TemplateModel.prototype.publishIfCurrent = async function (
+        snapshot,
+        patch,
+      ) {
+        if (snapshot._id === created.templateId && !edited) {
+          edited = true;
+          const response = await edit(snapshot._id);
+          expect(response.status, JSON.stringify(response.data)).to.equal(
+            HTTP_OK,
+          );
+        }
+        return publish.call(this, snapshot, patch);
+      };
+      try {
+        const result = await DeclareTemplate(
+          declaration(slug, { content: contentWith("Code update") }),
+        );
+        const userPublished = index === edits.length - 1;
+        expect(result).to.include({
+          outcome: "kept",
+          version: userPublished ? 2 : 1,
+        });
+        const content = await api.get(
+          `${TEMPLATES}/${created.templateId}/content`,
+        );
+        expect(content.data.publishedContent.locales.en.subject).to.equal(
+          userPublished ? "User publication" : "Your order is ready",
+        );
+        expect(await versionsOf(api, created.templateId)).to.deep.equal(
+          userPublished ? [2, 1] : [1],
+        );
+      } finally {
+        TemplateModel.prototype.publishIfCurrent = publish;
+      }
+    }
+  });
+
+  it("keeps committed history readable and recoverable when its insert fails", async () => {
+    const { DeclareTemplate } = await mailing();
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { DEFAULT_TENANT_ID } =
+      await import("@antelopejs/interface-dms/constants");
+    const { TemplateVersionModel } = await import("../../db");
+    const slug = `declared-history-recovery-${stamp}`;
+    const first = await DeclareTemplate(declaration(slug));
+    // Retain the original for fault injection; invoke it with the model receiver.
+    // oxlint-disable-next-line typescript/unbound-method
+    const insert = TemplateVersionModel.prototype.insert;
+    TemplateVersionModel.prototype.insert = async function (fields, options) {
+      if (
+        !Array.isArray(fields) &&
+        fields.templateId === first.templateId &&
+        fields.version === 2
+      )
+        throw new Error("History storage unavailable");
+      return insert.call(this, fields, options);
+    };
+    const changed = declaration(slug, { content: contentWith("Committed v2") });
+    try {
+      const error = await DeclareTemplate(changed).catch(
+        (reason: Error) => reason,
+      );
+      expect(error).to.be.instanceOf(Error);
+      const api = await client();
+      expect(await versionsOf(api, first.templateId)).to.deep.equal([2, 1]);
+      const version = await GetModel(
+        TemplateVersionModel,
+        DEFAULT_TENANT_ID,
+      ).getVersion(first.templateId, 2);
+      expect(JSON.parse(version!.json_content).locales.en.subject).to.equal(
+        "Committed v2",
+      );
+    } finally {
+      TemplateVersionModel.prototype.insert = insert;
+    }
+    expect(await DeclareTemplate(changed)).to.include({
+      outcome: "unchanged",
+      version: 2,
+    });
+    const rows = await GetModel(TemplateVersionModel, DEFAULT_TENANT_ID).getBy(
+      "templateId",
+      first.templateId,
+    );
+    expect(rows.map((row) => row.version).sort((a, b) => a - b)).to.deep.equal([
+      1, 2,
+    ]);
+    expect(
+      await DeclareTemplate(
+        declaration(slug, { content: contentWith("Next v3") }),
+      ),
+    ).to.include({ outcome: "updated", version: 3 });
+    expect(await versionsOf(await client(), first.templateId)).to.deep.equal([
+      3, 2, 1,
+    ]);
   });
 
   it("keeps a template a user edited since it was declared", async () => {
@@ -241,6 +400,74 @@ describe("[integration] template declarations", () => {
     ).catch((reason: Error) => reason);
     expect((invalid as Error).message).to.match(/slug/);
   });
+
+  it("isolates declarations and imports with identical keys in different tenants", async () => {
+    const { DeclareTemplate, DeclareTemplateCategory, ImportSends } =
+      await mailing();
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { TemplateModel, SendModel, SendEventModel } =
+      await import("../../db");
+    const { getSettings } = await import("../../services/settings");
+    const slug = `tenant-shared-${stamp}`;
+    const tenants = [`mailing-a-${stamp}`, `mailing-b-${stamp}`];
+    const templateIds: string[] = [];
+    const sendIds: string[] = [];
+    for (const tenantId of tenants) {
+      await DeclareTemplateCategory({
+        tenantId,
+        id: "custom",
+        label: tenantId,
+        icon: "i-ph-tag",
+      });
+      const template = await DeclareTemplate(
+        declaration(slug, {
+          tenantId,
+          category: "custom",
+          content: contentWith(tenantId),
+        }),
+      );
+      templateIds.push(template.templateId);
+      const imported = await ImportSends({
+        tenantId,
+        sends: [
+          {
+            importId: "same-provider-key",
+            templateSlug: slug,
+            to: RECIPIENT,
+            sentAt: new Date(),
+          },
+        ],
+      });
+      sendIds.push(imported.sendIds[0]!);
+    }
+    expect(new Set(templateIds).size).to.equal(2);
+    expect(new Set(sendIds).size).to.equal(2);
+    for (const [index, tenantId] of tenants.entries()) {
+      const other = 1 - index;
+      const templates = GetModel(TemplateModel, tenantId);
+      expect(await templates.get(templateIds[other]!)).to.equal(undefined);
+      expect(
+        JSON.parse((await templates.getBySlug(slug))!.json_content).locales.en
+          .subject,
+      ).to.equal(tenantId);
+      expect(
+        (await getSettings(tenantId)).categories.find(
+          (category) => category.id === "custom",
+        )?.label,
+      ).to.equal(tenantId);
+      expect(await GetModel(SendModel, tenantId).get(sendIds[other]!)).to.equal(
+        undefined,
+      );
+      expect(
+        await GetModel(SendEventModel, tenantId).getBySend(sendIds[other]!),
+      ).to.deep.equal([]);
+      expect(
+        (await GetModel(SendEventModel, tenantId).getBySend(sendIds[index]!))
+          .length,
+      ).to.equal(1);
+    }
+  });
 });
 
 /**
@@ -293,7 +520,7 @@ describe("[integration] template category declarations", () => {
   });
 
   it("relabels an untouched category and keeps a removed one away", async () => {
-    const { DeclareTemplateCategory } = await mailing();
+    const { DeclareTemplateCategory, DeclareTemplate } = await mailing();
     const id = "workshops";
     await DeclareTemplateCategory({
       tenantId,
@@ -311,6 +538,12 @@ describe("[integration] template category declarations", () => {
     const labels = (await storedCategories()).map((category) => category.label);
     expect(labels).to.include("Trainings");
 
+    const template = declaration("removed-category", {
+      tenantId,
+      category: id,
+    });
+    await DeclareTemplate(template);
+
     const { getSettings, saveSettings } =
       await import("../../services/settings");
     const settings = await getSettings(tenantId);
@@ -326,6 +559,17 @@ describe("[integration] template category declarations", () => {
     });
     expect(redeclared.outcome).to.equal("kept");
     expect(await categoryIds()).to.not.include(id);
+    expect((await DeclareTemplate(template)).outcome).to.equal("unchanged");
+
+    const { GetModel } =
+      await import("@antelopejs/interface-database-decorators");
+    const { TemplateModel } = await import("../../db");
+    const model = GetModel(TemplateModel, tenantId);
+    const stored = await model.getBySlug(template.slug);
+    await model.update(stored!._id, { category: "orders" });
+    expect(
+      (await DeclareTemplate({ ...template, name: "Code changed" })).outcome,
+    ).to.equal("kept");
   });
 
   it("leaves a default category as the workspace has it", async () => {
