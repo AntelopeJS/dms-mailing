@@ -46,6 +46,7 @@
 				"description": "E-mails use the provider’s default address.",
 				"action": "Set the sender"
 			},
+			"name_pair": "{first}, {second}",
 			"more_names": "{names} and {count} more"
 		},
 		"blocks": {

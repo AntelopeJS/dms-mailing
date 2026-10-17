@@ -85,6 +85,8 @@ export async function declareMailingContent(tenantId: string) {
   draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
   A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.
 - Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
+- `name` / `label` may be `$` i18n keys (`$acme.mails.welcome`), translated in the dashboard from the project's
+  frontend locale files; a dashboard rename stores text (then `kept`).
 - `DeclareSender({ tenantId, email, name?, replyTo? })` fills the settings' sender with the same rule: written on a
   workspace without one, `kept` once a user set, changed or cleared it; refusals use `invalid_sender`.
 - Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,

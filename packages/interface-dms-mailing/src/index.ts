@@ -215,6 +215,11 @@ export interface TemplateDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   slug: string;
+  /**
+   * Shown in the dashboard. A `$`-prefixed i18n key (`$acme.mails.welcome`)
+   * is read in each user's language, from translations the project's
+   * frontend module ships.
+   */
   name: string;
   /** A category id the workspace settings declare; none when absent. */
   category?: string;
@@ -255,6 +260,7 @@ export interface TemplateCategoryDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   id: string;
+  /** Shown in the dashboard; a `$`-prefixed i18n key, like a template's name. */
   label: string;
   /** A Phosphor icon name, such as `i-ph-tag`. */
   icon: string;

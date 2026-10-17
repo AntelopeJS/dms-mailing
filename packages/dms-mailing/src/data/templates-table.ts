@@ -67,7 +67,11 @@ import type { TemplateCategory } from "../types";
 
 import { createTemplateSchema } from "../validation/templates.schema";
 import { parseBody } from "./body";
-import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
+import {
+  CategoryDisplay,
+  LocaleChipsDisplay,
+  TemplateNameDisplay,
+} from "./displays";
 
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
@@ -325,6 +329,7 @@ export class TemplatesTableAPI extends DataController(
       minLength: MIN_NAME_LENGTH,
       maxLength: MAX_NAME_LENGTH,
     }),
+    display: new TemplateNameDisplay({}),
   })
   declare name: string;
 

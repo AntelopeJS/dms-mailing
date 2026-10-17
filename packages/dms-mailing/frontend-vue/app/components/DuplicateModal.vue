@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -33,6 +34,7 @@ const emit = defineEmits<{ success: [created?: boolean] }>()
 const api = useMailingApi()
 const toast = useToast()
 const { t } = useI18n()
+const localized = useLocalizedDefaults()
 const { processApiMessage } = useTranslation()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
@@ -48,7 +50,7 @@ const saving = ref(false)
 const loading = ref(true)
 
 function prefill(template: TemplateRow): void {
-	name.value = fitName(template.name, (inner) =>
+	name.value = fitName(localized.name(template.name), (inner) =>
 		t('dms_mailing.duplicate.copy_name', { name: inner }),
 	)
 	slug.value = freeSlug(slugify(name.value), takenSlugs.value)
@@ -140,7 +142,9 @@ async function submit(): Promise<void> {
 		@keydown.ctrl.enter.prevent="submit"
 	>
 		<p v-if="source" class="text-muted text-[13px] [overflow-wrap:anywhere]">
-			{{ t('dms_mailing.duplicate.source', { name: source.name }) }}
+			{{
+				t('dms_mailing.duplicate.source', { name: localized.name(source.name) })
+			}}
 			<span class="font-mono">{{ source.slug }}</span>
 		</p>
 		<USkeleton v-else-if="loading" class="h-4 w-2/3" />

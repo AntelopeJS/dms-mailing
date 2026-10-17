@@ -1,5 +1,5 @@
 import type { StarterSummary } from '../types/mailing'
-import type { OptionalTranslate } from './categories'
+import type { OptionalTranslate } from './i18n-text'
 
 const STARTER_NAME_KEY_PREFIX = 'dms_mailing.starters.names'
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -50,6 +51,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 const api = useMailingApi()
 const toast = useToast()
 const { t, locale: uiLocale } = useI18n()
+const localized = useLocalizedDefaults()
 const { processApiMessage } = useTranslation()
 const { user } = useCurrentUser()
 const { uniqueLocales } = useUniqueLocales()
@@ -236,7 +238,7 @@ async function submit(): Promise<void> {
 		@keydown.ctrl.enter.prevent="submit"
 	>
 		<p v-if="template" class="text-muted text-[13px]">
-			{{ template.name }} ·
+			{{ localized.name(template.name) }} ·
 			<span class="font-mono">{{ template.slug }}</span>
 			· {{ draftLabel }}
 		</p>

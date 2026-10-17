@@ -66,7 +66,7 @@ const categoryLabel = computed(() => {
 		>
 			<span class="flex items-center gap-2">
 				<span class="text-highlighted truncate text-sm font-semibold">
-					{{ template.name }}
+					{{ localized.name(template.name) }}
 				</span>
 				<DmsStatusPill
 					size="sm"
