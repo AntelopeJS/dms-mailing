@@ -57,8 +57,8 @@ The implementation is `@antelopejs/dms-mailing >=0.5.0`. The interface declares 
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-core` | `>=0.2.3 <1.0.0` |
-| `@antelopejs/interface-email` | `>=0.0.5 <1.0.0` |
+| `@antelopejs/interface-core` | `>=0.2.4 <1.0.0` |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` |
 
 ## Documentation
 
