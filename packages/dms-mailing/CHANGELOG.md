@@ -1,6 +1,36 @@
 # Changelog
 
 
+## v0.5.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.5.0...v0.5.1)
+
+### 🔥 Performance
+
+- **editor:** Drag with SortableJS through useSortable instead of vuedraggable ([#43](https://github.com/AntelopeJS/dms-mailing/pull/43))
+
+### 🩹 Fixes
+
+- **deps:** Move to @antelopejs/core 1.15.2, @antelopejs/interface-core 0.2.3 and @antelopejs/interface-dms 0.7.1 ([#42](https://github.com/AntelopeJS/dms-mailing/pull/42))
+- **templates:** Keep each slug to one template when creations race ([#44](https://github.com/AntelopeJS/dms-mailing/pull/44))
+
+### 📖 Documentation
+
+- Add user guide, screenshots and dms-mailing skill ([#39](https://github.com/AntelopeJS/dms-mailing/pull/39))
+- Streamline agent guidance ([#45](https://github.com/AntelopeJS/dms-mailing/pull/45))
+- Establish the mailing consumer reference ([#46](https://github.com/AntelopeJS/dms-mailing/pull/46))
+- Make dense guide sections easier to scan ([#47](https://github.com/AntelopeJS/dms-mailing/pull/47))
+
+### 🏡 Chore
+
+- **release:** Prepare mailing interface 0.7.1 ([#49](https://github.com/AntelopeJS/dms-mailing/pull/49))
+- **release:** @antelopejs/interface-dms-mailing v0.7.1 ([2ac536a](https://github.com/AntelopeJS/dms-mailing/commit/2ac536a))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.5.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.4.1...v0.5.0)
