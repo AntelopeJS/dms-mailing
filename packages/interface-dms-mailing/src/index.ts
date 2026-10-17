@@ -231,10 +231,11 @@ export interface TemplateDeclaration {
 /**
  * What a declaration did:
  *
- * - `created`: the slug was free, the template now exists and is live (v1).
+ * - `created`: initial publication completed (including a resumed seed), v1.
  * - `updated`: the declaration changed since the last call and the template
  *   was still exactly as last declared, so the new one was published.
- * - `unchanged`: the declaration is the one already applied; nothing written.
+ * - `unchanged`: the declaration is already applied; content is not changed.
+ *   An interrupted history insert may be repaired. This does not imply live status.
  * - `kept`: the declaration changed but the template was edited, unpublished,
  *   archived or holds a draft since (or was made in the dashboard under that
  *   slug), so it was left as it is.
@@ -245,7 +246,7 @@ export interface DeclareTemplateResult {
   templateId: string;
   slug: string;
   outcome: DeclarationOutcome;
-  /** Version customers receive after the call; 0 when never published. */
+  /** Last published version, or 0; not a guarantee that the template is live. */
   version: number;
 }
 
@@ -277,7 +278,8 @@ export interface ImportedSendEvent {
 /**
  * A send that happened elsewhere (another provider, a demo data set), written
  * into the send log as it was. `importId` is the stable key the caller
- * chooses: importing it again never creates a second send.
+ * chooses within a tenant: importing it again skips a retained send. Retention
+ * also removes this deduplication record. Keep retry payloads immutable.
  */
 export interface ImportedSend {
   importId: string;
@@ -318,10 +320,12 @@ export interface ImportSendsResult {
 }
 
 /**
- * Creates or refreshes a template from code, published so `SendTemplate` can
- * use it at once. Idempotent on `slug`, and never overwrites what a user
+ * Creates or refreshes a template from code. Newly created templates are
+ * published; existing lifecycle choices are preserved. Idempotent on `slug`
+ * within a tenant, and never overwrites what a user
  * changed since the last declaration: see {@link DeclarationOutcome}. Waits
- * for the module and its database when called early.
+ * for the module and its database when called early, not tenant provisioning.
+ * A storage error can reject after publication; retry the same declaration.
  */
 export const DeclareTemplate =
   InterfaceFunction<
@@ -332,6 +336,7 @@ export const DeclareTemplate =
  * Adds a template category to the workspace settings from code. Idempotent
  * on `id`; a category a user relabelled or removed since is left as it is.
  * Waits for the module and its database when called early.
+ * Serialization is process-local; coordinate concurrent settings writers.
  */
 export const DeclareTemplateCategory =
   InterfaceFunction<
@@ -345,6 +350,8 @@ export const DeclareTemplateCategory =
  * an import, not a send. Nothing is delivered, and no suppression,
  * automation or notification follows. Idempotent on each `importId`. Waits
  * for the module and its database when called early.
+ * Deduplicates events like the webhook. Batches are not transactional; retry
+ * a partial failure with the same immutable payload and authorized tenantId.
  */
 export const ImportSends =
   InterfaceFunction<(params: SendImport) => Promise<ImportSendsResult>>();
