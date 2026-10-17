@@ -128,4 +128,12 @@ export class MailingTemplate extends Table {
   /** When the template last left `live` by an unpublish. */
   @Field("date")
   declare unpublishedAt?: Date;
+
+  /**
+   * Fingerprint of the last declaration `DeclareTemplate` applied; blank for
+   * a template made in the dashboard. A template still matching it is
+   * untouched since, and the next declaration may refresh it.
+   */
+  @Field("string")
+  declare declaredHash?: string;
 }

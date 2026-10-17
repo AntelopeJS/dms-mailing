@@ -46,4 +46,12 @@ export class MailingSettings extends Table {
 
   @Field("string")
   declare webhookSecret: string;
+
+  /**
+   * JSON-serialized fingerprint of each category `DeclareTemplateCategory`
+   * applied, by its id: what tells a category untouched since from one a
+   * user relabelled or removed.
+   */
+  @Field("string")
+  declare json_declared_categories?: string;
 }

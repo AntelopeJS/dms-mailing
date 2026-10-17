@@ -16,7 +16,11 @@ import {
   scheduleJob,
   stopJob,
 } from "./crons";
-import { registerTenantExport, unregisterTenantExport } from "./hooks";
+import {
+  registerDatabaseReady,
+  registerTenantExport,
+  unregisterTenantExport,
+} from "./hooks";
 import { registerRealtimeTopics } from "./realtime";
 import { WEBHOOK_SECRET_HEADER } from "./services/webhook-status";
 
@@ -44,6 +48,7 @@ const PROVIDER_WEBHOOK_ENDPOINT = {
 let scheduledJobs: ScheduledJob[] = [];
 
 export async function construct(config: DmsMailingConfig = {}): Promise<void> {
+  registerDatabaseReady();
   setConfig(config);
   ImplementInterface(
     await import("@antelopejs/interface-dms-mailing"),
