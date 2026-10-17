@@ -1,5 +1,5 @@
 name: setup
-description: Node, pnpm, the workspace install and the Vue layer's install.
+description: Node, pnpm and one workspace install including the Vue layer.
 
 runs:
   using: composite
@@ -14,21 +14,14 @@ runs:
         # read a TypeScript config, which every value there clears.
         node-version-file: .nvmrc
         cache: pnpm
-        # The workspace lockfile is at the root, and the Vue layer is a
-        # separate project with its own; the store holds both.
+        # Each workspace project retains its own dependency resolutions.
         cache-dependency-path: |
           pnpm-lock.yaml
-          packages/dms-mailing/frontend-vue/pnpm-lock.yaml
+          packages/*/pnpm-lock.yaml
+          packages/*/frontend-vue/pnpm-lock.yaml
 
-    # `...` pulls in the workspace interface package the module depends on,
-    # and nothing else: the playground and the Vue layer are separate
-    # projects with their own lockfiles. pnpm installs the workspace root
-    # alongside the selection, which the packages' lint configs need: they
-    # import the shared config at the root, whose own `oxlint` and
-    # `@antelopejs/tooling-configs` imports resolve from the root.
-    - run: pnpm install --filter @antelopejs/dms-mailing... --frozen-lockfile
-      shell: bash
-    - run: pnpm --dir packages/dms-mailing/frontend-vue install --frozen-lockfile
+    # Includes root tooling, interface, backend and Vue; excludes playground.
+    - run: pnpm install --frozen-lockfile
       shell: bash
     # The module compiles against the interface's declarations.
     - run: pnpm --dir packages/interface-dms-mailing build

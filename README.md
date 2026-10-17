@@ -87,12 +87,13 @@ The guide's sources live in [`packages/dms-mailing/docs`](./packages/dms-mailing
 
 ## Contributing
 
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. Run the commands below from `packages/dms-mailing`. The playground uses MongoDB at `mongodb://localhost:27017` (set `MONGO_URL` to change it) and sends to Ethereal, or to a local SMTP server when `SMTP_PORT` is set.
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. Start at the repository root: one install covers the shared tooling, backend, interface and Vue development dependencies, retaining each project's lockfile. The playground remains independent. It uses MongoDB at `mongodb://localhost:27017` (set `MONGO_URL` to change it) and sends to Ethereal, or to a local SMTP server when `SMTP_PORT` is set.
 
 ```bash
 pnpm install
-pnpm --dir frontend-vue install
-pnpm --dir playground install
+pnpm --dir packages/interface-dms-mailing build   # declarations needed by the backend
+cd packages/dms-mailing
+pnpm --dir playground install --ignore-workspace
 pnpm dev            # backend on http://localhost:5010
 pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
 pnpm lint           # oxlint, oxfmt and the frontend's ESLint

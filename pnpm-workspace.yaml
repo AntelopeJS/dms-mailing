@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - packages/*/frontend-vue
 
 # pnpm ignores the `pnpm` field of package.json once a workspace file exists.
 onlyBuiltDependencies:
