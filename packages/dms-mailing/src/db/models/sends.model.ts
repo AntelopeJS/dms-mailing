@@ -15,6 +15,12 @@ type NewSend = Omit<
   "_id" | "createdAt" | "revision" | "isRetiring" | "lastActivityAt"
 >;
 
+/** A send written by an import: its own id and date, as it happened. */
+export type ImportedSendRow = Omit<
+  MailingSend,
+  "revision" | "isRetiring" | "lastActivityAt"
+>;
+
 const MAX_MUTATION_ATTEMPTS = 5;
 
 /** A send as the metrics read it: everything but the rendered variables. */
@@ -80,6 +86,22 @@ export class SendModel extends BasicDataModel(
         revision: randomUUID(),
       })
       .run();
+  }
+
+  /**
+   * Writes an imported send under its own id; false when that id is already
+   * taken, by an earlier run of the same import. Probed by state like the
+   * slug claims, since the database exposes no typed conflict error.
+   */
+  async insertImported(send: ImportedSendRow): Promise<boolean> {
+    if (await this.get(send._id)) return false;
+    try {
+      await this.table.insert({ ...send, revision: randomUUID() }).run();
+      return true;
+    } catch (error) {
+      if (await this.get(send._id)) return false;
+      throw error;
+    }
   }
 
   /** Reads the stored row, including the revision the mutation contract compares. */
