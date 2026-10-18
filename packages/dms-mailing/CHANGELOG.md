@@ -1,6 +1,32 @@
 # Changelog
 
 
+## v0.6.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.5.1...v0.6.0)
+
+### 🚀 Enhancements
+
+- Declare templates and categories from code, import past sends ([#51](https://github.com/AntelopeJS/dms-mailing/pull/51))
+
+### 📖 Documentation
+
+- **mailing:** Align compatibility guidance for release 0.6 ([db420f0](https://github.com/AntelopeJS/dms-mailing/commit/db420f0))
+
+### 📦 Build
+
+- Install frontend development dependencies from the root ([#48](https://github.com/AntelopeJS/dms-mailing/pull/48))
+- **mailing:** Align runtime with published interface 0.8 ([b7264a3](https://github.com/AntelopeJS/dms-mailing/commit/b7264a3))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms-mailing v0.8.0 ([7dc2dd6](https://github.com/AntelopeJS/dms-mailing/commit/7dc2dd6))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Maxime Westhoven <maxime@altab.be>
+
 ## v0.5.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.5.0...v0.5.1)
