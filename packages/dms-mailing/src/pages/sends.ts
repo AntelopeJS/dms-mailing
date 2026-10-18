@@ -29,6 +29,8 @@ const DAY_MS = 86_400_000;
 const STAT_COLUMNS = 5;
 const TEMPLATES_PAGE = "/modules/mailing/templates";
 const SUPPRESSIONS_PAGE = "/modules/mailing/suppressions";
+/** About twice the default side panel: the send's JSON reads without wrapping. */
+const SEND_PANEL_SIZE = "xl";
 const FIRST_SEND_SNIPPET = [
   'await SendTemplate("order-confirmed", {',
   '  to: "margaux@northwind.co",',
@@ -299,6 +301,14 @@ export class SendsPageController extends PageController(
           isDefault: true,
           target: {
             type: "sidePanel",
+            /**
+             * Over the log rather than beside it: the table keeps its width
+             * while a send is read, and the wider panel gives the data sent
+             * and the timeline room. Row navigation, the counter, the deep
+             * link and the live-table hold work the same in this mode.
+             */
+            overlay: true,
+            size: SEND_PANEL_SIZE,
             component: CustomComponent("MailingSendDrawer").meta(
               permissionMeta("send_drawer", "i-ph-info"),
             ),
