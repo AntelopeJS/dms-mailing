@@ -44,7 +44,12 @@ import {
   type TotalsExtractor,
 } from "../services/metrics";
 import { SEND_AUDIENCE_QUERY_KEY, type SendAudience } from "../types";
-import { comparisonRange, currentRange, isComparisonWanted } from "./period";
+import {
+  comparisonLabel,
+  comparisonRange,
+  currentRange,
+  isComparisonWanted,
+} from "./period";
 
 const UNKNOWN_METRIC = "$dms_mailing.errors.unknown_metric";
 const TEMPLATES_PATH = "/modules/mailing/templates";
@@ -146,6 +151,8 @@ export interface FunnelStepResponse {
 export interface ComparedWindow {
   range: DateRange;
   sends: SendSummary[];
+  /** What the comparison series is called: the previous period, year… */
+  label: string;
 }
 
 /** What the Overview's first-run checklist reads. */
@@ -193,7 +200,11 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   ): Promise<ComparedWindow | null> {
     if (!isComparisonWanted(this.ctx)) return null;
     const previousRange = comparisonRange(this.ctx, range);
-    return { range: previousRange, sends: await this.load(previousRange) };
+    return {
+      range: previousRange,
+      sends: await this.load(previousRange),
+      label: comparisonLabel(this.ctx),
+    };
   }
 
   @Get("/kpi/:metric")
@@ -366,21 +377,22 @@ export function volumeChart(
   const sent = current.filter(leftForProvider);
   const previousSent = previous?.sends.filter(leftForProvider) ?? null;
   const series = dailySeries(sent, range.from, range.to);
-  const comparison =
+  const comparisonSeries =
     previous && previousSent
-      ? dailySeries(previousSent, previous.range.from, previous.range.to)
-      : null;
+      ? [
+          {
+            name: previous.label,
+            data: alignSeries(
+              dailySeries(previousSent, previous.range.from, previous.range.to),
+              series,
+            ),
+          },
+        ]
+      : [];
   return {
     ...comparedFigure(sent.length, previousSent ? previousSent.length : null),
     series: [{ name: "$dms_mailing.metrics.sends", data: series }],
-    comparisonSeries: comparison
-      ? [
-          {
-            name: "$dms_mailing.metrics.previous",
-            data: alignSeries(comparison, series),
-          },
-        ]
-      : [],
+    comparisonSeries,
   };
 }
 

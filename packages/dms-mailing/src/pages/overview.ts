@@ -105,7 +105,8 @@ const activity = Grid({ gap: GRID_GAP }).child(
          * `name` carried by each series goes to ApexCharts verbatim.
          */
         primaryLabel: "$dms_mailing.metrics.sends",
-        comparisonLabel: "$dms_mailing.metrics.previous",
+        /** Neutral: the toolbar compares with the previous period or year. */
+        comparisonLabel: "$dms_mailing.metrics.compared",
         fetchUrl: `${API_BASE_PATH}/metrics/volume`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
         chart: ChartArea({

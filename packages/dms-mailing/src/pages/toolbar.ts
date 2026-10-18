@@ -1,5 +1,6 @@
 import {
   type PageToolbarProps,
+  type PeriodComparison,
   type PeriodPreset,
   pageToolbar,
 } from "@antelopejs/interface-dms/base";
@@ -23,6 +24,17 @@ export const MAILING_LIVE: PageLiveOptions = {
 /** What the paused toggle and a held table call the sends they missed. */
 export const NEW_SENDS_LABEL = "$dms_mailing.live.new_sends";
 
+/**
+ * The comparisons every mailing toolbar offers, in its "vs …" menu: the
+ * previous period by default, the same window a year back, or none, which
+ * leaves the cards without a delta.
+ */
+export const MAILING_COMPARISONS: PeriodComparison[] = [
+  "previous-period",
+  "previous-year",
+  "none",
+];
+
 /** The period a page's toolbar offers. */
 export interface MailingToolbarPeriod {
   scope: string;
@@ -32,7 +44,7 @@ export interface MailingToolbarPeriod {
 
 /**
  * The DMS page toolbar of a mailing page: the provider pill on the left, then
- * "updated", Direct / Pause and the period with its comparison ("vs …").
+ * "updated", Direct / Pause and the period with its comparison menu ("vs …").
  *
  * The page keeps it under its `header` static, the id the former header
  * block had, so a role granting it keeps granting the bar.
@@ -53,8 +65,10 @@ export function mailingToolbar(
       id: period.scope,
       presets: period.presets,
       defaultPreset: period.defaultPreset,
-      comparisons: ["previous-period"],
+      comparisons: MAILING_COMPARISONS,
       defaultComparison: "previous-period",
+      /** The toolbar's own default hides the control; the user picks here. */
+      comparisonControl: "menu",
     },
   }).meta({
     name: "$dms_mailing.permissions.page_header.name",

@@ -437,11 +437,13 @@
 		"metrics": {
 			"bounces": "Rebonds",
 			"click_rate": "Taux de clic",
+			"compared": "Période comparée",
 			"deliverability": "Délivrabilité",
 			"domain_sends": "Domaines avec 5 distributions ou plus",
 			"domains": "Taux d’ouverture par domaine",
 			"open_rate": "Taux d’ouverture",
 			"previous": "Période précédente",
+			"previous_year": "Année précédente",
 			"ranking": "Modèles les plus ouverts",
 			"sends": "Envois",
 			"unsubscribes": "Désinscriptions",

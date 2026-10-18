@@ -437,11 +437,13 @@
 		"metrics": {
 			"bounces": "Bounces",
 			"click_rate": "Click rate",
+			"compared": "Compared period",
 			"deliverability": "Deliverability",
 			"domain_sends": "Domains with 5 or more deliveries",
 			"domains": "Open rate by domain",
 			"open_rate": "Open rate",
 			"previous": "Previous period",
+			"previous_year": "Previous year",
 			"ranking": "Best opened templates",
 			"sends": "Sends",
 			"unsubscribes": "Unsubscribes",

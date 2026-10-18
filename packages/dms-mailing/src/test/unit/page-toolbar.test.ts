@@ -50,14 +50,15 @@ describe("[unit] pages page toolbar", () => {
         });
       });
 
-      it("offers the page's presets with the previous period beside", () => {
+      it("offers the page's presets with a menu of comparisons", () => {
         const period = childOf(page.header.serializeSync(), "period");
         expect(period?.options).to.deep.include({
           id: scope,
           presets,
           defaultPreset,
-          comparisons: ["previous-period"],
+          comparisons: ["previous-period", "previous-year", "none"],
           defaultComparison: "previous-period",
+          comparisonControl: "menu",
         });
       });
     });
