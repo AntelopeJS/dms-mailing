@@ -99,7 +99,9 @@ export async function declareMailingContent(tenantId: string) {
 - Overview and Sends are live pages (`live: { maxRate: 5, rememberKey: "mailing" }`) with the DMS `PageToolbar`
   (provider pill, Direct / Pause, period) under their `header` static; the send log `liveHold`s its rows.
   The period offers a comparison menu (`previous-period` default, `previous-year`, `none`); routes read
-  `compareFrom` / `compareTo`, and `comparison=none` drops every delta and comparison series.
+  `compareFrom` / `compareTo`, and `comparison=none` drops every delta and comparison series. Every period
+  figure renders it: KPI deltas, the volume chart's dashed series, funnel steps (`previousCount`, `delta`),
+  the top lists' row `delta` and the Sends stat strip (`compared`); period blocks carry `realtimeTopic: "mailing:sends"`.
 - 0.4+ does not read a 0.3 database and moved the webhook path (tenant in the URL).
 - nodemailer `ethereal: true` creates its account online at startup: offline, the whole project fails to
   start (nodemailer's `construct()` throws, before Mailing runs). Use a local SMTP server (Mailpit) offline.
