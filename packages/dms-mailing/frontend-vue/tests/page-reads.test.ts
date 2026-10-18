@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, type VNodeChild } from 'vue'
-import PageHeader from '../app/components/PageHeader.vue'
+import { defineComponent, h } from 'vue'
+import ProviderPill from '../app/components/ProviderPill.vue'
 import WebhookStatus from '../app/components/WebhookStatus.vue'
 import type { WebhookStatus as Status } from '../app/utils/webhook-status'
 import {
@@ -38,6 +38,8 @@ const PillStub = defineComponent({
 	setup: (props) => () => h('span', { 'data-pill': props.label }),
 })
 
+const PILL_GLOBALS = { DmsStatusPill: PillStub }
+
 const ButtonStub = defineComponent({
 	props: { label: { type: String, default: '' } },
 	emits: ['click'],
@@ -48,29 +50,11 @@ const ButtonStub = defineComponent({
 })
 
 let api$: ApiDataStub
-let headerActions: (() => VNodeChild) | null
-
-/** The page header: renders the actions `PageHeader` set up. */
-const Header = defineComponent({
-	setup: () => () => h('header', headerActions?.()),
-})
-
-const HeaderOutlet = defineComponent({
-	props: { showProvider: { type: Boolean, default: true } },
-	setup: (props) => () =>
-		h('div', [h(PageHeader, { showProvider: props.showProvider }), h(Header)]),
-})
 
 beforeEach(() => {
 	stubNuxtGlobals()
 	stubRegionalFormat()
-	headerActions = null
-	vi.stubGlobal('resolveComponent', (name: string) =>
-		name === 'DmsStatusPill' ? PillStub : slotStub(name),
-	)
-	vi.stubGlobal('usePageHeaderActions', (render: () => VNodeChild) => {
-		headerActions = render
-	})
+	vi.stubGlobal('resolveComponent', (name: string) => slotStub(name))
 	vi.stubGlobal('useApiError', vi.fn())
 	api$ = stubApiData()
 	api.webhookTest.mockReset()
@@ -81,10 +65,10 @@ afterEach(() => {
 	document.body.innerHTML = ''
 })
 
-describe('PageHeader', () => {
+describe('ProviderPill', () => {
 	it('names the provider read with the page', async () => {
 		api$.respond(() => ({ name: 'smtp', connected: true, features: null }))
-		const view = mount(HeaderOutlet, {})
+		const view = mount(ProviderPill, {}, PILL_GLOBALS)
 		await flush()
 		expect(api$.reads).toEqual([{ url: PROVIDER_URL, query: {} }])
 		expect(
@@ -95,14 +79,14 @@ describe('PageHeader', () => {
 
 	it('says no provider when the read fails, and reads nothing when hidden', async () => {
 		api$.respond(() => Promise.reject(new Error('503')))
-		const failed = mount(HeaderOutlet, {})
+		const failed = mount(ProviderPill, {}, PILL_GLOBALS)
 		await flush()
 		expect(
 			failed.host.querySelector('[data-pill]')?.getAttribute('data-pill'),
 		).toBe('dms_mailing.page_header.no_provider')
 		failed.unmount()
 		api$.reads.length = 0
-		const hidden = mount(HeaderOutlet, { showProvider: false })
+		const hidden = mount(ProviderPill, { showProvider: false }, PILL_GLOBALS)
 		await flush()
 		expect(api$.reads).toEqual([])
 		expect(hidden.host.querySelector('[data-pill]')).toBeNull()

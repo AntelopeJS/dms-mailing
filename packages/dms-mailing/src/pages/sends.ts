@@ -23,6 +23,7 @@ import { SendModel } from "../db";
 import { SendsTableAPI } from "../data/sends-table";
 import { RESOLVED_STAGE, type SendStage } from "../types";
 import { mailingNavCategory } from "./module";
+import { MAILING_LIVE, NEW_SENDS_LABEL, mailingToolbar } from "./toolbar";
 
 const SENDS_ORDER = 3;
 const DAY_MS = 86_400_000;
@@ -187,18 +188,15 @@ export class SendsPageController extends PageController(
     module: MODULE_ID,
     category: mailingNavCategory,
     order: SENDS_ORDER,
+    live: MAILING_LIVE,
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static header = CustomComponent("MailingPageHeader")
-    .options({
-      periodScope: SENDS_PERIOD_SCOPE,
-      presets: ["last-24h", "last-7-days", "last-30-days"],
-      defaultPreset: "last-24h",
-      defaultComparison: "previous-period",
-      showProvider: true,
-    })
-    .meta(permissionMeta("page_header", "i-ph-plugs-connected"));
+  static header = mailingToolbar({
+    scope: SENDS_PERIOD_SCOPE,
+    presets: ["last-24h", "last-7-days", "last-30-days"],
+    defaultPreset: "last-24h",
+  });
 
   static health = Banner({
     fetchUrl: `${API_BASE_PATH}/sends/banner`,
@@ -226,6 +224,16 @@ export class SendsPageController extends PageController(
     searchPlaceholder: "$dms_mailing.sends.search",
     pageSize: 50,
     rowClick: "single",
+    /**
+     * New sends wait in a "N new sends" strip while the user reads a send,
+     * scrolls down the log or searches it, so the rows do not move under them.
+     */
+    liveHold: {
+      whileRowOpen: true,
+      whileScrolled: true,
+      whileSearching: true,
+      missedLabel: NEW_SENDS_LABEL,
+    },
     views: {
       layout: "tabs",
       items: [

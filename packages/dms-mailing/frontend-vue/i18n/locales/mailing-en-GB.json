@@ -1075,8 +1075,12 @@
 				"description": "The overview dashboard, or the setup steps until the workspace can send."
 			},
 			"page_header": {
-				"name": "Provider and period",
-				"description": "The provider state and the period switch in the page header."
+				"name": "Page toolbar",
+				"description": "The provider state, the last update, live mode and the period switch at the top of the page."
+			},
+			"provider_pill": {
+				"name": "Provider state",
+				"description": "The pill in the page toolbar saying whether a provider carries the mail."
 			},
 			"settings_form": {
 				"name": "Mailing settings",
@@ -1194,15 +1198,8 @@
 			"current_sender": "Sender as set in the settings today",
 			"meant_for": "The e-mail meant for {name}"
 		},
-		"period": {
-			"short": {
-				"last_hour": "1H",
-				"last_24h": "24H",
-				"today": "1D",
-				"last_7_days": "7D",
-				"last_30_days": "30D",
-				"last_90_days": "90D"
-			}
+		"live": {
+			"new_sends": "{count} new send | {count} new sends"
 		},
 		"page_header": {
 			"provider_connected": "{name} connected",

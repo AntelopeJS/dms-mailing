@@ -23,6 +23,7 @@ import {
 } from "../constants";
 import { BUSINESS_AUDIENCE, SEND_AUDIENCE_QUERY_KEY } from "../types";
 import { mailingNavCategory } from "./module";
+import { MAILING_LIVE, mailingToolbar } from "./toolbar";
 
 const OVERVIEW_ORDER = 0;
 const GRID_GAP = "1rem";
@@ -192,6 +193,7 @@ export class OverviewPageController extends PageController(
     module: MODULE_ID,
     category: mailingNavCategory,
     order: OVERVIEW_ORDER,
+    live: MAILING_LIVE,
   },
   DefaultLayout({
     fullWidth: true,
@@ -206,19 +208,11 @@ export class OverviewPageController extends PageController(
     ],
   }),
 ) {
-  static header = CustomComponent("MailingPageHeader")
-    .options({
-      periodScope: OVERVIEW_PERIOD_SCOPE,
-      presets: ["last-7-days", "last-30-days", "last-90-days"],
-      defaultPreset: "last-30-days",
-      defaultComparison: "previous-period",
-      showProvider: true,
-    })
-    .meta({
-      name: "$dms_mailing.permissions.page_header.name",
-      description: "$dms_mailing.permissions.page_header.description",
-      icon: "i-ph-plugs-connected",
-    });
+  static header = mailingToolbar({
+    scope: OVERVIEW_PERIOD_SCOPE,
+    presets: ["last-7-days", "last-30-days", "last-90-days"],
+    defaultPreset: "last-30-days",
+  });
 
   static dashboard = CustomComponent("MailingOverviewGate")
     .meta({

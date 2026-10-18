@@ -30,7 +30,7 @@ import type {
  * `useMailingApi`.
  */
 
-/** The e-mail provider the page header names; nothing read while `enabled` is false. */
+/** The e-mail provider the page toolbar names; nothing read while `enabled` is false. */
 export function useProviderInfo(
 	enabled: MaybeRefOrGetter<boolean>,
 ): ApiDataResult<ProviderInfo> {

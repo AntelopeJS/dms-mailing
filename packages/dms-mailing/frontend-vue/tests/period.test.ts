@@ -3,21 +3,9 @@ import {
 	clampRetention,
 	isWithinADay,
 	minutesSince,
-	presetShortLabelKey,
 	RETENTION_CUSTOM,
 	retentionChoice,
 } from '../app/utils/period'
-
-describe('presetShortLabelKey', () => {
-	it('maps a preset id onto an i18n key', () => {
-		expect(presetShortLabelKey('last-24h')).toBe(
-			'dms_mailing.period.short.last_24h',
-		)
-		expect(presetShortLabelKey('last-30-days')).toBe(
-			'dms_mailing.period.short.last_30_days',
-		)
-	})
-})
 
 describe('minutesSince', () => {
 	const now = new Date('2026-09-09T10:35:00.000Z')
