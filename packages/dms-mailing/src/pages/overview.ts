@@ -31,16 +31,26 @@ const CHART_HEIGHT = "260px";
 const WIDE_SPAN = 2;
 const ATTENTION_SKELETON_ROWS = 3;
 
+/**
+ * A KPI card that refreshes on each send. The DMS KpiCard does not take
+ * `realtimeTopic` yet, as ChartCard does: it is declared ahead of that change,
+ * and until then the cards refresh only when the whole page does.
+ */
+interface LiveKpiCardProps extends KpiCardProps {
+  realtimeTopic?: string;
+}
+
 const kpi = (
   id: string,
   icon: string,
   extra: Partial<KpiCardProps> = {},
-): KpiCardProps => ({
+): LiveKpiCardProps => ({
   title: `$dms_mailing.metrics.${id.replace("-", "_")}`,
   icon,
   variant: "stat",
   fetchUrl: `${API_BASE_PATH}/metrics/kpi/${id}?${SEND_AUDIENCE_QUERY_KEY}=${BUSINESS_AUDIENCE}`,
   periodScope: OVERVIEW_PERIOD_SCOPE,
+  realtimeTopic: MAILING_SENDS_TOPIC,
   valueFormat: "compact",
   showSparkline: true,
   ...extra,
@@ -109,6 +119,7 @@ const activity = Grid({ gap: GRID_GAP }).child(
         comparisonLabel: "$dms_mailing.metrics.compared",
         fetchUrl: `${API_BASE_PATH}/metrics/volume`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
         chart: ChartArea({
           height: CHART_HEIGHT,
           xaxisType: "datetime",
@@ -159,6 +170,7 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         title: "$dms_mailing.metrics.ranking",
         fetchUrl: `${API_BASE_PATH}/metrics/top-templates?metric=open-rate`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
         valueFormat: "percent",
         showRank: true,
         highlightTopN: 2,
@@ -179,6 +191,7 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         description: "$dms_mailing.metrics.domain_sends",
         fetchUrl: `${API_BASE_PATH}/metrics/domains`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
         valueFormat: "percent",
         showRank: false,
         showDelta: true,

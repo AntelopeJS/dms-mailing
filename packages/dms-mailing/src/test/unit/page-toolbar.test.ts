@@ -1,7 +1,12 @@
 import { expect } from "chai";
 import { GetMetadata } from "@antelopejs/interface-core";
+import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { PageMetadata } from "@antelopejs/interface-dms/page";
-import { OVERVIEW_PERIOD_SCOPE, SENDS_PERIOD_SCOPE } from "../../constants";
+import {
+  MAILING_SENDS_TOPIC,
+  OVERVIEW_PERIOD_SCOPE,
+  SENDS_PERIOD_SCOPE,
+} from "../../constants";
 import { OverviewPageController } from "../../pages/overview";
 import { SendsPageController } from "../../pages/sends";
 import { MAILING_LIVE, NEW_SENDS_LABEL } from "../../pages/toolbar";
@@ -10,6 +15,20 @@ type Toolbar = ReturnType<typeof OverviewPageController.header.serializeSync>;
 
 const childOf = (toolbar: Toolbar, id: string) =>
   toolbar.children?.find((child) => child.id === id)?.component;
+
+const optionsOf = (block: ComponentInfoSerialized): Record<string, unknown> =>
+  (block.options ?? {}) as Record<string, unknown>;
+
+/** The blocks under `block` that read a period of figures. */
+function periodBlocks(
+  block: ComponentInfoSerialized,
+): ComponentInfoSerialized[] {
+  const own = optionsOf(block).periodScope ? [block] : [];
+  return [
+    ...own,
+    ...(block.children ?? []).flatMap((child) => periodBlocks(child.component)),
+  ];
+}
 
 const PAGES = [
   {
@@ -63,6 +82,19 @@ describe("[unit] pages page toolbar", () => {
       });
     });
   }
+
+  it("refreshes every period block of both pages on a send", () => {
+    const blocks = [
+      ...periodBlocks(OverviewPageController.dashboard.serializeSync()),
+      ...periodBlocks(SendsPageController.stats.serializeSync()),
+    ];
+    expect(blocks).to.have.length.greaterThan(0);
+    for (const block of blocks) {
+      expect(optionsOf(block).realtimeTopic, block.componentName).to.equal(
+        MAILING_SENDS_TOPIC,
+      );
+    }
+  });
 
   it("holds the send log while a row is open, scrolled or searched", async () => {
     const { options } = await SendsPageController.table.serialize();

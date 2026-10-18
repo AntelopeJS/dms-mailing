@@ -59,8 +59,12 @@ describe("[unit] services/send-stat-items", () => {
   });
 
   it("compares the deliverability, the problems and the latency", () => {
-    const left = (id: string) =>
-      (byId(id)?.detail as ComposedText | undefined)?.params?.left;
+    /** The first text of a detail: "joined" folds its parts from the left. */
+    const first = (text: ComposedText): ComposedText =>
+      text.key.endsWith(".joined")
+        ? first(text.params?.left as ComposedText)
+        : text;
+    const left = (id: string) => first(byId(id)?.detail as ComposedText);
     expect(left("delivered")).to.deep.equal({
       key: "$dms_mailing.sends.stats.delta_down_versus",
       params: {
