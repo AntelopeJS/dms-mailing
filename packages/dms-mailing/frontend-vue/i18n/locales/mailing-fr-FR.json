@@ -1270,7 +1270,8 @@
 		},
 		"common": {
 			"cancel": "Annuler",
-			"on_date": "le {date}"
+			"on_date": "le {date}",
+			"preview_unavailable": "Aperçu indisponible"
 		},
 		"duplicate": {
 			"title": "Dupliquer le modèle",

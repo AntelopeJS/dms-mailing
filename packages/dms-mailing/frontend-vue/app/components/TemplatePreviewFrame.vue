@@ -27,7 +27,12 @@ interface TemplatePreviewFrameProps {
 	width: number
 	scale?: number
 	refreshKey?: number
-	/** Fetches only once the frame scrolls into view (galleries). */
+	/**
+	 * Fetches only once the frame scrolls into view (galleries). The frame then
+	 * waits on a blank sheet rather than a skeleton: the gallery's own skeleton
+	 * covers its first load, and a thumbnail starting to load as it scrolls into
+	 * view would bring a skeleton back.
+	 */
 	lazy?: boolean
 	/** Accessible name of the frame. */
 	label?: string
@@ -61,14 +66,15 @@ const props = withDefaults(defineProps<TemplatePreviewFrameProps>(), {
 const emit = defineEmits<{ resolved: [PreviewResponse] }>()
 
 const api = useMailingApi()
-const { locale: uiLocale } = useI18n()
+const { t, locale: uiLocale } = useI18n()
 
 const readStarterPreview = useStarterPreviewRead(
 	() => props.starterId,
 	() => props.locale ?? uiLocale.value,
 )
 const fetchedHtml = ref('')
-const loading = ref(false)
+/** The last read failed: the frame shows its fallback, not a skeleton for ever. */
+const hasFailed = ref(false)
 const height = ref(FALLBACK_HEIGHT)
 const frame = ref<HTMLIFrameElement | null>(null)
 const box = ref<HTMLElement | null>(null)
@@ -86,6 +92,19 @@ function withoutScroll(html: string): string {
 }
 
 const shownHtml = computed(() => withoutScroll(props.html ?? fetchedHtml.value))
+
+const hasSource = computed(
+	() =>
+		props.html !== undefined || Boolean(props.starterId || props.templateId),
+)
+/**
+ * Waiting for the HTML: from the first render (a server render, the debounce
+ * and a lazy frame not yet in view included), so the placeholder holds its
+ * place without a gap between it and the content.
+ */
+const isWaiting = computed(
+	() => !shownHtml.value && hasSource.value && !hasFailed.value,
+)
 
 useIntersectionObserver(box, ([entry]) => {
 	if (entry?.isIntersecting) isVisible.value = true
@@ -110,15 +129,14 @@ async function fetchTemplate(templateId: string): Promise<void> {
 async function load(): Promise<void> {
 	if (props.html !== undefined || !isVisible.value) return
 	if (!props.starterId && !props.templateId) return
-	loading.value = true
 	try {
 		await (props.starterId
 			? fetchStarter()
 			: fetchTemplate(props.templateId as string))
+		hasFailed.value = false
 	} catch {
 		fetchedHtml.value = ''
-	} finally {
-		loading.value = false
+		hasFailed.value = true
 	}
 }
 
@@ -172,12 +190,10 @@ const frameStyle = computed(() => ({
 
 <template>
 	<div ref="box" class="relative overflow-hidden" :style="boxStyle">
-		<USkeleton
-			v-if="!shownHtml && (loading || !isVisible)"
-			class="absolute inset-0 size-full"
-		/>
+		<!-- Rendered only with HTML: an empty frame loads too, and measuring it
+		     would shrink the box to a few pixels. -->
 		<iframe
-			v-show="shownHtml"
+			v-if="shownHtml"
 			ref="frame"
 			:srcdoc="shownHtml"
 			sandbox="allow-same-origin"
@@ -191,5 +207,19 @@ const frameStyle = computed(() => ({
 			:style="frameStyle"
 			@load="measure"
 		/>
+		<div
+			v-else-if="isWaiting && lazy"
+			class="absolute inset-0 bg-white"
+			data-preview-placeholder
+		/>
+		<USkeleton v-else-if="isWaiting" class="absolute inset-0 size-full" />
+		<div
+			v-else-if="hasFailed"
+			class="bg-elevated text-dimmed absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-[12px]"
+			data-preview-fallback
+		>
+			<UIcon name="i-ph-image-broken" class="size-5" aria-hidden="true" />
+			{{ t('dms_mailing.common.preview_unavailable') }}
+		</div>
 	</div>
 </template>

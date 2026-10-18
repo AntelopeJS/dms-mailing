@@ -1270,7 +1270,8 @@
 		},
 		"common": {
 			"cancel": "Cancel",
-			"on_date": "{date}"
+			"on_date": "{date}",
+			"preview_unavailable": "Preview unavailable"
 		},
 		"duplicate": {
 			"title": "Duplicate template",
