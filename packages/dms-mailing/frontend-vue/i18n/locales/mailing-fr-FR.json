@@ -621,8 +621,9 @@
 				"latency_detail": "Appel API à {provider}",
 				"latency_detail_generic": "Appel API au fournisseur",
 				"joined": "{left} · {right}",
-				"delta_up": "▲ {delta}",
-				"delta_down": "▼ {delta}",
+				"versus": "vs {previous}",
+				"delta_up_versus": "▲ {delta} vs {previous}",
+				"delta_down_versus": "▼ {delta} vs {previous}",
 				"rate": "{rate}",
 				"latency_ms": "{value} ms",
 				"latency_s": "{value} s",
@@ -1265,7 +1266,8 @@
 			"error_title": "Impossible de charger l’entonnoir",
 			"retry": "Réessayer",
 			"untracked": "La distribution n’est pas mesurée : branchez le webhook du fournisseur pour suivre l’entonnoir.",
-			"no_loss": "Aucun e-mail perdu entre les étapes."
+			"no_loss": "Aucun e-mail perdu entre les étapes.",
+			"compared_count": "vs {value} sur la période comparée"
 		},
 		"common": {
 			"cancel": "Annuler",

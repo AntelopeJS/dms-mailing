@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
 	biggestDrop,
+	deltaTone,
+	formatDelta,
 	formatRate,
 	funnelTakeaway,
+	isCompared,
 	type FunnelStepReading,
 } from '../app/utils/funnel'
 
@@ -77,5 +80,27 @@ describe('formatRate', () => {
 
 	it('prints a dash for a rate without a base', () => {
 		expect(formatRate(null, 'en-GB')).toBe('—')
+	})
+})
+
+describe('the comparison of the steps', () => {
+	it('is on as soon as a step carries a compared count', () => {
+		expect(isCompared([step('sent', 4)])).toBe(false)
+		expect(isCompared([{ ...step('sent', 4), previousCount: 0 }])).toBe(true)
+	})
+
+	it('prints the change with its arrow, a dash without one', () => {
+		expect(formatDelta(12.5, 'en-GB')).toBe('▲ 12.5%')
+		expect(formatDelta(-40, 'en-GB')).toBe('▼ 40%')
+		expect(formatDelta(0, 'en-GB')).toBe('0%')
+		expect(formatDelta(undefined, 'en-GB')).toBe('—')
+	})
+
+	it('reads growth as good down the funnel and bad for the leak', () => {
+		expect(deltaTone({ ...step('opened', 4), delta: 10 })).toBe('success')
+		expect(deltaTone({ ...step('opened', 4), delta: -10 })).toBe('error')
+		expect(deltaTone({ ...step('unsubscribed', 4), delta: 10 })).toBe('error')
+		expect(deltaTone({ ...step('unsubscribed', 4), delta: -10 })).toBe('success')
+		expect(deltaTone(step('opened', 4))).toBe('neutral')
 	})
 })

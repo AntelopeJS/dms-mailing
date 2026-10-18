@@ -621,8 +621,9 @@
 				"latency_detail": "API call to {provider}",
 				"latency_detail_generic": "API call to the provider",
 				"joined": "{left} · {right}",
-				"delta_up": "▲ {delta}",
-				"delta_down": "▼ {delta}",
+				"versus": "vs {previous}",
+				"delta_up_versus": "▲ {delta} vs {previous}",
+				"delta_down_versus": "▼ {delta} vs {previous}",
 				"rate": "{rate}",
 				"latency_ms": "{value} ms",
 				"latency_s": "{value} s",
@@ -1265,7 +1266,8 @@
 			"error_title": "The funnel could not be loaded",
 			"retry": "Try again",
 			"untracked": "Delivery is not measured: connect the provider’s webhook to follow the funnel.",
-			"no_loss": "No e-mail was lost between the steps."
+			"no_loss": "No e-mail was lost between the steps.",
+			"compared_count": "vs {value} in the compared period"
 		},
 		"common": {
 			"cancel": "Cancel",

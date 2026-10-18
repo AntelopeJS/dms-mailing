@@ -56,6 +56,37 @@ describe("[integration] overview metrics", () => {
       `${METRICS}/kpi/sends?from=${from}&to=${to}&comparison=none`,
     );
     expect(kpi.data).to.not.have.property("previousValue");
+
+    const funnel = await client.get(
+      `${METRICS}/funnel?from=${from}&to=${to}&comparison=none`,
+    );
+    for (const step of funnel.data.steps) {
+      expect(step).to.not.have.property("previousCount");
+    }
+    for (const list of ["domains", "top-templates"]) {
+      const top = await client.get(
+        `${METRICS}/${list}?from=${from}&to=${to}&comparison=none`,
+      );
+      expect(top.status).to.equal(HTTP_OK);
+      for (const item of top.data.items) {
+        expect(item).to.not.have.property("delta");
+      }
+    }
+  });
+
+  it("counts the funnel of the compared window too", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const from = new Date(Date.now() - DAY_MS).toISOString();
+    const to = new Date(Date.now() + DAY_MS).toISOString();
+    const funnel = await client.get(
+      `${METRICS}/funnel?from=${from}&to=${to}&comparison=previous-year`,
+    );
+    expect(funnel.status).to.equal(HTTP_OK);
+    const sent = funnel.data.steps.find(
+      (step: { id: string }) => step.id === "sent",
+    );
+    expect(sent).to.have.property("previousCount").that.is.a("number");
   });
 
   it("overlaps the previous period with the current one", async () => {

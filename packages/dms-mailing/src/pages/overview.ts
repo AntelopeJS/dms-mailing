@@ -163,7 +163,11 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         showRank: true,
         highlightTopN: 2,
         showBar: true,
-        showDelta: false,
+        /**
+         * Each row's change against the window the toolbar compares with;
+         * "No comparison" leaves the rows without one.
+         */
+        showDelta: true,
         skeletonCount: 5,
         emptyLabel: "$dms_mailing.metrics.ranking_empty",
       }),
@@ -177,7 +181,7 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         periodScope: OVERVIEW_PERIOD_SCOPE,
         valueFormat: "percent",
         showRank: false,
-        showDelta: false,
+        showDelta: true,
         skeletonCount: 5,
         emptyLabel: "$dms_mailing.metrics.ranking_empty",
       }),

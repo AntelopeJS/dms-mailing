@@ -35,6 +35,21 @@ export interface SendStats {
   /** When the oldest send still queued was made; `null` with none queued. */
   oldestQueuedAt: string | null;
   latencyMedian: number;
+  /** The same figures over the comparison window; `null` with it turned off. */
+  compared: ComparedSendStats | null;
+}
+
+/**
+ * The figures of the strip a comparison window states. The queue is left out:
+ * it is what waits now, and what waited back then has long left.
+ */
+export interface ComparedSendStats {
+  sends: number;
+  /** `null` without a real send, or when nothing reported deliveries. */
+  deliverability: number | null;
+  problems: number;
+  /** `null` without a real send to time. */
+  latencyMedian: number | null;
 }
 
 const isQueued = (send: SendSummary): boolean => send.status === "queued";
@@ -74,20 +89,36 @@ function problemBreakdown(real: SendSummary[]): ProblemBreakdown {
   return { problems: bounced + failed + spam, bounced, failed, spam };
 }
 
+const isRealSend = (send: SendSummary): boolean => !send.isTest;
+
+function comparedStats(
+  previous: SendSummary[],
+  tracking: ProviderTracking | null,
+): ComparedSendStats {
+  const real = previous.filter(isRealSend);
+  const totals = aggregate(real);
+  return {
+    sends: totals.sends,
+    deliverability: isDeliveryUntracked(real, tracking)
+      ? null
+      : totals.deliverability,
+    problems: problemBreakdown(real).problems,
+    latencyMedian: totals.sends ? totals.latencyMedian : null,
+  };
+}
+
 /** `previous` is `null` when the user turned the comparison off. */
 export function buildSendStats(
   current: SendSummary[],
   previous: SendSummary[] | null,
   tracking: ProviderTracking | null = null,
 ): SendStats {
-  const real = current.filter((send) => !send.isTest);
+  const real = current.filter(isRealSend);
   const totals = aggregate(real);
-  const previousTotals = previous
-    ? aggregate(previous.filter((send) => !send.isTest))
-    : null;
+  const compared = previous ? comparedStats(previous, tracking) : null;
   return {
     sends: totals.sends,
-    sendsDelta: deltaPercent(totals.sends, previousTotals?.sends ?? null),
+    sendsDelta: deltaPercent(totals.sends, compared?.sends ?? null),
     tests: current.length - real.length,
     delivered: totals.delivered,
     deliverability: totals.deliverability,
@@ -96,6 +127,7 @@ export function buildSendStats(
     queued: totals.queued,
     oldestQueuedAt: oldestQueuedAt(real),
     latencyMedian: totals.latencyMedian,
+    compared,
   };
 }
 

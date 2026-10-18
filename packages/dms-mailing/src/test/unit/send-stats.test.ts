@@ -5,6 +5,7 @@ import {
   isProviderFailure,
   isTransportFailure,
 } from "../../services/send-stats";
+import { aggregate } from "../../services/metrics";
 import type { SendStatus } from "../../types";
 
 const send = (
@@ -62,7 +63,40 @@ describe("[unit] services/send-stats", () => {
   });
 
   it("states no delta when the comparison is turned off", () => {
-    expect(buildSendStats([send("delivered")], null).sendsDelta).to.equal(null);
+    const stats = buildSendStats([send("delivered")], null);
+    expect(stats.sendsDelta).to.equal(null);
+    expect(stats.compared).to.equal(null);
+  });
+
+  it("reads the compared figures of the window, tests left out", () => {
+    const stats = buildSendStats(
+      [send("delivered")],
+      [
+        send("delivered", { latencyMs: 100 }),
+        send("bounced", { latencyMs: 300 }),
+        send("failed", { stage: "resolved", latencyMs: 300 }),
+        send("spam", { isTest: true }),
+      ],
+    );
+    expect(stats.compared).to.deep.equal({
+      sends: 3,
+      deliverability: aggregate([
+        send("delivered"),
+        send("bounced"),
+        send("failed"),
+      ]).deliverability,
+      problems: 1,
+      latencyMedian: 300,
+    });
+  });
+
+  it("states no compared rate or latency for an empty window", () => {
+    expect(buildSendStats([send("delivered")], []).compared).to.deep.equal({
+      sends: 0,
+      deliverability: null,
+      problems: 0,
+      latencyMedian: null,
+    });
   });
 
   it("dates the oldest send still queued", () => {
