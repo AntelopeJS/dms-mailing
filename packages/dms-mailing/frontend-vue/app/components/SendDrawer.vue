@@ -419,7 +419,7 @@ onMounted(() => {
 		<USkeleton v-if="loading && !send" class="m-5 h-64" />
 
 		<template v-else-if="send">
-			<div class="min-h-0 flex-1 overflow-y-auto">
+			<div class="@container min-h-0 flex-1 overflow-y-auto">
 				<header
 					class="border-default flex flex-col gap-1.5 border-b px-5 pb-4 pt-1"
 				>
@@ -529,69 +529,75 @@ onMounted(() => {
 						</DmsBanner>
 					</section>
 
-					<section class="flex flex-col gap-2">
-						<DmsEyebrow :label="key('timeline')" />
-						<ol class="flex flex-col">
-							<li
-								v-for="item in timeline"
-								:key="item.id"
-								:class="item.isPending && 'opacity-50'"
-							>
-								<DmsActivityItem
-									:icon="item.icon"
-									:icon-color="item.isPending ? 'neutral' : item.tone"
-									:subtitle="
-										item.isPending ? key('pending') : item.detail || undefined
-									"
-									:mono="item.isDetailMono && !item.isPending"
-									:trailing="stepTime(item)"
-									:interactive="false"
+					<!--
+						Side by side once the panel is wide (a sized or resized panel):
+						both are short lists, and the data sent below keeps the full width.
+					-->
+					<div class="@2xl:grid-cols-2 grid gap-6" data-send-details-grid>
+						<section class="flex min-w-0 flex-col gap-2">
+							<DmsEyebrow :label="key('timeline')" />
+							<ol class="flex flex-col">
+								<li
+									v-for="item in timeline"
+									:key="item.id"
+									:class="item.isPending && 'opacity-50'"
 								>
-									<span
-										:class="
-											item.tone === 'error' && !item.isPending
-												? 'text-error'
-												: undefined
+									<DmsActivityItem
+										:icon="item.icon"
+										:icon-color="item.isPending ? 'neutral' : item.tone"
+										:subtitle="
+											item.isPending ? key('pending') : item.detail || undefined
 										"
+										:mono="item.isDetailMono && !item.isPending"
+										:trailing="stepTime(item)"
+										:interactive="false"
 									>
-										{{ stepTitle(item) }}
-									</span>
-								</DmsActivityItem>
-							</li>
-						</ol>
-					</section>
+										<span
+											:class="
+												item.tone === 'error' && !item.isPending
+													? 'text-error'
+													: undefined
+											"
+										>
+											{{ stepTitle(item) }}
+										</span>
+									</DmsActivityItem>
+								</li>
+							</ol>
+						</section>
 
-					<section class="flex flex-col gap-2">
-						<DmsEyebrow :label="key('origin')" />
-						<div
-							class="border-default divide-default divide-y overflow-hidden rounded-lg border"
-						>
-							<DmsListRow
-								:to="editorLink"
-								icon="i-ph-envelope-simple"
-								icon-size="2xs"
-								size="sm"
-								:title="originTitle"
+						<section class="flex min-w-0 flex-col gap-2">
+							<DmsEyebrow :label="key('origin')" />
+							<div
+								class="border-default divide-default divide-y overflow-hidden rounded-lg border"
 							>
-								<template #trailing>
-									<UIcon
-										name="i-ph-arrow-square-out"
-										class="text-dimmed size-4"
-										aria-hidden="true"
-									/>
-								</template>
-							</DmsListRow>
-							<DmsListRow
-								v-if="send.source"
-								icon="i-ph-code"
-								icon-size="2xs"
-								size="sm"
-								:trailing="key('source')"
-							>
-								<span class="font-mono text-[12.5px]">{{ send.source }}</span>
-							</DmsListRow>
-						</div>
-					</section>
+								<DmsListRow
+									:to="editorLink"
+									icon="i-ph-envelope-simple"
+									icon-size="2xs"
+									size="sm"
+									:title="originTitle"
+								>
+									<template #trailing>
+										<UIcon
+											name="i-ph-arrow-square-out"
+											class="text-dimmed size-4"
+											aria-hidden="true"
+										/>
+									</template>
+								</DmsListRow>
+								<DmsListRow
+									v-if="send.source"
+									icon="i-ph-code"
+									icon-size="2xs"
+									size="sm"
+									:trailing="key('source')"
+								>
+									<span class="font-mono text-[12.5px]">{{ send.source }}</span>
+								</DmsListRow>
+							</div>
+						</section>
+					</div>
 
 					<section class="flex flex-col gap-2">
 						<div class="flex items-center justify-between gap-2">
