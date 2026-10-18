@@ -96,6 +96,8 @@ export async function declareMailingContent(tenantId: string) {
 - A missing locale falls back to the workspace's fallback locale (logged as `DE asked`).
 - The template slug is fixed at creation: code depends on it.
 - `mailing.send` permission gates every route that reaches recipients; writes publish on realtime topic `mailing:sends`.
+- Overview and Sends are live pages (`live: { maxRate: 5, rememberKey: "mailing" }`) with the DMS `PageToolbar`
+  (provider pill, Direct / Pause, period) under their `header` static; the send log `liveHold`s its rows.
 - 0.4+ does not read a 0.3 database and moved the webhook path (tenant in the URL).
 - nodemailer `ethereal: true` creates its account online at startup: offline, the whole project fails to
   start (nodemailer's `construct()` throws, before Mailing runs). Use a local SMTP server (Mailpit) offline.
