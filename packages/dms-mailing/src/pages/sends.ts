@@ -29,8 +29,12 @@ const DAY_MS = 86_400_000;
 const STAT_COLUMNS = 5;
 const TEMPLATES_PAGE = "/modules/mailing/templates";
 const SUPPRESSIONS_PAGE = "/modules/mailing/suppressions";
-/** About twice the default side panel: the send's JSON reads without wrapping. */
-const SEND_PANEL_SIZE = "xl";
+/**
+ * About twice the default side panel (768 px, capped to the viewport, full
+ * screen on phones): wide enough for the timeline and the origin to sit side
+ * by side and for the data sent to read without wrapping.
+ */
+const SEND_PANEL_SIZE = "3xl";
 const FIRST_SEND_SNIPPET = [
   'await SendTemplate("order-confirmed", {',
   '  to: "margaux@northwind.co",',

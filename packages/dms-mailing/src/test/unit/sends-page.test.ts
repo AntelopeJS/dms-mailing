@@ -13,7 +13,7 @@ describe("[unit] pages/sends row click", () => {
     expect(details?.target).to.deep.include({
       type: "sidePanel",
       overlay: true,
-      size: "xl",
+      size: "3xl",
       positionLabel: "$dms_mailing.sends.drawer.position",
     });
   });
