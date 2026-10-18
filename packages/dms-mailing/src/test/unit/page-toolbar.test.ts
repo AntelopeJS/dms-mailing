@@ -11,6 +11,9 @@ import { OverviewPageController } from "../../pages/overview";
 import { SendsPageController } from "../../pages/sends";
 import { MAILING_LIVE, NEW_SENDS_LABEL } from "../../pages/toolbar";
 
+/** Sends, deliverability, open and click rates, bounces, unsubscribes. */
+const OVERVIEW_KPI_COUNT = 6;
+
 type Toolbar = ReturnType<typeof OverviewPageController.header.serializeSync>;
 
 const childOf = (toolbar: Toolbar, id: string) =>
@@ -93,6 +96,16 @@ describe("[unit] pages page toolbar", () => {
       expect(optionsOf(block).realtimeTopic, block.componentName).to.equal(
         MAILING_SENDS_TOPIC,
       );
+    }
+  });
+
+  it("refreshes the six Overview KPI cards on a send", () => {
+    const kpiCards = periodBlocks(
+      OverviewPageController.dashboard.serializeSync(),
+    ).filter((block) => block.componentName === "dms-kpi-card");
+    expect(kpiCards).to.have.length(OVERVIEW_KPI_COUNT);
+    for (const card of kpiCards) {
+      expect(optionsOf(card).realtimeTopic).to.equal(MAILING_SENDS_TOPIC);
     }
   });
 

@@ -31,20 +31,12 @@ const CHART_HEIGHT = "260px";
 const WIDE_SPAN = 2;
 const ATTENTION_SKELETON_ROWS = 3;
 
-/**
- * A KPI card that refreshes on each send. The DMS KpiCard does not take
- * `realtimeTopic` yet, as ChartCard does: it is declared ahead of that change,
- * and until then the cards refresh only when the whole page does.
- */
-interface LiveKpiCardProps extends KpiCardProps {
-  realtimeTopic?: string;
-}
-
+/** A KPI card of the Overview, refreshed on each send while the page is live. */
 const kpi = (
   id: string,
   icon: string,
   extra: Partial<KpiCardProps> = {},
-): LiveKpiCardProps => ({
+): KpiCardProps => ({
   title: `$dms_mailing.metrics.${id.replace("-", "_")}`,
   icon,
   variant: "stat",
