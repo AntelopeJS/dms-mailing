@@ -516,6 +516,13 @@ Still custom, and why:
   gives way before the date, and the origin's "source" label sits under the
   source rather than beside it. Everything follows the drawer's width
   (container queries), never the viewport's.
+- The actions sit at the bottom of the drawer even when the content is a
+  little shorter than it: sticky alone left them ~13 px above the edge of a
+  900 px drawer, under the content. The DMS body hugs its content (the
+  container around the component is a block), so `useDrawerFill` gives the
+  send and the template details a `min-height` measured from the body, and
+  their footer (`DRAWER_FOOTER_CLASS`) takes the leftover space (`mt-auto`)
+  before it sticks. Both drawers share that footer, flush with the edge.
 - Template details stay in a drawer: the gallery is the module's own table
   display, and a display can only run the row's default action (open the
   editor), not open another action's side panel.

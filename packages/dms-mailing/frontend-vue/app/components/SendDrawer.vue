@@ -3,6 +3,7 @@ import { TEMPLATES_PATH } from '../utils/pages'
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useProviderRead, useSendRead } from '../composables/useMailingReads'
+import { useDrawerFill } from '../composables/useDrawerFill'
 import { useReplayToast } from '../composables/useReplayToast'
 import {
 	describeProblem,
@@ -18,6 +19,7 @@ import {
 	type SendAction,
 	type SendActionId,
 } from '../utils/send-actions'
+import { DRAWER_FOOTER_CLASS } from '../utils/drawer'
 import { renderingTitleKey } from '../utils/rendering-title'
 import { formatLatency, isSlowLatency } from '../utils/send-stats'
 import {
@@ -67,13 +69,6 @@ const KEY_PREFIX = 'dms_mailing.sends.drawer.'
  * a short value. Targets the group's grid, sized by the group's container.
  */
 const STAT_TRIO_COLUMNS = '@md:[&>div]:grid-cols-3'
-/**
- * The footer sticks to the bottom of the drawer's scrolling body and reaches
- * over its bottom padding to sit flush with the edge, as a form footer does
- * in a container (the DMS `FORM_SURFACE_CLASSES.container` foot).
- */
-const STICKY_FOOTER_CLASS =
-	'border-default bg-default sticky bottom-[calc(var(--dms-form-foot-pb,0px)*-1)] z-10 -mx-[var(--dms-form-foot-px,0px)] -mb-[var(--dms-form-foot-pb,0px)] flex items-center gap-2 border-t px-[var(--dms-form-foot-px,0px)] pt-3 pb-[var(--dms-form-foot-pb,12px)]'
 const RESOLVED_STAGE = 'resolved'
 const NO_VALUE = '—'
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -102,6 +97,9 @@ const { t, locale } = useI18n()
 const { copy } = useClipboard()
 
 const KeyValueList = resolveComponent('DmsKeyValueList') as Component
+
+const root = ref<HTMLElement | null>(null)
+const minHeight = useDrawerFill(root)
 
 const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
 const readSend = useSendRead(sendId)
@@ -426,9 +424,15 @@ onMounted(() => {
 <template>
 	<!--
 		The drawer's body is the scroll container and sets the inset: the send
-		adds no padding of its own, and its actions stick to the bottom.
+		adds no padding of its own. It fills the body so its actions sit at the
+		bottom of the drawer, and stick there once the send scrolls.
 	-->
-	<div class="@container flex flex-col gap-6">
+	<div
+		ref="root"
+		class="@container flex flex-col gap-6"
+		:style="{ minHeight }"
+		data-send-drawer
+	>
 		<USkeleton v-if="loading && !send" class="h-64" />
 
 		<template v-else-if="send">
@@ -645,7 +649,7 @@ onMounted(() => {
 					>{{ payload || '{}' }}</pre>
 			</section>
 
-			<footer :class="STICKY_FOOTER_CLASS" data-send-footer>
+			<footer :class="DRAWER_FOOTER_CLASS" data-send-footer>
 				<UButton
 					v-for="(action, index) in actions"
 					:key="action.id"

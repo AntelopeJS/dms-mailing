@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createApp } from 'vue'
 import SendDrawer from '../app/components/SendDrawer.vue'
 import type { SendRow } from '../app/types/mailing'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
@@ -28,6 +29,9 @@ const SEND: SendRow = {
 	createdAt: '2026-10-20T08:00:02Z',
 	isTest: false,
 }
+
+/** A 900px drawer, less its header: the body the send fills. */
+const DRAWER_BODY_HEIGHT = 780
 
 const STUB_NAMES = [
 	'USkeleton',
@@ -79,6 +83,26 @@ describe('send drawer layout', () => {
 		expect(footer?.className).toContain('sticky')
 		expect(footer?.className).toContain('bottom-[calc(var(--dms-form-foot-pb')
 		expect(footer?.className).not.toMatch(/(^|\s)px-\d/)
+	})
+
+	it('fills the drawer body so the actions sit at its bottom', async () => {
+		const body = document.createElement('div')
+		body.dataset.slot = 'body'
+		Object.defineProperty(body, 'clientHeight', { value: DRAWER_BODY_HEIGHT })
+		document.body.appendChild(body)
+		const host = document.createElement('div')
+		body.appendChild(host)
+		const app = createApp(SendDrawer, { rowData: SEND })
+		Object.entries(STUBS).forEach(([name, stub]) => app.component(name, stub))
+		app.config.warnHandler = () => undefined
+		app.mount(host)
+		await flush()
+		const root = host.firstElementChild as HTMLElement
+		expect(root.style.minHeight).toBe(`${DRAWER_BODY_HEIGHT}px`)
+		expect(root.className).toContain('flex-col')
+		expect(host.querySelector('[data-send-footer]')?.className).toContain(
+			'mt-auto',
+		)
 	})
 
 	it('keeps the template / locale / latency trio on one row in a 600px drawer', async () => {
