@@ -412,7 +412,7 @@ onMounted(() => {
 
 <template>
 	<!--
-		As tall as the side panel's body: the send scrolls inside, the actions
+		As tall as the drawer's body: the send scrolls inside, the actions
 		stay under it at the bottom, with nothing passing beneath them.
 	-->
 	<div class="flex h-full min-h-0 flex-col">
@@ -530,7 +530,7 @@ onMounted(() => {
 					</section>
 
 					<!--
-						Side by side once the panel is wide (a sized or resized panel):
+						Side by side once the drawer is resized wide:
 						both are short lists, and the data sent below keeps the full width.
 					-->
 					<div class="@2xl:grid-cols-2 grid gap-6" data-send-details-grid>
