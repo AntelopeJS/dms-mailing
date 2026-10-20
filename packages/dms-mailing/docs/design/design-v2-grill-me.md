@@ -495,12 +495,14 @@ Still custom, and why:
   "single"`): the DMS draws its header, the "Send 3 of 50 shown" position,
   J / K and Esc, and keeps the row in the URL. The drawer's own previous and
   next buttons are gone.
-- Later, the send's side panel opens in the DMS overlay mode at size `3xl`
-  (`overlay: true, size: "3xl"`, 768 px capped to the viewport, full screen
-  on phones; `xl`, 576 px, was too narrow): it slides over the log instead of shrinking
-  it, at about twice the default width, with the same header, J / K, deep
-  link and live hold. Once the panel is wide, the timeline and the origin sit
-  side by side and the data sent keeps the full width.
+- Later, every detail panel became a DMS drawer, the docked side panel being
+  kept for global panels (an assistant): the send opens in a `drawer` on the
+  right (`direction: "right"`, dms#375) with the side panel's row options
+  carried over (title, `positionLabel`, `deepLink: true`, `notFound: {}`), at
+  the DMS's default 600 px, which the user resizes and the DMS remembers.
+  Once the drawer is resized wide, the timeline and the origin sit side by
+  side and the data sent keeps the full width. The template details row
+  action opens on the right too, as the gallery opens it.
 - Template details stay in a drawer: the gallery is the module's own table
   display, and a display can only run the row's default action (open the
   editor), not open another action's side panel.
