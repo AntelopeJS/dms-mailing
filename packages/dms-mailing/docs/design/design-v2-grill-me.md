@@ -507,6 +507,15 @@ Still custom, and why:
   template slug) instead of "Details", and the position reads "Send 3 of 1,348":
   the DMS counts the table's whole result now, so "shown" went, and it formats
   the numbers with the locale's separators.
+- The send fits the drawer as dms#375 lays it out: the drawer's body is the
+  scroll container and sets the 16 px inset, so the send adds no padding nor
+  scroller of its own, and its actions stick to the bottom as a form footer
+  does (`FORM_SURFACE_CLASSES.container`). The template / locale / latency
+  trio keeps three cells from a 28rem group (a 600 px drawer), the timeline
+  wraps a long Message-ID instead of clipping it, the recipient's address
+  gives way before the date, and the origin's "source" label sits under the
+  source rather than beside it. Everything follows the drawer's width
+  (container queries), never the viewport's.
 - Template details stay in a drawer: the gallery is the module's own table
   display, and a display can only run the row's default action (open the
   editor), not open another action's side panel.
