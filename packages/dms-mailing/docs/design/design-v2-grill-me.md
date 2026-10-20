@@ -503,6 +503,10 @@ Still custom, and why:
   Once the drawer is resized wide, the timeline and the origin sit side by
   side and the data sent keeps the full width. The template details row
   action opens on the right too, as the gallery opens it.
+- The drawer's header names the open send (`rowTitle`: its recipient and the
+  template slug) instead of "Details", and the position reads "Send 3 of 1,348":
+  the DMS counts the table's whole result now, so "shown" went, and it formats
+  the numbers with the locale's separators.
 - Template details stay in a drawer: the gallery is the module's own table
   display, and a display can only run the row's default action (open the
   editor), not open another action's side panel.

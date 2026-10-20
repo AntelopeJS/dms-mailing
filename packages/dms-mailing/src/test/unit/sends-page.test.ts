@@ -14,6 +14,7 @@ describe("[unit] pages/sends row click", () => {
       type: "drawer",
       direction: "right",
       title: "$dms_mailing.sends.actions.details",
+      rowTitle: "$dms_mailing.sends.drawer.heading",
       positionLabel: "$dms_mailing.sends.drawer.position",
       deepLink: true,
       notFound: {},

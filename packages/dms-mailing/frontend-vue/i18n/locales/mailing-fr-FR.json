@@ -532,7 +532,8 @@
 					"send_again": "Renvoyer…",
 					"copy_address": "Copier l’adresse"
 				},
-				"position": "Envoi {index} sur {total} affichés",
+				"heading": "{recipientEmail} · {templateSlug}",
+				"position": "Envoi {index} sur {total}",
 				"replayed_by": "Renvoyé le {date}",
 				"replay_of": "Cet envoi répète un envoi précédent",
 				"see_send": "Voir l’envoi",

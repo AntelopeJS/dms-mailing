@@ -305,6 +305,8 @@ export class SendsPageController extends PageController(
               permissionMeta("send_drawer", "i-ph-info"),
             ),
             title: "$dms_mailing.sends.actions.details",
+            // Names the open send: its recipient and the template it used.
+            rowTitle: "$dms_mailing.sends.drawer.heading",
             positionLabel: "$dms_mailing.sends.drawer.position",
             // A side panel keeps the open send in the URL and words a missing
             // one by default; a drawer does both only when asked.
