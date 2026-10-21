@@ -65,10 +65,9 @@ export function mailingToolbar(
       id: period.scope,
       presets: period.presets,
       defaultPreset: period.defaultPreset,
+      // More than one comparison: pageToolbar() draws them as a "vs …" menu
+      // on the first one, the previous period.
       comparisons: MAILING_COMPARISONS,
-      defaultComparison: "previous-period",
-      /** The toolbar's own default hides the control; the user picks here. */
-      comparisonControl: "menu",
     },
   }).meta({
     name: "$dms_mailing.permissions.page_header.name",
