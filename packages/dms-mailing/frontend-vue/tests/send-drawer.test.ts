@@ -92,7 +92,8 @@ describe('send drawer layout', () => {
 
 	it('keeps the template / locale / latency trio on one row in a 600px drawer', async () => {
 		const group = (await render()).querySelector('[data-stub="DmsStatGroup"]')
-		expect(group?.className).toContain('@md:[&>div]:grid-cols-3')
+		expect(group?.getAttribute('columns-from')).toBe('md')
+		expect(group?.className).not.toContain('grid-cols')
 	})
 
 	it('wraps the timeline so a Message-ID is never clipped', async () => {

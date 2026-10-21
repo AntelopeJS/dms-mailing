@@ -61,12 +61,6 @@ const RENDERING_MODAL_SIZE = '3xl'
 const FIX_ADDRESS_MODAL = 'MailingFixAddressModal'
 const FIX_ADDRESS_MODAL_SIZE = 'md'
 const KEY_PREFIX = 'dms_mailing.sends.drawer.'
-/**
- * The template / locale / latency trio keeps its three cells from a 28rem
- * group (a 600px drawer) rather than the DmsStatGroup's own 36rem: each holds
- * a short value. Targets the group's grid, sized by the group's container.
- */
-const STAT_TRIO_COLUMNS = '@md:[&>div]:grid-cols-3'
 const RESOLVED_STAGE = 'resolved'
 const NO_VALUE = '—'
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
@@ -478,10 +472,12 @@ onMounted(() => {
 			</header>
 
 			<section class="flex flex-col gap-3">
+				<!-- Three short values: side by side from a 28rem group (a 600px
+				     drawer) rather than the DmsStatGroup's own 36rem (dms#399). -->
 				<DmsStatGroup
-					:class="STAT_TRIO_COLUMNS"
 					layout="joined"
 					:columns="3"
+					columns-from="md"
 					:items="stats"
 				/>
 				<DmsBanner
