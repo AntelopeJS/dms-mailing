@@ -517,12 +517,10 @@ Still custom, and why:
   source rather than beside it. Everything follows the drawer's width
   (container queries), never the viewport's.
 - The actions sit at the bottom of the drawer even when the content is a
-  little shorter than it: sticky alone left them ~13 px above the edge of a
-  900 px drawer, under the content. The DMS body hugs its content (the
-  container around the component is a block), so `useDrawerFill` gives the
-  send and the template details a `min-height` measured from the body, and
-  their footer (`DRAWER_FOOTER_CLASS`) takes the leftover space (`mt-auto`)
-  before it sticks. Both drawers share that footer, flush with the edge.
+  little shorter than it. The DMS drawer body is a flex column
+  (AntelopeJS/dms#375): the send and the template details grow in it
+  (`flex-1`), and their actions sit in the DMS `DmsContainerFooter`, which
+  takes the leftover space (`mt-auto`) before it sticks, flush with the edge.
 - Template details stay in a drawer: the gallery is the module's own table
   display, and a display can only run the row's default action (open the
   editor), not open another action's side panel.

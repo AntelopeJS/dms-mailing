@@ -3,7 +3,6 @@ import { TEMPLATES_PATH } from '../utils/pages'
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useProviderRead, useSendRead } from '../composables/useMailingReads'
-import { useDrawerFill } from '../composables/useDrawerFill'
 import { useReplayToast } from '../composables/useReplayToast'
 import {
 	describeProblem,
@@ -19,7 +18,6 @@ import {
 	type SendAction,
 	type SendActionId,
 } from '../utils/send-actions'
-import { DRAWER_FOOTER_CLASS } from '../utils/drawer'
 import { renderingTitleKey } from '../utils/rendering-title'
 import { formatLatency, isSlowLatency } from '../utils/send-stats'
 import {
@@ -97,9 +95,6 @@ const { t, locale } = useI18n()
 const { copy } = useClipboard()
 
 const KeyValueList = resolveComponent('DmsKeyValueList') as Component
-
-const root = ref<HTMLElement | null>(null)
-const minHeight = useDrawerFill(root)
 
 const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
 const readSend = useSendRead(sendId)
@@ -424,15 +419,11 @@ onMounted(() => {
 <template>
 	<!--
 		The drawer's body is the scroll container and sets the inset: the send
-		adds no padding of its own. It fills the body so its actions sit at the
-		bottom of the drawer, and stick there once the send scrolls.
+		adds no padding of its own. It grows in the body's flex column, so the
+		footer sits at the bottom of the drawer, and sticks there once the send
+		scrolls.
 	-->
-	<div
-		ref="root"
-		class="@container flex flex-col gap-6"
-		:style="{ minHeight }"
-		data-send-drawer
-	>
+	<div class="@container flex flex-1 flex-col gap-6" data-send-drawer>
 		<USkeleton v-if="loading && !send" class="h-64" />
 
 		<template v-else-if="send">
@@ -649,7 +640,7 @@ onMounted(() => {
 					>{{ payload || '{}' }}</pre>
 			</section>
 
-			<footer :class="DRAWER_FOOTER_CLASS" data-send-footer>
+			<DmsContainerFooter data-send-footer>
 				<UButton
 					v-for="(action, index) in actions"
 					:key="action.id"
@@ -664,7 +655,7 @@ onMounted(() => {
 					:loading="action.id === 'send_again' && sending"
 					@click="ACTION_HANDLERS[action.id]()"
 				/>
-			</footer>
+			</DmsContainerFooter>
 		</template>
 	</div>
 </template>

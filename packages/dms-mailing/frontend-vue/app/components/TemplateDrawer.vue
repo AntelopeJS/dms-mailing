@@ -9,9 +9,7 @@ import {
 	useTemplateContentRead,
 	useTemplatePerformanceRead,
 } from '../composables/useMailingReads'
-import { useDrawerFill } from '../composables/useDrawerFill'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
-import { DRAWER_FOOTER_CLASS } from '../utils/drawer'
 import { apiErrorMessage } from '../utils/api-error'
 import { formatCardDate } from '../utils/gallery'
 import { localeCoverage } from '../utils/locales'
@@ -122,8 +120,6 @@ const locale = ref('')
 const subject = ref('')
 const isRenaming = ref(false)
 const draftName = ref('')
-const root = ref<HTMLElement | null>(null)
-const minHeight = useDrawerFill(root)
 const previewBox = ref<HTMLElement | null>(null)
 const { width: previewBoxWidth } = useElementSize(previewBox)
 
@@ -517,11 +513,7 @@ function onResolved(preview: PreviewResponse): void {
 </script>
 
 <template>
-	<div
-		ref="root"
-		class="flex w-[30rem] max-w-full flex-col"
-		:style="{ minHeight }"
-	>
+	<div class="flex w-[30rem] max-w-full flex-1 flex-col">
 		<USkeleton v-if="loading && !template" class="h-64 w-full" />
 
 		<template v-else-if="template">
@@ -890,7 +882,7 @@ function onResolved(preview: PreviewResponse): void {
 				/>
 			</div>
 
-			<div :class="DRAWER_FOOTER_CLASS" data-template-footer>
+			<DmsContainerFooter data-template-footer>
 				<UButton
 					icon="i-ph-flask"
 					color="neutral"
@@ -911,7 +903,7 @@ function onResolved(preview: PreviewResponse): void {
 					:label="t('dms_mailing.templates.actions.open_editor')"
 					@click="openEditor(locale)"
 				/>
-			</div>
+			</DmsContainerFooter>
 		</template>
 	</div>
 </template>

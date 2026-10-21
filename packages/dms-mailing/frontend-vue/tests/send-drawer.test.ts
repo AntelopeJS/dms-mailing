@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApp } from 'vue'
 import SendDrawer from '../app/components/SendDrawer.vue'
 import type { SendRow } from '../app/types/mailing'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
@@ -30,9 +29,6 @@ const SEND: SendRow = {
 	isTest: false,
 }
 
-/** A 900px drawer, less its header: the body the send fills. */
-const DRAWER_BODY_HEIGHT = 780
-
 const STUB_NAMES = [
 	'USkeleton',
 	'UButton',
@@ -44,6 +40,7 @@ const STUB_NAMES = [
 	'DmsActivityItem',
 	'DmsListRow',
 	'DmsKeyValueList',
+	'DmsContainerFooter',
 ]
 const STUBS = Object.fromEntries(
 	STUB_NAMES.map((name) => [name, slotStub(name)]),
@@ -78,31 +75,19 @@ describe('send drawer layout', () => {
 		expect(host.querySelector('header')?.className).not.toMatch(/px-\d/)
 	})
 
-	it('sticks the actions to the bottom, aligned with the body', async () => {
-		const footer = (await render()).querySelector('[data-send-footer]')
-		expect(footer?.className).toContain('sticky')
-		expect(footer?.className).toContain('bottom-[calc(var(--dms-form-foot-pb')
-		expect(footer?.className).not.toMatch(/(^|\s)px-\d/)
-	})
-
-	it('fills the drawer body so the actions sit at its bottom', async () => {
-		const body = document.createElement('div')
-		body.dataset.slot = 'body'
-		Object.defineProperty(body, 'clientHeight', { value: DRAWER_BODY_HEIGHT })
-		document.body.appendChild(body)
-		const host = document.createElement('div')
-		body.appendChild(host)
-		const app = createApp(SendDrawer, { rowData: SEND })
-		Object.entries(STUBS).forEach(([name, stub]) => app.component(name, stub))
-		app.config.warnHandler = () => undefined
-		app.mount(host)
-		await flush()
+	// The DMS drawer body is a flex column: a root that grows keeps the
+	// DmsContainerFooter, which sticks and sits flush, at the drawer's bottom.
+	it('grows in the drawer body and puts its actions in the DMS footer', async () => {
+		const host = await render()
 		const root = host.firstElementChild as HTMLElement
-		expect(root.style.minHeight).toBe(`${DRAWER_BODY_HEIGHT}px`)
+		expect(root.className).toContain('flex-1')
 		expect(root.className).toContain('flex-col')
-		expect(host.querySelector('[data-send-footer]')?.className).toContain(
-			'mt-auto',
-		)
+		expect(root.style.minHeight).toBe('')
+		const footer = host.querySelector('[data-send-footer]')
+		expect(footer?.getAttribute('data-stub')).toBe('DmsContainerFooter')
+		expect(
+			footer?.querySelectorAll('[data-stub="UButton"]').length,
+		).toBeGreaterThan(0)
 	})
 
 	it('keeps the template / locale / latency trio on one row in a 600px drawer', async () => {
