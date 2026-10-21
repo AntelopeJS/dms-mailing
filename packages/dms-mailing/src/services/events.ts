@@ -135,7 +135,7 @@ async function publishEmailEvent(
   send: MailingSend,
 ): Promise<void> {
   emitEmailEvent(payload);
-  publishSendUpdated(payload.sendId);
+  publishSendUpdated(payload.tenantId, payload.sendId);
   await notifyProblems(payload.tenantId, {
     sendId: send._id,
     templateSlug: send.templateSlug,
