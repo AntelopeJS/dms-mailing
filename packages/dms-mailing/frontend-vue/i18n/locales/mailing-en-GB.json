@@ -999,9 +999,6 @@
 				"archived": "Archived",
 				"attention": "Needs attention"
 			},
-			"filters": {
-				"category": "Category"
-			},
 			"footer": {
 				"count": "{count} template | {count} templates",
 				"hint": "Open a template to edit it · ↵ open · T test send"

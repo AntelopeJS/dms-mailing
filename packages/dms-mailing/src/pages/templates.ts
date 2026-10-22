@@ -96,13 +96,6 @@ export class TemplatesPageController extends PageController(
         filter: { accessorKey: "needsAttention", value: "true", mode: "is" },
       },
     ],
-    quickFilters: [
-      {
-        field: "category",
-        label: "$dms_mailing.templates.filters.category",
-        icon: "i-ph-tag",
-      },
-    ],
     footer: {
       countLabel: "$dms_mailing.templates.footer.count",
       hint: "$dms_mailing.templates.footer.hint",
