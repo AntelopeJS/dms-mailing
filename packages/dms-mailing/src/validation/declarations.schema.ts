@@ -85,18 +85,7 @@ const importedSendSchema = z.object({
 
 export type ParsedImportedSend = z.infer<typeof importedSendSchema>;
 
-const REPLACE_WITHOUT_SCOPE = "a replacing import needs a scope";
-
-export const sendImportSchema = z
-  .object({
-    tenantId: tenantIdSchema,
-    scope: z.string().trim().min(1).max(MAX_IMPORT_ID_LENGTH).optional(),
-    replace: z.boolean().default(false),
-    sends: z.array(importedSendSchema),
-  })
-  .refine((input) => !input.replace || input.scope, {
-    message: REPLACE_WITHOUT_SCOPE,
-    path: ["scope"],
-  });
-
-export type ParsedSendImport = z.infer<typeof sendImportSchema>;
+export const sendImportSchema = z.object({
+  tenantId: tenantIdSchema,
+  sends: z.array(importedSendSchema),
+});

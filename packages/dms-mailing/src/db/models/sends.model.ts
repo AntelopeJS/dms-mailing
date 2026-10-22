@@ -104,14 +104,6 @@ export class SendModel extends BasicDataModel(
     }
   }
 
-  /** The sends an import scope wrote, without their rendered variables. */
-  listImported(scope: string): Promise<SendSummary[]> {
-    return this.table
-      .getAll(scope, "importScope")
-      .without("json_variables")
-      .run() as Promise<SendSummary[]>;
-  }
-
   /** Reads the stored row, including the revision the mutation contract compares. */
   getSnapshot(sendId: string): Promise<MailingSend | undefined> {
     return this.table.get(sendId).run();

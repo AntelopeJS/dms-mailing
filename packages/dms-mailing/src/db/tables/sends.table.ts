@@ -116,17 +116,4 @@ export class MailingSend extends Table {
   /** Who sent it again: a user id. */
   @Field("string")
   declare resolvedBy?: string;
-
-  /**
-   * The import that wrote this send (`ImportSends` `scope`); absent on a live
-   * send and on an import without a scope. A replacing import only ever
-   * touches the sends of its own scope.
-   */
-  @Index()
-  @Field("string")
-  declare importScope?: string;
-
-  /** Fingerprint of the imported entry: a replacing import rewrites it on change. */
-  @Field("string")
-  declare importHash?: string;
 }

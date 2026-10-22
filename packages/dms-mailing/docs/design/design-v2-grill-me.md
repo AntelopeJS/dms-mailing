@@ -604,11 +604,11 @@ and of `pickLocale`: the layer is copied on its own and cannot import
 ## 13. Content as code follow-up
 
 Gaps a project hit once it shipped its templates, categories and history as
-code (interface 0.8, not released yet):
+code (interface 0.8):
 
 | Gap | Decision | Evidence |
 | --- | --- | --- |
-| A reseeded project cannot take back sends it imported, and re-importing on every boot needs its own "import once" marker | `ImportSends({ scope, replace: true })`: the batch becomes the whole scope, changed entries are rewritten (fingerprint on `importHash`), unlisted ones removed, `sends: []` empties it. No separate `RemoveImport` call: an empty replace does it | Only rows with that `importScope` are touched; live send ids are random UUIDs, imported ones a hash of tenant + `importId`, so they cannot collide. The module cannot tell an imported e-mail from the live send of the same e-mail: the docs ask for a data set live sends do not cover |
+| A reseeded project cannot take back sends it imported, and re-importing on every boot needs its own "import once" marker | No scoped or replacing import (review Q42): `ImportSends` stays an append-only history import, idempotent by `importId`, called once when the workspace is provisioned | Default data is written once, in `Hook.TENANT_BEING_PROVISIONED`, so nothing replays an import on every boot; a first version with `scope` / `replace` was dropped in review |
 | Declared names and category labels are raw strings | A `$`-prefixed name or label is an i18n key, read in the user's language wherever the dashboard shows it (the `mailing:template-name` column display, the attention texts as nested composed text); an untouched translation saves back the key | The DMS already reads `$` texts in titles and filter labels (`processText`, `processI18n`), not in data cells: the module translates its own displays. Search and sort still read the key |
 | A fresh install shows "No sender address" | `DeclareSender`, with the category rule (written when unset, refreshed while untouched, kept once a user set, changed or cleared it), not a module config default | A config default would send from an address the settings form does not show, and would apply to every tenant alike |
 | `money` and `date` are labels only | `{ value, currency }` (minor units, the DMS composed-text money shape) and `Date` values format themselves in the send locale; an ISO string formats at a `date` path; other strings and numbers print as given | Existing callers pass pre-formatted strings, which keep their output; a `number` is left alone so order numbers do not get group separators |

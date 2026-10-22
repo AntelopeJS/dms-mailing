@@ -25,7 +25,7 @@ https://dms.antelopejs.com/docs/modules/mailing (sending from code and the webho
   (`@antelopejs/nodemailer`, `config: { ethereal: true }` in dev).
 - Mailing 0.6 requires `@antelopejs/dms` >=0.9 (interface-dms 0.7, renderer `@antelopejs/dms-frontend` 0.6);
   0.4 is the DMS 0.8 line. Mailing 0.6 implements `@antelopejs/interface-dms-mailing` `>=0.8.0 <0.9.0`, adding declaration and import calls;
-  interface 0.9 adds `DeclareSender` and replacing imports; `SendTemplate` / `RecordEmailEvent` callers do not change.
+  interface 0.9 adds `DeclareSender`; `SendTemplate` / `RecordEmailEvent` callers do not change.
 - Module option: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML).
 - Set the DMS `clientBaseUrl`: the webhook URL and the e-mail logo are built on it.
 - Per-workspace settings (sender, missing-variable guard, fallback locale, webhook secret, retention,
@@ -94,9 +94,6 @@ export async function declareMailingContent(tenantId: string) {
 - `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
   dates (demo data, migration): no delivery, no suppression/automation/realtime; skipped when `importId` was
   already imported. Retention still applies (90 days default).
-- `ImportSends({ tenantId, scope, replace: true, sends })` makes `sends` the whole data set of `scope`: changed
-  entries rewritten, unlisted ones removed (`sends: []` empties the scope); live sends and other scopes untouched.
-  Rebuild it only from records live sends do not cover, or e-mails appear twice.
 
 ## Gotchas
 
