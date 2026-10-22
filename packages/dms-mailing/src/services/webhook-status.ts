@@ -8,12 +8,12 @@ import type {
   WebhookStatus,
 } from "../types";
 import { webhookSecretMatches } from "./events";
+import { WEBHOOK_SECRET_HEADER } from "../constants";
+
+export { WEBHOOK_SECRET_HEADER };
 
 /** The message id of the event the settings' "Send a test event" posts. */
 export const WEBHOOK_TEST_MESSAGE_ID = "dms-mailing-webhook-test";
-
-/** The header a provider (or its relay) proves it knows the secret with. */
-export const WEBHOOK_SECRET_HEADER = "x-mailing-webhook-secret";
 
 const WEBHOOK_TEST_EVENT_TYPE: SendEventType = "delivered";
 const WEBHOOK_TEST_TIMEOUT_MS = 10_000;

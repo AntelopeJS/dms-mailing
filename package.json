@@ -2,7 +2,6 @@
   "name": "dms-mailing-workspace",
   "private": true,
   "license": "Apache-2.0",
-  "packageManager": "pnpm@10.6.5",
   "scripts": {
     "build": "pnpm --filter @antelopejs/dms-mailing build",
     "lint": "pnpm --filter @antelopejs/dms-mailing lint",
@@ -15,5 +14,6 @@
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001"
-  }
+  },
+  "packageManager": "pnpm@10.6.5"
 }
