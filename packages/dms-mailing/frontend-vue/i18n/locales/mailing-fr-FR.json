@@ -999,9 +999,6 @@
 				"archived": "Archivés",
 				"attention": "À revoir"
 			},
-			"filters": {
-				"category": "Catégorie"
-			},
 			"footer": {
 				"count": "aucun modèle | {count} modèle | {count} modèles",
 				"hint": "Ouvrez un modèle pour le modifier · ↵ ouvrir · T envoi de test"
