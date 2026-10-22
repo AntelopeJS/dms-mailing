@@ -54,11 +54,4 @@ export class MailingSettings extends Table {
    */
   @Field("string")
   declare json_declared_categories?: string;
-
-  /**
-   * Fingerprint of the sender `DeclareSender` last applied: what tells a
-   * sender untouched since from one a user changed or cleared.
-   */
-  @Field("string")
-  declare declaredSenderHash?: string;
 }

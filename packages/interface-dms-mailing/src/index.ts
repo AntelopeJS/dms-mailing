@@ -286,10 +286,6 @@ export interface SenderDeclaration {
   replyTo?: string;
 }
 
-export interface DeclareSenderResult {
-  outcome: DeclarationOutcome;
-}
-
 /**
  * A provider event of an imported send. Its `at` is kept as given: the
  * timeline and the metrics read it.
@@ -371,17 +367,16 @@ export const DeclareTemplateCategory =
   >();
 
 /**
- * Sets the workspace's sender (from name, address, reply-to) from code. It is
- * written on a workspace without a sender, refreshed while it still holds
- * the last declaration, and otherwise left as a user set, changed or cleared
- * it: see {@link DeclarationOutcome}. Waits for the module and its database
- * when called early. Serialization with the category declarations is
- * process-local; coordinate concurrent settings writers.
+ * Writes the workspace's sender (from name, address, reply-to): call it once,
+ * when the project provisions the workspace (`Hook.TENANT_BEING_PROVISIONED`).
+ * The declared sender replaces the stored one; later edits in the settings
+ * are the user's. Waits for the module and its database when called early.
+ * Do not run it concurrently with another settings writer of the same
+ * workspace, such as `DeclareTemplateCategory`: each rewrites the whole
+ * settings row.
  */
 export const DeclareSender =
-  InterfaceFunction<
-    (declaration: SenderDeclaration) => Promise<DeclareSenderResult>
-  >();
+  InterfaceFunction<(declaration: SenderDeclaration) => Promise<void>>();
 
 /**
  * Writes past sends and their events into the send log with their own dates:

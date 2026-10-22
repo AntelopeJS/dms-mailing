@@ -15,7 +15,7 @@ The AntelopeJS interface to send DMS mailing templates and report e-mail events 
 
 - Sends a published template by its slug, to one recipient or many, in a given locale and with its variables (`SendTemplate`).
 - Reports a provider event (delivered, opened, clicked, bounced…) against the send it belongs to (`RecordEmailEvent`).
-- Ships templates, template categories and the workspace sender as code, published and idempotent, without overwriting what a user changed since (`DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender`).
+- Ships templates and template categories as code, published and idempotent, without overwriting what a user changed since (`DeclareTemplate`, `DeclareTemplateCategory`), and writes the workspace sender when a workspace is provisioned (`DeclareSender`).
 - Imports past sends and their events with their own dates, for a demo data set or a move from another provider (`ImportSends`).
 - Exports the template and send types (`Block`, `TemplateContent`, `VariableDefinition`, `SendStatus`, `EmailEvent`…) for code that builds or inspects templates.
 - Keeps your module independent of the implementation, [`@antelopejs/dms-mailing`](https://www.npmjs.com/package/@antelopejs/dms-mailing).

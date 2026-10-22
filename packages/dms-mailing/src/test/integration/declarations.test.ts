@@ -720,53 +720,33 @@ describe("[integration] sender declarations", () => {
     return { senderName, senderEmail, replyTo };
   }
 
-  async function userSets(fields: Record<string, string>): Promise<void> {
-    const { getSettings, saveSettings } =
-      await import("../../services/settings");
-    await saveSettings(tenantId, {
-      ...(await getSettings(tenantId)),
-      ...fields,
-    });
-  }
-
-  it("sets the sender of a workspace that has none, once", async () => {
+  it("writes the sender of the workspace", async () => {
     const { DeclareSender } = await mailing();
-    expect(await DeclareSender(sender)).to.deep.equal({ outcome: "created" });
+    expect(await DeclareSender(sender)).to.equal(undefined);
     expect(await storedSender()).to.deep.equal({
       senderName: "Acme",
       senderEmail: "hello@acme.example",
       replyTo: "support@acme.example",
     });
-    expect(await DeclareSender(sender)).to.deep.equal({ outcome: "unchanged" });
   });
 
-  it("refreshes an untouched sender and keeps one a user changed", async () => {
+  it("replaces the stored sender and leaves the other settings", async () => {
     const { DeclareSender } = await mailing();
-    const renamed = { ...sender, name: "Acme Inc." };
-    expect((await DeclareSender(renamed)).outcome).to.equal("updated");
-    expect((await storedSender()).senderName).to.equal("Acme Inc.");
-
-    await userSets({ senderEmail: "team@acme.example" });
-    const moved = { ...renamed, email: "noreply@acme.example" };
-    expect((await DeclareSender(moved)).outcome).to.equal("kept");
-    expect((await storedSender()).senderEmail).to.equal("team@acme.example");
-
-    await userSets({ senderName: "", senderEmail: "", replyTo: "" });
-    expect((await DeclareSender(moved)).outcome).to.equal("kept");
-    expect((await storedSender()).senderEmail).to.equal("");
-  });
-
-  it("keeps a sender a user set before any declaration", async () => {
-    const { DeclareSender } = await mailing();
-    const otherTenant = `${tenantId}-preset`;
-    const { getSettings, saveSettings } =
-      await import("../../services/settings");
-    await saveSettings(otherTenant, {
-      ...(await getSettings(otherTenant)),
-      senderEmail: "owner@example.test",
+    const { getSettings } = await import("../../services/settings");
+    const before = await getSettings(tenantId);
+    await DeclareSender({ tenantId, email: "noreply@acme.example" });
+    expect(await storedSender()).to.deep.equal({
+      senderName: "",
+      senderEmail: "noreply@acme.example",
+      replyTo: "",
     });
-    const result = await DeclareSender({ ...sender, tenantId: otherTenant });
-    expect(result.outcome).to.equal("kept");
+    const after = await getSettings(tenantId);
+    expect({
+      ...after,
+      senderName: before.senderName,
+      senderEmail: before.senderEmail,
+      replyTo: before.replyTo,
+    }).to.deep.equal(before);
   });
 
   it("refuses a missing address or tenant, naming the field", async () => {

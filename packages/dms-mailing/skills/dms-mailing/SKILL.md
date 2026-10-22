@@ -61,7 +61,7 @@ const result = await SendTemplate("order-confirmed", {
 import { DeclareSender, DeclareTemplate, DeclareTemplateCategory, ImportSends } from "@antelopejs/interface-dms-mailing";
 
 export async function declareMailingContent(tenantId: string) {
-  await DeclareSender({ tenantId, name: "Acme", email: "hello@acme.example" }); // kept once a user changes it
+  await DeclareSender({ tenantId, name: "Acme", email: "hello@acme.example" }); // a plain write: call it once, at provisioning
   await DeclareTemplateCategory({ tenantId, id: "subscriptions", label: "Subscriptions", icon: "i-ph-repeat" }); // before templates naming it
   const { outcome } = await DeclareTemplate({
     tenantId, slug: "subscription-renewed", name: "Subscription renewed", category: "subscriptions",
@@ -87,8 +87,8 @@ export async function declareMailingContent(tenantId: string) {
 - Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
 - `name` / `label` may be `$` i18n keys (`$acme.mails.welcome`), translated in the dashboard from the project's
   frontend locale files; a dashboard rename stores text (then `kept`).
-- `DeclareSender({ tenantId, email, name?, replyTo? })` fills the settings' sender with the same rule: written on a
-  workspace without one, `kept` once a user set, changed or cleared it; refusals use `invalid_sender`.
+- `DeclareSender({ tenantId, email, name?, replyTo? })` writes the settings' sender (resolves `void`); call it once
+  from `Hook.TENANT_BEING_PROVISIONED`, not on every boot, since it replaces what a user set. Refusals use `invalid_sender`.
 - Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,
   `nothing_to_publish`, `invalid_category`; invalid tenant input rejects before writes. Storage errors can occur after publication.
 - `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
