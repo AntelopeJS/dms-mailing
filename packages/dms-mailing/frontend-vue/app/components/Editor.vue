@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { computed, onMounted, ref } from 'vue'
 import type { TemplateContentResponse } from '../types/mailing'
 import { useTemplateContentRead } from '../composables/useMailingReads'
@@ -15,7 +14,6 @@ interface Props {
 const props = defineProps<Props>()
 
 const { t } = useI18n()
-const localized = useLocalizedDefaults()
 const route = useDmsRoute()
 const setRecordLabel = useRecordLabel()
 
@@ -34,7 +32,7 @@ async function load(): Promise<void> {
 	failed.value = false
 	try {
 		loaded.value = await readContent()
-		setRecordLabel(localized.name(loaded.value.template.name))
+		setRecordLabel(loaded.value.template.name)
 		generation.value += 1
 	} catch {
 		failed.value = true
@@ -94,7 +92,7 @@ onMounted(load)
 			:loaded="loaded"
 			:template-id="templateId"
 			:reload="load"
-			@renamed="(name: string) => setRecordLabel(localized.name(name))"
+			@renamed="setRecordLabel"
 		/>
 	</div>
 </template>

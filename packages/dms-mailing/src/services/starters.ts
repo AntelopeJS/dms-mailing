@@ -1,4 +1,4 @@
-import type { MailingTemplate } from "../db";
+import type { TemplateFields } from "../db";
 import type {
   Block,
   LocaleContent,
@@ -362,7 +362,7 @@ export function findStarter(id: string): StarterTemplate | undefined {
 export function starterFields(
   starter: StarterTemplate,
   locale: string = DEFAULT_TEST_DATA_LOCALE,
-): Partial<MailingTemplate> {
+): TemplateFields {
   return {
     ...blankFields(starter.content),
     json_variables: JSON.stringify(starter.variables),

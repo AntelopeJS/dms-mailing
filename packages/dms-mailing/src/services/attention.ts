@@ -223,28 +223,13 @@ function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
 const MAX_LISTED_NAMES = 2;
 const LIST_SEPARATOR = ", ";
 const MORE_NAMES_KEY = "$dms_mailing.attention.more_names";
-const NAME_PAIR_KEY = "$dms_mailing.attention.name_pair";
-const I18N_KEY_PREFIX = "$";
-
-const isI18nKey = (name: string): boolean => name.startsWith(I18N_KEY_PREFIX);
-
-/** A name as a text parameter: a declared `$` key is read in the reader's language. */
-const nameText = (name: string): ComposedTextParam =>
-  isI18nKey(name) ? { key: name } : name;
-
-/** The names listed, composed when one of them is an i18n key. */
-function listedNames(names: string[]): ComposedTextParam {
-  if (!names.some(isI18nKey)) return names.join(LIST_SEPARATOR);
-  const [first = "", second] = names.map(nameText);
-  if (second === undefined) return first;
-  return { key: NAME_PAIR_KEY, params: { first, second } };
-}
 
 /** The first names, and how many others there are ("A, B and 2 more"). */
 function namesOf(templates: MailingTemplate[]): ComposedTextParam {
-  const names = listedNames(
-    templates.slice(0, MAX_LISTED_NAMES).map((template) => template.name),
-  );
+  const names = templates
+    .slice(0, MAX_LISTED_NAMES)
+    .map((template) => template.name)
+    .join(LIST_SEPARATOR);
   const more = templates.length - MAX_LISTED_NAMES;
   if (more <= 0) return names;
   return {

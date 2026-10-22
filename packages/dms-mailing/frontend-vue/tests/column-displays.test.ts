@@ -36,25 +36,13 @@ function texts(node: VNode): string[] {
 }
 
 describe('column displays plugin', () => {
-	it('registers the locale chips, category and name displays without a DOM', async () => {
+	it('registers the locale chips and category displays without a DOM', async () => {
 		const { default: setup } = await import('../app/plugins/column-displays')
 		;(setup as unknown as PluginSetup)()
 		expect(registered.map((type) => type.id)).toEqual([
 			'mailing:locale-chips',
 			'mailing:category',
-			'mailing:template-name',
 		])
-	})
-
-	it('draws a template name through its component', async () => {
-		const { renderTemplateName } =
-			await import('../app/plugins/column-displays')
-		const { default: TemplateName } =
-			await import('../app/components/TemplateName.vue')
-		const cell = renderTemplateName('$acme.mails.welcome')
-		expect(cell.type).toBe(TemplateName)
-		expect(cell.props).toEqual({ value: '$acme.mails.welcome' })
-		expect(renderTemplateName(42).props).toEqual({ value: null })
 	})
 
 	it('draws a category through its label component', async () => {

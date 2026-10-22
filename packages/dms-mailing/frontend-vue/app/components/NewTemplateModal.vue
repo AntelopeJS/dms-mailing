@@ -204,7 +204,7 @@ const copyableTemplates = computed(() =>
 const templateTile = (template: TemplateRow): SourceTile => ({
 	key: `template-${template._id}`,
 	choice: { kind: 'template', id: template._id },
-	title: localized.name(template.name),
+	title: template.name,
 	subtitle: template.slug,
 	preview: { templateId: template._id },
 	pick: () => pickTemplate(template),

@@ -14,14 +14,15 @@ import {
 	slugifyId,
 	toCategoryOption,
 	toStoredCategories,
+	toEditableRows,
 	toStoredCategory,
 	uniqueId,
 	type EditableCategory,
 } from '../app/utils/categories'
-import type { TemplateCategory } from '../app/types/mailing'
+import type { StoredCategory } from '../app/types/mailing'
 
-const CATEGORIES: TemplateCategory[] = [
-	{ id: 'orders', label: 'Orders', icon: 'i-ph-package' },
+const CATEGORIES: StoredCategory[] = [
+	{ id: 'orders', label: { en: 'Orders' }, icon: 'i-ph-package' },
 ]
 
 describe('slugifyId', () => {
@@ -89,22 +90,56 @@ const row = (patch: Partial<EditableCategory>): EditableCategory => ({
 	label: '',
 	icon: 'i-ph-package',
 	isNew: false,
+	labels: {},
 	...patch,
 })
 
 describe('toStoredCategories', () => {
 	it('keeps saved ids even after a rename', () => {
 		expect(
-			toStoredCategories([row({ id: 'orders', label: 'Purchases' })]),
-		).toEqual([{ id: 'orders', label: 'Purchases', icon: 'i-ph-package' }])
+			toStoredCategories([row({ id: 'orders', label: 'Purchases' })], 'en'),
+		).toEqual([
+			{ id: 'orders', label: { en: 'Purchases' }, icon: 'i-ph-package' },
+		])
+	})
+
+	it('shows each label in the language edited and writes it back there only', () => {
+		const stored: StoredCategory[] = [
+			{
+				id: 'orders',
+				label: { en: 'Orders', fr: 'Commandes' },
+				icon: 'i-ph-package',
+			},
+			{ id: 'billing', label: { en: 'Billing' }, icon: 'i-ph-file-text' },
+		]
+		let next = 0
+		const rows = toEditableRows(stored, 'fr', () => `row-${next++}`)
+		expect(rows.map((entry) => entry.label)).toEqual(['Commandes', 'Billing'])
+		rows[0]!.label = 'Achats'
+		rows[1]!.label = 'Facturation'
+		expect(toStoredCategories(rows, 'fr')).toEqual([
+			{
+				id: 'orders',
+				label: { en: 'Orders', fr: 'Achats' },
+				icon: 'i-ph-package',
+			},
+			{
+				id: 'billing',
+				label: { en: 'Billing', fr: 'Facturation' },
+				icon: 'i-ph-file-text',
+			},
+		])
 	})
 
 	it('derives a new row id from its whole label, unique among the others', () => {
-		const stored = toStoredCategories([
-			row({ id: 'billing', label: 'Billing' }),
-			row({ label: 'Billing', isNew: true }),
-			row({ label: 'Été', isNew: true }),
-		])
+		const stored = toStoredCategories(
+			[
+				row({ id: 'billing', label: 'Billing' }),
+				row({ label: 'Billing', isNew: true }),
+				row({ label: 'Été', isNew: true }),
+			],
+			'en',
+		)
 		expect(stored.map((category) => category.id)).toEqual([
 			'billing',
 			'billing-2',
@@ -113,13 +148,16 @@ describe('toStoredCategories', () => {
 	})
 
 	it('keeps a row without a label, for the server to name, and fills a missing icon', () => {
-		const stored = toStoredCategories([
-			row({ label: '   ', isNew: true }),
-			row({ label: '!!!', isNew: true, icon: '' }),
-		])
+		const stored = toStoredCategories(
+			[
+				row({ label: '   ', isNew: true }),
+				row({ label: '!!!', isNew: true, icon: '' }),
+			],
+			'en',
+		)
 		expect(stored).toEqual([
-			{ id: 'category', label: '', icon: 'i-ph-package' },
-			{ id: 'category-2', label: '!!!', icon: 'i-ph-folder' },
+			{ id: 'category', label: { en: '' }, icon: 'i-ph-package' },
+			{ id: 'category-2', label: { en: '!!!' }, icon: 'i-ph-folder' },
 		])
 	})
 })
@@ -151,7 +189,7 @@ describe('moveRow', () => {
 })
 
 describe('category moves', () => {
-	const gone = { id: 'gone', label: 'Gone', icon: 'i-ph-gift' }
+	const gone = { id: 'gone', label: { en: 'Gone' }, icon: 'i-ph-gift' }
 
 	it('hands the form the kept categories, then the moved ones', () => {
 		const entries = withMoves(CATEGORIES, [

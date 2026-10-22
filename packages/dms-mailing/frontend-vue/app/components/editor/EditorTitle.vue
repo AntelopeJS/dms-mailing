@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
-import { useLocalizedDefaults } from '../../composables/useLocalizedDefaults'
 import { TEMPLATES_PATH } from '../../utils/pages'
 import type { StatusKey } from '../../utils/lifecycle'
 
@@ -14,7 +13,6 @@ const STATUS_TONES: Record<StatusKey, string> = {
 const SEPARATOR = ' · '
 
 const { t } = useI18n()
-const localized = useLocalizedDefaults()
 const { editor, session } = useEditorContext()
 
 const template = computed(() => session.state.template)
@@ -38,11 +36,7 @@ const statusLabel = computed(() => {
 const categoryLabel = computed(() => {
 	const id = template.value.category
 	if (!id) return t('dms_mailing.editor.toolbar.uncategorised')
-	return (
-		localized
-			.categories(session.state.categories)
-			.find((entry) => entry.id === id)?.label ?? id
-	)
+	return session.state.categories.find((entry) => entry.id === id)?.label ?? id
 })
 </script>
 
@@ -66,7 +60,7 @@ const categoryLabel = computed(() => {
 		>
 			<span class="flex items-center gap-2">
 				<span class="text-highlighted truncate text-sm font-semibold">
-					{{ localized.name(template.name) }}
+					{{ template.name }}
 				</span>
 				<DmsStatusPill
 					size="sm"

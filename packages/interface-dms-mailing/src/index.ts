@@ -207,6 +207,17 @@ export const RecordEmailEvent =
     (tenantId: string, event: EmailEvent) => Promise<boolean>
   >();
 
+/** The locale a localized text is read in when the reader's has no text. */
+export const LOCALIZED_TEXT_FALLBACK_LOCALE = "en";
+
+/**
+ * A text written once per language, keyed by language code:
+ * `{ en: "Welcome", fr: "Bienvenue" }`. Each user reads the text of their
+ * language, else the `en` one ({@link LOCALIZED_TEXT_FALLBACK_LOCALE}), which
+ * a declaration must therefore hold.
+ */
+export type LocalizedText = Record<string, string>;
+
 /**
  * A template a project ships as code. `slug` is the stable key the caller
  * chooses: declaring it again never creates a second template.
@@ -215,12 +226,8 @@ export interface TemplateDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   slug: string;
-  /**
-   * Shown in the dashboard. A `$`-prefixed i18n key (`$acme.mails.welcome`)
-   * is read in each user's language, from translations the project's
-   * frontend module ships.
-   */
-  name: string;
+  /** The name the dashboard shows, per language; an `en` text is required. */
+  name: LocalizedText;
   /** A category id the workspace settings declare; none when absent. */
   category?: string;
   /** What customers receive, per locale. Every locale needs a subject. */
@@ -260,8 +267,8 @@ export interface TemplateCategoryDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   id: string;
-  /** Shown in the dashboard; a `$`-prefixed i18n key, like a template's name. */
-  label: string;
+  /** The label the dashboard shows, per language; an `en` text is required. */
+  label: LocalizedText;
   /** A Phosphor icon name, such as `i-ph-tag`. */
   icon: string;
 }

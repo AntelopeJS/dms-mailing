@@ -4,18 +4,21 @@ import {
   CreationTime,
   Field,
   Index,
+  LocalizationModifier,
+  Localized,
   Modifier,
   RegisterTable,
   Table,
   UpdateTime,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
+import { LOCALIZED_TEXT_FALLBACK_LOCALE } from "@antelopejs/interface-dms-mailing";
 import type { TemplateStatus } from "../../types";
 
 export const MAILING_TEMPLATES_TABLE_NAME = "mailing_templates";
 
 @RegisterTable(MAILING_TEMPLATES_TABLE_NAME, TENANT_SCHEMA_NAME)
-export class MailingTemplate extends Table {
+export class MailingTemplate extends Table.with(LocalizationModifier) {
   @Field("string")
   declare _id: string;
 
@@ -32,6 +35,12 @@ export class MailingTemplate extends Table {
   @Field("string")
   declare slug: string;
 
+  /**
+   * One name per language (`{ en: "Welcome", fr: "Bienvenue" }`): read it
+   * after `template.localize(locale, ["name"])`, write every language at
+   * once through `localize("*")`.
+   */
+  @Localized({ fallbackLocale: LOCALIZED_TEXT_FALLBACK_LOCALE })
   @Field("string")
   declare name: string;
 

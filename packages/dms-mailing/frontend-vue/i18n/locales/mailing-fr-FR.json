@@ -46,7 +46,6 @@
 				"description": "Les e-mails utilisent l’adresse par défaut du fournisseur.",
 				"action": "Définir l’expéditeur"
 			},
-			"name_pair": "{first}, {second}",
 			"more_names": "{names} et {count} autre | {names} et {count} autre | {names} et {count} autres"
 		},
 		"blocks": {
@@ -1389,15 +1388,6 @@
 			"url": "Lien",
 			"boolean": "Oui / non",
 			"array": "Liste"
-		},
-		"categories": {
-			"defaults": {
-				"orders": "Commandes",
-				"account": "Compte et accès",
-				"billing": "Facturation",
-				"marketing": "Marketing",
-				"forms": "Formulaires"
-			}
 		},
 		"starters": {
 			"names": {

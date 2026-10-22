@@ -66,7 +66,7 @@ export function useCategoryUsage(): ApiDataResult<CategoryUsageResponse> {
 	)
 }
 
-/** The tenant's template categories, as stored. */
+/** The tenant's template categories, labelled in the interface's language. */
 export function useStoredCategories(): ApiDataResult<CategoriesResponse> {
 	return useApiData<CategoriesResponse>(mailingPath('templates', 'categories'))
 }

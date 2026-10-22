@@ -271,9 +271,23 @@ export const SEND_STATUSES: SendStatus[] = [
 /** What a provider reports: a suppressed send never reached one. */
 export type SendEventType = Exclude<SendStatus, 'suppressed'>
 
+/** A text written once per language: `{ en: 'Orders', fr: 'Commandes' }`. */
+export type LocalizedText = Record<string, string>
+
+/** A template category as one reader sees it: its label in their language. */
 export interface TemplateCategory {
 	id: string
 	label: string
+	icon: string
+}
+
+/**
+ * A template category as the settings store it, read and written whole by
+ * the settings form: its label in every language.
+ */
+export interface StoredCategory {
+	id: string
+	label: LocalizedText
 	icon: string
 }
 

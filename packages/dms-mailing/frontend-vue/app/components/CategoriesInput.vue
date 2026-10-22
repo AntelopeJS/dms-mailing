@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useSortableList } from '../composables/useSortableList'
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useCategoryUsage } from '../composables/useMailingReads'
 import { isMarketingCategory } from '../utils/system-variables'
 import {
@@ -14,13 +13,14 @@ import {
 	NO_CATEGORY,
 	redirectMoves,
 	serializeCategories,
+	toEditableRows,
 	toStoredCategories,
-	translationOf,
 	withMoves,
+	withLabelIn,
 	type CategoryEntry,
 	type EditableCategory,
 } from '../utils/categories'
-import type { TemplateCategory } from '../types/mailing'
+import type { StoredCategory } from '../types/mailing'
 
 interface CategoriesInputProps {
 	modelValue?: CategoryEntry[] | null
@@ -54,8 +54,8 @@ const MOVE_FIELD_COMPONENT = 'DmsSelect'
 const LABEL_PART = 'label'
 const ROW_FIELD_UI = { error: 'mt-1 ps-9 text-[12px]' }
 
-const { t } = useI18n()
-const localized = useLocalizedDefaults()
+// Labels are edited in the interface's language, the others kept as stored.
+const { t, locale } = useI18n()
 const { confirm } = useConfirm()
 
 let nextKey = 0
@@ -91,13 +91,7 @@ const rowErrorPattern = (index: number): RegExp =>
 	new RegExp(`^${FIELD_NAME}\\.${index}\\.`)
 
 function toRows(value: CategoryEntry[]): EditableCategory[] {
-	const kept = keptCategories(value)
-	return localized.categories(kept).map((category, index) => ({
-		...category,
-		key: keyOf(),
-		isNew: false,
-		translated: translationOf(kept[index], category),
-	}))
+	return toEditableRows(keptCategories(value), locale.value, keyOf)
 }
 
 function movesOf(value: CategoryEntry[]): CategoryEntry[] {
@@ -105,11 +99,11 @@ function movesOf(value: CategoryEntry[]): CategoryEntry[] {
 }
 
 function currentEntries(): CategoryEntry[] {
-	return withMoves(toStoredCategories(rows.value), removed.value)
+	return withMoves(toStoredCategories(rows.value, locale.value), removed.value)
 }
 
 function onEdit(): void {
-	const stored = toStoredCategories(rows.value)
+	const stored = toStoredCategories(rows.value, locale.value)
 	stored.forEach((category, index) => {
 		const row = rows.value[index]
 		if (row) row.id = category.id
@@ -125,6 +119,7 @@ function addCategory(): void {
 		id: '',
 		label: '',
 		icon: newCategoryIcon(rows.value),
+		labels: {},
 		isNew: true,
 	})
 }
@@ -150,8 +145,12 @@ function isRemovable(row: EditableCategory): boolean {
 	return row.isNew || !isMarketingCategory(row.id)
 }
 
-function categoryOf(row: EditableCategory): TemplateCategory {
-	return { id: row.id, label: row.label, icon: row.icon }
+function categoryOf(row: EditableCategory): StoredCategory {
+	return {
+		id: row.id,
+		label: withLabelIn(row.labels, locale.value, row.label),
+		icon: row.icon,
+	}
 }
 
 function moveOptions(row: EditableCategory): MoveOption[] {

@@ -1,6 +1,7 @@
 import {
   Controller,
   HTTPResult,
+  Parameter,
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assertValidation } from "@antelopejs/interface-api-util";
@@ -17,9 +18,17 @@ import {
   Listable,
   Mandatory,
   ModelReference,
+  ModifierKey,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import { GetModel } from "@antelopejs/interface-database-decorators";
+import {
+  GetModel,
+  LocalizationModifier,
+} from "@antelopejs/interface-database-decorators";
+import {
+  LOCALIZED_TEXT_FALLBACK_LOCALE,
+  type LocalizedText,
+} from "@antelopejs/interface-dms-mailing";
 import { authenticateTenantRequest } from "@antelopejs/interface-dms/guards";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
@@ -48,9 +57,15 @@ import { footerForCategory } from "../engine";
 import {
   MailingTemplate,
   SendModel,
+  type TemplateFields,
   TemplateModel,
   TemplateVersionModel,
 } from "../db";
+import {
+  CONTENT_LANGUAGE_HEADER,
+  localeOfRequest,
+  withTextIn,
+} from "../services/localized-text";
 import { findCategory, getSettings } from "../services/settings";
 import { findStarter, starterFields } from "../services/starters";
 import { refreshTemplateAttention } from "../services/template-attention";
@@ -65,13 +80,12 @@ import {
 } from "../services/templates";
 import type { TemplateCategory } from "../types";
 
-import { createTemplateSchema } from "../validation/templates.schema";
-import { parseBody } from "./body";
 import {
-  CategoryDisplay,
-  LocaleChipsDisplay,
-  TemplateNameDisplay,
-} from "./displays";
+  createTemplateSchema,
+  templateDetailsSchema,
+} from "../validation/templates.schema";
+import { parseBody } from "./body";
+import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
@@ -120,7 +134,7 @@ async function seedFields(
   tenantId: string,
   seed: TemplateSeed,
   fallbackLocale: string,
-): Promise<Partial<MailingTemplate>> {
+): Promise<TemplateFields> {
   const source = await resolveSource(tenantId, seed.sourceTemplateId);
   if (source) return contentFieldsOf(source);
   if (!seed.starterId) {
@@ -148,8 +162,12 @@ function assertKnownCategory(
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
 }
 
-/** The creation's seed, and the body to store: slug and name trimmed. */
-function parseCreation(body: Buffer | string) {
+/**
+ * The creation's seed, and the body to store: slug trimmed, and the name
+ * typed in the reader's language as every language of the localized field,
+ * the fallback one included until someone translates it.
+ */
+function parseCreation(body: Buffer | string, locale: string) {
   const raw = parseBody(body);
   const seed = assertValidation(
     raw,
@@ -160,10 +178,18 @@ function parseCreation(body: Buffer | string) {
   const normalized = JSON.stringify({
     ...raw,
     slug: seed.slug,
-    name: seed.name,
+    name: withTextIn(undefined, locale, seed.name),
   });
   return { seed, normalized };
 }
+
+/** What the data API locks a localized field with: the controller's key. */
+interface LocalizedController {
+  language: string;
+}
+
+/** The key that writes every language of a localized field at once. */
+const ALL_LANGUAGES = "*";
 
 function withSeeding(base: DataControllerCallback): DataControllerCallback {
   return {
@@ -175,7 +201,7 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       body: Buffer | string,
       ...rest: unknown[]
     ) {
-      const { seed, normalized } = parseCreation(body);
+      const { seed, normalized } = parseCreation(body, localeOfRequest(ctx));
       const tenantId = getRequestTenantId(ctx);
       const model = GetModel(TemplateModel, tenantId);
       if (await model.getBySlug(seed.slug)) {
@@ -184,6 +210,9 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       const settings = await getSettings(tenantId);
       assertKnownCategory(settings.categories, seed.category);
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
+      // The module's creation dialogs send one typed name; the stored name
+      // holds every language, written at once.
+      (this as LocalizedController).language = ALL_LANGUAGES;
       const ids = (await base.func.call(
         this,
         ctx,
@@ -270,21 +299,78 @@ export async function assertEditable(
 ): Promise<void> {
   if (body.slug !== undefined && body.slug !== current.slug)
     throw new HTTPResult(HTTP_CONFLICT, SLUG_IMMUTABLE);
-  if (typeof body.name === "string" && !body.name.trim())
+  if (body.name !== undefined && isBlankName(body.name))
     throw new HTTPResult(HTTP_BAD_REQUEST, BLANK_NAME);
   const { categories } = await getSettings(tenantId);
   assertKnownCategory(categories, body.category);
 }
 
-/** Stores an edited name trimmed, once the edit is written. */
+/**
+ * Saves what the module's drawer and editor change: the name, typed in the
+ * reader's language (its other languages kept), and the category.
+ */
+export async function saveDetails(
+  ctx: RequestContext,
+  template: MailingTemplate,
+  body: unknown,
+  author: string,
+): Promise<void> {
+  const details = assertValidation(
+    body,
+    (value) => templateDetailsSchema.parse(value),
+    () => INVALID_TEMPLATE,
+  );
+  const tenantId = getRequestTenantId(ctx);
+  await assertEditable(tenantId, details, template);
+  const names = TemplateModel.namesOf(template);
+  await GetModel(TemplateModel, tenantId).updateFields(template._id, {
+    name: withTextIn(names, localeOfRequest(ctx), details.name),
+    ...(details.category !== undefined && {
+      category: details.category ?? "",
+    }),
+    updatedBy: author,
+  });
+}
+
+/**
+ * Whether an edited name holds no text: the text of the reader's language,
+ * or, from a form editing every language, all of them.
+ */
+function isBlankName(name: unknown): boolean {
+  const texts = typeof name === "object" && name ? Object.values(name) : [name];
+  return !texts.some((text) => typeof text === "string" && text.trim());
+}
+
+/** The names trimmed, blank ones left out, the fallback language filled. */
+function tidyNames(names: LocalizedText, locale: string): LocalizedText {
+  const tidy = Object.fromEntries(
+    Object.entries(names)
+      .map(([code, text]) => [code, text.trim()] as const)
+      .filter(([, text]) => text),
+  );
+  if (tidy[LOCALIZED_TEXT_FALLBACK_LOCALE]) return tidy;
+  const [first = ""] = Object.values(tidy);
+  return { ...tidy, [LOCALIZED_TEXT_FALLBACK_LOCALE]: tidy[locale] ?? first };
+}
+
+/**
+ * Once an edit of the name is written, stores it trimmed, and gives the
+ * fallback language a name when it has none, so every reader sees one.
+ */
 export function afterEdit(
   model: TemplateModel,
   id: string,
   name: unknown,
+  locale: string,
 ): AfterWrite | undefined {
-  if (typeof name !== "string" || name === name.trim()) return undefined;
+  if (name === undefined) return undefined;
   return async () => {
-    await model.update(id, { name: name.trim() });
+    const template = await model.get(id);
+    if (!template) return;
+    const names = TemplateModel.namesOf(template);
+    const tidy = tidyNames(names, locale);
+    if (JSON.stringify(tidy) !== JSON.stringify(names))
+      await model.updateFields(id, { name: tidy });
   };
 }
 
@@ -310,6 +396,11 @@ export class TemplatesTableAPI extends DataController(
   @TenantScopedModel(SendModel)
   declare sends: SendModel;
 
+  /** The language names are read, searched, sorted and written in. */
+  @Parameter(CONTENT_LANGUAGE_HEADER, "header")
+  @ModifierKey(LocalizationModifier)
+  declare language: string;
+
   @Select()
   @Listable()
   @Exported()
@@ -329,7 +420,6 @@ export class TemplatesTableAPI extends DataController(
       minLength: MIN_NAME_LENGTH,
       maxLength: MAX_NAME_LENGTH,
     }),
-    display: new TemplateNameDisplay({}),
   })
   declare name: string;
 

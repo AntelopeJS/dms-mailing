@@ -38,6 +38,7 @@ import {
 import { resolveEmail, valueFormatOf } from "../engine";
 import type { InterpolationMode } from "../engine/tokens";
 import { SendsPageController } from "../pages/sends";
+import { localeOfRequest } from "../services/localized-text";
 import { readCapabilities } from "../services/provider";
 import { buildProviderBanner } from "../services/provider-banner";
 import { renderEmailHtml } from "../services/render";
@@ -384,7 +385,9 @@ export class SendsController extends Controller(API_BASE_PATH) {
     return {
       send,
       events,
-      template: template ? summarize(template) : null,
+      template: template
+        ? summarize(template.localize(localeOfRequest(this.ctx), ["name"]))
+        : null,
       suppression,
     };
   }

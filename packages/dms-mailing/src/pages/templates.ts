@@ -20,6 +20,7 @@ import {
   assertEditable,
   TemplatesTableAPI,
 } from "../data/templates-table";
+import { localeOfRequest } from "../services/localized-text";
 import { mailingNavCategory } from "./module";
 
 const TEMPLATES_ORDER = 1;
@@ -115,7 +116,7 @@ export class TemplatesPageController extends PageController(
       },
       async edit(ctx, { id, body, current }) {
         await assertEditable(getRequestTenantId(ctx), body, current);
-        return afterEdit(this.model, id, body.name);
+        return afterEdit(this.model, id, body.name, localeOfRequest(ctx));
       },
     },
     rowActions: {

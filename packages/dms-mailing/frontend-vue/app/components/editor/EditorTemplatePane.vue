@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import type { TemplateDetails } from '../../composables/useMailingApi'
 import { useEditorContext } from '../../composables/useEditorContext'
-import { useLocalizedDefaults } from '../../composables/useLocalizedDefaults'
 
 const KEY = 'dms_mailing.editor.template_tab'
 const NO_CATEGORY = '__none__'
@@ -10,18 +9,18 @@ const NO_CATEGORY = '__none__'
 const { t } = useI18n()
 const toast = useToast()
 const { editor, session, actions, templateId } = useEditorContext()
-const localized = useLocalizedDefaults()
 
 const template = computed(() => session.state.template)
-/** The name as shown: a declared `$` key in the interface's language. */
-const shownName = computed(() => localized.name(template.value.name))
-const name = ref(shownName.value)
+const name = ref(template.value.name)
 
-watch(shownName, (value) => (name.value = value))
+watch(
+	() => template.value.name,
+	(value) => (name.value = value),
+)
 
 const categoryItems = computed(() => [
 	{ value: NO_CATEGORY, label: t(`${KEY}.no_category`), icon: 'i-ph-minus' },
-	...localized.categories(session.state.categories).map((category) => ({
+	...session.state.categories.map((category) => ({
 		value: category.id,
 		label: category.label,
 		icon: category.icon,
@@ -39,8 +38,8 @@ async function persist(patch: Partial<TemplateDetails>): Promise<void> {
 
 function saveName(): void {
 	const trimmed = name.value.trim()
-	if (!trimmed || trimmed === shownName.value) {
-		name.value = shownName.value
+	if (!trimmed || trimmed === template.value.name) {
+		name.value = template.value.name
 		return
 	}
 	void persist({ name: trimmed })

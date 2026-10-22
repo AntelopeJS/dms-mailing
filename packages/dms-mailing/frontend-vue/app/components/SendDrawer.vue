@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { TEMPLATES_PATH } from '../utils/pages'
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -87,7 +86,6 @@ const reportReplay = useReplayToast()
 const { confirm } = useConfirm()
 const { open: openModal } = useModal()
 const { t, locale } = useI18n()
-const localized = useLocalizedDefaults()
 const { copy } = useClipboard()
 
 const KeyValueList = resolveComponent('DmsKeyValueList') as Component
@@ -214,9 +212,7 @@ const stats = computed<StatTrioItem[]>(() => {
 
 const originTitle = computed(() => {
 	const template = detail.value?.template
-	const name = template?.name
-		? localized.name(template.name)
-		: (send.value?.templateSlug ?? '')
+	const name = template?.name ?? send.value?.templateSlug ?? ''
 	return `${name} · ${versionLabel.value}`
 })
 

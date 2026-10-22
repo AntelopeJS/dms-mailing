@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { SETTINGS_PATH } from '../utils/pages'
 import { onBeforeUnmount } from 'vue'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
@@ -59,7 +58,6 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 const api = useMailingApi()
 const toast = useToast()
 const { t, locale: uiLocale } = useI18n()
-const localized = useLocalizedDefaults()
 const onDate = (date: string): string =>
 	t('dms_mailing.common.on_date', { date })
 const { processApiMessage } = useTranslation()
@@ -362,9 +360,7 @@ async function submit(): Promise<void> {
 			tone="error"
 			icon="i-ph-paper-plane-right"
 			:title="
-				t('dms_mailing.real_send.heading', {
-					name: localized.name(template?.name ?? ''),
-				})
+				t('dms_mailing.real_send.heading', { name: template?.name ?? '' })
 			"
 			:description="t('dms_mailing.real_send.warning')"
 		/>
@@ -536,9 +532,7 @@ async function submit(): Promise<void> {
 			tone="warning"
 			icon="i-ph-paper-plane-right"
 			:title="
-				t('dms_mailing.real_send.refused_title', {
-					name: localized.name(template?.name ?? ''),
-				})
+				t('dms_mailing.real_send.refused_title', { name: template?.name ?? '' })
 			"
 			:description="refusal"
 		/>

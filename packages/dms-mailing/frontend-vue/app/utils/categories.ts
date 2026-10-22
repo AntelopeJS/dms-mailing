@@ -1,9 +1,33 @@
-import type { TemplateCategory } from '../types/mailing'
-import { displayText, type OptionalTranslate } from './i18n-text'
+import type {
+	LocalizedText,
+	StoredCategory,
+	TemplateCategory,
+} from '../types/mailing'
 
 const ID_SEPARATOR = '-'
 
-export function serializeCategories(categories: TemplateCategory[]): string {
+/** The language a localized label falls back to, as the server reads it. */
+export const FALLBACK_LOCALE = 'en'
+
+/** A label in `locale`, else in the fallback language. */
+export function labelIn(label: LocalizedText, locale: string): string {
+	return label[locale] ?? label[FALLBACK_LOCALE] ?? ''
+}
+
+/**
+ * `label` with `value` written in `locale`: the other languages are kept,
+ * and the fallback one gets the value while it has none, so a category
+ * added in another language still reads in every language.
+ */
+export function withLabelIn(
+	label: LocalizedText,
+	locale: string,
+	value: string,
+): LocalizedText {
+	return { [FALLBACK_LOCALE]: value, ...label, [locale]: value }
+}
+
+export function serializeCategories(categories: StoredCategory[]): string {
 	return JSON.stringify(categories)
 }
 
@@ -35,7 +59,9 @@ const ICON_PREFIX = 'i-ph-'
  * The icon a new category starts with: the first one of the picker no
  * category uses yet, so a new row never looks like an existing one.
  */
-export function newCategoryIcon(categories: TemplateCategory[]): string {
+export function newCategoryIcon(
+	categories: Pick<TemplateCategory, 'icon'>[],
+): string {
 	const used = new Set(categories.map((category) => category.icon))
 	return CATEGORY_ICONS.find((icon) => !used.has(icon)) ?? DEFAULT_CATEGORY_ICON
 }
@@ -48,42 +74,30 @@ export function iconName(icon: string): string {
 }
 
 /**
- * A row of the categories editor. `isNew` rows were added in this edit: their
- * id follows the label until the form is saved, then stays fixed for good.
+ * A row of the categories editor: `label` is the text of the language being
+ * edited, `labels` what the row stores in every language. `isNew` rows were
+ * added in this edit: their id follows the label until the form is saved,
+ * then stays fixed for good.
  */
 export interface EditableCategory extends TemplateCategory {
 	key: string
 	isNew: boolean
-	/** Set when the row shows a translation of what is stored. */
-	translated?: TranslatedLabel
+	labels: LocalizedText
 }
 
-/** A label shown translated, and the text stored under it. */
-export interface TranslatedLabel {
-	stored: string
-	shown: string
-}
-
-/** How `stored` reads once localized as `shown`; none when it reads as is. */
-export function translationOf(
-	stored: TemplateCategory | undefined,
-	shown: TemplateCategory,
-): TranslatedLabel | undefined {
-	return stored && stored.label !== shown.label
-		? { stored: stored.label, shown: shown.label }
-		: undefined
-}
-
-/**
- * The label a row stores: what it was translated from while its translation
- * is left as shown, so saving the settings never writes a translation over
- * a shipped label or a `$` key.
- */
-function storedLabelOf(row: EditableCategory): string {
-	const label = row.label.trim()
-	return row.translated && label === row.translated.shown
-		? row.translated.stored
-		: label
+/** The rows of `categories`, each label shown in `locale`. */
+export function toEditableRows(
+	categories: StoredCategory[],
+	locale: string,
+	keyOf: () => string,
+): EditableCategory[] {
+	return categories.map((category) => ({
+		...category,
+		label: labelIn(category.label, locale),
+		labels: category.label,
+		key: keyOf(),
+		isNew: false,
+	}))
 }
 
 const UNIQUE_SUFFIX_START = 2
@@ -100,11 +114,13 @@ export function uniqueId(base: string, taken: Set<string>): string {
 /**
  * The categories an edit stores, one per row in its order: saved rows keep
  * their id, new rows get one derived from their label, unique among the
- * others. A row without a label is sent too, for the server to name it.
+ * others. Each label is written in `locale`, its other languages kept. A row
+ * without a label is sent too, for the server to name it.
  */
 export function toStoredCategories(
 	rows: EditableCategory[],
-): TemplateCategory[] {
+	locale: string,
+): StoredCategory[] {
 	const taken = new Set(rows.filter((row) => !row.isNew).map((row) => row.id))
 	return rows.map((row) => {
 		const id = row.isNew
@@ -113,7 +129,7 @@ export function toStoredCategories(
 		taken.add(id)
 		return {
 			id,
-			label: storedLabelOf(row),
+			label: withLabelIn(row.labels, locale, row.label.trim()),
 			icon: row.icon || DEFAULT_CATEGORY_ICON,
 		}
 	})
@@ -123,12 +139,12 @@ export function toStoredCategories(
  * A category as the editor hands it to the form: a kept one, or one removed
  * whose templates move to `moveTo` once the form is saved.
  */
-export interface CategoryEntry extends TemplateCategory {
+export interface CategoryEntry extends StoredCategory {
 	moveTo?: string
 }
 
 /** The kept categories of a list, without the removed ones it moves away. */
-export function keptCategories(entries: CategoryEntry[]): TemplateCategory[] {
+export function keptCategories(entries: CategoryEntry[]): StoredCategory[] {
 	return entries.filter((entry) => entry.moveTo === undefined)
 }
 
@@ -146,7 +162,7 @@ export function categoryMoves(entries: CategoryEntry[]): Map<string, string> {
  * whose templates move elsewhere, still under its own id.
  */
 export function withMoves(
-	categories: TemplateCategory[],
+	categories: StoredCategory[],
 	removed: CategoryEntry[],
 ): CategoryEntry[] {
 	return [...categories, ...removed.filter((entry) => entry.moveTo)]
@@ -230,40 +246,4 @@ export function toStoredCategory(
 	value: string | null | undefined,
 ): string | null {
 	return value || null
-}
-
-/** The labels the backend's `DEFAULT_CATEGORIES` (`src/types/settings.ts`) ship with. */
-const DEFAULT_CATEGORY_LABELS: Record<string, string> = {
-	orders: 'Orders',
-	account: 'Account & access',
-	billing: 'Billing',
-	marketing: 'Marketing',
-	forms: 'Forms',
-}
-const DEFAULT_CATEGORY_KEY_PREFIX = 'dms_mailing.categories.defaults'
-
-/** The i18n key of a shipped category nobody renamed; absent otherwise. */
-export function defaultCategoryLabelKey(
-	category: TemplateCategory,
-): string | undefined {
-	return DEFAULT_CATEGORY_LABELS[category.id] === category.label
-		? `${DEFAULT_CATEGORY_KEY_PREFIX}.${category.id}`
-		: undefined
-}
-
-/**
- * The categories as the interface shows them: a shipped one still under its
- * original English label, and one declared under a `$` i18n key, read in the
- * interface's language; a label someone wrote stays as written. Nothing
- * stored changes.
- */
-export function localizeCategories(
-	categories: TemplateCategory[],
-	translate: OptionalTranslate,
-): TemplateCategory[] {
-	return categories.map((category) => {
-		const key = defaultCategoryLabelKey(category)
-		const label = key ? translate(key) : displayText(category.label, translate)
-		return label && label !== category.label ? { ...category, label } : category
-	})
 }

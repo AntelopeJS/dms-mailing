@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { SENDS_PATH } from '../utils/pages'
 import { useElementSize } from '@vueuse/core'
 import {
@@ -91,7 +90,6 @@ const api = useMailingApi()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
-const localized = useLocalizedDefaults()
 const { processApiMessage } = useTranslation()
 const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
@@ -156,8 +154,6 @@ async function load(): Promise<void> {
 onMounted(load)
 
 const template = computed(() => detail.value?.template ?? props.rowData ?? null)
-/** The name as shown: a declared `$` key in the interface's language. */
-const shownName = computed(() => localized.name(template.value?.name ?? ''))
 const isLive = computed(() => template.value?.status === 'live')
 const previewVersion = computed(() => (isLive.value ? 'published' : 'draft'))
 const shownContent = computed(() =>
@@ -375,16 +371,15 @@ async function saveDetails(changes: Partial<TemplateDetails>): Promise<void> {
 }
 
 function startRename(): void {
-	draftName.value = shownName.value
+	draftName.value = template.value?.name ?? ''
 	isRenaming.value = true
 }
 
-/** A declared `$` key left as shown is kept, not replaced by its translation. */
 async function submitRename(): Promise<void> {
 	if (nameError.value) return
 	const name = draftName.value.trim()
 	isRenaming.value = false
-	if (name !== shownName.value) await saveDetails({ name })
+	if (name !== template.value?.name) await saveDetails({ name })
 }
 
 function onCategoryChange(value: string | null | undefined): void {
@@ -409,7 +404,7 @@ async function confirmed(action: LifecycleAction): Promise<boolean> {
 	}
 	return confirm({
 		title: t(`dms_mailing.templates.lifecycle.${action}_title`, {
-			name: shownName.value,
+			name: template.value?.name ?? '',
 		}),
 		description: t(`dms_mailing.templates.lifecycle.${action}_description`),
 		color: spec.confirmColor,
@@ -599,7 +594,7 @@ function onResolved(preview: PreviewResponse): void {
 					v-else
 					class="text-highlighted flex min-w-0 flex-wrap items-center gap-2 text-[17px] font-[650] tracking-[-0.02em] [overflow-wrap:anywhere]"
 				>
-					{{ shownName }}
+					{{ template.name }}
 					<DmsStatusPill
 						:tone="statusTone"
 						:label="statusLabel"
@@ -667,7 +662,7 @@ function onResolved(preview: PreviewResponse): void {
 							:version="previewVersion"
 							:width="PREVIEW_WIDTH"
 							:scale="previewScale"
-							:label="shownName"
+							:label="template.name"
 							@resolved="onResolved"
 						/>
 					</div>

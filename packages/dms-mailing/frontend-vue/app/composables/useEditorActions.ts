@@ -4,7 +4,6 @@ import type { EditorReads } from './useMailingReads'
 import type { EditorSession } from './useEditorSession'
 import { isDraftConflict } from './useEditorSession'
 import type { EditorState } from './useTemplateEditor'
-import { useLocalizedDefaults } from './useLocalizedDefaults'
 import { useTemplateDrawer } from './useTemplateDrawer'
 import type { TemplateOverlays } from './useTemplateDrawer'
 import { describeChanges } from '../utils/changes'
@@ -44,8 +43,6 @@ export interface ActionDeps {
 
 interface ActionTools {
 	t: ReturnType<typeof useI18n>['t']
-	/** A template's name as shown: a declared `$` key translated. */
-	name: (name: string) => string
 	toast: ReturnType<typeof useToast>
 	modal: ReturnType<typeof useModal>
 	confirm: ReturnType<typeof useConfirm>['confirm']
@@ -93,11 +90,7 @@ const DESCRIPTION_KEYS: Record<PublishKind, string> = {
 function publishTitle(deps: ActionDeps, tools: ActionTools): string {
 	const { state } = deps.session
 	const count = state.changes.length
-	const params = {
-		count,
-		name: tools.name(state.template.name),
-		version: state.version,
-	}
+	const params = { count, name: state.template.name, version: state.version }
 	return tools.t(TITLE_KEYS[publishKindOf(deps)], params, count)
 }
 
@@ -355,7 +348,6 @@ function createLifecycleAction(deps: ActionDeps, tools: ActionTools) {
 export function useEditorActions(deps: ActionDeps) {
 	const tools: ActionTools = {
 		t: useI18n().t,
-		name: useLocalizedDefaults().name,
 		toast: useToast(),
 		modal: useModal(),
 		confirm: useConfirm().confirm,

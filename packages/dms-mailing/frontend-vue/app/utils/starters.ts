@@ -1,5 +1,7 @@
 import type { StarterSummary } from '../types/mailing'
-import type { OptionalTranslate } from './i18n-text'
+
+/** Answers the text of an i18n key, or nothing when the catalog lacks it. */
+export type OptionalTranslate = (key: string) => string | undefined
 
 const STARTER_NAME_KEY_PREFIX = 'dms_mailing.starters.names'
 

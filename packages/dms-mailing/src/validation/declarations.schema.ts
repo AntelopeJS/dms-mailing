@@ -1,3 +1,4 @@
+import { LOCALIZED_TEXT_FALLBACK_LOCALE } from "@antelopejs/interface-dms-mailing";
 import { z } from "zod";
 import { MAX_NAME_LENGTH } from "../constants";
 import { SEND_EVENT_TYPES } from "../types";
@@ -14,13 +15,24 @@ const MAX_IMPORT_ID_LENGTH = 200;
 const tenantIdSchema = z.string().trim().min(1);
 
 /**
+ * A name or a label declared from code: one non-blank text per language, the
+ * fallback language's required, since every reader without a text of their
+ * own reads it.
+ */
+export const localizedTextSchema = z
+  .record(z.string().trim().min(1).max(MAX_NAME_LENGTH))
+  .refine((text) => Boolean(text[LOCALIZED_TEXT_FALLBACK_LOCALE]), {
+    message: `a text in "${LOCALIZED_TEXT_FALLBACK_LOCALE}" is required`,
+  });
+
+/**
  * A template declared from code: the slug and name rules of the dashboard's
  * creation, and the content and declarations its editor saves.
  */
 export const templateDeclarationSchema = z.object({
   tenantId: tenantIdSchema,
   slug: slugSchema,
-  name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+  name: localizedTextSchema,
   category: z.string().trim().default(""),
   content: templateContentSchema,
   variables: variableListSchema.default([]),
@@ -34,7 +46,7 @@ export type ParsedTemplateDeclaration = z.infer<
 
 export const categoryDeclarationSchema = categorySchema.extend({
   tenantId: tenantIdSchema,
-  label: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+  label: localizedTextSchema,
 });
 
 export type ParsedCategoryDeclaration = z.infer<

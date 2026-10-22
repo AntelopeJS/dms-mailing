@@ -62,9 +62,9 @@ import { DeclareSender, DeclareTemplate, DeclareTemplateCategory, ImportSends } 
 
 export async function declareMailingContent(tenantId: string) {
   await DeclareSender({ tenantId, name: "Acme", email: "hello@acme.example" }); // a plain write: call it once, at provisioning
-  await DeclareTemplateCategory({ tenantId, id: "subscriptions", label: "Subscriptions", icon: "i-ph-repeat" }); // before templates naming it
+  await DeclareTemplateCategory({ tenantId, id: "subscriptions", label: { en: "Subscriptions", fr: "Abonnements" }, icon: "i-ph-repeat" }); // before templates naming it
   const { outcome } = await DeclareTemplate({
-    tenantId, slug: "subscription-renewed", name: "Subscription renewed", category: "subscriptions",
+    tenantId, slug: "subscription-renewed", name: { en: "Subscription renewed", fr: "Abonnement renouvelé" }, category: "subscriptions",
     content: { locales: { en: { subject: "Your {{plan.name}} plan is renewed", preheader: "", blocks: [] } } },
     variables: [{ path: "plan.name", type: "string", required: true }],
     testData: { plan: { name: "Pro" } },
@@ -85,8 +85,8 @@ export async function declareMailingContent(tenantId: string) {
   draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
   A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.
 - Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
-- `name` / `label` may be `$` i18n keys (`$acme.mails.welcome`), translated in the dashboard from the project's
-  frontend locale files; a dashboard rename stores text (then `kept`).
+- `name` / `label` are localized texts `{ en, fr, … }` (stored `@Localized`, `en` required as fallback), never `$`
+  i18n keys; each user reads, searches and sorts them in their language (`x-content-language`).
 - `DeclareSender({ tenantId, email, name?, replyTo? })` writes the settings' sender (resolves `void`); call it once
   from `Hook.TENANT_BEING_PROVISIONED`, not on every boot, since it replaces what a user set. Refusals use `invalid_sender`.
 - Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,

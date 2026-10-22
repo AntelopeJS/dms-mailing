@@ -16,10 +16,3 @@ export class LocaleChipsDisplay extends ColumnDisplay<Record<string, never>> {}
  */
 @RegisterDisplay("mailing:category")
 export class CategoryDisplay extends ColumnDisplay<Record<string, never>> {}
-
-/**
- * A template's name, one declared under a `$` i18n key read in the
- * interface's language.
- */
-@RegisterDisplay("mailing:template-name")
-export class TemplateNameDisplay extends ColumnDisplay<Record<string, never>> {}

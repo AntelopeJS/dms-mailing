@@ -239,19 +239,6 @@ describe("[unit] services/attention live templates without a send", () => {
     );
     expect(item?.params?.names).to.equal("Template a");
   });
-
-  it("lets the reader's language name a template declared under a key", () => {
-    const declared = liveTemplate("a");
-    declared.name = "$acme.mails.welcome";
-    const listed = (templates: MailingTemplate[]) =>
-      findItem(buildAttentionItems(windowWith({ templates })), "unused-live")
-        ?.params?.names;
-    expect(listed([declared])).to.deep.equal({ key: "$acme.mails.welcome" });
-    expect(listed([declared, liveTemplate("b")])).to.deep.equal({
-      key: "$dms_mailing.attention.name_pair",
-      params: { first: { key: "$acme.mails.welcome" }, second: "Template b" },
-    });
-  });
 });
 
 describe("[unit] services/attention sender", () => {

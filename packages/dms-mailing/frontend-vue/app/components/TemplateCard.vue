@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import {
 	CARD_DATE_FORMAT,
 	formatCardDate,
@@ -53,9 +52,6 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const localized = useLocalizedDefaults()
-/** A declared `$` key reads in the interface's language. */
-const name = computed(() => localized.name(props.template.name))
 const { dateTimeFormat } = useRegionalFormat()
 const { uniqueLocales } = useUniqueLocales()
 
@@ -165,7 +161,7 @@ function chipLabel(code: string, present: boolean): string {
 		:padded="false"
 		interactive
 		tabindex="0"
-		:aria-label="name"
+		:aria-label="template.name"
 		class="focus-visible:outline-primary group relative flex flex-col overflow-hidden focus-visible:outline-2"
 		:class="template.status === 'archived' ? 'opacity-75' : ''"
 		@click="emit('open')"
@@ -181,7 +177,7 @@ function chipLabel(code: string, present: boolean): string {
 					:version="previewVersion"
 					:width="PREVIEW_WIDTH"
 					:scale="PREVIEW_SCALE"
-					:label="name"
+					:label="template.name"
 					lazy
 					decorative
 				/>
@@ -234,9 +230,9 @@ function chipLabel(code: string, present: boolean): string {
 			<div class="flex min-w-0 items-center gap-2">
 				<h3
 					class="text-highlighted truncate text-[13.5px] font-semibold"
-					:title="name"
+					:title="template.name"
 				>
-					{{ name }}
+					{{ template.name }}
 				</h3>
 				<DmsStatusPill
 					v-if="staleDays"
