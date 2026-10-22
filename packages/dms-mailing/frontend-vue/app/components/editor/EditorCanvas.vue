@@ -2,9 +2,8 @@
 import { computed, nextTick, provide, ref, watch } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
 import { useEditorAnnouncements } from '../../composables/useEditorAnnouncements'
-import { TOKEN_DATA_KEY, TOKEN_FORMAT_KEY } from '../../utils/tokens'
+import { TOKEN_DATA_KEY } from '../../utils/tokens'
 import type { TokenData } from '../../utils/tokens'
-import { valueFormatOf } from '../../utils/value-format'
 import { emailLogoUrl } from '#dms-layout/app/emails/components/index'
 
 const DEVICE_WIDTHS: Record<string, number> = {
@@ -76,10 +75,6 @@ async function revealSelectedBlock(id: string | null): Promise<void> {
 watch(() => editor.selectedId, revealSelectedBlock)
 
 provide(TOKEN_DATA_KEY, tokenData)
-provide(
-	TOKEN_FORMAT_KEY,
-	computed(() => valueFormatOf(editor.locale, editor.variables)),
-)
 </script>
 
 <template>

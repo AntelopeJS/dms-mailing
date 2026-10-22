@@ -2,8 +2,7 @@
 import { computed, inject } from 'vue'
 import type { ListBlock } from '../../types/mailing'
 import { readPath } from '../../utils/paths'
-import { TOKEN_DATA_KEY, TOKEN_FORMAT_KEY } from '../../utils/tokens'
-import { formatValue } from '../../utils/value-format'
+import { TOKEN_DATA_KEY } from '../../utils/tokens'
 
 interface Props {
 	block: ListBlock
@@ -21,13 +20,10 @@ const TOKEN_CLOSE = '}}'
 
 const props = defineProps<Props>()
 const data = inject(TOKEN_DATA_KEY, null)
-const format = inject(TOKEN_FORMAT_KEY, null)
 
 const cell = (row: unknown, path: string): string => {
 	const value = readPath(row, path)
-	return value === undefined || value === null
-		? ''
-		: formatValue(value, '', format?.value)
+	return value === undefined || value === null ? '' : String(value)
 }
 
 const dataRows = computed<PreviewRow[] | null>(() => {
