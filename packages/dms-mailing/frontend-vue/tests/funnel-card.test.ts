@@ -114,4 +114,31 @@ describe('FunnelCard', () => {
 		expect(host.querySelectorAll('[data-funnel-untracked]')).toHaveLength(3)
 		expect(host.textContent).toContain('dms_mailing.funnel_card.untracked')
 	})
+
+	it('adds the change of each step while the toolbar compares', async () => {
+		chart.data.value = {
+			steps: [
+				{ ...funnelStep('sent', 30), previousCount: 20, delta: 50 },
+				{ ...funnelStep('delivered', 30), previousCount: 0 },
+			],
+		}
+		const { host } = mount(FunnelCard, {}, GLOBALS)
+		await flush()
+
+		const deltas = host.querySelectorAll('[data-funnel-delta]')
+		expect(deltas).toHaveLength(2)
+		expect(deltas[0]?.textContent?.trim()).toBe('▲ 50%')
+		expect(deltas[0]?.getAttribute('title')).toContain(
+			'dms_mailing.funnel_card.compared_count',
+		)
+		expect(deltas[1]?.textContent?.trim()).toBe('—')
+	})
+
+	it('drops the change column with the comparison off', async () => {
+		chart.data.value = { steps: [funnelStep('sent', 30)] }
+		const { host } = mount(FunnelCard, {}, GLOBALS)
+		await flush()
+
+		expect(host.querySelectorAll('[data-funnel-delta]')).toHaveLength(0)
+	})
 })

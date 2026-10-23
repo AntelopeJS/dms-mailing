@@ -535,6 +535,10 @@ export interface FunnelStep {
 	rate: number | null
 	/** `false` when nothing reports the events this step counts. */
 	isMeasured?: boolean
+	/** The count over the comparison window; absent with the comparison off. */
+	previousCount?: number
+	/** The change of the count, in percent; absent from an empty comparison. */
+	delta?: number
 }
 
 export interface ProviderInfo {

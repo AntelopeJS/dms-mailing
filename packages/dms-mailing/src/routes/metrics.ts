@@ -45,7 +45,12 @@ import {
   type TotalsExtractor,
 } from "../services/metrics";
 import { SEND_AUDIENCE_QUERY_KEY, type SendAudience } from "../types";
-import { comparisonRange, currentRange, isComparisonWanted } from "./period";
+import {
+  comparisonLabel,
+  comparisonRange,
+  currentRange,
+  isComparisonWanted,
+} from "./period";
 
 const UNKNOWN_METRIC = "$dms_mailing.errors.unknown_metric";
 const TEMPLATES_PATH = "/modules/mailing/templates";
@@ -141,12 +146,18 @@ export interface FunnelStepResponse {
   rate: number | null;
   /** `false` when nothing reports the events the step counts. */
   isMeasured: boolean;
+  /** The step's count over the comparison window, when both measure it. */
+  previousCount?: number;
+  /** The change of the count, in percent; absent from an empty comparison. */
+  delta?: number;
 }
 
 /** The sends of the window the figures are compared with. */
 export interface ComparedWindow {
   range: DateRange;
   sends: SendSummary[];
+  /** What the comparison series is called: the previous period, year… */
+  label: string;
 }
 
 /** What the Overview's first-run checklist reads. */
@@ -201,7 +212,11 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   ): Promise<ComparedWindow | null> {
     if (!isComparisonWanted(this.ctx)) return null;
     const previousRange = comparisonRange(this.ctx, range);
-    return { range: previousRange, sends: await this.load(previousRange) };
+    return {
+      range: previousRange,
+      sends: await this.load(previousRange),
+      label: comparisonLabel(this.ctx),
+    };
   }
 
   @Get("/kpi/:metric")
@@ -239,37 +254,58 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     const metric =
       TOP_METRICS[this.ctx.url.searchParams.get("metric") ?? ""] ??
       DEFAULT_TOP_METRIC;
-    const [sends, templates] = await Promise.all([
-      this.load(currentRange(this.ctx)),
+    const range = currentRange(this.ctx);
+    const [sends, previous, templates] = await Promise.all([
+      this.load(range),
+      this.loadComparison(range),
       this.namedTemplates(),
     ]);
-    const items = [...groupBy(sends, (send) => send.templateSlug)].map(
-      ([slug, rows]) =>
-        toTemplateItem(slug, aggregate(rows), templates, metric),
+    const bySlug = (send: SendSummary) => send.templateSlug;
+    const before = previous ? totalsBy(previous.sends, bySlug) : null;
+    const items = [...groupBy(sends, bySlug)].map(([slug, rows]) =>
+      toTemplateItem(
+        slug,
+        aggregate(rows),
+        templates,
+        metric,
+        before?.get(slug),
+      ),
     );
     return { items: ranked(items, MAX_TOP_TEMPLATES) };
   }
 
   @Get("/domains")
   async domains() {
-    const sends = await this.load(currentRange(this.ctx));
-    const items = [
-      ...groupBy(sends, (send) => domainOf(send.recipientEmail)),
-    ].map(([domain, rows]) => toDomainItem(domain, aggregate(rows)));
+    const range = currentRange(this.ctx);
+    const [sends, previous] = await Promise.all([
+      this.load(range),
+      this.loadComparison(range),
+    ]);
+    const byDomain = (send: SendSummary) => domainOf(send.recipientEmail);
+    const before = previous ? totalsBy(previous.sends, byDomain) : null;
+    const items = [...groupBy(sends, byDomain)].map(([domain, rows]) =>
+      toDomainItem(domain, aggregate(rows), before?.get(domain)),
+    );
     return { items: ranked(items, MAX_TOP_DOMAINS) };
   }
 
   @Get("/funnel")
   async funnel() {
     const kind = readFunnelKind(this.ctx.url.searchParams.get("kind"));
-    const [sends, templates, tracking] = await Promise.all([
-      this.load(currentRange(this.ctx)),
+    const range = currentRange(this.ctx);
+    const [sends, previous, templates, tracking] = await Promise.all([
+      this.load(range),
+      this.loadComparison(range),
       this.namedTemplates(),
       readTracking(),
     ]);
-    const kept = filterByKind(sends, templates, kind);
+    const funnelOf = (rows: SendSummary[]): FunnelStepResponse[] => {
+      const kept = filterByKind(rows, templates, kind);
+      return funnelSteps(aggregate(kept), isDeliveryUntracked(kept, tracking));
+    };
+    const steps = funnelOf(sends);
     return {
-      steps: funnelSteps(aggregate(kept), isDeliveryUntracked(kept, tracking)),
+      steps: previous ? comparedSteps(steps, funnelOf(previous.sends)) : steps,
     };
   }
 
@@ -374,21 +410,22 @@ export function volumeChart(
   const sent = current.filter(leftForProvider);
   const previousSent = previous?.sends.filter(leftForProvider) ?? null;
   const series = dailySeries(sent, range.from, range.to);
-  const comparison =
+  const comparisonSeries =
     previous && previousSent
-      ? dailySeries(previousSent, previous.range.from, previous.range.to)
-      : null;
+      ? [
+          {
+            name: previous.label,
+            data: alignSeries(
+              dailySeries(previousSent, previous.range.from, previous.range.to),
+              series,
+            ),
+          },
+        ]
+      : [];
   return {
     ...comparedFigure(sent.length, previousSent ? previousSent.length : null),
     series: [{ name: "$dms_mailing.metrics.sends", data: series }],
-    comparisonSeries: comparison
-      ? [
-          {
-            name: "$dms_mailing.metrics.previous",
-            data: alignSeries(comparison, series),
-          },
-        ]
-      : [],
+    comparisonSeries,
   };
 }
 
@@ -403,6 +440,28 @@ export function funnelSteps(
     rate: ratio(step.count(totals), step.base(totals)),
     isMeasured: !(isUntracked && step.isDeliveryEvent),
   }));
+}
+
+/**
+ * The steps with their count over the comparison window, step by step. A step
+ * either window does not measure states no comparison: a zero there would
+ * read as a fall that never happened.
+ */
+export function comparedSteps(
+  current: FunnelStepResponse[],
+  previous: FunnelStepResponse[],
+): FunnelStepResponse[] {
+  return current.map((step) => {
+    const before = previous.find((candidate) => candidate.id === step.id);
+    if (!step.isMeasured || !before?.isMeasured) return step;
+    const compared: FunnelStepResponse = {
+      ...step,
+      previousCount: before.count,
+    };
+    const delta = deltaPercent(step.count, before.count);
+    if (delta !== null) compared.delta = delta;
+    return compared;
+  });
 }
 
 /** Which sends the funnel counts: all, or one side of the marketing split. */
@@ -449,6 +508,35 @@ async function readTracking(): Promise<ProviderTracking | null> {
   return trackingOf(await readCapabilities());
 }
 
+/** The totals of each group of sends, by the key `keyOf` gives a send. */
+export function totalsBy(
+  sends: SendSummary[],
+  keyOf: (send: SendSummary) => string,
+): Map<string, Totals> {
+  return new Map(
+    [...groupBy(sends, keyOf)].map(([key, rows]) => [key, aggregate(rows)]),
+  );
+}
+
+/**
+ * A ranked row's change against the comparison window: `null` when the row
+ * had too few deliveries there to be ranked, its figure being then a guess.
+ */
+export function rowDelta(
+  value: number,
+  previous: Totals | undefined,
+  metric: TopMetric,
+): number | null {
+  if (!previous || previous.delivered < metric.minDeliveries) return null;
+  return deltaPercent(value, metric.extract(previous));
+}
+
+/** The row with its change; with none to state, the row carries no delta. */
+function withDelta(item: TopListItem, delta: number | null): TopListItem {
+  if (delta !== null) item.delta = delta;
+  return item;
+}
+
 /** The rows that can be ranked, best first, at most `limit` of them. */
 export function ranked(
   items: Array<TopListItem | null>,
@@ -465,37 +553,54 @@ const deliveredCount = (delivered: number): ComposedText => ({
   params: { count: { type: "count", value: delivered } },
 });
 
+/** The domains are ranked on their open rate, as the templates by default. */
+const DOMAIN_METRIC = DEFAULT_TOP_METRIC;
+
+/**
+ * A domain's row. `previous`, its totals over the comparison window when the
+ * toolbar compares, gives the row its change.
+ */
 export function toDomainItem(
   domain: string,
   totals: Totals,
+  previous?: Totals,
 ): TopListItem | null {
-  if (totals.openRate === null || totals.delivered < MIN_RANKED_DELIVERIES)
+  const value = DOMAIN_METRIC.extract(totals);
+  if (value === null || totals.delivered < DOMAIN_METRIC.minDeliveries)
     return null;
-  return {
-    id: domain,
-    title: domain,
-    description: deliveredCount(totals.delivered),
-    value: totals.openRate,
-  };
+  return withDelta(
+    {
+      id: domain,
+      title: domain,
+      description: deliveredCount(totals.delivered),
+      value,
+    },
+    rowDelta(value, previous, DOMAIN_METRIC),
+  );
 }
 
+/** A template's row, its change read from `previous` as a domain's. */
 export function toTemplateItem(
   slug: string,
   totals: Totals,
   templates: MailingTemplate[],
   metric: TopMetric,
+  previous?: Totals,
 ): TopListItem | null {
   const value = metric.extract(totals);
   if (value === null || totals.delivered < metric.minDeliveries) return null;
   const template = templates.find((candidate) => candidate.slug === slug);
-  return {
-    id: slug,
-    title: template?.name ?? slug,
-    description: {
-      key: TEMPLATE_VOLUME_KEY,
-      params: { slug, count: { type: "count", value: totals.delivered } },
+  return withDelta(
+    {
+      id: slug,
+      title: template?.name ?? slug,
+      description: {
+        key: TEMPLATE_VOLUME_KEY,
+        params: { slug, count: { type: "count", value: totals.delivered } },
+      },
+      value,
+      to: template ? `${TEMPLATES_PATH}/${template._id}` : undefined,
     },
-    value,
-    to: template ? `${TEMPLATES_PATH}/${template._id}` : undefined,
-  };
+    rowDelta(value, previous, metric),
+  );
 }

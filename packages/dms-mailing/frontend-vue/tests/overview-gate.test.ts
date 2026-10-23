@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp, defineComponent, h, onBeforeUnmount } from 'vue'
 import OverviewGate from '../app/components/OverviewGate.vue'
-import { useSetupHidesPeriod } from '../app/composables/useOverviewSetup'
 import type { SetupFacts } from '../app/utils/overview-setup'
 import { stubApiData, type ApiDataStub } from './helpers/api-data'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
@@ -57,15 +56,6 @@ const Gate = defineComponent({
 	setup: () => () => h(OverviewGate, null, { default: () => h(Dashboard) }),
 })
 
-/** What the page header renders of the period selector. */
-const PeriodHolder = defineComponent({
-	props: { scope: { type: String, default: undefined } },
-	setup: (props) => {
-		const hidesPeriod = useSetupHidesPeriod(props.scope)
-		return () => h('span', { 'data-hides-period': String(hidesPeriod.value) })
-	},
-})
-
 const GLOBALS = {
 	DmsCard: slotStub('DmsCard'),
 	DmsEmptyState: EmptyStateStub,
@@ -88,9 +78,6 @@ const facts = (overrides: Partial<SetupFacts> = {}): SetupFacts => ({
 beforeEach(() => {
 	stubNuxtGlobals()
 	vi.stubGlobal('onBeforeUnmount', onBeforeUnmount)
-	vi.stubGlobal('holdPageHeaderActions', () =>
-		defineComponent({ setup: () => () => null }),
-	)
 	api = stubApiData()
 })
 
@@ -119,22 +106,12 @@ describe('OverviewGate', () => {
 		expect(host.querySelector('[data-dashboard]')).not.toBeNull()
 	})
 
-	it('holds the dashboard and the period back while nothing can be sent', async () => {
+	it('holds the dashboard back while nothing can be sent', async () => {
 		api.respond(() => facts({ liveTemplateCount: 0 }))
 		const { host } = mount(Gate, {}, GLOBALS)
 		await flush()
 		expect(host.querySelector('[data-dashboard]')).toBeNull()
 		expect(host.querySelectorAll('[data-step]')).toHaveLength(4)
-	})
-
-	it('hides the overview header period from the same facts, on no other page', async () => {
-		api.respond(() => facts({ liveTemplateCount: 0 }))
-		const overview = mount(PeriodHolder, { scope: 'mailing-overview' })
-		const sends = mount(PeriodHolder, { scope: 'mailing-sends' })
-		await flush()
-		expect(overview.host.innerHTML).toContain('data-hides-period="true"')
-		expect(sends.host.innerHTML).toContain('data-hides-period="false"')
-		expect(api.reads).toEqual([{ url: SETUP_URL, query: {} }])
 	})
 
 	it('lets an unfinished setup be resumed above the dashboard', async () => {

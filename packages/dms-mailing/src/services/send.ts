@@ -475,7 +475,7 @@ async function record(
       outcome.error ? { reason: outcome.error } : {},
     ),
   });
-  publishSendCreated(sendId as string);
+  publishSendCreated(tenantId, sendId as string);
   return sendId as string;
 }
 

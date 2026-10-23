@@ -31,11 +31,20 @@ export function registerRealtimeTopics(): void {
   }
 }
 
-function publishSendChange(type: string, sendId: string): void {
-  const payload = { ids: [sendId] };
+/**
+ * A send of `tenantId` was created or changed: the sends table and the
+ * Overview / Sends figures of that tenant read again (AntelopeJS/dms#353
+ * scopes the message to it; another workspace hears nothing).
+ */
+function publishSendChange(
+  type: string,
+  tenantId: string,
+  sendId: string,
+): void {
+  const options = { payload: { ids: [sendId] }, tenantId };
   void Promise.all([
-    PublishMessage(SENDS_ROW_TOPIC, type, { payload }),
-    PublishMessage(MAILING_SENDS_TOPIC, type, { payload }),
+    PublishMessage(SENDS_ROW_TOPIC, type, options),
+    PublishMessage(MAILING_SENDS_TOPIC, type, options),
   ]).catch((error: unknown) => {
     Logging.Error(
       `[dms-mailing] Failed to publish "${type}" for send "${sendId}":`,
@@ -44,10 +53,10 @@ function publishSendChange(type: string, sendId: string): void {
   });
 }
 
-export function publishSendCreated(sendId: string): void {
-  publishSendChange(SEND_CREATED_TYPE, sendId);
+export function publishSendCreated(tenantId: string, sendId: string): void {
+  publishSendChange(SEND_CREATED_TYPE, tenantId, sendId);
 }
 
-export function publishSendUpdated(sendId: string): void {
-  publishSendChange(SEND_UPDATED_TYPE, sendId);
+export function publishSendUpdated(tenantId: string, sendId: string): void {
+  publishSendChange(SEND_UPDATED_TYPE, tenantId, sendId);
 }
