@@ -68,23 +68,17 @@ export async function declareMailingContent(tenantId: string) {
     content: { locales: { en: { subject: "Your {{plan.name}} plan is renewed", preheader: "", blocks: [] } } },
     variables: [{ path: "plan.name", type: "string", required: true }],
     testData: { plan: { name: "Pro" } },
-  }); // created | updated | unchanged | kept
+  }); // created | kept
 }
 ```
 
-- Require explicit non-blank `tenantId` for declarations and imports, including an explicitly selected default tenant.
-  The application must authorize the target and establish provisioning readiness.
-- For SaaS initialization, follow the consumer reference's **Initialize new SaaS workspaces** section:
-  register the durable `created` consumer synchronously in `construct()`, without awaiting declarations,
-  before startup reconciliation; deduplicate `operationId`, bind resources
-  durably, then return a receipt. Mailing registers no consumer. `start()` is process-global, not per tenant;
-  `TENANT_BEING_PROVISIONED` is prepayment and is not the durable `created` transition.
-  Deployment updates/backfills require an authorized inventory and `IsWorkspaceProvisioningCommitted`, failing closed.
-- Idempotent on the tenant's slug, published at once (v1, version rows, slug claim, attention refresh: a normal template).
-- Rule: same declaration → `unchanged`; changed declaration → `updated` only if the template is live, has no
-  draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
-  A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.
-- Categories: added once; a category a user relabelled/removed, or a default one, is `kept`.
+- Require explicit non-blank `tenantId` for declarations and imports. Call them once per tenant, from a
+  `Hook.TENANT_BEING_PROVISIONED` handler (the DMS fires it for `default` on the start that creates it, after
+  `DATABASE_INITIALIZED`; dms-saas for each workspace). Never from `start()` or `DATABASE_INITIALIZED`.
+- Written once: a missing slug is created and published (v1, version rows, slug claim, attention refresh: a normal
+  template) → `created`; a slug the tenant already has (declared or made in the dashboard) is left as it is → `kept`.
+  No fingerprint, no refresh: from its creation on, the template belongs to the tenant.
+- Categories: a missing id is added → `created`; an existing one, a default included, is `kept`.
 - `name` / `label` are localized texts `{ en, fr, … }` (stored `@Localized`, `en` required as fallback), never `$`
   i18n keys; each user reads, searches and sorts them in their language (`x-content-language`).
 - `DeclareSender({ tenantId, email, name?, replyTo? })` writes the settings' sender (resolves `void`); call it once
