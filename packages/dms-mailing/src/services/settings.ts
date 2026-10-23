@@ -1,12 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import {
-  DEFAULT_FALLBACK_LOCALE,
-  DEFAULT_LOG_RETENTION_DAYS,
-} from "../constants";
 import { type MailingSettings, SettingsModel } from "../db";
 import {
-  DEFAULT_CATEGORIES,
+  MODULE_DEFAULT_SETTINGS,
   type MailingSettingsValues,
   type TemplateCategory,
 } from "../types";
@@ -15,14 +11,11 @@ export const WEBHOOK_SECRET_BYTES = 24;
 
 function defaults(): MailingSettingsValues {
   return {
-    fallbackLocale: DEFAULT_FALLBACK_LOCALE,
-    logRetentionDays: DEFAULT_LOG_RETENTION_DAYS,
-    blockOnMissingVariables: false,
+    ...MODULE_DEFAULT_SETTINGS,
     senderName: "",
     senderEmail: "",
     replyTo: "",
     webhookSecret: randomBytes(WEBHOOK_SECRET_BYTES).toString("hex"),
-    categories: DEFAULT_CATEGORIES,
   };
 }
 
@@ -106,7 +99,7 @@ const REFUSE_POLICY: MissingVariablesPolicy = "refuse";
 const SEND_POLICY: MissingVariablesPolicy = "send";
 
 export function missingVariablesPolicy(
-  values: MailingSettingsValues,
+  values: Pick<MailingSettingsValues, "blockOnMissingVariables">,
 ): MissingVariablesPolicy {
   return values.blockOnMissingVariables ? REFUSE_POLICY : SEND_POLICY;
 }

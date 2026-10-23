@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
-  DEFAULT_FALLBACK_LOCALE,
   HTTP_CONFLICT,
   HTTP_NOT_FOUND,
   LOCALE_LIST_SEPARATOR,
@@ -28,6 +27,7 @@ import type {
   TemplateContent,
   VariableDefinition,
 } from "../types";
+import { DEFAULT_FALLBACK_LOCALE } from "../types";
 
 export interface TemplateAuthor {
   name?: string;

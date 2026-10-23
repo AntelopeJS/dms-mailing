@@ -23,8 +23,6 @@ export const GALLERY_DISPLAY_ID = `${MODULE_ID}:gallery`;
 export const TEMPLATE_CATEGORIES_TYPE_ID = "mailing_template_categories";
 export const TEMPLATE_CATEGORY_TYPE_ID = "mailing_template_category";
 
-export const DEFAULT_FALLBACK_LOCALE = "en";
-export const DEFAULT_LOG_RETENTION_DAYS = 90;
 export const MAX_SLUG_LENGTH = 64;
 export const MAX_NAME_LENGTH = 120;
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
