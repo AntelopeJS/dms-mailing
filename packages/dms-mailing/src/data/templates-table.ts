@@ -10,6 +10,7 @@ import {
   type DataControllerCallback,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
+import type { Validation } from "@antelopejs/interface-data-api/components";
 import {
   Access,
   AccessMode,
@@ -162,24 +163,32 @@ function assertKnownCategory(
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
 }
 
+/** The row `new` answers since interface-data-api 0.3: its key and fields. */
+interface CreatedRow {
+  _id: string;
+  [field: string]: unknown;
+}
+
 /**
  * The creation's seed, and the body to store: slug trimmed, and the name
  * typed in the reader's language as every language of the localized field,
- * the fallback one included until someone translates it.
+ * the fallback one included until someone translates it. A body a guard
+ * already parsed arrives as an object.
  */
-function parseCreation(body: Buffer | string, locale: string) {
-  const raw = parseBody(body);
+function parseCreation(body: Validation.WrittenBody, locale: string) {
+  const raw = Buffer.isBuffer(body) ? parseBody(body) : body;
   const seed = assertValidation(
     raw,
     (value) => createTemplateSchema.parse(value),
     () => INVALID_TEMPLATE,
     HTTP_BAD_REQUEST,
   );
-  const normalized = JSON.stringify({
+  // Handed as an object: interface-data-api 0.3 refuses a JSON string.
+  const normalized = {
     ...raw,
     slug: seed.slug,
     name: withTextIn(undefined, locale, seed.name),
-  });
+  };
   return { seed, normalized };
 }
 
@@ -198,7 +207,7 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       this: unknown,
       ctx: RequestContext,
       params: unknown,
-      body: Buffer | string,
+      body: Validation.WrittenBody,
       ...rest: unknown[]
     ) {
       const { seed, normalized } = parseCreation(body, localeOfRequest(ctx));
@@ -213,18 +222,18 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       // The module's creation dialogs send one typed name; the stored name
       // holds every language, written at once.
       (this as LocalizedController).language = ALL_LANGUAGES;
-      const ids = (await base.func.call(
+      const created = (await base.func.call(
         this,
         ctx,
         params,
         normalized,
         ...rest,
-      )) as string[];
-      const templateId = ids[0] as string;
+      )) as CreatedRow;
+      const templateId = created._id;
       await assertSlugClaimed(tenantId, seed.slug, templateId);
       const user = await authenticateTenantRequest(ctx);
       await initializeTemplate(tenantId, templateId, displayName(user), fields);
-      return ids;
+      return created;
     },
   };
 }

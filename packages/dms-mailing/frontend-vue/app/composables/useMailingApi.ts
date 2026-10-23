@@ -199,7 +199,7 @@ export function useMailingApi() {
 				body: details,
 			}),
 		createTemplate: (input: CreateTemplateInput) =>
-			post<string[]>(mailingPath('tables', 'templates', 'new'), input),
+			post<TemplateRow>(mailingPath('tables', 'templates', 'new'), input),
 		saveContent: (id: string, input: SaveContentInput) =>
 			$authFetch<SavedResponse>(mailingPath('templates', id, 'content'), {
 				method: 'POST',

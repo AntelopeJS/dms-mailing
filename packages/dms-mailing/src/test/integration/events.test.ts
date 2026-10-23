@@ -27,7 +27,7 @@ describe("[integration] events", () => {
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
     const sent = await client.post(
-      `/api/mailing/templates/${created.data[0]}/test-send`,
+      `/api/mailing/templates/${created.data._id}/test-send`,
       { to: ["events@example.test"], locale: "en", data: {} },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
@@ -71,7 +71,7 @@ describe("[integration] events", () => {
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
     const sent = await client.post(
-      `/api/mailing/templates/${created.data[0]}/test-send`,
+      `/api/mailing/templates/${created.data._id}/test-send`,
       { to: ["throwing@example.test"], locale: "en", data: {} },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
@@ -110,7 +110,7 @@ describe("[integration] events", () => {
       category: "orders",
     });
     const sent = await client.post(
-      `/api/mailing/templates/${created.data[0]}/test-send`,
+      `/api/mailing/templates/${created.data._id}/test-send`,
       { to: ["retried@example.test"], locale: "en", data: {} },
     );
     const sendId = sent.data.results[0].sendId as string;
