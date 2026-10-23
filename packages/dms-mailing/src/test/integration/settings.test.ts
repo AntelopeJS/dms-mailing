@@ -358,7 +358,7 @@ describe("[integration] settings categories in use", () => {
       category: ALPHA.id,
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data[0] as string;
+    return created.data._id as string;
   }
 
   const categoryOf = async (client: AxiosInstance, id: string) =>

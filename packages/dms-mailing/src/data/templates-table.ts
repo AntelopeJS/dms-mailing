@@ -9,6 +9,7 @@ import {
   type DataControllerCallback,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
+import type { Validation } from "@antelopejs/interface-data-api/components";
 import {
   Access,
   AccessMode,
@@ -144,20 +145,26 @@ function assertKnownCategory(
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
 }
 
-/** The creation's seed, and the body to store: slug and name trimmed. */
-function parseCreation(body: Buffer | string) {
-  const raw = parseBody(body);
+/** The row `new` answers since interface-data-api 0.3: its key and fields. */
+interface CreatedRow {
+  _id: string;
+  [field: string]: unknown;
+}
+
+/**
+ * The creation's seed, and the body to store: slug and name trimmed. A body
+ * a guard already parsed arrives as an object.
+ */
+function parseCreation(body: Validation.WrittenBody) {
+  const raw = Buffer.isBuffer(body) ? parseBody(body) : body;
   const seed = assertValidation(
     raw,
     (value) => createTemplateSchema.parse(value),
     () => INVALID_TEMPLATE,
     HTTP_BAD_REQUEST,
   );
-  const normalized = JSON.stringify({
-    ...raw,
-    slug: seed.slug,
-    name: seed.name,
-  });
+  // Handed as an object: interface-data-api 0.3 refuses a JSON string.
+  const normalized = { ...raw, slug: seed.slug, name: seed.name };
   return { seed, normalized };
 }
 
@@ -168,7 +175,7 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       this: unknown,
       ctx: RequestContext,
       params: unknown,
-      body: Buffer | string,
+      body: Validation.WrittenBody,
       ...rest: unknown[]
     ) {
       const { seed, normalized } = parseCreation(body);
@@ -180,18 +187,18 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       const settings = await getSettings(tenantId);
       assertKnownCategory(settings.categories, seed.category);
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
-      const ids = (await base.func.call(
+      const created = (await base.func.call(
         this,
         ctx,
         params,
         normalized,
         ...rest,
-      )) as string[];
-      const templateId = ids[0] as string;
+      )) as CreatedRow;
+      const templateId = created._id;
       await assertSlugClaimed(tenantId, seed.slug, templateId);
       const user = await authenticateTenantRequest(ctx);
       await initializeTemplate(tenantId, templateId, displayName(user), fields);
-      return ids;
+      return created;
     },
   };
 }
