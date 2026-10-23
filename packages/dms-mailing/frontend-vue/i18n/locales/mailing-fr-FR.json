@@ -1386,15 +1386,6 @@
 			"boolean": "Oui / non",
 			"array": "Liste"
 		},
-		"categories": {
-			"defaults": {
-				"orders": "Commandes",
-				"account": "Compte et accès",
-				"billing": "Facturation",
-				"marketing": "Marketing",
-				"forms": "Formulaires"
-			}
-		},
 		"starters": {
 			"names": {
 				"order-confirmed": "Confirmation de commande",

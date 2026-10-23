@@ -10,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/hooks";
 import { MODULE_ID } from "../constants";
 import {
+  type MailingTemplate,
   SettingsModel,
   SuppressionModel,
   TemplateModel,
@@ -98,6 +99,12 @@ async function loadPage<T extends object>(
     .filter((row): row is T => row !== undefined);
 }
 
+/** A template as exported: its name in every language. */
+const templateCodec: RowCodec<MailingTemplate> = {
+  fromDatabase: (row) =>
+    TemplateModel.fromDatabase(row)?.localize("*", ["name"]),
+};
+
 export function exportedCollections(tenantId: string): ExportedCollection[] {
   const templates = GetModel(TemplateModel, tenantId);
   const versions = GetModel(TemplateVersionModel, tenantId);
@@ -106,7 +113,7 @@ export function exportedCollections(tenantId: string): ExportedCollection[] {
     {
       entry: TEMPLATES_ENTRY,
       load: (offset, size) =>
-        loadPage(templates.table, TemplateModel, offset, size),
+        loadPage(templates.table, templateCodec, offset, size),
     },
     {
       entry: TEMPLATE_VERSIONS_ENTRY,

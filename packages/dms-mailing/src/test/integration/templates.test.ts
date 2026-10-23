@@ -7,6 +7,7 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const TABLE = "/api/mailing/tables/templates";
+const DETAILS = "/api/mailing/templates";
 
 interface TemplateRow {
   _id: string;
@@ -125,9 +126,7 @@ describe("[integration] templates table", () => {
       category: "orders",
     });
     const id = created.data._id as string;
-    // The data-api `edit` route replaces the writable fields: a body missing
-    // one nulls it. The editor must send the whole writable set.
-    const edited = await client.put(`${TABLE}/edit?id=${id}`, {
+    const edited = await client.put(`${DETAILS}/${id}/details`, {
       slug: "keeps-slug",
       name: "Renamed",
       category: "billing",
@@ -151,7 +150,7 @@ describe("[integration] templates table", () => {
     });
     const id = created.data._id as string;
 
-    const edited = await client.put(`${TABLE}/edit?id=${id}`, {
+    const edited = await client.put(`${DETAILS}/${id}/details`, {
       slug: "clears-category",
       name: "Clears category",
       category: null,
@@ -159,7 +158,7 @@ describe("[integration] templates table", () => {
     expect(edited.status, JSON.stringify(edited.data)).to.equal(HTTP_OK);
     const row = await client.get(`${TABLE}/get?id=${id}`);
     expect(row.data.slug).to.equal("clears-category");
-    expect(row.data.category).to.equal(null);
+    expect(row.data.category || null).to.equal(null);
   });
 
   // Sends resolve a template by slug and only the create paths check it is
@@ -174,7 +173,7 @@ describe("[integration] templates table", () => {
     });
     const id = created.data._id as string;
 
-    const moved = await client.put(`${TABLE}/edit?id=${id}`, {
+    const moved = await client.put(`${DETAILS}/${id}/details`, {
       slug: "order-confirmed",
       name: "Fixed slug",
       category: "orders",
@@ -182,7 +181,7 @@ describe("[integration] templates table", () => {
     expect(moved.status).to.equal(HTTP_CONFLICT);
     expect(JSON.stringify(moved.data)).to.contain("slug_immutable");
 
-    const omitted = await client.put(`${TABLE}/edit?id=${id}`, {
+    const omitted = await client.put(`${DETAILS}/${id}/details`, {
       name: "Renamed without slug",
       category: "orders",
     });
@@ -477,17 +476,58 @@ describe("[integration] templates table guards", () => {
     expect(JSON.stringify(unknown.data)).to.contain("unknown_category");
 
     const id = await create(api, "fix-l2-edit-guards");
-    const category = await api.put(`${TABLE}/edit?id=${id}`, {
+    const category = await api.put(`${DETAILS}/${id}/details`, {
       name: "Edit guards",
       category: "nope",
     });
     expect(category.status).to.equal(HTTP_UNPROCESSABLE);
-    const blank = await api.put(`${TABLE}/edit?id=${id}`, {
+    const blank = await api.put(`${DETAILS}/${id}/details`, {
       name: "   ",
       category: "orders",
     });
     expect(blank.status).to.be.at.least(HTTP_BAD_REQUEST);
+    // The DMS edit form writes every language at once.
+    const all = { headers: { "x-content-language": "*" } };
+    const blankEverywhere = await api.put(
+      `${TABLE}/edit?id=${id}`,
+      { name: { en: " ", fr: "" }, category: "orders" },
+      all,
+    );
+    expect(blankEverywhere.status).to.be.at.least(HTTP_BAD_REQUEST);
     const row = await api.get(`${TABLE}/get?id=${id}`);
     expect(row.data.name).to.equal("fix-l2-edit-guards");
+  });
+
+  it("renames in the reader's language and keeps the others", async () => {
+    const api = await client();
+    const id = await create(api, "localized-rename");
+    const inFrench = { headers: { "x-content-language": "fr" } };
+    const renamed = await api.put(
+      `${DETAILS}/${id}/details`,
+      { name: "Renommé", category: "orders" },
+      inFrench,
+    );
+    expect(renamed.status, JSON.stringify(renamed.data)).to.equal(HTTP_OK);
+    const fr = await api.get(`${TABLE}/get?id=${id}`, inFrench);
+    const en = await api.get(`${TABLE}/get?id=${id}`);
+    expect(fr.data.name).to.equal("Renommé");
+    expect(en.data.name).to.equal("localized-rename");
+
+    // The DMS edit form reads and writes every language at once.
+    const all = { headers: { "x-content-language": "*" } };
+    const record = await api.get(`${TABLE}/get?id=${id}`, all);
+    expect(record.data.name).to.deep.equal({
+      en: "localized-rename",
+      fr: "Renommé",
+    });
+    const edited = await api.put(
+      `${TABLE}/edit?id=${id}`,
+      { name: { en: "Renamed", fr: "Renommé" }, category: "billing" },
+      all,
+    );
+    expect(edited.status, JSON.stringify(edited.data)).to.equal(HTTP_OK);
+    expect((await api.get(`${TABLE}/get?id=${id}`)).data.name).to.equal(
+      "Renamed",
+    );
   });
 });

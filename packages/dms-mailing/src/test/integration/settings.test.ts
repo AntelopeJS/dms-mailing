@@ -17,7 +17,7 @@ const INVALID_RETENTION_DAYS = 0;
 const READ_ONLY_FIELDS = new Set(["webhookUrl", "provider"]);
 const MARKETING = {
   id: "marketing",
-  label: "Marketing",
+  label: { en: "Marketing" },
   icon: "i-ph-megaphone",
 };
 
@@ -280,12 +280,12 @@ describe("[integration] settings writes (partial, checked)", () => {
     const client = await ownerClient();
     const category = {
       id: "fix-l7-dup",
-      label: "fix-L7 Dup",
+      label: { en: "fix-L7 Dup" },
       icon: "i-ph-gift",
     };
     const lists = [
-      [MARKETING, category, { ...category, label: "fix-L7 Other" }],
-      [MARKETING, { ...category, label: "   " }],
+      [MARKETING, category, { ...category, label: { en: "fix-L7 Other" } }],
+      [MARKETING, { ...category, label: { en: "   " } }],
       [MARKETING, { ...category, id: "fix l7/<b>" }],
       [MARKETING, { ...category, icon: "not-an-icon" }],
     ];
@@ -312,7 +312,10 @@ describe("[integration] settings writes (partial, checked)", () => {
     expect(dropped.status).to.equal(HTTP_BAD_REQUEST);
     expect(issuePaths(dropped.data)).to.deep.equal(["categories"]);
     const renamed = await client.put(SETTINGS, {
-      categories: [...others, { ...MARKETING, label: "fix-L7 Campaigns" }],
+      categories: [
+        ...others,
+        { ...MARKETING, label: { en: "fix-L7 Campaigns" } },
+      ],
     });
     expect(renamed.status, JSON.stringify(renamed.data)).to.equal(HTTP_OK);
     await restore(client, initial.data);
@@ -343,10 +346,14 @@ describe("[integration] settings writes (partial, checked)", () => {
 describe("[integration] settings categories in use", () => {
   const ALPHA = {
     id: "fix-l7-alpha",
-    label: "fix-L7 Alpha",
+    label: { en: "fix-L7 Alpha" },
     icon: "i-ph-gift",
   };
-  const BETA = { id: "fix-l7-beta", label: "fix-L7 Beta", icon: "i-ph-bell" };
+  const BETA = {
+    id: "fix-l7-beta",
+    label: { en: "fix-L7 Beta" },
+    icon: "i-ph-bell",
+  };
 
   async function createTemplate(
     client: AxiosInstance,

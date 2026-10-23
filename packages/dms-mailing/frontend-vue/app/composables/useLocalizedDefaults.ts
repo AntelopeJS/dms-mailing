@@ -1,17 +1,15 @@
-import type { StarterSummary, TemplateCategory } from '../types/mailing'
-import { localizeCategories, type OptionalTranslate } from '../utils/categories'
-import { localizeStarters } from '../utils/starters'
+import type { StarterSummary } from '../types/mailing'
+import { localizeStarters, type OptionalTranslate } from '../utils/starters'
 
 /**
- * What the module ships by default (starters, the first categories) named in
- * the interface's language, without touching what is stored.
+ * The starters the module ships, named in the interface's language. Template
+ * names and category labels are localized fields the server reads in the
+ * interface's language.
  */
 export function useLocalizedDefaults() {
 	const { t, te } = useI18n()
 	const translate: OptionalTranslate = (key) => (te(key) ? t(key) : undefined)
 	return {
-		categories: (list: TemplateCategory[]) =>
-			localizeCategories(list, translate),
 		starters: (list: StarterSummary[]) => localizeStarters(list, translate),
 	}
 }

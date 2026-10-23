@@ -23,6 +23,7 @@ import {
 import { OverviewPageController } from "../pages/overview";
 import { readCapabilities } from "../services/provider";
 import { trackingOf } from "../services/send-stats";
+import { localeOfRequest } from "../services/localized-text";
 import { findSettings } from "../services/settings";
 import { attentionFeedItem, buildAttentionItems } from "../services/attention";
 import {
@@ -173,6 +174,13 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     return getRequestTenantId(this.ctx);
   }
 
+  /** The tenant's templates, their names in the reader's language. */
+  private async namedTemplates(): Promise<MailingTemplate[]> {
+    const locale = localeOfRequest(this.ctx);
+    const templates = await this.templates.getAll();
+    return templates.map((template) => template.localize(locale, ["name"]));
+  }
+
   /**
    * Which sends this request describes. Declared by the calling page, never
    * inferred: the Overview asks for the business view, the Sends page for the
@@ -233,7 +241,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
       DEFAULT_TOP_METRIC;
     const [sends, templates] = await Promise.all([
       this.load(currentRange(this.ctx)),
-      this.templates.getAll(),
+      this.namedTemplates(),
     ]);
     const items = [...groupBy(sends, (send) => send.templateSlug)].map(
       ([slug, rows]) =>
@@ -256,7 +264,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     const kind = readFunnelKind(this.ctx.url.searchParams.get("kind"));
     const [sends, templates, tracking] = await Promise.all([
       this.load(currentRange(this.ctx)),
-      this.templates.getAll(),
+      this.namedTemplates(),
       readTracking(),
     ]);
     const kept = filterByKind(sends, templates, kind);
@@ -269,7 +277,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   async attention() {
     const range = currentRange(this.ctx);
     const [templates, rows, tracking, settings] = await Promise.all([
-      this.templates.getAll(),
+      this.namedTemplates(),
       this.sends.listBetween(range.from, range.to),
       readTracking(),
       findSettings(this.tenantId),
@@ -292,7 +300,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   async setup(): Promise<SetupFactsResponse> {
     const [capabilities, templates, settings, testSends] = await Promise.all([
       readCapabilities(),
-      this.templates.getAll(),
+      this.namedTemplates(),
       findSettings(this.tenantId),
       this.sends.table
         .filter((row) => row.key("isTest").eq(true))

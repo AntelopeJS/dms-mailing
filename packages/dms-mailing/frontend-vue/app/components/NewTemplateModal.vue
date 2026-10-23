@@ -330,7 +330,9 @@ async function submit(): Promise<void> {
 							:ui="{ base: 'font-mono' }"
 							:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
 							:aria-invalid="Boolean(slugError)"
-							@update:model-value="(value: unknown) => onSlugInput(String(value))"
+							@update:model-value="
+								(value: unknown) => onSlugInput(String(value))
+							"
 						/>
 						<UBadge
 							color="neutral"

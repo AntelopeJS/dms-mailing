@@ -2,6 +2,7 @@ export * from "./changes";
 export * from "./conditions";
 export * from "./coverage";
 export * from "./fallback-html";
+export * from "./formats";
 export * from "./paths";
 export * from "./plain-text";
 export * from "./resolve";

@@ -71,7 +71,11 @@ const retentionDaysSchema = z.coerce
   .min(MIN_RETENTION_DAYS)
   .max(MAX_RETENTION_DAYS);
 
-/** The settings as the form reads them, with the values derived for display. */
+/**
+ * The settings as the form reads them, with the values derived for display.
+ * The DMS form reads and writes localized values whole
+ * (`x-content-language: *`): category labels travel with every language.
+ */
 export interface MailingSettingsResponse extends MailingSettingsValues {
   /** Where the provider posts its events; read-only. */
   webhookUrl: string;
@@ -217,14 +221,13 @@ export class MailingSettingsController extends Controller(
    */
   @Put("")
   async update(@RawBody() raw: Buffer): Promise<SettingsWriteResponse> {
-    const patch = this.readPatch(raw);
+    const { categories: entries, ...patch } = this.readPatch(raw);
     const current = await getSettings(this.tenantId);
     const merged = mergeSettingsPatch(current, patch);
-    const entries = patch.categories ?? current.categories;
-    const values = { ...merged, categories: keptCategories(entries) };
-    const saved = await saveSettings(this.tenantId, values);
-    const reassigned = patch.categories
-      ? await this.reassignCategories(values.categories, categoryMoves(entries))
+    const categories = entries ? keptCategories(entries) : current.categories;
+    const saved = await saveSettings(this.tenantId, { ...merged, categories });
+    const reassigned = entries
+      ? await this.reassignCategories(categories, categoryMoves(entries))
       : 0;
     const [notice] = [...reassignedNotice(reassigned), ...senderNotice(saved)];
     return { ...saved, ...(notice && { notice }) };
@@ -324,7 +327,7 @@ export class MailingSettingsController extends Controller(
     const templates = await this.templates.getAll();
     const changes = reassignRemovedCategories(templates, categories, moves);
     for (const { templateId, category } of changes) {
-      await this.templates.update(templateId, { category });
+      await this.templates.updateFields(templateId, { category });
     }
     return changes.length;
   }

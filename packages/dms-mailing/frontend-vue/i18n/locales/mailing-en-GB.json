@@ -1386,15 +1386,6 @@
 			"boolean": "Yes / no",
 			"array": "List"
 		},
-		"categories": {
-			"defaults": {
-				"orders": "Orders",
-				"account": "Account & access",
-				"billing": "Billing",
-				"marketing": "Marketing",
-				"forms": "Forms"
-			}
-		},
 		"starters": {
 			"names": {
 				"order-confirmed": "Order confirmation",

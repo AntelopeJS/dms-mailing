@@ -207,6 +207,17 @@ export const RecordEmailEvent =
     (tenantId: string, event: EmailEvent) => Promise<boolean>
   >();
 
+/** The locale a localized text is read in when the reader's has no text. */
+export const LOCALIZED_TEXT_FALLBACK_LOCALE = "en";
+
+/**
+ * A text written once per language, keyed by language code:
+ * `{ en: "Welcome", fr: "Bienvenue" }`. Each user reads the text of their
+ * language, else the `en` one ({@link LOCALIZED_TEXT_FALLBACK_LOCALE}), which
+ * a declaration must therefore hold.
+ */
+export type LocalizedText = Record<string, string>;
+
 /**
  * A template a project ships as code. `slug` is the stable key the caller
  * chooses: declaring it again never creates a second template.
@@ -215,7 +226,8 @@ export interface TemplateDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   slug: string;
-  name: string;
+  /** The name the dashboard shows, per language; an `en` text is required. */
+  name: LocalizedText;
   /** A category id the workspace settings declare; none when absent. */
   category?: string;
   /** What customers receive, per locale. Every locale needs a subject. */
@@ -255,7 +267,8 @@ export interface TemplateCategoryDeclaration {
   /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
   tenantId: string;
   id: string;
-  label: string;
+  /** The label the dashboard shows, per language; an `en` text is required. */
+  label: LocalizedText;
   /** A Phosphor icon name, such as `i-ph-tag`. */
   icon: string;
 }
@@ -263,6 +276,21 @@ export interface TemplateCategoryDeclaration {
 export interface DeclareTemplateCategoryResult {
   id: string;
   outcome: DeclarationOutcome;
+}
+
+/**
+ * The workspace's sender a project ships as code: what the settings'
+ * Sender section holds.
+ */
+export interface SenderDeclaration {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  /** The address e-mails are sent from. */
+  email: string;
+  /** The name shown next to it; none when absent. */
+  name?: string;
+  /** Where replies go; to the sender address when absent. */
+  replyTo?: string;
 }
 
 /**
@@ -344,6 +372,18 @@ export const DeclareTemplateCategory =
       declaration: TemplateCategoryDeclaration,
     ) => Promise<DeclareTemplateCategoryResult>
   >();
+
+/**
+ * Writes the workspace's sender (from name, address, reply-to): call it once,
+ * when the project provisions the workspace (`Hook.TENANT_BEING_PROVISIONED`).
+ * The declared sender replaces the stored one; later edits in the settings
+ * are the user's. Waits for the module and its database when called early.
+ * Do not run it concurrently with another settings writer of the same
+ * workspace, such as `DeclareTemplateCategory`: each rewrites the whole
+ * settings row.
+ */
+export const DeclareSender =
+  InterfaceFunction<(declaration: SenderDeclaration) => Promise<void>>();
 
 /**
  * Writes past sends and their events into the send log with their own dates:

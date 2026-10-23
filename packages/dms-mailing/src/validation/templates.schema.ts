@@ -182,6 +182,16 @@ export const testSendSchema = previewSchema.extend({
   to: z.array(z.string().email()).min(1).max(MAX_TEST_RECIPIENT_COUNT),
 });
 
+/**
+ * The details a template's drawer or the editor saves: the name typed in the
+ * reader's language, the slug it was read with, the category (`null` clears).
+ */
+export const templateDetailsSchema = z.object({
+  name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+  slug: z.string().optional(),
+  category: z.string().nullable().optional(),
+});
+
 export const duplicateSchema = z.object({
   slug: slugSchema,
   name: z.string().trim().min(1).max(MAX_NAME_LENGTH),

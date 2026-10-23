@@ -46,7 +46,7 @@ function declaration(
   return {
     tenantId: DEFAULT_TENANT_ID,
     slug,
-    name: `Declared ${slug}`,
+    name: { en: `Declared ${slug}` },
     category: "orders",
     content: contentWith("Your order is ready"),
     variables: [{ path: "customer.firstName", type: "string", required: true }],
@@ -104,7 +104,7 @@ describe("[integration] template declarations", () => {
     const { tenantId: _tenantId, ...withoutTenant } = declaration(slug);
     const category = {
       id: `invalid-${stamp}`,
-      label: "Invalid tenant",
+      label: { en: "Invalid tenant" },
       icon: "i-ph-tag",
     };
     const sends = [
@@ -217,6 +217,66 @@ describe("[integration] template declarations", () => {
     expect(await versionsOf(api, first.templateId)).to.deep.equal([1]);
   });
 
+  it("reads a declared name in the reader's language and searches it", async () => {
+    const { DeclareTemplate } = await mailing();
+    const slug = `declared-localized-${stamp}`;
+    const declared = await DeclareTemplate(
+      declaration(slug, {
+        name: { en: `Welcome ${stamp}`, fr: `Bienvenue ${stamp}` },
+      }),
+    );
+    const api = await client();
+    const inLocale = (locale: string) => ({
+      headers: { "x-content-language": locale },
+    });
+    const path = `${TEMPLATES}/${declared.templateId}/content`;
+    const [en, fr, de] = await Promise.all(
+      ["en", "fr", "de"].map((locale) => api.get(path, inLocale(locale))),
+    );
+    expect(en?.data.template.name).to.equal(`Welcome ${stamp}`);
+    expect(fr?.data.template.name).to.equal(`Bienvenue ${stamp}`);
+    expect(de?.data.template.name, "falls back to en").to.equal(
+      `Welcome ${stamp}`,
+    );
+
+    const search = async (text: string, locale: string) => {
+      const list = await api.get(
+        `${TABLE}/list?limit=20&search=${encodeURIComponent(text)}`,
+        inLocale(locale),
+      );
+      expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
+      return (list.data.results as { _id: string; name: string }[])
+        .filter((row) => row._id === declared.templateId)
+        .map((row) => row.name);
+    };
+    expect(await search(`Bienvenue ${stamp}`, "fr")).to.deep.equal([
+      `Bienvenue ${stamp}`,
+    ]);
+    expect(await search(`Bienvenue ${stamp}`, "en")).to.deep.equal([]);
+    expect(await search(`Welcome ${stamp}`, "en")).to.deep.equal([
+      `Welcome ${stamp}`,
+    ]);
+  });
+
+  it("previews a declared template the way a gallery card asks", async () => {
+    const { DeclareTemplate } = await mailing();
+    const declared = await DeclareTemplate(
+      declaration(`declared-thumbnail-${stamp}`),
+    );
+    const api = await client();
+    // The card of a live template: its published version, no locale.
+    const preview = await api.post(
+      `${TEMPLATES}/${declared.templateId}/preview`,
+      { version: "published" },
+    );
+    expect(preview.status, JSON.stringify(preview.data)).to.equal(HTTP_OK);
+    expect(preview.data).to.include({
+      locale: "en",
+      subject: "Your order is ready",
+    });
+    expect(preview.data.html).to.include("Hello Sofie");
+  });
+
   it("creates declarations racing on a fresh slug only once", async () => {
     const { DeclareTemplate } = await mailing();
     const slug = `declared-race-${stamp}`;
@@ -240,7 +300,7 @@ describe("[integration] template declarations", () => {
     const created = await DeclareTemplate(declaration(slug));
     const updated = await DeclareTemplate(
       declaration(slug, {
-        name: "Renamed",
+        name: { en: "Renamed" },
         content: contentWith("Your new order is ready"),
       }),
     );
@@ -294,7 +354,7 @@ describe("[integration] template declarations", () => {
         }),
       async (id: string) => api.post(`${TEMPLATES}/${id}/archive`, {}),
       async (id: string) =>
-        api.put(`${TABLE}/edit?id=${id}`, {
+        api.put(`${TEMPLATES}/${id}/details`, {
           name: "User name",
           category: "billing",
         }),
@@ -449,7 +509,9 @@ describe("[integration] template declarations", () => {
     const created = await DeclareTemplate(declaration(slug));
     const api = await client();
     await api.post(`${TEMPLATES}/${created.templateId}/archive`, {});
-    const result = await DeclareTemplate(declaration(slug, { name: "Again" }));
+    const result = await DeclareTemplate(
+      declaration(slug, { name: { en: "Again" } }),
+    );
     expect(result.outcome).to.equal("kept");
   });
 
@@ -506,7 +568,7 @@ describe("[integration] template declarations", () => {
       await DeclareTemplateCategory({
         tenantId,
         id: "custom",
-        label: tenantId,
+        label: { en: tenantId },
         icon: "i-ph-tag",
       });
       const template = await DeclareTemplate(
@@ -544,7 +606,7 @@ describe("[integration] template declarations", () => {
         (await getSettings(tenantId)).categories.find(
           (category) => category.id === "custom",
         )?.label,
-      ).to.equal(tenantId);
+      ).to.deep.equal({ en: tenantId });
       expect(await GetModel(SendModel, tenantId).get(sendIds[other]!)).to.equal(
         undefined,
       );
@@ -584,7 +646,7 @@ describe("[integration] template category declarations", () => {
         DeclareTemplateCategory({
           tenantId,
           id,
-          label: `Declared ${id}`,
+          label: { en: `Declared ${id}` },
           icon: "i-ph-tag",
         }),
       ),
@@ -597,7 +659,7 @@ describe("[integration] template category declarations", () => {
     const again = await DeclareTemplateCategory({
       tenantId,
       id: "subscriptions",
-      label: "Declared subscriptions",
+      label: { en: "Declared subscriptions" },
       icon: "i-ph-tag",
     });
     expect(again.outcome).to.equal("unchanged");
@@ -614,18 +676,18 @@ describe("[integration] template category declarations", () => {
     await DeclareTemplateCategory({
       tenantId,
       id,
-      label: "Workshops",
+      label: { en: "Workshops" },
       icon: "i-ph-tag",
     });
     const relabelled = await DeclareTemplateCategory({
       tenantId,
       id,
-      label: "Trainings",
+      label: { en: "Trainings" },
       icon: "i-ph-tag",
     });
     expect(relabelled.outcome).to.equal("updated");
     const labels = (await storedCategories()).map((category) => category.label);
-    expect(labels).to.include("Trainings");
+    expect(labels).to.deep.include({ en: "Trainings" });
 
     const template = declaration("removed-category", {
       tenantId,
@@ -643,7 +705,7 @@ describe("[integration] template category declarations", () => {
     const redeclared = await DeclareTemplateCategory({
       tenantId,
       id,
-      label: "Workshops again",
+      label: { en: "Workshops again" },
       icon: "i-ph-tag",
     });
     expect(redeclared.outcome).to.equal("kept");
@@ -655,9 +717,10 @@ describe("[integration] template category declarations", () => {
     const { TemplateModel } = await import("../../db");
     const model = GetModel(TemplateModel, tenantId);
     const stored = await model.getBySlug(template.slug);
-    await model.update(stored!._id, { category: "orders" });
+    await model.updateFields(stored!._id, { category: "orders" });
     expect(
-      (await DeclareTemplate({ ...template, name: "Code changed" })).outcome,
+      (await DeclareTemplate({ ...template, name: { en: "Code changed" } }))
+        .outcome,
     ).to.equal("kept");
   });
 
@@ -666,7 +729,7 @@ describe("[integration] template category declarations", () => {
     const result = await DeclareTemplateCategory({
       tenantId,
       id: "billing",
-      label: "Invoices",
+      label: { en: "Invoices" },
       icon: "i-ph-receipt",
     });
     expect(result.outcome).to.equal("kept");
@@ -677,9 +740,74 @@ describe("[integration] template category declarations", () => {
     const error = await DeclareTemplateCategory({
       tenantId,
       id: "invoices",
-      label: "Billing",
+      label: { en: "Billing" },
       icon: "i-ph-receipt",
     }).catch((reason: { code?: string }) => reason);
     expect((error as { code?: string }).code).to.equal("invalid_category");
+  });
+});
+
+/** The sender lives in the workspace settings too: a workspace of its own. */
+describe("[integration] sender declarations", () => {
+  const stamp = Date.now();
+  const tenantId = `sender-${stamp}`;
+  const sender = {
+    tenantId,
+    name: "Acme",
+    email: "hello@acme.example",
+    replyTo: "support@acme.example",
+  };
+
+  async function storedSender() {
+    const { getSettings } = await import("../../services/settings");
+    const { senderName, senderEmail, replyTo } = await getSettings(tenantId);
+    return { senderName, senderEmail, replyTo };
+  }
+
+  it("writes the sender of the workspace", async () => {
+    const { DeclareSender } = await mailing();
+    expect(await DeclareSender(sender)).to.equal(undefined);
+    expect(await storedSender()).to.deep.equal({
+      senderName: "Acme",
+      senderEmail: "hello@acme.example",
+      replyTo: "support@acme.example",
+    });
+  });
+
+  it("replaces the stored sender and leaves the other settings", async () => {
+    const { DeclareSender } = await mailing();
+    const { getSettings } = await import("../../services/settings");
+    const before = await getSettings(tenantId);
+    await DeclareSender({ tenantId, email: "noreply@acme.example" });
+    expect(await storedSender()).to.deep.equal({
+      senderName: "",
+      senderEmail: "noreply@acme.example",
+      replyTo: "",
+    });
+    const after = await getSettings(tenantId);
+    expect({
+      ...after,
+      senderName: before.senderName,
+      senderEmail: before.senderEmail,
+      replyTo: before.replyTo,
+    }).to.deep.equal(before);
+  });
+
+  it("refuses a missing address or tenant, naming the field", async () => {
+    const { DeclareSender } = await mailing();
+    const refusals = [
+      { ...sender, email: "" },
+      { ...sender, email: "not an address" },
+      { ...sender, tenantId: " " },
+    ];
+    for (const [index, input] of refusals.entries()) {
+      const error = await DeclareSender(input).catch(
+        (reason: { code?: string; message: string }) => reason,
+      );
+      expect(error).to.include({ code: "invalid_sender" });
+      expect((error as Error).message).to.include(
+        index < 2 ? "email" : "tenantId",
+      );
+    }
   });
 });
