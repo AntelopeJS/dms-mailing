@@ -8,14 +8,13 @@ import type {
   TemplateDeclaration,
 } from "@antelopejs/interface-dms-mailing";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   type MailingTemplate,
   SettingsModel,
   TemplateModel,
-  TemplateSlugModel,
   TemplateVersionModel,
-  templateSlugIdOf,
 } from "../db";
 import type {
   TemplateCategory,
@@ -33,7 +32,6 @@ import { DeclarationError, parseDeclared } from "./declaration-error";
 import { fingerprintOf } from "./fingerprint";
 import { findCategory, getSettings, saveSettings } from "./settings";
 import {
-  assertSlugClaimed,
   blankFields,
   hasDraft,
   localesWithoutSubject,
@@ -166,7 +164,7 @@ async function createDeclared(
   const settings = await getSettings(tenantId);
   assertKnownCategory(settings.categories, state.category, slug);
   const revision = randomUUID();
-  const [id] = await model.insertFields({
+  const inserted = model.insertFields({
     slug,
     name: state.name,
     category: state.category,
@@ -179,30 +177,22 @@ async function createDeclared(
     declarationSeedRevision: revision,
     pendingDeclaredHash: plan.hash,
   });
-  const templateId = id as string;
   try {
-    await assertSlugClaimed(tenantId, slug, templateId);
+    const [id] = await inserted;
+    return await requireTemplate(model, id as string);
   } catch (error) {
-    if (await model.getBySlug(slug)) return undefined;
+    // A concurrent declaration of the slug created it first: expected, the
+    // caller goes on with that template.
+    if (IsDuplicateKeyError(error)) return undefined;
     throw error;
   }
-  return requireTemplate(model, templateId);
 }
 
-/**
- * A slug claim, not an arbitrary candidate row, decides which template won
- * concurrent creation. An unclaimed seed can be claimed by its next caller.
- */
-async function declaredTemplate(
+function declaredTemplate(
   tenantId: string,
   slug: string,
 ): Promise<MailingTemplate | undefined> {
-  const model = GetModel(TemplateModel, tenantId);
-  const claim = await GetModel(TemplateSlugModel, tenantId).get(
-    templateSlugIdOf(tenantId, slug),
-  );
-  const winner = claim && (await model.get(claim.templateId));
-  return winner || model.getBySlug(slug);
+  return GetModel(TemplateModel, tenantId).getBySlug(slug);
 }
 
 function isUnmodifiedSeed(template: MailingTemplate): boolean {
@@ -220,13 +210,6 @@ async function finishSeed(
   tenantId: string,
   template: MailingTemplate,
 ): Promise<boolean> {
-  try {
-    await assertSlugClaimed(tenantId, template.slug, template._id);
-  } catch (error) {
-    const winner = await declaredTemplate(tenantId, template.slug);
-    if (winner && winner._id !== template._id) return false;
-    throw error;
-  }
   const settings = await getSettings(tenantId);
   assertKnownCategory(settings.categories, template.category, template.slug);
   return Boolean(

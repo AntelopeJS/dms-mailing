@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import type {
-  AtomicMutationOutcome,
-  ValueProxy,
+import {
+  type AtomicMutationOutcome,
+  IsDuplicateKeyError,
+  type ValueProxy,
 } from "@antelopejs/interface-database";
 import { isResolvedStage, stageOf } from "../../types";
 import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
@@ -89,17 +90,15 @@ export class SendModel extends BasicDataModel(
   }
 
   /**
-   * Writes an imported send under its own id; false when that id is already
-   * taken, by an earlier run of the same import. Probed by state like the
-   * slug claims, since the database exposes no typed conflict error.
+   * Writes an imported send under its own id; false when an earlier run of
+   * the same import already wrote it (its id is derived from the import's).
    */
   async insertImported(send: ImportedSendRow): Promise<boolean> {
-    if (await this.get(send._id)) return false;
     try {
       await this.table.insert({ ...send, revision: randomUUID() }).run();
       return true;
     } catch (error) {
-      if (await this.get(send._id)) return false;
+      if (IsDuplicateKeyError(error)) return false;
       throw error;
     }
   }

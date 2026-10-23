@@ -80,7 +80,7 @@ export async function declareMailingContent(tenantId: string) {
   durably, then return a receipt. Mailing registers no consumer. `start()` is process-global, not per tenant;
   `TENANT_BEING_PROVISIONED` is prepayment and is not the durable `created` transition.
   Deployment updates/backfills require an authorized inventory and `IsWorkspaceProvisioningCommitted`, failing closed.
-- Idempotent on the tenant's slug, published at once (v1, version rows, slug claim, attention refresh: a normal template).
+- Idempotent on the tenant's slug, published at once (v1, version rows, unique slug, attention refresh: a normal template).
 - Rule: same declaration → `unchanged`; changed declaration → `updated` only if the template is live, has no
   draft and still holds exactly the last declaration (fingerprint on `declaredHash`); otherwise `kept`.
   A dashboard-made template under that slug is never taken over. Deleted → recreated next boot; archive instead.

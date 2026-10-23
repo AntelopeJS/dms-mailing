@@ -73,16 +73,11 @@ async function rowsWithSlug(slug: string): Promise<number> {
     await import("@antelopejs/interface-database-decorators");
   const { DEFAULT_TENANT_ID } =
     await import("@antelopejs/interface-dms/constants");
-  const { TemplateModel, TemplateSlugModel, templateSlugIdOf } =
-    await import("../../db");
+  const { TemplateModel } = await import("../../db");
   const rows = await GetModel(TemplateModel, DEFAULT_TENANT_ID).getBy(
     "slug",
     slug,
   );
-  const claim = await GetModel(TemplateSlugModel, DEFAULT_TENANT_ID).get(
-    templateSlugIdOf(DEFAULT_TENANT_ID, slug),
-  );
-  expect(claim?.templateId, "the slug claim").to.equal(rows[0]?._id);
   return rows.length;
 }
 

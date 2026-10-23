@@ -29,33 +29,18 @@ async function models(tenantId?: string) {
     await import("@antelopejs/interface-database-decorators");
   const { DEFAULT_TENANT_ID } =
     await import("@antelopejs/interface-dms/constants");
-  const { TemplateModel, TemplateSlugModel } = await import("../../db");
-  const tenant = tenantId ?? DEFAULT_TENANT_ID;
-  return {
-    tenant,
-    templates: GetModel(TemplateModel, tenant),
-    claims: GetModel(TemplateSlugModel, tenant),
-  };
+  const { TemplateModel } = await import("../../db");
+  return GetModel(TemplateModel, tenantId ?? DEFAULT_TENANT_ID);
 }
 
-async function templatesModel() {
-  return (await models()).templates;
-}
-
-/** Removes the templates and claims a test left, so later suites list what they expect. */
+/** Removes the templates a test left, so later suites list what they expect. */
 async function removeSlugs(prefix: string, tenantId?: string): Promise<void> {
-  const { templates, claims } = await models(tenantId);
+  const templates = await models(tenantId);
   const rows = await templates.table.run();
   const ids = rows
     .filter((row) => row.slug.startsWith(prefix))
     .map((row) => row._id);
   await Promise.all(ids.map((id) => templates.delete(id)));
-  const claimed = await claims.table.run();
-  await Promise.all(
-    claimed
-      .filter((row) => row.slug.startsWith(prefix))
-      .map((row) => claims.delete(row._id)),
-  );
 }
 
 /** Runs the rounds one after the other, each a race of RACERS requests. */
@@ -63,7 +48,7 @@ async function race(
   prefix: string,
   request: (slug: string) => Promise<{ status: number }>,
 ): Promise<Outcome[]> {
-  const templates = await templatesModel();
+  const templates = await models();
   const outcomes: Outcome[] = [];
   for (let round = 0; round < ROUNDS; round++) {
     const slug = `${prefix}-${round}`;
@@ -142,33 +127,11 @@ describe("[integration] template slug races", function () {
       await api.post(`${TEMPLATES}/${id}/archive`, {});
       const deleted = await api.delete(`${TABLE}/delete?id=${id}`);
       expect(deleted.status, JSON.stringify(deleted.data)).to.equal(HTTP_OK);
-      const { claims } = await models();
-      expect(await claims.getBy("slug", slug)).to.deep.equal([]);
 
       const again = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(again.status, JSON.stringify(again.data)).to.equal(HTTP_OK);
-      const [claim] = await claims.getBy("slug", slug);
-      expect(claim?.templateId).to.equal(again.data._id);
-    } finally {
-      await removeSlugs(slug);
-    }
-  });
-
-  it("takes over a claim whose template is gone", async () => {
-    const slug = `slug-race-stale-${stamp}`;
-    const api = await client();
-    const { tenant, claims } = await models();
-    const { templateSlugIdOf } = await import("../../db");
-    try {
-      await claims.insert({
-        _id: templateSlugIdOf(tenant, slug),
-        slug,
-        templateId: "a-template-deleted-before-its-claim",
-      });
-      const created = await api.post(`${TABLE}/new`, { slug, name: slug });
-      expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-      const [claim] = await claims.getBy("slug", slug);
-      expect(claim?.templateId).to.equal(created.data._id);
+      const [template] = await (await models()).getBy("slug", slug);
+      expect(template?._id).to.equal(again.data._id);
     } finally {
       await removeSlugs(slug);
     }
@@ -178,39 +141,16 @@ describe("[integration] template slug races", function () {
     const slug = `slug-race-tenant-${stamp}`;
     const otherTenant = `slug-race-tenant-${stamp}`;
     const api = await client();
-    const { assertSlugClaimed } = await import("../../services/templates");
     const other = await models(otherTenant);
     try {
-      const [otherId] = await other.templates.insert({ slug, name: slug });
-      await assertSlugClaimed(otherTenant, slug, otherId as string);
+      const [otherId] = await other.insert({ slug, name: slug });
 
       const created = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-      expect(await other.templates.get(otherId as string)).to.not.equal(
-        undefined,
-      );
+      expect(await other.get(otherId as string)).to.not.equal(undefined);
     } finally {
       await removeSlugs(slug);
       await removeSlugs(slug, otherTenant);
-    }
-  });
-
-  it("refuses a slug duplicated before claims existed, without failing", async () => {
-    const slug = `slug-race-legacy-${stamp}`;
-    const api = await client();
-    const templates = await templatesModel();
-    try {
-      await templates.insert([
-        { slug, name: slug },
-        { slug, name: slug },
-      ]);
-      const created = await api.post(`${TABLE}/new`, { slug, name: slug });
-      expect(created.status, JSON.stringify(created.data)).to.equal(
-        HTTP_CONFLICT,
-      );
-      expect(await templates.getBy("slug", slug)).to.have.length(2);
-    } finally {
-      await removeSlugs(slug);
     }
   });
 });
