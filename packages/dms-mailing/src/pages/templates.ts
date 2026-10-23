@@ -20,6 +20,7 @@ import {
   assertEditable,
   TemplatesTableAPI,
 } from "../data/templates-table";
+import { localeOfRequest } from "../services/localized-text";
 import { mailingNavCategory } from "./module";
 
 const TEMPLATES_ORDER = 1;
@@ -95,13 +96,6 @@ export class TemplatesPageController extends PageController(
         filter: { accessorKey: "needsAttention", value: "true", mode: "is" },
       },
     ],
-    quickFilters: [
-      {
-        field: "category",
-        label: "$dms_mailing.templates.filters.category",
-        icon: "i-ph-tag",
-      },
-    ],
     footer: {
       countLabel: "$dms_mailing.templates.footer.count",
       hint: "$dms_mailing.templates.footer.hint",
@@ -115,7 +109,7 @@ export class TemplatesPageController extends PageController(
       },
       async edit(ctx, { id, body, current }) {
         await assertEditable(getRequestTenantId(ctx), body, current);
-        return afterEdit(this.model, id, body.name);
+        return afterEdit(this.model, id, body.name, localeOfRequest(ctx));
       },
     },
     rowActions: {

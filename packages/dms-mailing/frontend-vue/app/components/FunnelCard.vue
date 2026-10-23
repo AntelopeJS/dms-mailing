@@ -2,10 +2,13 @@
 import { mailingPath, type FunnelResponse } from '../composables/useMailingApi'
 import {
 	biggestDrop,
+	deltaTone,
+	formatDelta,
 	formatRate,
 	FUNNEL_KINDS,
 	FUNNEL_LEAK_STEP,
 	funnelTakeaway,
+	isCompared,
 	isMeasured,
 	type FunnelStepReading,
 	type FunnelTakeaway,
@@ -20,6 +23,24 @@ const FUNNEL_URL = `${mailingPath('metrics', 'funnel')}?kind={{params.kind}}`
 const SKELETON_ROWS = 5
 const KEY_PREFIX = 'dms_mailing.funnel_card.'
 const NOT_TRACKED_KEY = 'dms_mailing.metrics.not_tracked'
+
+/**
+ * A row's columns: label, meter, count, rate, and the change while the
+ * toolbar compares. Written out whole so Tailwind sees every class.
+ */
+const ROW_GRID = {
+	plain:
+		'@md:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_3.5rem] grid-cols-[minmax(0,1fr)_auto_auto]',
+	compared:
+		'@md:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_3.5rem_4rem] grid-cols-[minmax(0,1fr)_auto_auto_auto]',
+}
+const METER_SPAN = { plain: 'col-span-3', compared: 'col-span-4' }
+const UNTRACKED_SPAN = { plain: 'col-span-2', compared: 'col-span-3' }
+const DELTA_TONE_CLASSES: Record<ReturnType<typeof deltaTone>, string> = {
+	success: 'text-success',
+	error: 'text-error',
+	neutral: 'text-dimmed',
+}
 
 const TAKEAWAY_KEYS: Record<FunnelTakeaway, string> = {
 	empty: `${KEY_PREFIX}no_drop`,
@@ -86,6 +107,16 @@ const takeaway = computed(() => {
 
 const isLeak = (step: FunnelStepReading): boolean =>
 	step.id === FUNNEL_LEAK_STEP
+
+/** "No comparison" in the toolbar drops the column rather than leave dashes. */
+const layout = computed(() => (isCompared(steps.value) ? 'compared' : 'plain'))
+
+const deltaTitle = (step: FunnelStepReading): string | undefined =>
+	step.previousCount === undefined
+		? undefined
+		: t(`${KEY_PREFIX}compared_count`, {
+				value: numberFormat.value.format(step.previousCount),
+			})
 </script>
 
 <template>
@@ -115,7 +146,8 @@ const isLeak = (step: FunnelStepReading): boolean =>
 					v-for="step in steps"
 					:key="step.id"
 					data-funnel-step
-					class="@md:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_3.5rem] grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5"
+					class="grid items-center gap-x-3 gap-y-1.5"
+					:class="ROW_GRID[layout]"
 				>
 					<span
 						class="truncate text-[12.5px]"
@@ -125,7 +157,8 @@ const isLeak = (step: FunnelStepReading): boolean =>
 					</span>
 					<DmsMeter
 						as="span"
-						class="@md:order-none @md:col-span-1 order-last col-span-3"
+						class="@md:order-none @md:col-span-1 order-last"
+						:class="METER_SPAN[layout]"
 						:value="isMeasured(step) ? step.count : 0"
 						:max="Math.max(total, 1)"
 						:tone="isLeak(step) ? 'warning' : 'primary'"
@@ -143,11 +176,21 @@ const isLeak = (step: FunnelStepReading): boolean =>
 						>
 							{{ formatRate(step.rate, locale) }}
 						</span>
+						<span
+							v-if="layout === 'compared'"
+							data-funnel-delta
+							class="text-right font-mono text-[11.5px] tabular-nums"
+							:class="DELTA_TONE_CLASSES[deltaTone(step)]"
+							:title="deltaTitle(step)"
+						>
+							{{ formatDelta(step.delta, locale) }}
+						</span>
 					</template>
 					<span
 						v-else
 						data-funnel-untracked
-						class="text-dimmed col-span-2 text-right text-[11.5px]"
+						class="text-dimmed text-right text-[11.5px]"
+						:class="UNTRACKED_SPAN[layout]"
 					>
 						{{ t(NOT_TRACKED_KEY) }}
 					</span>

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+// Imported rather than resolved by name: every module component is a lazy
+// chunk, and the grid would first render its "new template" tile alone,
+// then move it as the cards arrive.
+import TemplateCard from './TemplateCard.vue'
 import { useTemplateCategories } from '../composables/useTemplateCategories'
 import { useEventListener } from '@vueuse/core'
 import {
@@ -50,7 +54,8 @@ const props = defineProps<TemplateGalleryProps>()
 const { t } = useI18n()
 const overlays = useTemplateDrawer()
 
-const { categories } = useTemplateCategories()
+const { categories, isAnswered: areCategoriesAnswered } =
+	useTemplateCategories()
 const overview = useTemplatesOverview()
 const total = useTemplateTotal()
 
@@ -121,8 +126,20 @@ const search = computed(() => searchTermOf(props.context.query))
 const narrowed = computed(() => isNarrowed(props.context.query))
 const hasNoItems = computed(() => !props.context.items.length)
 
+/**
+ * The cards draw their category group and their figures from reads of their
+ * own: until both answered (a client navigation reads them in the browser),
+ * the cards would come under "Uncategorised", then move to their group.
+ */
+const areCardsReady = computed(
+	() =>
+		(!isGrouped.value || areCategoriesAnswered.value) &&
+		Boolean(overview.data.value || overview.error.value),
+)
+
 const STATE_RULES: StateRule[] = [
 	['loading', () => props.context.loading && hasNoItems.value],
+	['loading', () => !hasNoItems.value && !areCardsReady.value],
 	[
 		'loading',
 		() => hasNoItems.value && !narrowed.value && templateCount.value === null,
@@ -218,24 +235,47 @@ useEventListener(
 
 <template>
 	<div class="flex flex-col gap-6 p-4">
-		<div
+		<!-- Laid out as a group of cards: the heading, the thumbnail and the
+		     card's three lines at their own heights (a zero-width space keeps a
+		     text line's height), so the cards replace it without moving. -->
+		<section
 			v-if="state === 'loading'"
-			class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4"
+			class="flex flex-col gap-3"
 			aria-busy="true"
+			data-gallery-skeleton
 		>
-			<DmsCard
-				v-for="index in SKELETON_CARDS"
-				:key="index"
-				:padded="false"
-				class="overflow-hidden"
-			>
-				<USkeleton class="h-[172px] w-full rounded-none" />
-				<div class="flex flex-col gap-2 p-3.5">
-					<USkeleton class="h-3 w-3/5" />
-					<USkeleton class="h-2.5 w-2/5" />
-				</div>
-			</DmsCard>
-		</div>
+			<div v-if="isGrouped" class="flex items-center gap-2 text-[13px]">
+				<USkeleton class="size-4" />
+				<USkeleton class="h-3 w-24" />
+				&#8203;
+			</div>
+			<div class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4">
+				<DmsCard
+					v-for="index in SKELETON_CARDS"
+					:key="index"
+					:padded="false"
+					class="flex flex-col overflow-hidden"
+				>
+					<USkeleton class="h-[172px] w-full rounded-none" />
+					<div
+						class="border-default flex flex-1 flex-col gap-1.5 border-t px-3.5 pb-3 pt-3"
+					>
+						<div class="flex h-6 items-center">
+							<USkeleton class="h-3.5 w-3/5" />
+						</div>
+						<div class="flex h-[18px] items-center">
+							<USkeleton class="h-2.5 w-2/5" />
+						</div>
+						<div
+							class="border-default mt-1 flex items-center gap-3 border-t pt-2 font-mono text-[11.5px]"
+						>
+							<USkeleton class="h-2.5 w-1/2" />
+							&#8203;
+						</div>
+					</div>
+				</DmsCard>
+			</div>
+		</section>
 
 		<MailingStarterGallery
 			v-else-if="state === 'first_run'"
@@ -308,7 +348,7 @@ useEventListener(
 					<span class="bg-(--ui-border) ml-2 h-px flex-1" />
 				</div>
 				<div class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4">
-					<MailingTemplateCard
+					<TemplateCard
 						v-for="template in group.items"
 						:key="template._id"
 						:template="template"

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   DeclarationOutcome,
+  LocalizedText,
   DeclareTemplateCategoryResult,
   DeclareTemplateResult,
   TemplateCategoryDeclaration,
@@ -55,7 +56,7 @@ const MAX_DECLARATION_ATTEMPTS = 5;
 
 /** What a declaration fingerprints: everything a user may change after it. */
 interface DeclaredTemplateState {
-  name: string;
+  name: LocalizedText;
   category: string;
   content: TemplateContent;
   variables: VariableDefinition[];
@@ -131,7 +132,7 @@ function planTemplate(declaration: ParsedTemplateDeclaration): TemplatePlan {
 function currentFingerprint(template: MailingTemplate): string | null {
   if (template.status !== LIVE_STATUS || hasDraft(template)) return null;
   return fingerprintOf({
-    name: template.name,
+    name: TemplateModel.namesOf(template),
     category: template.category ?? "",
     content: parseContent(template),
     variables: parseVariables(template),
@@ -165,7 +166,7 @@ async function createDeclared(
   const settings = await getSettings(tenantId);
   assertKnownCategory(settings.categories, state.category, slug);
   const revision = randomUUID();
-  const [id] = await model.insert({
+  const [id] = await model.insertFields({
     slug,
     name: state.name,
     category: state.category,

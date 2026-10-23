@@ -2,7 +2,6 @@
 import { reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplateGallery from '../app/components/TemplateGallery.vue'
-import TemplateCard from '../app/components/TemplateCard.vue'
 import type { TemplateRow, TemplateStats } from '../app/types/mailing'
 import {
 	flush,
@@ -21,6 +20,11 @@ import {
 const CATEGORIES_URL = '/api/mailing/templates/categories'
 const OVERVIEW_URL = '/api/mailing/templates/overview'
 const LIST_URL = '/api/mailing/tables/templates/list'
+
+vi.mock('../app/components/TemplatePreviewFrame.vue', async () => {
+	const { slotStub } = await import('./helpers/nuxt-globals')
+	return { default: slotStub('MailingTemplatePreviewFrame') }
+})
 
 const RECENT = new Date(Date.now() - 3_600_000).toISOString()
 
@@ -107,8 +111,6 @@ function context({ items, query = {} }: ContextOptions) {
 }
 
 const globals = {
-	MailingTemplateCard: TemplateCard,
-	MailingTemplatePreviewFrame: slotStub('MailingTemplatePreviewFrame'),
 	MailingStarterGallery: slotStub('MailingStarterGallery'),
 	DmsEmptyState: slotStub('DmsEmptyState'),
 }
@@ -369,6 +371,91 @@ describe('TemplateGallery', () => {
 		)
 		expect(ctx.actions.open).toHaveBeenCalledWith(LIVE)
 		view.unmount()
+	})
+
+	it('keeps its skeleton until the categories answered, then draws the cards in their group', async () => {
+		let answerCategories: (value: unknown) => void = () => {}
+		api.respond(({ url }) => {
+			if (url === CATEGORIES_URL)
+				return new Promise((resolve) => (answerCategories = resolve))
+			if (url === OVERVIEW_URL) return { items: [] }
+			return { results: [LIVE], total: 1 }
+		})
+		const view = mount(
+			TemplateGallery,
+			{ context: context({ items: [LIVE] }) },
+			globals,
+		)
+		await flush()
+		expect(view.host.querySelector('[data-gallery-skeleton]')).not.toBeNull()
+		expect(cardNames(view.host)).toEqual([])
+		answerCategories({
+			categories: [{ id: 'orders', label: 'Orders', icon: 'i-ph-package' }],
+		})
+		await flush()
+		expect(view.host.querySelector('[data-gallery-skeleton]')).toBeNull()
+		expect(view.host.querySelector('h2')?.textContent?.trim()).toBe('Orders')
+		view.unmount()
+	})
+
+	it('draws no skeleton once the cards are on screen, a refresh included', async () => {
+		const ctx = reactive(context({ items: [LIVE] }))
+		const view = mount(TemplateGallery, { context: ctx }, globals)
+		await flush()
+		ctx.loading = true
+		ctx.items = [LIVE]
+		await flush()
+		expect(view.host.querySelector('uskeleton')).toBeNull()
+		expect(cardNames(view.host)).toEqual(['Order confirmation'])
+		view.unmount()
+	})
+
+	it('lays its skeleton out like a group of cards, so they replace it in place', async () => {
+		api.respond(({ url }) => {
+			if (url === CATEGORIES_URL) return new Promise(() => {})
+			return { items: [], results: [LIVE], total: 1 }
+		})
+		const loading = mount(
+			TemplateGallery,
+			{ context: context({ items: [LIVE] }) },
+			globals,
+		)
+		await flush()
+		const skeleton = loading.host.querySelector(
+			'[data-gallery-skeleton]',
+		) as HTMLElement
+		const skeletonCard = skeleton.querySelector('dmscard') as HTMLElement
+		const skeletonHeading = skeleton.firstElementChild as HTMLElement
+		const skeletonBody = skeletonCard.lastElementChild as HTMLElement
+
+		api.respond(({ url }) =>
+			url === CATEGORIES_URL
+				? { categories: [] }
+				: { items: [], results: [LIVE], total: 1 },
+		)
+		const loaded = mount(
+			TemplateGallery,
+			{ context: context({ items: [MISSING_DE] }) },
+			globals,
+		)
+		await flush()
+		expect(loaded.host.querySelector('[data-gallery-skeleton]')).toBeNull()
+		const section = loaded.host.querySelector('section') as HTMLElement
+		const card = section.querySelector('article, dmscard') as HTMLElement
+		const body = card.lastElementChild as HTMLElement
+
+		expect(skeleton.className).toBe(section.className)
+		expect(skeletonHeading.className).toContain('flex items-center gap-2')
+		expect(skeletonCard.querySelector('uskeleton')?.className).toContain(
+			'h-[172px]',
+		)
+		expect(skeletonBody.className).toBe(body.className)
+		expect(skeletonBody.children).toHaveLength(body.children.length)
+		expect(skeletonBody.lastElementChild?.className).toBe(
+			body.lastElementChild?.className.replace(' text-muted', ''),
+		)
+		loading.unmount()
+		loaded.unmount()
 	})
 
 	it('opens the editor on a missing locale chip', async () => {

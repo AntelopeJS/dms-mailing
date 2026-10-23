@@ -12,6 +12,17 @@ const DAY_MS = 86_400_000;
 const DEFAULT_WINDOW_DAYS = 30;
 /** The DMS period selector's `comparison` value when the user turned it off. */
 const NO_COMPARISON = "none";
+const PREVIOUS_YEAR = "previous-year";
+
+/**
+ * What the comparison series is called, by the selector's `comparison`. A
+ * custom window, or a caller naming none, is neither of the two.
+ */
+const COMPARISON_SERIES_LABELS: Record<string, string> = {
+  "previous-period": "$dms_mailing.metrics.previous",
+  [PREVIOUS_YEAR]: "$dms_mailing.metrics.previous_year",
+};
+const COMPARED_SERIES_LABEL = "$dms_mailing.metrics.compared";
 
 function readQuery(ctx: RangeContext, key: string): string | undefined {
   return ctx.url.searchParams.get(key) ?? undefined;
@@ -53,6 +64,24 @@ export function isComparisonWanted(ctx: RangeContext): boolean {
   return readQuery(ctx, "comparison") !== NO_COMPARISON;
 }
 
+/** The label of the comparison series, for the comparison the caller asks. */
+export function comparisonLabel(ctx: RangeContext): string {
+  const comparison = readQuery(ctx, "comparison") ?? "previous-period";
+  return COMPARISON_SERIES_LABELS[comparison] ?? COMPARED_SERIES_LABEL;
+}
+
+function yearBefore(date: Date): Date {
+  const shifted = new Date(date.getTime());
+  shifted.setUTCFullYear(shifted.getUTCFullYear() - 1);
+  return shifted;
+}
+
+/**
+ * The window the current one is compared with. The DMS selector resolves it
+ * itself and sends `compareFrom` / `compareTo`, for the previous year as for
+ * the previous period; a caller sending only `comparison` gets the same
+ * window a year back, or the equal-length span just before.
+ */
 export function comparisonRange(
   ctx: RangeContext,
   current: DateRange,
@@ -60,6 +89,9 @@ export function comparisonRange(
   const from = parseDate(readQuery(ctx, "compareFrom"));
   const to = parseDate(readQuery(ctx, "compareTo"));
   if (from && to) return boundedWindow(from, to);
+  if (readQuery(ctx, "comparison") === PREVIOUS_YEAR) {
+    return { from: yearBefore(current.from), to: yearBefore(current.to) };
+  }
   const span = current.to.getTime() - current.from.getTime();
   return {
     from: new Date(current.from.getTime() - span),

@@ -42,7 +42,8 @@ describe('useReplayToast', () => {
 		const [toast] = stubs.toasts
 		expect(toast).toMatchObject({
 			color: 'warning',
-			title: 'dms_mailing.suppressions.notice.not_sent.toast_title email=a@x.test',
+			title:
+				'dms_mailing.suppressions.notice.not_sent.toast_title email=a@x.test',
 			description:
 				'dms_mailing.suppressions.notice.not_sent.reason reason=dms_mailing.suppressions.reasons.unsubscribe',
 		})

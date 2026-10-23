@@ -8,6 +8,7 @@ import { SHARED_MODULE_SOURCES } from "./antelope-modules";
 
 const API_PORT = 5019;
 const JWT_SECRET = "test-jwt-secret";
+const HTML_RENDER_SECRET = "test-html-render-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
 const SMTP_HOST = "127.0.0.1";
 const EPHEMERAL_PORT = 0;
@@ -116,6 +117,11 @@ export default defineConfig({
         clientBaseUrl: `http://127.0.0.1:${API_PORT}`,
         auth: {
           jwtSecret: JWT_SECRET,
+        },
+        // Outside development, which the test run is not, dms 0.10 refuses
+        // to start without a render secret of its own.
+        htmlRender: {
+          serviceSecret: HTML_RENDER_SECRET,
         },
       },
     },

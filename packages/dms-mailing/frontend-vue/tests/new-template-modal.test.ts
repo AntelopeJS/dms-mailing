@@ -69,7 +69,7 @@ beforeEach(() => {
 			},
 		),
 	)
-	api.createTemplate.mockResolvedValue(['new-id'])
+	api.createTemplate.mockResolvedValue({ _id: 'new-id' })
 })
 
 afterEach(() => {

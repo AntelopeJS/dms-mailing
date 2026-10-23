@@ -79,7 +79,7 @@ describe("[integration] send import", () => {
     await DeclareTemplate({
       tenantId,
       slug: SLUG,
-      name: "Imported receipt",
+      name: { en: "Imported receipt" },
       content: {
         locales: { en: { subject: "Your receipt", preheader: "", blocks: [] } },
       },

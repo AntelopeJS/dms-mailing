@@ -72,3 +72,28 @@ export function formatRate(rate: number | null, locale: string): string {
 		maximumFractionDigits: RATE_DECIMALS,
 	}).format(rate / PERCENT)
 }
+
+/** Whether the steps carry a comparison window: none does with it off. */
+export const isCompared = (steps: FunnelStepReading[]): boolean =>
+	steps.some((step) => step.previousCount !== undefined)
+
+const DELTA_ARROWS: Record<number, string> = { 1: '▲ ', 0: '', [-1]: '▼ ' }
+
+/**
+ * A step's change as the card prints it ("▲ 12 %"); a dash when none can be
+ * stated, against a step the comparison window never reached.
+ */
+export function formatDelta(delta: number | undefined, locale: string): string {
+	if (delta === undefined) return ABSENT_RATE
+	return `${DELTA_ARROWS[Math.sign(delta)] ?? ''}${formatRate(Math.abs(delta), locale)}`
+}
+
+type DeltaTone = 'success' | 'error' | 'neutral'
+
+/** Growth is good down the funnel, bad for the leak out of it. */
+export function deltaTone(step: FunnelStepReading): DeltaTone {
+	if (!step.delta) return 'neutral'
+	const isGrowing = step.delta > 0
+	const isLeak = step.id === FUNNEL_LEAK_STEP
+	return isGrowing !== isLeak ? 'success' : 'error'
+}

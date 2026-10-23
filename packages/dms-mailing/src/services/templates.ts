@@ -10,6 +10,7 @@ import {
 import {
   type MailingTemplate,
   type MailingTemplateVersion,
+  type TemplateFields,
   TemplateModel,
   TemplateSlugModel,
   TemplateVersionModel,
@@ -153,6 +154,25 @@ export interface TemplateDraft {
   variables: VariableDefinition[];
 }
 
+/** A snapshot and the version it belongs to; 0 for a draft. */
+export interface VersionedSnapshot extends TemplateDraft {
+  version: number;
+}
+
+/** What a publish would ship: the draft's content and declarations. */
+export const workingSnapshot = (template: MailingTemplate): TemplateDraft => ({
+  content: workingContent(template),
+  variables: workingVariables(template),
+});
+
+/** What customers receive: the published content and declarations. */
+export const publishedSnapshot = (
+  template: MailingTemplate,
+): TemplateDraft => ({
+  content: parseContent(template),
+  variables: parseVariables(template),
+});
+
 /**
  * What `draft` would change for customers and for the callers' contract. A
  * template never published has nothing to compare against: every locale and
@@ -240,7 +260,7 @@ export function isStaleRevision(
 function draftWriteFields(
   template: MailingTemplate,
   author: string,
-): Partial<MailingTemplate> {
+): TemplateFields {
   return {
     draftRevision: template.draftRevision + 1,
     draftUpdatedAt: new Date(),
@@ -274,7 +294,7 @@ export async function saveDraft(
   const locales = isPublished(template) ? {} : { locales: localesOf(content) };
   const isClean = isPublishedDraft(template, draft);
   const fields = draftWriteFields(template, author);
-  await GetModel(TemplateModel, tenantId).update(template._id, {
+  await GetModel(TemplateModel, tenantId).updateFields(template._id, {
     json_draft: isClean ? "" : JSON.stringify(content),
     json_variables_draft: isClean ? "" : JSON.stringify(variables),
     isDraftPending: !isClean,
@@ -290,7 +310,7 @@ export async function discardDraft(
   template: MailingTemplate,
   author: string,
 ): Promise<void> {
-  await GetModel(TemplateModel, tenantId).update(template._id, {
+  await GetModel(TemplateModel, tenantId).updateFields(template._id, {
     json_draft: "",
     json_variables_draft: "",
     isDraftPending: false,
@@ -353,7 +373,7 @@ export async function publishSnapshot(
   template: MailingTemplate,
   draft: TemplateDraft,
   author: string,
-  metadata: Partial<MailingTemplate> = {},
+  metadata: TemplateFields = {},
 ): Promise<PublishOutcome | undefined> {
   const previous = publishedVersionOf(template);
   const changes = changesOf(template, draft);
@@ -361,7 +381,7 @@ export async function publishSnapshot(
   const version = isUnchanged ? previous : previous + 1;
   const versions = GetModel(TemplateVersionModel, tenantId);
   await versions.materialize(template);
-  const shipped: Partial<MailingTemplate> = isUnchanged
+  const shipped: TemplateFields = isUnchanged
     ? {}
     : {
         json_content: JSON.stringify(draft.content),
@@ -381,7 +401,7 @@ export async function publishSnapshot(
           json_changes: JSON.stringify(changes),
         }),
       };
-  const patch: Partial<MailingTemplate> = {
+  const patch: TemplateFields = {
     ...metadata,
     ...shipped,
     ...history,
@@ -431,19 +451,34 @@ export async function publishTemplate(
   return outcome;
 }
 
+/**
+ * The content and declarations a send of `version` carried: the draft's for
+ * a test of one.
+ */
+export async function snapshotOfVersion(
+  tenantId: string,
+  template: MailingTemplate,
+  version: number,
+): Promise<TemplateDraft> {
+  if (!version) return workingSnapshot(template);
+  const row = await GetModel(TemplateVersionModel, tenantId).getVersion(
+    template._id,
+    version,
+  );
+  if (!row) throw new HTTPResult(HTTP_NOT_FOUND, VERSION_NOT_FOUND);
+  return {
+    content: parseVersionContent(row),
+    variables: parseVersionVariables(row),
+  };
+}
+
 /** The content a send of `version` carried: the draft's for a test of one. */
 export async function contentOfVersion(
   tenantId: string,
   template: MailingTemplate,
   version: number,
 ): Promise<TemplateContent> {
-  if (!version) return workingContent(template);
-  const row = await GetModel(TemplateVersionModel, tenantId).getVersion(
-    template._id,
-    version,
-  );
-  if (!row) throw new HTTPResult(HTTP_NOT_FOUND, VERSION_NOT_FOUND);
-  return parseVersionContent(row);
+  return (await snapshotOfVersion(tenantId, template, version)).content;
 }
 
 export function parseVersionContent(
@@ -457,9 +492,7 @@ export function parseVersionContent(
  * copy starts as a draft of the source's working content: it was never
  * published, so customers receive nothing from it yet.
  */
-export function contentFieldsOf(
-  source: MailingTemplate,
-): Partial<MailingTemplate> {
+export function contentFieldsOf(source: MailingTemplate): TemplateFields {
   const content = workingContent(source);
   return {
     json_content: "",
@@ -483,9 +516,9 @@ export async function initializeTemplate(
   tenantId: string,
   templateId: string,
   author: string,
-  fields: Partial<MailingTemplate>,
+  fields: TemplateFields,
 ): Promise<void> {
-  await GetModel(TemplateModel, tenantId).update(templateId, {
+  await GetModel(TemplateModel, tenantId).updateFields(templateId, {
     status: "draft",
     json_variables: "[]",
     json_test_data: "{}",
@@ -495,9 +528,7 @@ export async function initializeTemplate(
   await refreshTemplateAttention(tenantId);
 }
 
-export function blankFields(
-  content: TemplateContent,
-): Partial<MailingTemplate> {
+export function blankFields(content: TemplateContent): TemplateFields {
   return {
     json_content: "",
     json_draft: JSON.stringify(content),

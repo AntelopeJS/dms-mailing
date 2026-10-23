@@ -17,6 +17,9 @@ import type {
 	TemplateStats,
 	TemplateStatus,
 } from '../types/mailing'
+// Imported rather than resolved by name: every module component is a lazy
+// chunk, and a card would first render without its thumbnail.
+import TemplatePreviewFrame from './TemplatePreviewFrame.vue'
 
 interface TemplateCardProps {
 	template: TemplateRow
@@ -172,7 +175,7 @@ function chipLabel(code: string, present: boolean): string {
 			class="bg-elevated/40 relative flex h-[172px] justify-center overflow-hidden bg-[radial-gradient(var(--ui-border)_1px,transparent_1px)] bg-[length:14px_14px] pt-4"
 		>
 			<div class="pointer-events-none rounded-t-md shadow-sm">
-				<MailingTemplatePreviewFrame
+				<TemplatePreviewFrame
 					:template-id="template._id"
 					:version="previewVersion"
 					:width="PREVIEW_WIDTH"

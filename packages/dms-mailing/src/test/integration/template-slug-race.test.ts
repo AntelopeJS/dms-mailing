@@ -119,7 +119,7 @@ describe("[integration] template slug races", function () {
       category: "orders",
     });
     expect(source.status, JSON.stringify(source.data)).to.equal(HTTP_OK);
-    const sourceId = source.data[0] as string;
+    const sourceId = source.data._id as string;
     try {
       const outcomes = await race(`${prefix}-copy`, (slug) =>
         api.post(`${TEMPLATES}/${sourceId}/duplicate`, { slug, name: slug }),
@@ -138,7 +138,7 @@ describe("[integration] template slug races", function () {
     try {
       const created = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-      const id = created.data[0] as string;
+      const id = created.data._id as string;
       await api.post(`${TEMPLATES}/${id}/archive`, {});
       const deleted = await api.delete(`${TABLE}/delete?id=${id}`);
       expect(deleted.status, JSON.stringify(deleted.data)).to.equal(HTTP_OK);
@@ -148,7 +148,7 @@ describe("[integration] template slug races", function () {
       const again = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(again.status, JSON.stringify(again.data)).to.equal(HTTP_OK);
       const [claim] = await claims.getBy("slug", slug);
-      expect(claim?.templateId).to.equal(again.data[0]);
+      expect(claim?.templateId).to.equal(again.data._id);
     } finally {
       await removeSlugs(slug);
     }
@@ -168,7 +168,7 @@ describe("[integration] template slug races", function () {
       const created = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
       const [claim] = await claims.getBy("slug", slug);
-      expect(claim?.templateId).to.equal(created.data[0]);
+      expect(claim?.templateId).to.equal(created.data._id);
     } finally {
       await removeSlugs(slug);
     }
