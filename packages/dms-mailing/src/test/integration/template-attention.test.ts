@@ -22,7 +22,7 @@ async function client(): Promise<Client> {
 async function liveTemplate(api: Client, slug: string): Promise<string> {
   const created = await api.post(`${TABLE}/new`, { slug, name: slug });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  const id = created.data[0] as string;
+  const id = created.data._id as string;
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },

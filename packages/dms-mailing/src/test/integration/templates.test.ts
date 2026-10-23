@@ -54,6 +54,25 @@ describe("[integration] templates table", () => {
     expect(content.data.variables).to.deep.equal([]);
   });
 
+  // interface-data-api 0.3 answers `new` with the row, not `["<id>"]`, and
+  // refuses a body handed on as a JSON string.
+  it("answers the creation with the row of the seeded template", async () => {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const created = await client.post(`${TABLE}/new`, {
+      slug: "answers-row",
+      name: "Answers row",
+    });
+    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    expect(created.data).to.include({ slug: "answers-row" });
+    expect(created.data._id).to.be.a("string");
+
+    const content = await client.get(
+      `/api/mailing/templates/${created.data._id}/content`,
+    );
+    expect(content.status).to.equal(HTTP_OK);
+  });
+
   it("creates from an existing template by copying its content", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -62,7 +81,7 @@ describe("[integration] templates table", () => {
       name: "Copy source",
       category: "orders",
     });
-    const sourceId = source.data[0] as string;
+    const sourceId = source.data._id as string;
     await client.post(`/api/mailing/templates/${sourceId}/content`, {
       content: {
         locales: {
@@ -87,7 +106,7 @@ describe("[integration] templates table", () => {
     });
     expect(copy.status, JSON.stringify(copy.data)).to.equal(HTTP_OK);
     const content = await client.get(
-      `/api/mailing/templates/${copy.data[0] as string}/content`,
+      `/api/mailing/templates/${copy.data._id as string}/content`,
     );
     expect(content.data.content.locales.en.subject).to.equal(
       "Hello {{customer.firstName}}",
@@ -105,7 +124,7 @@ describe("[integration] templates table", () => {
       name: "Keeps slug",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
     // The data-api `edit` route replaces the writable fields: a body missing
     // one nulls it. The editor must send the whole writable set.
     const edited = await client.put(`${TABLE}/edit?id=${id}`, {
@@ -130,7 +149,7 @@ describe("[integration] templates table", () => {
       name: "Clears category",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
 
     const edited = await client.put(`${TABLE}/edit?id=${id}`, {
       slug: "clears-category",
@@ -153,7 +172,7 @@ describe("[integration] templates table", () => {
       name: "Fixed slug",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
 
     const moved = await client.put(`${TABLE}/edit?id=${id}`, {
       slug: "order-confirmed",
@@ -215,7 +234,7 @@ describe("[integration] template content and status", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data[0] as string;
+    return created.data._id as string;
   }
 
   it("replaces the content, publishes and duplicates", async () => {
@@ -328,7 +347,7 @@ describe("[integration] templates table guards", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data[0] as string;
+    return created.data._id as string;
   }
 
   async function publish(api: Client, id: string): Promise<void> {
@@ -422,7 +441,7 @@ describe("[integration] templates table guards", () => {
       name: "  Trimmed  ",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const row = await api.get(`${TABLE}/get?id=${created.data[0] as string}`);
+    const row = await api.get(`${TABLE}/get?id=${created.data._id as string}`);
     expect(row.data.slug).to.equal("fix-l2-trim");
     expect(row.data.name).to.equal("Trimmed");
 

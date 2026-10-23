@@ -28,7 +28,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return created.data[0] as string;
+  return created.data._id as string;
 }
 
 function withSubject(subject: string) {
@@ -138,7 +138,7 @@ describe("[integration] template drafts and versions", () => {
       starterId: "password-reset",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const content = await api.get(`${TEMPLATES}/${created.data[0]}/content`);
+    const content = await api.get(`${TEMPLATES}/${created.data._id}/content`);
     expect(content.data.template.status).to.equal("draft");
     expect(Object.keys(content.data.content.locales)).to.have.members([
       "en",

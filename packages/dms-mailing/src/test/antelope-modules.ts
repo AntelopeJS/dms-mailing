@@ -23,7 +23,7 @@ export const SHARED_MODULE_SOURCES = {
   mongodb: {
     type: "package",
     package: "@antelopejs/mongodb",
-    version: ">=1.4.3 <2",
+    version: ">=1.4.4 <2",
   },
   "auth-jwt": {
     type: "package",
@@ -33,12 +33,12 @@ export const SHARED_MODULE_SOURCES = {
   api: {
     type: "package",
     package: "@antelopejs/api",
-    version: "^1.3.5",
+    version: "^1.4.0",
   },
   "file-storage-local": {
     type: "package",
     package: "@antelopejs/file-storage-local",
-    version: ">=0.1.9 <1.0.0",
+    version: ">=0.1.11 <1.0.0",
   },
   nodemailer: {
     type: "package",
