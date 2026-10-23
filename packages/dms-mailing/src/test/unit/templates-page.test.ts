@@ -28,6 +28,17 @@ describe("[unit] pages/templates displays", () => {
     expect(JSON.stringify(remove)).to.contain("confirm.delete_title");
   });
 
+  it("opens a template's details on the right, as the gallery does", async () => {
+    const { options } = await TemplatesPageController.table.serialize();
+    const details = options?.rowActions?.custom?.find(
+      (action) => action.label === "$dms_mailing.templates.actions.details",
+    );
+    expect(details?.target).to.deep.include({
+      type: "drawer",
+      direction: "right",
+    });
+  });
+
   it("pages the gallery by whole rows of cards", async () => {
     const { options } = await TemplatesPageController.table.serialize();
     expect(options?.pageSize).to.equal(GALLERY_PAGE_SIZE);

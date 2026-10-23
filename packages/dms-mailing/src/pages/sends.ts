@@ -302,16 +302,24 @@ export class SendsPageController extends PageController(
           /**
            * A send is an append-only record: it cannot be edited, so the
            * built-in `edit`/`details` row click has nothing to open. This
-           * action takes the row click and opens the send in the side panel.
+           * action takes the row click and opens the send in a drawer on the
+           * right, at the DMS's default width (the user's resize is kept).
            */
           isDefault: true,
           target: {
-            type: "sidePanel",
+            type: "drawer",
+            direction: "right",
             component: CustomComponent("MailingSendDrawer").meta(
               permissionMeta("send_drawer", "i-ph-info"),
             ),
             title: "$dms_mailing.sends.actions.details",
+            // Names the open send: its recipient and the template it used.
+            rowTitle: "$dms_mailing.sends.drawer.heading",
             positionLabel: "$dms_mailing.sends.drawer.position",
+            // A side panel keeps the open send in the URL and words a missing
+            // one by default; a drawer does both only when asked.
+            deepLink: true,
+            notFound: {},
           },
         },
         {

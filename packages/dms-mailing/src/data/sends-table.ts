@@ -231,7 +231,7 @@ export class SendsTableAPI extends DataController(
   declare requestedLocale: string;
 
   /**
-   * Hidden by default: the side panel shows it under "Origin", and the room
+   * Hidden by default: the send drawer shows it under "Origin", and the room
    * goes to the recipient and the provider's error.
    */
   @Listable()

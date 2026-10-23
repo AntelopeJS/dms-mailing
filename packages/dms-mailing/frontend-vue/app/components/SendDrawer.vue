@@ -412,208 +412,231 @@ onMounted(() => {
 
 <template>
 	<!--
-		As tall as the side panel's body: the send scrolls inside, the actions
-		stay under it at the bottom, with nothing passing beneath them.
+		The drawer's body is the scroll container and sets the inset: the send
+		adds no padding of its own. It grows in the body's flex column, so the
+		footer sits at the bottom of the drawer, and sticks there once the send
+		scrolls.
 	-->
-	<div class="flex h-full min-h-0 flex-col">
-		<USkeleton v-if="loading && !send" class="m-5 h-64" />
+	<div class="@container flex flex-1 flex-col gap-6" data-send-drawer>
+		<USkeleton v-if="loading && !send" class="h-64" />
 
 		<template v-else-if="send">
-			<div class="min-h-0 flex-1 overflow-y-auto">
-				<header
-					class="border-default flex flex-col gap-1.5 border-b px-5 pb-4 pt-1"
-				>
-					<div class="flex items-center gap-1">
-						<DmsEyebrow
-							class="min-w-0 flex-1"
-							truncate
-							:label="key('eyebrow', { id: shortSendId(send._id) })"
-						/>
-						<UButton
-							icon="i-ph-link"
-							color="neutral"
-							variant="ghost"
-							size="sm"
-							:aria-label="key('copy_link')"
-							@click="copyLink"
-						/>
-					</div>
-					<h3
-						class="text-highlighted flex flex-wrap items-center gap-2 text-lg font-semibold"
-					>
-						<span class="min-w-0 truncate">
-							{{ send.recipientName || send.recipientEmail }}
-						</span>
-						<DmsStatusPill
-							:tone="SEND_STATUS_TONES[send.status]"
-							:label="t(`dms_mailing.sends.status.${send.status}`)"
-						/>
-						<DmsStatusPill
-							v-if="send.isTest"
-							tone="warning"
-							dot="none"
-							size="sm"
-							uppercase
-							:label="key('test')"
-						/>
-					</h3>
-					<p class="text-muted truncate text-[12.5px]">
-						<span class="font-mono">{{ send.recipientEmail }}</span>
-						· {{ dateOf(send.createdAt, DATE_FORMAT) }}
-					</p>
-				</header>
-
-				<div class="flex flex-1 flex-col gap-6 p-5">
-					<section class="flex flex-col gap-3">
-						<DmsStatGroup layout="joined" :columns="3" :items="stats" />
-						<DmsBanner
-							v-if="problem"
-							:tone="isResolved ? 'info' : problemTone(problem.kind)"
-							:size="isResolved ? 'sm' : undefined"
-							:icon="problem.icon"
-							:title="t(problem.titleKey, problem.params)"
-							:description="
-								isResolved
-									? undefined
-									: t(problem.descriptionKey, problem.params)
-							"
-							data-problem-banner
-						/>
-						<DmsBanner
-							v-if="suppression"
-							:tone="suppression.tone"
-							size="sm"
-							:icon="suppression.icon"
-							:title="t(suppression.titleKey, suppression.params)"
-						>
-							<template #description>
-								<span
-									class="text-highlighted block truncate font-mono text-[12px]"
-									:title="suppression.params.email"
-									data-suppressed-address
-								>
-									{{ suppression.params.email }}
-								</span>
-								{{ t(suppression.descriptionKey, suppression.params) }}
-							</template>
-							<template v-if="suppression.hasListLink" #actions>
-								<UButton
-									size="xs"
-									color="neutral"
-									variant="outline"
-									trailing-icon="i-ph-arrow-right"
-									:label="t('dms_mailing.suppressions.notice.open_list')"
-									@click="openSuppressionList"
-								/>
-							</template>
-						</DmsBanner>
-						<DmsBanner
-							v-for="link in linkedSends"
-							:key="link.id"
-							tone="info"
-							size="sm"
-							icon="i-ph-arrow-clockwise"
-							:title="link.text"
-						>
-							<template #actions>
-								<UButton
-									v-if="showRow"
-									size="xs"
-									color="neutral"
-									variant="outline"
-									trailing-icon="i-ph-arrow-right"
-									:label="key('see_send')"
-									@click="void showSend(link.id)"
-								/>
-							</template>
-						</DmsBanner>
-					</section>
-
-					<section class="flex flex-col gap-2">
-						<DmsEyebrow :label="key('timeline')" />
-						<ol class="flex flex-col">
-							<li
-								v-for="item in timeline"
-								:key="item.id"
-								:class="item.isPending && 'opacity-50'"
-							>
-								<DmsActivityItem
-									:icon="item.icon"
-									:icon-color="item.isPending ? 'neutral' : item.tone"
-									:subtitle="
-										item.isPending ? key('pending') : item.detail || undefined
-									"
-									:mono="item.isDetailMono && !item.isPending"
-									:trailing="stepTime(item)"
-									:interactive="false"
-								>
-									<span
-										:class="
-											item.tone === 'error' && !item.isPending
-												? 'text-error'
-												: undefined
-										"
-									>
-										{{ stepTitle(item) }}
-									</span>
-								</DmsActivityItem>
-							</li>
-						</ol>
-					</section>
-
-					<section class="flex flex-col gap-2">
-						<DmsEyebrow :label="key('origin')" />
-						<div
-							class="border-default divide-default divide-y overflow-hidden rounded-lg border"
-						>
-							<DmsListRow
-								:to="editorLink"
-								icon="i-ph-envelope-simple"
-								icon-size="2xs"
-								size="sm"
-								:title="originTitle"
-							>
-								<template #trailing>
-									<UIcon
-										name="i-ph-arrow-square-out"
-										class="text-dimmed size-4"
-										aria-hidden="true"
-									/>
-								</template>
-							</DmsListRow>
-							<DmsListRow
-								v-if="send.source"
-								icon="i-ph-code"
-								icon-size="2xs"
-								size="sm"
-								:trailing="key('source')"
-							>
-								<span class="font-mono text-[12.5px]">{{ send.source }}</span>
-							</DmsListRow>
-						</div>
-					</section>
-
-					<section class="flex flex-col gap-2">
-						<div class="flex items-center justify-between gap-2">
-							<DmsEyebrow :label="key('payload')" />
-							<UButton
-								v-if="payload"
-								size="xs"
-								variant="link"
-								:label="key('copy_json')"
-								@click="copyPayload"
-							/>
-						</div>
-						<pre
-							class="bg-elevated/50 border-default text-toned max-h-72 overflow-auto rounded-lg border p-3 font-mono text-[11.5px] leading-relaxed"
-							>{{ payload || '{}' }}</pre>
-					</section>
+			<header class="border-default flex flex-col gap-1.5 border-b pb-4">
+				<div class="flex items-center gap-1">
+					<DmsEyebrow
+						class="min-w-0 flex-1"
+						truncate
+						:label="key('eyebrow', { id: shortSendId(send._id) })"
+					/>
+					<UButton
+						icon="i-ph-link"
+						color="neutral"
+						variant="ghost"
+						size="sm"
+						:aria-label="key('copy_link')"
+						@click="copyLink"
+					/>
 				</div>
+				<h3
+					class="text-highlighted flex flex-wrap items-center gap-2 text-lg font-semibold"
+				>
+					<span class="min-w-0 truncate">
+						{{ send.recipientName || send.recipientEmail }}
+					</span>
+					<DmsStatusPill
+						:tone="SEND_STATUS_TONES[send.status]"
+						:label="t(`dms_mailing.sends.status.${send.status}`)"
+					/>
+					<DmsStatusPill
+						v-if="send.isTest"
+						tone="warning"
+						dot="none"
+						size="sm"
+						uppercase
+						:label="key('test')"
+					/>
+				</h3>
+				<!-- The address gives way first: the date drops to its own line
+					rather than being cut off with it. -->
+				<p
+					class="text-muted flex flex-wrap gap-x-1.5 text-[12.5px]"
+					data-send-recipient
+				>
+					<span class="min-w-0 truncate font-mono" :title="send.recipientEmail">
+						{{ send.recipientEmail }}
+					</span>
+					<span class="whitespace-nowrap">
+						· {{ dateOf(send.createdAt, DATE_FORMAT) }}
+					</span>
+				</p>
+			</header>
+
+			<section class="flex flex-col gap-3">
+				<!-- Three short values: side by side from a 28rem group (a 600px
+				     drawer) rather than the DmsStatGroup's own 36rem (dms#399). -->
+				<DmsStatGroup
+					layout="joined"
+					:columns="3"
+					columns-from="md"
+					:items="stats"
+				/>
+				<DmsBanner
+					v-if="problem"
+					:tone="isResolved ? 'info' : problemTone(problem.kind)"
+					:size="isResolved ? 'sm' : undefined"
+					:icon="problem.icon"
+					:title="t(problem.titleKey, problem.params)"
+					:description="
+						isResolved ? undefined : t(problem.descriptionKey, problem.params)
+					"
+					data-problem-banner
+				/>
+				<DmsBanner
+					v-if="suppression"
+					:tone="suppression.tone"
+					size="sm"
+					:icon="suppression.icon"
+					:title="t(suppression.titleKey, suppression.params)"
+				>
+					<template #description>
+						<span
+							class="text-highlighted block truncate font-mono text-[12px]"
+							:title="suppression.params.email"
+							data-suppressed-address
+						>
+							{{ suppression.params.email }}
+						</span>
+						{{ t(suppression.descriptionKey, suppression.params) }}
+					</template>
+					<template v-if="suppression.hasListLink" #actions>
+						<UButton
+							size="xs"
+							color="neutral"
+							variant="outline"
+							trailing-icon="i-ph-arrow-right"
+							:label="t('dms_mailing.suppressions.notice.open_list')"
+							@click="openSuppressionList"
+						/>
+					</template>
+				</DmsBanner>
+				<DmsBanner
+					v-for="link in linkedSends"
+					:key="link.id"
+					tone="info"
+					size="sm"
+					icon="i-ph-arrow-clockwise"
+					:title="link.text"
+				>
+					<template #actions>
+						<UButton
+							v-if="showRow"
+							size="xs"
+							color="neutral"
+							variant="outline"
+							trailing-icon="i-ph-arrow-right"
+							:label="key('see_send')"
+							@click="void showSend(link.id)"
+						/>
+					</template>
+				</DmsBanner>
+			</section>
+
+			<!--
+				Side by side once the drawer is resized wide:
+				both are short lists, and the data sent below keeps the full width.
+			-->
+			<div class="@2xl:grid-cols-2 grid gap-6" data-send-details-grid>
+				<section class="flex min-w-0 flex-col gap-2">
+					<DmsEyebrow :label="key('timeline')" />
+					<ol class="flex flex-col">
+						<li
+							v-for="item in timeline"
+							:key="item.id"
+							:class="item.isPending && 'opacity-50'"
+						>
+							<DmsActivityItem
+								:icon="item.icon"
+								:icon-color="item.isPending ? 'neutral' : item.tone"
+								:subtitle="
+									item.isPending ? key('pending') : item.detail || undefined
+								"
+								:mono="item.isDetailMono && !item.isPending"
+								:trailing="stepTime(item)"
+								:interactive="false"
+								wrap
+							>
+								<span
+									:class="
+										item.tone === 'error' && !item.isPending
+											? 'text-error'
+											: undefined
+									"
+								>
+									{{ stepTitle(item) }}
+								</span>
+							</DmsActivityItem>
+						</li>
+					</ol>
+				</section>
+
+				<section class="flex min-w-0 flex-col gap-2">
+					<DmsEyebrow :label="key('origin')" />
+					<div
+						class="border-default divide-default divide-y overflow-hidden rounded-lg border"
+					>
+						<DmsListRow
+							:to="editorLink"
+							icon="i-ph-envelope-simple"
+							icon-size="2xs"
+							size="sm"
+							:title="originTitle"
+						>
+							<template #trailing>
+								<UIcon
+									name="i-ph-arrow-square-out"
+									class="text-dimmed size-4"
+									aria-hidden="true"
+								/>
+							</template>
+						</DmsListRow>
+						<!-- The "source" label goes under the value: beside it, a dotted
+							name like `automation.overdue-reminders` broke at its hyphen
+							against the label in a narrow drawer. -->
+						<DmsListRow
+							v-if="send.source"
+							icon="i-ph-code"
+							icon-size="2xs"
+							size="sm"
+							:meta="[key('source')]"
+							data-send-source
+						>
+							<span
+								class="min-w-0 font-mono text-[12.5px] [overflow-wrap:anywhere]"
+							>
+								{{ send.source }}
+							</span>
+						</DmsListRow>
+					</div>
+				</section>
 			</div>
 
-			<footer
-				class="bg-default border-default flex shrink-0 items-center gap-2 border-t px-5 py-3"
-			>
+			<section class="flex flex-col gap-2">
+				<div class="flex items-center justify-between gap-2">
+					<DmsEyebrow :label="key('payload')" />
+					<UButton
+						v-if="payload"
+						size="xs"
+						variant="link"
+						:label="key('copy_json')"
+						@click="copyPayload"
+					/>
+				</div>
+				<pre
+					class="bg-elevated/50 border-default text-toned max-h-72 overflow-auto rounded-lg border p-3 font-mono text-[11.5px] leading-relaxed"
+					>{{ payload || '{}' }}</pre>
+			</section>
+
+			<DmsContainerFooter data-send-footer>
 				<UButton
 					v-for="(action, index) in actions"
 					:key="action.id"
@@ -628,7 +651,7 @@ onMounted(() => {
 					:loading="action.id === 'send_again' && sending"
 					@click="ACTION_HANDLERS[action.id]()"
 				/>
-			</footer>
+			</DmsContainerFooter>
 		</template>
 	</div>
 </template>

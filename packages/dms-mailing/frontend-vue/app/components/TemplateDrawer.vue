@@ -513,7 +513,7 @@ function onResolved(preview: PreviewResponse): void {
 </script>
 
 <template>
-	<div class="flex w-[30rem] max-w-full flex-col">
+	<div class="flex w-[30rem] max-w-full flex-1 flex-col">
 		<USkeleton v-if="loading && !template" class="h-64 w-full" />
 
 		<template v-else-if="template">
@@ -882,9 +882,7 @@ function onResolved(preview: PreviewResponse): void {
 				/>
 			</div>
 
-			<div
-				class="border-default bg-default sticky bottom-0 -mx-1 mt-auto flex items-center gap-2 border-t px-1 py-3"
-			>
+			<DmsContainerFooter data-template-footer>
 				<UButton
 					icon="i-ph-flask"
 					color="neutral"
@@ -905,7 +903,7 @@ function onResolved(preview: PreviewResponse): void {
 					:label="t('dms_mailing.templates.actions.open_editor')"
 					@click="openEditor(locale)"
 				/>
-			</div>
+			</DmsContainerFooter>
 		</template>
 	</div>
 </template>

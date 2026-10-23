@@ -495,6 +495,32 @@ Still custom, and why:
   "single"`): the DMS draws its header, the "Send 3 of 50 shown" position,
   J / K and Esc, and keeps the row in the URL. The drawer's own previous and
   next buttons are gone.
+- Later, every detail panel became a DMS drawer, the docked side panel being
+  kept for global panels (an assistant): the send opens in a `drawer` on the
+  right (`direction: "right"`, dms#375) with the side panel's row options
+  carried over (title, `positionLabel`, `deepLink: true`, `notFound: {}`), at
+  the DMS's default 600 px, which the user resizes and the DMS remembers.
+  Once the drawer is resized wide, the timeline and the origin sit side by
+  side and the data sent keeps the full width. The template details row
+  action opens on the right too, as the gallery opens it.
+- The drawer's header names the open send (`rowTitle`: its recipient and the
+  template slug) instead of "Details", and the position reads "Send 3 of 1,348":
+  the DMS counts the table's whole result now, so "shown" went, and it formats
+  the numbers with the locale's separators.
+- The send fits the drawer as dms#375 lays it out: the drawer's body is the
+  scroll container and sets the 16 px inset, so the send adds no padding nor
+  scroller of its own, and its actions stick to the bottom as a form footer
+  does (`FORM_SURFACE_CLASSES.container`). The template / locale / latency
+  trio keeps three cells from a 28rem group (a 600 px drawer), the timeline
+  wraps a long Message-ID instead of clipping it, the recipient's address
+  gives way before the date, and the origin's "source" label sits under the
+  source rather than beside it. Everything follows the drawer's width
+  (container queries), never the viewport's.
+- The actions sit at the bottom of the drawer even when the content is a
+  little shorter than it. The DMS drawer body is a flex column
+  (AntelopeJS/dms#375): the send and the template details grow in it
+  (`flex-1`), and their actions sit in the DMS `DmsContainerFooter`, which
+  takes the leftover space (`mt-auto`) before it sticks, flush with the edge.
 - Template details stay in a drawer: the gallery is the module's own table
   display, and a display can only run the row's default action (open the
   editor), not open another action's side panel.
