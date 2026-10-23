@@ -15,7 +15,7 @@ The AntelopeJS interface to send DMS mailing templates and report e-mail events 
 
 - Sends a published template by its slug, to one recipient or many, in a given locale and with its variables (`SendTemplate`).
 - Reports a provider event (delivered, opened, clicked, bounced…) against the send it belongs to (`RecordEmailEvent`).
-- Ships templates and template categories as code, published and idempotent, without overwriting what a user changed since (`DeclareTemplate`, `DeclareTemplateCategory`).
+- Ships templates and template categories as code, published and idempotent, without overwriting what a user changed since (`DeclareTemplate`, `DeclareTemplateCategory`), and writes the workspace sender when a workspace is provisioned (`DeclareSender`).
 - Imports past sends and their events with their own dates, for a demo data set or a move from another provider (`ImportSends`).
 - Exports the template and send types (`Block`, `TemplateContent`, `VariableDefinition`, `SendStatus`, `EmailEvent`…) for code that builds or inspects templates.
 - Keeps your module independent of the implementation, [`@antelopejs/dms-mailing`](https://www.npmjs.com/package/@antelopejs/dms-mailing).
@@ -53,7 +53,7 @@ A recipient on the workspace's suppression list gets no e-mail: its result has t
 
 ## Compatibility
 
-Interface 0.8 requires `@antelopejs/dms-mailing >=0.6.0`, whose interface dependency is `>=0.8.0 <0.9.0`. This includes `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends`, all requiring an explicit `tenantId`. Mailing 0.5 remains on interface 0.7. The interface declares these dependencies:
+Interface 0.8 requires `@antelopejs/dms-mailing >=0.6.0`, whose interface dependency is `>=0.8.0 <0.9.0`. This includes `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends`, all requiring an explicit `tenantId`. Mailing 0.5 remains on interface 0.7. `DeclareSender` needs interface 0.9 and the first release implementing it (`>=0.9.0 <0.10.0`). The interface declares these dependencies:
 
 <!-- docs-compat: ./package.json#dependencies -->
 

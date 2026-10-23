@@ -267,7 +267,7 @@ async function submit(): Promise<void> {
 	if (!canSubmit.value) return
 	saving.value = true
 	try {
-		const [id] = await api.createTemplate(creationInput())
+		const { _id: id } = await api.createTemplate(creationInput())
 		close(true)
 		if (id) await navigateDms(editorRoute(id))
 	} catch (error) {
@@ -330,7 +330,9 @@ async function submit(): Promise<void> {
 							:ui="{ base: 'font-mono' }"
 							:trailing-icon="slugIssue ? undefined : 'i-ph-check-circle'"
 							:aria-invalid="Boolean(slugError)"
-							@update:model-value="(value: unknown) => onSlugInput(String(value))"
+							@update:model-value="
+								(value: unknown) => onSlugInput(String(value))
+							"
 						/>
 						<UBadge
 							color="neutral"

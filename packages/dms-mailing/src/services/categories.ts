@@ -1,6 +1,19 @@
 import type { MailingTemplate } from "../db";
-import type { TemplateCategory } from "../types";
+import type { CategoryInLocale, TemplateCategory } from "../types";
 import type { CategoryEntry } from "../validation/settings.schema";
+import { textIn } from "./localized-text";
+
+/** The categories as a reader of `locale` sees them. */
+export function categoriesIn(
+  categories: TemplateCategory[],
+  locale: string,
+): CategoryInLocale[] {
+  return categories.map(({ id, label, icon }) => ({
+    id,
+    label: textIn(label, locale),
+    icon,
+  }));
+}
 
 /** The categories a list keeps, without the removed ones it moves away. */
 export function keptCategories(entries: CategoryEntry[]): TemplateCategory[] {

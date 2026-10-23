@@ -56,7 +56,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 	if (creatingId.value) return
 	creatingId.value = starter.id
 	try {
-		const [id] = await api.createTemplate({
+		const { _id: id } = await api.createTemplate({
 			name: starter.name,
 			slug: starter.slug,
 			category: knownCategory(starter.category),

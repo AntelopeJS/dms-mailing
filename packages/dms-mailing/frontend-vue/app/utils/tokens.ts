@@ -93,11 +93,16 @@ export function splitTokens(text: string): TextPart[] {
 	return splitRawSegments(text).map(({ kind, value }) => ({ kind, value }))
 }
 
+/**
+ * A test value as the data holds it. Amounts and dates are written for the
+ * recipient's locale by the engine alone (`src/engine/formats.ts`): the
+ * preview and the sends show them formatted, the paper shows them raw.
+ */
 function formatValue(value: unknown): string {
 	return value instanceof Date ? value.toISOString() : String(value)
 }
 
-/** Reads one token path in `data`, formatted like the engine prints it. */
+/** Reads one token path in `data`, as the paper shows it. */
 export function resolveToken(
 	path: string,
 	data: Record<string, unknown>,

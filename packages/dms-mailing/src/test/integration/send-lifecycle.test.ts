@@ -24,7 +24,7 @@ async function liveTemplate(api: Client, slug: string): Promise<string> {
     name: slug,
     category: "orders",
   });
-  const id = created.data[0] as string;
+  const id = created.data._id as string;
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },
@@ -119,7 +119,7 @@ describe("[integration] send lifecycle", () => {
       name: "Draft only",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
     const test = await api.post(`${TEMPLATES}/${id}/test-send`, {
       to: ["draft@example.test"],
       locale: "en",
@@ -346,7 +346,7 @@ describe("[integration] send lifecycle", () => {
       name: "Draft rendering",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
     await api.post(`${TEMPLATES}/${id}/content`, {
       content: {
         locales: { en: { subject: "Draft", preheader: "", blocks: [] } },

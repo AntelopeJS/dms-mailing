@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import {
+  categoriesIn,
   categoryMoves,
   keptCategories,
   reassignRemovedCategories,
@@ -10,9 +11,13 @@ import type { MailingTemplate } from "../../db";
 import type { TemplateCategory } from "../../types";
 
 const CATEGORIES: TemplateCategory[] = [
-  { id: "orders", label: "Orders", icon: "i-ph-package" },
-  { id: "billing", label: "Billing", icon: "i-ph-file-text" },
-  { id: "marketing", label: "Marketing", icon: "i-ph-sparkle" },
+  {
+    id: "orders",
+    label: { en: "Orders", fr: "Commandes" },
+    icon: "i-ph-package",
+  },
+  { id: "billing", label: { en: "Billing" }, icon: "i-ph-file-text" },
+  { id: "marketing", label: { en: "Marketing" }, icon: "i-ph-sparkle" },
 ];
 
 const LABEL_REQUIRED = "$dms_mailing.settings.categories.label_required";
@@ -22,6 +27,7 @@ interface JsonSchema {
   properties: Record<string, JsonSchema>;
   items: JsonSchema;
   anyOf: JsonSchema[];
+  additionalProperties?: Record<string, unknown>;
 }
 
 const template = (id: string, category?: string): MailingTemplate =>
@@ -65,12 +71,20 @@ describe("[unit] services/categories reassignRemovedCategories", () => {
 describe("[unit] services/categories moves", () => {
   const entries = [
     ...CATEGORIES,
-    { id: "gone", label: "Gone", icon: "i-ph-gift", moveTo: "orders" },
+    { id: "gone", label: { en: "Gone" }, icon: "i-ph-gift", moveTo: "orders" },
   ];
 
   it("splits the kept categories from the moved ones", () => {
     expect(keptCategories(entries)).to.deep.equal(CATEGORIES);
     expect([...categoryMoves(entries)]).to.deep.equal([["gone", "orders"]]);
+  });
+});
+
+describe("[unit] services/categories labels per language", () => {
+  it("reads each label in the reader's language, else in English", () => {
+    expect(
+      categoriesIn(CATEGORIES, "fr").map(({ label }) => label),
+    ).to.deep.equal(["Commandes", "Billing", "Marketing"]);
   });
 });
 
@@ -88,8 +102,10 @@ describe("[unit] validation categoriesSchema", () => {
   });
 
   it("refuses a duplicate id, a blank label, a free id or an unknown icon", () => {
-    expect(parse([category({}), category({ label: "Other" })])).to.equal(false);
-    expect(parse([category({ label: "   " })])).to.equal(false);
+    expect(
+      parse([category({}), category({ label: { en: "Other" } })]),
+    ).to.equal(false);
+    expect(parse([category({ label: { en: "   " } })])).to.equal(false);
     expect(parse([category({ id: "qa st/<b>" })])).to.equal(false);
     expect(parse([category({ icon: "not-an-icon" })])).to.equal(false);
   });
@@ -97,17 +113,31 @@ describe("[unit] validation categoriesSchema", () => {
   it("names the row whose label repeats an earlier one, whatever its case", () => {
     const result = categoriesSchema.safeParse([
       ...CATEGORIES,
-      { id: "orders-2", label: "ORDERS", icon: "i-ph-gift" },
+      { id: "orders-2", label: { en: "ORDERS" }, icon: "i-ph-gift" },
     ]);
     expect(result.success).to.equal(false);
     expect(result.error?.issues[0]?.path).to.deep.equal([3, "label"]);
   });
 
+  it("holds the label rules in every language the list writes", () => {
+    const result = categoriesSchema.safeParse([
+      ...CATEGORIES,
+      {
+        id: "orders-2",
+        label: { en: "Purchases", fr: "commandes" },
+        icon: "i-ph-gift",
+      },
+    ]);
+    expect(result.error?.issues.map(({ path }) => path)).to.deep.equal([
+      [3, "label"],
+    ]);
+  });
+
   it("names every blank row and every repeated one in one pass", () => {
     const result = categoriesSchema.safeParse([
       ...CATEGORIES,
-      { id: "category", label: "  ", icon: "i-ph-gift" },
-      { id: "orders-2", label: "Orders", icon: "i-ph-gift" },
+      { id: "category", label: { en: "  " }, icon: "i-ph-gift" },
+      { id: "orders-2", label: { en: "Orders" }, icon: "i-ph-gift" },
     ]);
     expect(
       result.error?.issues.map(({ path, message }) => ({ path, message })),
@@ -122,14 +152,17 @@ describe("[unit] validation categoriesSchema", () => {
       ?.schema as JsonSchema;
     const [list] = schema.properties.categories.anyOf;
     const label = list?.items.properties.label;
-    expect(label).to.have.property("maxLength");
-    expect(label).to.not.have.property("minLength");
+    expect(label?.additionalProperties).to.have.property("maxLength");
+    expect(label?.additionalProperties).to.not.have.property("minLength");
   });
 
   it("refuses a list without the marketing category", () => {
     expect(parse(CATEGORIES.slice(0, 2))).to.equal(false);
     expect(
-      parse([...CATEGORIES.slice(0, 2), { ...CATEGORIES[2], label: "Promos" }]),
+      parse([
+        ...CATEGORIES.slice(0, 2),
+        { ...CATEGORIES[2], label: { en: "Promos" } },
+      ]),
     ).to.equal(true);
   });
 
@@ -137,7 +170,12 @@ describe("[unit] validation categoriesSchema", () => {
     expect(
       parse([
         ...CATEGORIES,
-        { id: "gone", label: "Gone", icon: "i-ph-gift", moveTo: "nowhere" },
+        {
+          id: "gone",
+          label: { en: "Gone" },
+          icon: "i-ph-gift",
+          moveTo: "nowhere",
+        },
       ]),
     ).to.equal(false);
   });

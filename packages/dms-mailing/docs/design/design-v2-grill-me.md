@@ -600,3 +600,16 @@ wording would change). The front keeps its mirror of the system variables
 and of `pickLocale`: the layer is copied on its own and cannot import
 `src/engine`.
 
+
+## 13. Content as code follow-up
+
+Gaps a project hit once it shipped its templates, categories and history as
+code (interface 0.8):
+
+| Gap | Decision | Evidence |
+| --- | --- | --- |
+| A reseeded project cannot take back sends it imported, and re-importing on every boot needs its own "import once" marker | No scoped or replacing import (review Q42): `ImportSends` stays an append-only history import, idempotent by `importId`, called once when the workspace is provisioned | Default data is written once, in `Hook.TENANT_BEING_PROVISIONED`, so nothing replays an import on every boot; a first version with `scope` / `replace` was dropped in review |
+| Declared names and category labels are raw strings | Template names and category labels are content written once per language: `@Localized({ fallbackLocale: "en" })` on `mailing_templates.name`, a `{ en, fr }` record on each settings category; declarations take `{ en: "…", fr: "…" }` (review Q42) | Read through `x-content-language` (`@ModifierKey(LocalizationModifier)` on the templates data controller), so search and sort read the real text; `$` i18n keys were dropped with their display (`mailing:template-name`) and frontend glue |
+| A fresh install shows "No sender address" | `DeclareSender`, a plain write of the sender called once when the workspace is provisioned, not a module config default and no "kept once a user changed it" rule (review Q42) | A config default would send from an address the settings form does not show, and would apply to every tenant alike; written once at provisioning, the settings are the user's afterwards, so no fingerprint is needed |
+| `money` and `date` are labels only | `{ value, currency }` (minor units, the DMS composed-text money shape) and `Date` values format themselves in the send locale; an ISO string formats at a `date` path; other strings and numbers print as given | Existing callers pass pre-formatted strings, which keep their output; a `number` is left alone so order numbers do not get group separators; the engine (`src/engine/formats.ts`) is the only formatter: the layer copy was dropped in review (Q42), and the editor's Data mode shows test values as written |
+| Declared templates' gallery thumbnails were empty | Not reproduced, nothing changed | On the demo's own data, the card's request (`POST …/preview { version: "published" }`, no locale) answers 200 with the HTML in the module's tests, and the demo's html-render endpoint renders all seven declared templates (2.8–5.8 kB) like the dashboard one |

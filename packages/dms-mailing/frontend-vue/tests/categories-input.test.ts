@@ -10,17 +10,11 @@ import {
 	type Mounted,
 } from './helpers/nuxt-globals'
 import { stubApiData, type ApiDataStub } from './helpers/api-data'
-import type { TemplateCategory } from '../app/types/mailing'
+import type { StoredCategory } from '../app/types/mailing'
 
-vi.mock('../app/composables/useLocalizedDefaults', () => ({
-	useLocalizedDefaults: () => ({
-		categories: (list: TemplateCategory[]) => list,
-	}),
-}))
-
-const CATEGORIES: TemplateCategory[] = [
-	{ id: 'orders', label: 'Orders', icon: 'i-ph-package' },
-	{ id: 'marketing', label: 'Marketing', icon: 'i-ph-sparkle' },
+const CATEGORIES: StoredCategory[] = [
+	{ id: 'orders', label: { en: 'Orders' }, icon: 'i-ph-package' },
+	{ id: 'marketing', label: { en: 'Marketing' }, icon: 'i-ph-sparkle' },
 ]
 const ROW_ERROR = 'dms_mailing.settings.categories.label_required'
 
