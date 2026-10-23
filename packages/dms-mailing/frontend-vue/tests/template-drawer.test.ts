@@ -434,7 +434,7 @@ describe('StarterGallery', () => {
 	})
 
 	it('creates a starter as a draft and opens it', async () => {
-		api.createTemplate.mockResolvedValue(['new-id'])
+		api.createTemplate.mockResolvedValue({ _id: 'new-id' })
 		const view = mount(StarterGallery, {}, globals)
 		await flush()
 		;(view.host.querySelector('[data-stub="DmsCard"]') as HTMLElement).click()
