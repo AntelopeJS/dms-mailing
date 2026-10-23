@@ -1,6 +1,43 @@
 # Changelog
 
 
+## v0.9.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.8.0...v0.9.0)
+
+### 🚀 Enhancements
+
+- **frontend:** The frontend registration as a pure function, declared as dmsFrontend ([#60](https://github.com/AntelopeJS/dms-mailing/pull/60))
+- Declare the sender, localized template names and category labels, locale-formatted amounts and dates ([#53](https://github.com/AntelopeJS/dms-mailing/pull/53))
+
+### 🩹 Fixes
+
+- **frontend:** Run on @antelopejs/dms-frontend 0.7 ([#58](https://github.com/AntelopeJS/dms-mailing/pull/58))
+- **templates:** Drop the category quick filter dms#370 refuses ([#59](https://github.com/AntelopeJS/dms-mailing/pull/59), [#370](https://github.com/AntelopeJS/dms-mailing/issues/370))
+
+### 📖 Documentation
+
+- **mailing:** Align compatibility guidance for release 0.6 ([db420f0](https://github.com/AntelopeJS/dms-mailing/commit/db420f0))
+- Clarify learning paths and illustrate real outcomes ([#54](https://github.com/AntelopeJS/dms-mailing/pull/54))
+
+### 📦 Build
+
+- **mailing:** Align runtime with published interface 0.8 ([b7264a3](https://github.com/AntelopeJS/dms-mailing/commit/b7264a3))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms-mailing v0.6.0 ([d016cab](https://github.com/AntelopeJS/dms-mailing/commit/d016cab))
+- **release:** @antelopejs/dms-mailing v0.6.1 ([2a52f9e](https://github.com/AntelopeJS/dms-mailing/commit/2a52f9e))
+
+### ✅ Tests
+
+- Give the DMS in the test stack the render secret dms 0.10 requires ([#61](https://github.com/AntelopeJS/dms-mailing/pull/61))
+
+### ❤️ Contributors
+
+- Maxime Westhoven <maxime@altab.be>
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.8.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.7.1...v0.8.0)
