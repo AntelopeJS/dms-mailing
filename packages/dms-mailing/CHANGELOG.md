@@ -1,6 +1,40 @@
 # Changelog
 
 
+## v0.7.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.6.1...v0.7.0)
+
+### 🚀 Enhancements
+
+- **frontend:** The frontend registration as a pure function, declared as dmsFrontend ([#60](https://github.com/AntelopeJS/dms-mailing/pull/60))
+- Declare the sender, localized template names and category labels, locale-formatted amounts and dates ([#53](https://github.com/AntelopeJS/dms-mailing/pull/53))
+- **mailing:** Adopt the DMS page toolbar and live mode on Overview and Sends ([#55](https://github.com/AntelopeJS/dms-mailing/pull/55))
+- **sends:** Open a send in a resizable right drawer ([#57](https://github.com/AntelopeJS/dms-mailing/pull/57))
+
+### 🩹 Fixes
+
+- **templates:** Drop the category quick filter dms#370 refuses ([#59](https://github.com/AntelopeJS/dms-mailing/pull/59), [#370](https://github.com/AntelopeJS/dms-mailing/issues/370))
+- **templates:** Render the gallery without skeleton flashes or layout shift ([#56](https://github.com/AntelopeJS/dms-mailing/pull/56))
+
+### 📦 Build
+
+- Require interface-dms-mailing 0.9 and interface-dms 0.8 ([#63](https://github.com/AntelopeJS/dms-mailing/pull/63))
+- Run on @antelopejs/dms 0.10 and @antelopejs/dms-frontend 0.8 ([#64](https://github.com/AntelopeJS/dms-mailing/pull/64))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms-mailing v0.9.0 ([613367c](https://github.com/AntelopeJS/dms-mailing/commit/613367c))
+
+### ✅ Tests
+
+- Give the DMS in the test stack the render secret dms 0.10 requires ([#61](https://github.com/AntelopeJS/dms-mailing/pull/61))
+
+### ❤️ Contributors
+
+- Maxime Westhoven <maxime@altab.be>
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.6.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.6.0...v0.6.1)

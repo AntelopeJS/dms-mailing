@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms-mailing",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "E-mail templates for the AntelopeJS DMS: a block editor with drafts and versions, a send log, delivery metrics and a suppression list.",
   "keywords": [
     "antelopejs",
