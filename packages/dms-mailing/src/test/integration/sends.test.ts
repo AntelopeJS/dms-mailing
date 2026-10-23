@@ -27,7 +27,7 @@ describe("[integration] sends", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
     const sent = await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -56,7 +56,7 @@ describe("[integration] sends", () => {
       category: "orders",
     });
     const sent = await client.post(
-      `/api/mailing/templates/${created.data[0]}/test-send`,
+      `/api/mailing/templates/${created.data._id}/test-send`,
       { to: ["metrics@example.test"], locale: "en", data: { any: "value" } },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
@@ -86,7 +86,7 @@ describe("[integration] sends", () => {
       name: "Real draft",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
     const sent = await client.post(`/api/mailing/templates/${id}/send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -103,7 +103,7 @@ describe("[integration] sends", () => {
       name: "Real send",
       category: "orders",
     });
-    const id = created.data[0] as string;
+    const id = created.data._id as string;
     await client.post(`/api/mailing/templates/${id}/content`, {
       content: {
         locales: { en: { subject: "Real send", preheader: "", blocks: [] } },

@@ -267,7 +267,7 @@ async function submit(): Promise<void> {
 	if (!canSubmit.value) return
 	saving.value = true
 	try {
-		const [id] = await api.createTemplate(creationInput())
+		const { _id: id } = await api.createTemplate(creationInput())
 		close(true)
 		if (id) await navigateDms(editorRoute(id))
 	} catch (error) {
