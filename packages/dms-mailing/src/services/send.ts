@@ -22,6 +22,8 @@ import {
   missingSystemVariables,
   renderPlainText,
   resolveEmail,
+  type ValueFormat,
+  valueFormatOf,
 } from "../engine";
 import type {
   SendTemplateParams,
@@ -43,11 +45,12 @@ import { refreshAttentionIfFlagged } from "./template-attention";
 import {
   hasDraft,
   localeContentOf,
-  parseContent,
   parseVariables,
   pickLocale,
+  publishedSnapshot,
   publishedVersionOf,
-  workingContent,
+  type VersionedSnapshot,
+  workingSnapshot,
 } from "./templates";
 
 export class SendError extends Error {
@@ -66,6 +69,8 @@ export interface PreparedSend {
   requestedLocale: string;
   /** Template version the content belongs to; 0 for a draft. */
   version: number;
+  /** How its typed values are written: the locale, the version's `date` paths. */
+  format: ValueFormat;
   templateId: string;
   slug: string;
   tenantId: string;
@@ -165,11 +170,6 @@ const nameOf = (to: EmailAddress): string | undefined =>
 const toRecipients = (to: EmailAddress | EmailAddress[]): EmailAddress[] =>
   Array.isArray(to) ? to : [to];
 
-interface ResolvedContent {
-  content: TemplateContent;
-  version: number;
-}
-
 /**
  * The content a send renders and the version it belongs to. A real send gets
  * what customers receive; a test send gets the draft when there is one, so a
@@ -178,20 +178,17 @@ interface ResolvedContent {
 function resolveContent(
   template: MailingTemplate,
   params: ModuleSendParams,
-): ResolvedContent {
+): VersionedSnapshot {
   if (params.content)
     return {
+      ...workingSnapshot(template),
       content: params.content,
       version: params.version ?? DRAFT_VERSION,
     };
-  if (params.isTest && hasDraft(template))
-    return { content: workingContent(template), version: DRAFT_VERSION };
-  if (params.isTest && !publishedVersionOf(template))
-    return { content: workingContent(template), version: DRAFT_VERSION };
-  return {
-    content: parseContent(template),
-    version: publishedVersionOf(template),
-  };
+  if (params.isTest && (hasDraft(template) || !publishedVersionOf(template)))
+    return { ...workingSnapshot(template), version: DRAFT_VERSION };
+  const version = publishedVersionOf(template);
+  return { ...publishedSnapshot(template), version };
 }
 
 const isManualRealSend = (params: ModuleSendParams): boolean =>
@@ -247,7 +244,7 @@ async function renderForSend(
     );
   }
   const variables = params.variables ?? {};
-  const email = resolveEmail(localeContent, variables, "send");
+  const email = resolveEmail(localeContent, variables, "send", prepared.format);
   const refused = refusedMissing(
     params,
     isBlocking,
@@ -279,13 +276,15 @@ export async function prepare(
   if (missing.length) {
     throw new SendError("missing_variables", missing.join(", "));
   }
-  const { content, version } = resolveContent(template, params);
+  const { content, version, variables } = resolveContent(template, params);
   const settings = await getSettings(tenantId);
+  const locale = pickLocale(content, params.locale, settings.fallbackLocale);
   return {
     content,
-    locale: pickLocale(content, params.locale, settings.fallbackLocale),
+    locale,
     requestedLocale: params.locale ?? "",
     version,
+    format: valueFormatOf(locale, variables),
     templateId: template._id,
     slug,
     tenantId,
@@ -476,7 +475,7 @@ async function record(
       outcome.error ? { reason: outcome.error } : {},
     ),
   });
-  publishSendCreated(sendId as string);
+  publishSendCreated(tenantId, sendId as string);
   return sendId as string;
 }
 

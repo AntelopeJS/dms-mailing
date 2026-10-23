@@ -15,6 +15,7 @@ import type {
 } from "../types";
 import { evaluateCondition } from "./conditions";
 import { safeUrl } from "./fallback-html";
+import { formatValue, type ValueFormat } from "./formats";
 import { getPath, isPresent } from "./paths";
 import { footerLinkPaths } from "./system-variables";
 import { type InterpolationMode, interpolate } from "./tokens";
@@ -26,6 +27,7 @@ interface ResolveState {
   mode: InterpolationMode;
   missing: Set<string>;
   hidden: string[];
+  format?: ValueFormat;
 }
 
 /** A blocked image source: the hero is left out rather than drawn broken. */
@@ -34,7 +36,7 @@ const BLOCKED_IMAGE = "";
 type BlockResolver = (block: Block, state: ResolveState) => ResolvedBlock[];
 
 function text(state: ResolveState, value: string): string {
-  const result = interpolate(value, state.data, state.mode);
+  const result = interpolate(value, state.data, state.mode, state.format);
   for (const path of result.missing) state.missing.add(path);
   return result.text;
 }
@@ -61,9 +63,10 @@ function systemUrl(
   return isPresent(value) ? safeUrl(String(value)) : "";
 }
 
-function cell(item: unknown, path: string): string {
+/** A list cell: a money value or a date in it is written for the locale. */
+function cell(item: unknown, path: string, state: ResolveState): string {
   const value = getPath(item, path);
-  return isPresent(value) ? String(value) : "";
+  return isPresent(value) ? formatValue(value, "", state.format) : "";
 }
 
 function listRows(block: ListBlock, state: ResolveState): ResolvedListRow[] {
@@ -73,8 +76,8 @@ function listRows(block: ListBlock, state: ResolveState): ResolvedListRow[] {
     return [];
   }
   return source.map((item) => ({
-    label: cell(item, block.labelPath),
-    value: cell(item, block.valuePath),
+    label: cell(item, block.labelPath, state),
+    value: cell(item, block.valuePath, state),
   }));
 }
 
@@ -191,14 +194,22 @@ const isUserPath = (path: string): boolean =>
 
 /**
  * Resolves `content` against `data`. A real send passes `send` so a missing
- * value leaves a blank; previews keep the token visible.
+ * value leaves a blank; previews keep the token visible. `format` writes the
+ * typed values (money, dates) for the e-mail's locale: see `valueFormatOf`.
  */
 export function resolveEmail(
   content: LocaleContent,
   data: Data,
   mode: InterpolationMode = "preview",
+  format?: ValueFormat,
 ): ResolvedEmail {
-  const state: ResolveState = { data, mode, missing: new Set(), hidden: [] };
+  const state: ResolveState = {
+    data,
+    mode,
+    missing: new Set(),
+    hidden: [],
+    format,
+  };
   const subject = text(state, content.subject);
   const preheader = text(state, content.preheader);
   const blocks = resolveBlocks(content.blocks, state);

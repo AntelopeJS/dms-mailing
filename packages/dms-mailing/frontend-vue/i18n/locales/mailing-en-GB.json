@@ -437,11 +437,13 @@
 		"metrics": {
 			"bounces": "Bounces",
 			"click_rate": "Click rate",
+			"compared": "Compared period",
 			"deliverability": "Deliverability",
 			"domain_sends": "Domains with 5 or more deliveries",
 			"domains": "Open rate by domain",
 			"open_rate": "Open rate",
 			"previous": "Previous period",
+			"previous_year": "Previous year",
 			"ranking": "Best opened templates",
 			"sends": "Sends",
 			"unsubscribes": "Unsubscribes",
@@ -619,8 +621,9 @@
 				"latency_detail": "API call to {provider}",
 				"latency_detail_generic": "API call to the provider",
 				"joined": "{left} · {right}",
-				"delta_up": "▲ {delta}",
-				"delta_down": "▼ {delta}",
+				"versus": "vs {previous}",
+				"delta_up_versus": "▲ {delta} vs {previous}",
+				"delta_down_versus": "▼ {delta} vs {previous}",
 				"rate": "{rate}",
 				"latency_ms": "{value} ms",
 				"latency_s": "{value} s",
@@ -999,9 +1002,6 @@
 				"archived": "Archived",
 				"attention": "Needs attention"
 			},
-			"filters": {
-				"category": "Category"
-			},
 			"footer": {
 				"count": "{count} template | {count} templates",
 				"hint": "Open a template to edit it · ↵ open · T test send"
@@ -1075,8 +1075,12 @@
 				"description": "The overview dashboard, or the setup steps until the workspace can send."
 			},
 			"page_header": {
-				"name": "Provider and period",
-				"description": "The provider state and the period switch in the page header."
+				"name": "Page toolbar",
+				"description": "The provider state, the last update, live mode and the period switch at the top of the page."
+			},
+			"provider_pill": {
+				"name": "Provider state",
+				"description": "The pill in the page toolbar saying whether a provider carries the mail."
 			},
 			"settings_form": {
 				"name": "Mailing settings",
@@ -1194,15 +1198,8 @@
 			"current_sender": "Sender as set in the settings today",
 			"meant_for": "The e-mail meant for {name}"
 		},
-		"period": {
-			"short": {
-				"last_hour": "1H",
-				"last_24h": "24H",
-				"today": "1D",
-				"last_7_days": "7D",
-				"last_30_days": "30D",
-				"last_90_days": "90D"
-			}
+		"live": {
+			"new_sends": "{count} new send | {count} new sends"
 		},
 		"page_header": {
 			"provider_connected": "{name} connected",
@@ -1266,7 +1263,8 @@
 			"error_title": "The funnel could not be loaded",
 			"retry": "Try again",
 			"untracked": "Delivery is not measured: connect the provider’s webhook to follow the funnel.",
-			"no_loss": "No e-mail was lost between the steps."
+			"no_loss": "No e-mail was lost between the steps.",
+			"compared_count": "vs {value} in the compared period"
 		},
 		"common": {
 			"cancel": "Cancel",
@@ -1389,15 +1387,6 @@
 			"url": "Link",
 			"boolean": "Yes / no",
 			"array": "List"
-		},
-		"categories": {
-			"defaults": {
-				"orders": "Orders",
-				"account": "Account & access",
-				"billing": "Billing",
-				"marketing": "Marketing",
-				"forms": "Forms"
-			}
 		},
 		"starters": {
 			"names": {

@@ -5,6 +5,7 @@ import {
   JSONBody,
   Parameter,
   Post,
+  Put,
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
@@ -22,12 +23,21 @@ import {
   collectContentVariablePaths,
   resolveEmail,
   type TemplateChange,
+  valueFormatOf,
 } from "../engine";
-import { type MailingTemplate, SendModel, TemplateModel } from "../db";
+import {
+  type MailingTemplate,
+  SendModel,
+  type TemplateFields,
+  TemplateModel,
+} from "../db";
+import { saveDetails } from "../data/templates-table";
 import { TemplatesPageController } from "../pages/templates";
 import { forAudience, statsWindowStart } from "../services/metrics";
 import { refreshTemplateAttention } from "../services/template-attention";
 import { renderEmailHtml } from "../services/render";
+import { categoriesIn } from "../services/categories";
+import { localeOfRequest, withTextIn } from "../services/localized-text";
 import { getSettings } from "../services/settings";
 import { findStarter, STARTER_TEMPLATES } from "../services/starters";
 import {
@@ -39,7 +49,6 @@ import {
 import {
   assertSlugClaimed,
   contentFieldsOf,
-  contentOfVersion,
   discardDraft,
   displayName,
   hasDraft,
@@ -55,13 +64,17 @@ import {
   publishedVersionOf,
   publishTemplate,
   saveDraft,
+  publishedSnapshot,
+  snapshotOfVersion,
+  type TemplateDraft,
+  workingSnapshot,
   workingContent,
   workingVariables,
   requireTemplate,
 } from "../services/templates";
 import {
   BUSINESS_AUDIENCE,
-  type MailingSettingsValues,
+  type CategoryInLocale,
   type TemplateContent,
   type TemplateStatus,
   type VariableDefinition,
@@ -104,14 +117,13 @@ const TARGET_STATUS: Record<
 };
 
 /** What a lifecycle action records besides the new status. */
-const TRANSITION_FIELDS: Partial<
-  Record<TemplateAction, () => Partial<MailingTemplate>>
-> = {
-  unpublish: () => ({ unpublishedAt: new Date() }),
-};
+const TRANSITION_FIELDS: Partial<Record<TemplateAction, () => TemplateFields>> =
+  {
+    unpublish: () => ({ unpublishedAt: new Date() }),
+  };
 
 export interface CategoriesResponse {
-  categories: MailingSettingsValues["categories"];
+  categories: CategoryInLocale[];
 }
 
 export interface TemplateSender {
@@ -121,6 +133,7 @@ export interface TemplateSender {
 }
 
 export interface TemplateContentResponse {
+  /** The template, its name in the reader's language. */
   template: MailingTemplate;
   /** The content the editor works on: the draft, else the published one. */
   content: TemplateContent;
@@ -146,7 +159,7 @@ export interface TemplateContentResponse {
   fallbackLocale: string;
   /** Whether a send missing a variable fails rather than goes out blank. */
   blockOnMissingVariables: boolean;
-  categories: MailingSettingsValues["categories"];
+  categories: CategoryInLocale[];
   sender: TemplateSender;
 }
 
@@ -192,6 +205,11 @@ export class TemplatesController extends Controller(
     return displayName(this.user);
   }
 
+  /** The language the reader reads names and labels in. */
+  private get locale(): string {
+    return localeOfRequest(this.ctx);
+  }
+
   /**
    * The tenant's categories for a category picker. Separate from `/settings`,
    * which is guarded by the settings page permission a template editor need
@@ -200,7 +218,7 @@ export class TemplatesController extends Controller(
   @Get("/categories")
   async categories(): Promise<CategoriesResponse> {
     const settings = await getSettings(this.tenantId);
-    return { categories: settings.categories };
+    return { categories: categoriesIn(settings.categories, this.locale) };
   }
 
   @Get("/starters")
@@ -236,7 +254,12 @@ export class TemplatesController extends Controller(
     );
     const localeContent = localeContentOf(starter.content, locale);
     assert(localeContent, HTTP_UNPROCESSABLE, INVALID_CONTENT);
-    const email = resolveEmail(localeContent, starter.testDataFor(locale));
+    const email = resolveEmail(
+      localeContent,
+      starter.testDataFor(locale),
+      undefined,
+      valueFormatOf(locale, starter.variables),
+    );
     return { html: await renderEmailHtml(email, locale), locale };
   }
 
@@ -289,7 +312,7 @@ export class TemplatesController extends Controller(
       ? parseContent(template)
       : null;
     return {
-      template,
+      template: template.localize(this.locale, ["name"]),
       content,
       publishedContent,
       hasDraft: hasDraft(template),
@@ -305,7 +328,7 @@ export class TemplatesController extends Controller(
       testData: parseTestData(template),
       fallbackLocale: settings.fallbackLocale,
       blockOnMissingVariables: settings.blockOnMissingVariables,
-      categories: settings.categories,
+      categories: categoriesIn(settings.categories, this.locale),
       sender: {
         name: settings.senderName,
         email: settings.senderEmail,
@@ -431,7 +454,7 @@ export class TemplatesController extends Controller(
   ) {
     await this.requireTransition(id, action);
     const status = TARGET_STATUS[action];
-    await this.templates.update(id, {
+    await this.templates.updateFields(id, {
       status,
       updatedBy: this.author,
       ...TRANSITION_FIELDS[action]?.(),
@@ -472,7 +495,9 @@ export class TemplatesController extends Controller(
       testDataSchema.parse(value),
     );
     await requireTemplate(this.templates, id);
-    await this.templates.update(id, { json_test_data: JSON.stringify(data) });
+    await this.templates.updateFields(id, {
+      json_test_data: JSON.stringify(data),
+    });
     return { data };
   }
 
@@ -487,9 +512,12 @@ export class TemplatesController extends Controller(
       () => INVALID_CONTENT,
     );
     const template = await requireTemplate(this.templates, id);
-    const content =
-      (input.content as TemplateContent | undefined) ??
-      (await this.previewContent(template, input.version));
+    const { content, variables } = input.content
+      ? {
+          ...workingSnapshot(template),
+          content: input.content as TemplateContent,
+        }
+      : await this.previewSnapshot(template, input.version);
     const settings = await getSettings(this.tenantId);
     const locale = pickLocale(content, input.locale, settings.fallbackLocale);
     const localeContent = localeContentOf(content, locale);
@@ -497,6 +525,8 @@ export class TemplatesController extends Controller(
     const email = resolveEmail(
       localeContent,
       input.data ?? parseTestData(template),
+      undefined,
+      valueFormatOf(locale, variables),
     );
     const html = await renderEmailHtml(email, locale);
     return {
@@ -508,14 +538,30 @@ export class TemplatesController extends Controller(
     };
   }
 
-  private previewContent(
+  private previewSnapshot(
     template: MailingTemplate,
     version: "draft" | "published" | number | undefined,
-  ): Promise<TemplateContent> | TemplateContent {
-    if (version === "published") return parseContent(template);
+  ): Promise<TemplateDraft> | TemplateDraft {
+    if (version === "published") return publishedSnapshot(template);
     if (typeof version === "number")
-      return contentOfVersion(this.tenantId, template, version);
-    return workingContent(template);
+      return snapshotOfVersion(this.tenantId, template, version);
+    return workingSnapshot(template);
+  }
+
+  /**
+   * Renames a template in the reader's language, its other languages kept,
+   * and sets its category: what the module's drawer and editor save, each
+   * showing one language. The DMS edit form, which shows every language,
+   * writes through the table's edit route.
+   */
+  @Put("/:id/details")
+  async details(
+    @Parameter("id", "param") id: string,
+    @JSONBody() body: unknown,
+  ) {
+    const template = await requireTemplate(this.templates, id);
+    await saveDetails(this.ctx, template, body, this.author);
+    return { id };
   }
 
   @Post("/:id/duplicate")
@@ -529,9 +575,9 @@ export class TemplatesController extends Controller(
     const source = await requireTemplate(this.templates, id);
     const clash = await this.templates.getBySlug(slug);
     assert(!clash, HTTP_CONFLICT, DUPLICATE_SLUG);
-    const [copyId] = await this.templates.insert({
+    const [copyId] = await this.templates.insertFields({
       slug,
-      name,
+      name: withTextIn(undefined, this.locale, name),
       category: source.category,
       status: "draft",
       ...contentFieldsOf(source),

@@ -8,6 +8,8 @@ export const SETTINGS_PATH = `${MODULE_BASE_PATH}/settings`;
 export const NEW_TEMPLATE_BUTTON_ID = "create";
 export const NEW_TEMPLATE_ACTION_ID = "mailing.new-template";
 export const FRONTEND_MODULE_NAME = "@antelopejs/dms-mailing-frontend-vue";
+/** The header a provider webhook carries the secret its route checks in. */
+export const WEBHOOK_SECRET_HEADER = "x-mailing-webhook-secret";
 export const EMAIL_TEMPLATE_NAME = "EmailMailingTemplate";
 
 export const MAILING_SEND_PERMISSION = "mailing.send";

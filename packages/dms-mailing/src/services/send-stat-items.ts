@@ -3,6 +3,7 @@ import type {
   BlockText,
   ComposedText,
 } from "@antelopejs/interface-dms/base/types";
+import { deltaPercent } from "./metrics";
 import type { SendStats } from "./send-stats";
 
 /** Past this wait the oldest queued send is worth a warning. */
@@ -39,11 +40,24 @@ function joined(parts: ComposedText[], fallback: ComposedText): BlockText {
   return parts.reduce((left, right) => text("joined", { left, right }));
 }
 
-function deltaText(delta: number | null): ComposedText[] {
-  if (!delta) return [];
+/** A figure of the comparison window, as its cell writes it. */
+type ComparedValue = NonNullable<ComposedText["params"]>[string];
+
+/**
+ * The change and the figure it is measured against ("▲ 8 % vs 120"), or the
+ * figure alone when no change can be stated (an equal or a zero figure).
+ * Nothing when the comparison is off or the window has no such figure.
+ */
+function comparedText(
+  delta: number | null,
+  previous: ComparedValue | null,
+): ComposedText[] {
+  if (previous === null) return [];
+  if (!delta) return [text("versus", { previous })];
   return [
-    text(delta > 0 ? "delta_up" : "delta_down", {
+    text(delta > 0 ? "delta_up_versus" : "delta_down_versus", {
       delta: percent(Math.abs(delta)),
+      previous,
     }),
   ];
 }
@@ -52,16 +66,27 @@ function sendsItem(stats: SendStats): StatGroupItem {
   const tests = stats.tests
     ? [text("tests_excluded", { count: count(stats.tests) })]
     : [];
+  const previous = stats.compared?.sends ?? null;
   return {
     id: "sends",
     icon: "i-ph-paper-plane-tilt",
     eyebrow: key("sends"),
     value: stats.sends,
     detail: joined(
-      [...deltaText(stats.sendsDelta), ...tests],
+      [...comparedText(stats.sendsDelta, previous), ...tests],
       text("no_tests"),
     ),
   };
+}
+
+/** The deliverability's change; none without a figure on either side. */
+function deliverabilityCompared(stats: SendStats): ComposedText[] {
+  const previous = stats.compared?.deliverability ?? null;
+  if (!stats.sends || previous === null) return [];
+  return comparedText(
+    deltaPercent(stats.deliverability, previous),
+    percent(previous),
+  );
 }
 
 function deliveredItem(stats: SendStats, provider: string): StatGroupItem {
@@ -74,6 +99,10 @@ function deliveredItem(stats: SendStats, provider: string): StatGroupItem {
       detail: text("not_tracked", { provider: provider || THE_PROVIDER }),
     };
   }
+  const deliveredOf = text("delivered_of", {
+    delivered: stats.delivered,
+    sends: stats.sends,
+  });
   return {
     id: "delivered",
     icon: "i-ph-check-circle",
@@ -82,10 +111,10 @@ function deliveredItem(stats: SendStats, provider: string): StatGroupItem {
       stats.sends && stats.deliverability !== null
         ? text("rate", { rate: percent(stats.deliverability) })
         : EMPTY_FIGURE,
-    detail: text("delivered_of", {
-      delivered: stats.delivered,
-      sends: stats.sends,
-    }),
+    detail: joined(
+      [...deliverabilityCompared(stats), deliveredOf],
+      deliveredOf,
+    ),
   };
 }
 
@@ -93,13 +122,19 @@ function problemsItem(stats: SendStats): StatGroupItem {
   const parts = PROBLEM_PARTS.filter((part) => stats[part]).map((part) =>
     text(`breakdown.${part}`, { count: count(stats[part]) }),
   );
+  const previous = stats.compared?.problems ?? null;
+  const compared = comparedText(
+    deltaPercent(stats.problems, previous),
+    previous,
+  );
+  const breakdown = parts.length ? parts : [text("no_problems")];
   return {
     id: "problems",
     icon: "i-ph-warning-octagon",
     tone: stats.problems ? "error" : undefined,
     eyebrow: key("problems"),
     value: stats.problems,
-    detail: joined(parts, text("no_problems")),
+    detail: joined([...compared, ...breakdown], text("no_problems")),
     to: stats.problems ? PROBLEMS_PAGE : undefined,
   };
 }
@@ -127,15 +162,26 @@ export function latencyText(ms: number): ComposedText {
   });
 }
 
+/** The latency's change; none without a timed send on either side. */
+function latencyCompared(stats: SendStats): ComposedText[] {
+  const previous = stats.compared?.latencyMedian ?? null;
+  if (!stats.sends || previous === null) return [];
+  return comparedText(
+    deltaPercent(stats.latencyMedian, previous),
+    latencyText(previous),
+  );
+}
+
 function latencyItem(stats: SendStats, provider: string): StatGroupItem {
+  const call = provider
+    ? text("latency_detail", { provider })
+    : text("latency_detail_generic");
   return {
     id: "latency",
     icon: "i-ph-timer",
     eyebrow: key("latency"),
     value: stats.sends ? latencyText(stats.latencyMedian) : EMPTY_FIGURE,
-    detail: provider
-      ? text("latency_detail", { provider })
-      : text("latency_detail_generic"),
+    detail: joined([...latencyCompared(stats), call], call),
   };
 }
 
@@ -143,7 +189,8 @@ function latencyItem(stats: SendStats, provider: string): StatGroupItem {
  * The five cells of the send log's stat strip, as `StatGroup` items whose
  * texts the DMS composes in the reader's language: sends with the tests left
  * out, deliverability, problems with their breakdown, the queue with its
- * oldest wait, and the median API latency.
+ * oldest wait, and the median API latency. Every cell but the queue, which is
+ * what waits now, states its change against the comparison window.
  */
 export function buildSendStatItems(
   stats: SendStats,

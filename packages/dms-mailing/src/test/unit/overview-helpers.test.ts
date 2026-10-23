@@ -67,6 +67,7 @@ describe("[unit] overview helpers", () => {
 });
 
 const DAY_MS = 86_400_000;
+const PREVIOUS_LABEL = "$dms_mailing.metrics.previous";
 const RANGE = {
   from: new Date("2026-09-01T00:00:00.000Z"),
   to: new Date("2026-09-04T00:00:00.000Z"),
@@ -129,6 +130,7 @@ describe("[unit] overview figures", () => {
           { ...sendOn(0, "sent"), createdAt: previousRange.from },
           { ...sendOn(0, "suppressed"), createdAt: previousRange.from },
         ] as SendSummary[],
+        label: PREVIOUS_LABEL,
       },
     );
     expect(chart).to.deep.include({ value: 2, previousValue: 1 });
@@ -167,6 +169,7 @@ describe("[unit] overview figures", () => {
     const chart = volumeChart([sendOn(1, "sent")], RANGE, {
       range: previousRange,
       sends: previous,
+      label: PREVIOUS_LABEL,
     });
     const current = chart.series[0]?.data ?? [];
     const comparison = chart.comparisonSeries[0]?.data ?? [];
@@ -174,6 +177,29 @@ describe("[unit] overview figures", () => {
       current.map((point) => point.x),
     );
     expect(comparison.map((point) => point.y)).to.deep.equal([1, 0, 0]);
+  });
+
+  it("lays the previous year on the current days, named after it", () => {
+    const yearBefore = (date: Date) => new Date(date.getTime() - 365 * DAY_MS);
+    const previousRange = {
+      from: yearBefore(RANGE.from),
+      to: yearBefore(RANGE.to),
+    };
+    const chart = volumeChart([sendOn(0, "sent")], RANGE, {
+      range: previousRange,
+      sends: [
+        { ...sendOn(0, "sent"), createdAt: previousRange.from },
+        { ...sendOn(0, "sent"), createdAt: previousRange.from },
+      ] as SendSummary[],
+      label: "$dms_mailing.metrics.previous_year",
+    });
+    expect(chart).to.deep.include({ value: 1, previousValue: 2, delta: -50 });
+    const [comparison] = chart.comparisonSeries;
+    expect(comparison?.name).to.equal("$dms_mailing.metrics.previous_year");
+    expect(comparison?.data.map((point) => point.x)).to.deep.equal(
+      chart.series[0]?.data.map((point) => point.x),
+    );
+    expect(comparison?.data.map((point) => point.y)).to.deep.equal([2, 0, 0]);
   });
 });
 

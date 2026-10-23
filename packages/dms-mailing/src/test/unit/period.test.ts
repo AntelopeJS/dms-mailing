@@ -2,6 +2,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import { MAX_WINDOW_DAYS } from "../../constants";
 import {
+  comparisonLabel,
   comparisonRange,
   currentRange,
   isComparisonWanted,
@@ -112,5 +113,69 @@ describe("[unit] period range", () => {
       current,
     );
     expect(previous.from.toISOString()).to.equal("2026-08-01T00:00:00.000Z");
+  });
+
+  describe("each comparison the toolbar offers", () => {
+    const WINDOW = {
+      from: "2026-09-04T00:00:00.000Z",
+      to: "2026-09-11T00:00:00.000Z",
+    };
+    const current = currentRange(ctxWith(WINDOW));
+
+    it("takes the window the selector resolved, the previous year's too", () => {
+      const previous = comparisonRange(
+        ctxWith({
+          ...WINDOW,
+          comparison: "previous-year",
+          compareFrom: "2025-09-04T00:00:00.000Z",
+          compareTo: "2025-09-11T00:00:00.000Z",
+        }),
+        current,
+      );
+      expect(previous.from.toISOString()).to.equal("2025-09-04T00:00:00.000Z");
+      expect(previous.to.toISOString()).to.equal("2025-09-11T00:00:00.000Z");
+    });
+
+    it("moves the window a year back when only the previous year is named", () => {
+      const previous = comparisonRange(
+        ctxWith({ ...WINDOW, comparison: "previous-year" }),
+        current,
+      );
+      expect(previous.from.toISOString()).to.equal("2025-09-04T00:00:00.000Z");
+      expect(previous.to.toISOString()).to.equal("2025-09-11T00:00:00.000Z");
+    });
+
+    it("takes the span just before when only the previous period is named", () => {
+      const previous = comparisonRange(
+        ctxWith({ ...WINDOW, comparison: "previous-period" }),
+        current,
+      );
+      expect(previous.from.toISOString()).to.equal("2026-08-28T00:00:00.000Z");
+      expect(previous.to.toISOString()).to.equal(WINDOW.from);
+    });
+
+    it("compares with nothing when the user picks none", () => {
+      expect(isComparisonWanted(ctxWith({ comparison: "none" }))).to.equal(
+        false,
+      );
+      expect(
+        isComparisonWanted(ctxWith({ comparison: "previous-year" })),
+      ).to.equal(true);
+    });
+
+    it("names the comparison series after the comparison", () => {
+      expect(comparisonLabel(ctxWith({}))).to.equal(
+        "$dms_mailing.metrics.previous",
+      );
+      expect(
+        comparisonLabel(ctxWith({ comparison: "previous-period" })),
+      ).to.equal("$dms_mailing.metrics.previous");
+      expect(
+        comparisonLabel(ctxWith({ comparison: "previous-year" })),
+      ).to.equal("$dms_mailing.metrics.previous_year");
+      expect(comparisonLabel(ctxWith({ comparison: "custom" }))).to.equal(
+        "$dms_mailing.metrics.compared",
+      );
+    });
   });
 });

@@ -30,7 +30,7 @@ import type {
  * `useMailingApi`.
  */
 
-/** The e-mail provider the page header names; nothing read while `enabled` is false. */
+/** The e-mail provider the page toolbar names; nothing read while `enabled` is false. */
 export function useProviderInfo(
 	enabled: MaybeRefOrGetter<boolean>,
 ): ApiDataResult<ProviderInfo> {
@@ -66,7 +66,7 @@ export function useCategoryUsage(): ApiDataResult<CategoryUsageResponse> {
 	)
 }
 
-/** The tenant's template categories, as stored. */
+/** The tenant's template categories, labelled in the interface's language. */
 export function useStoredCategories(): ApiDataResult<CategoriesResponse> {
 	return useApiData<CategoriesResponse>(mailingPath('templates', 'categories'))
 }

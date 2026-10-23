@@ -36,13 +36,6 @@ const { t } = useI18n()
 const { open: openModal } = useModal()
 
 const { data: facts, error, status, refresh } = useSetupFacts()
-/**
- * The header's period selector sets up once the dashboard has: a server
- * render, which renders the dashboard once the facts are in, would otherwise
- * set the selector up first and render the cards with a period the browser's
- * cards do not have yet as they hydrate.
- */
-const DashboardRendered = holdPageHeaderActions()
 const isResumed = ref(false)
 
 /** A failure shows once its retry is over; the facts read last stay meanwhile. */
@@ -207,5 +200,4 @@ function createTemplate(): void {
 
 		<slot v-if="showsDashboard" />
 	</div>
-	<DashboardRendered />
 </template>

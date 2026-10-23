@@ -192,14 +192,14 @@ export function useMailingApi() {
 	return {
 		webhookTest: () =>
 			post<WebhookTestResult>(mailingPath('settings', 'webhook-test'), {}),
+		/** Renames in the interface's language, the other languages kept. */
 		saveTemplateDetails: (id: string, details: TemplateDetails) =>
-			$authFetch<unknown>(mailingPath('tables', 'templates', 'edit'), {
+			$authFetch<unknown>(mailingPath('templates', id, 'details'), {
 				method: 'PUT',
-				query: { id },
 				body: details,
 			}),
 		createTemplate: (input: CreateTemplateInput) =>
-			post<string[]>(mailingPath('tables', 'templates', 'new'), input),
+			post<TemplateRow>(mailingPath('tables', 'templates', 'new'), input),
 		saveContent: (id: string, input: SaveContentInput) =>
 			$authFetch<SavedResponse>(mailingPath('templates', id, 'content'), {
 				method: 'POST',

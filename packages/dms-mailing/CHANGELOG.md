@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v0.6.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.6.0...v0.6.1)
+
+### 🩹 Fixes
+
+- **frontend:** Run on @antelopejs/dms-frontend 0.7 ([#58](https://github.com/AntelopeJS/dms-mailing/pull/58))
+
+### 📖 Documentation
+
+- Clarify learning paths and illustrate real outcomes ([#54](https://github.com/AntelopeJS/dms-mailing/pull/54))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.6.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.5.1...v0.6.0)

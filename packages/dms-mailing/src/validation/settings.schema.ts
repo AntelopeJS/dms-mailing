@@ -1,6 +1,7 @@
 import { domainToASCII } from "node:url";
 import { z } from "zod";
 import { MAX_NAME_LENGTH, SLUG_PATTERN } from "../constants";
+import { LOCALIZED_TEXT_FALLBACK_LOCALE } from "@antelopejs/interface-dms-mailing";
 import { MARKETING_CATEGORY } from "../engine";
 
 export const MIN_RETENTION_DAYS = 1;
@@ -31,7 +32,8 @@ const MISSING_VARIABLES_POLICIES = ["refuse", "send"] as const;
 
 export const categorySchema = z.object({
   id: z.string().max(MAX_NAME_LENGTH).regex(SLUG_PATTERN),
-  label: z.string().trim().max(MAX_NAME_LENGTH),
+  /** One label per language (`{ en: "Orders", fr: "Commandes" }`). */
+  label: z.record(z.string().trim().max(MAX_NAME_LENGTH)),
   icon: z.string().regex(CATEGORY_ICON_PATTERN),
 });
 
@@ -45,19 +47,44 @@ const categoryEntrySchema = categorySchema.extend({
 
 export type CategoryEntry = z.infer<typeof categoryEntrySchema>;
 
+/** A category entry as a reader of one language sees its label. */
+interface EntryInLocale {
+  id: string;
+  label: string;
+  moveTo?: string;
+}
+
+/**
+ * Every language a list labels its categories in, the fallback one first:
+ * the rules below hold in each of them.
+ */
+function languagesOf(entries: CategoryEntry[]): string[] {
+  const codes = entries.flatMap((entry) => Object.keys(entry.label));
+  return [...new Set([LOCALIZED_TEXT_FALLBACK_LOCALE, ...codes])];
+}
+
+/** The entries as a reader of `locale` reads them, the fallback filling in. */
+function entriesIn(entries: CategoryEntry[], locale: string): EntryInLocale[] {
+  return entries.map(({ id, label, moveTo }) => ({
+    id,
+    label: label[locale] || label[LOCALIZED_TEXT_FALLBACK_LOCALE] || "",
+    moveTo,
+  }));
+}
+
 /** Why a category list is refused, and the part of it at fault. */
 interface CategoryIssue {
   message: string;
   path: Array<string | number>;
 }
 
-const isKept = (entry: CategoryEntry): boolean => entry.moveTo === undefined;
+const isKept = (entry: EntryInLocale): boolean => entry.moveTo === undefined;
 
 /**
  * A kept entry repeating the label (whatever its case) or the id of an
  * earlier one, under the row it belongs to.
  */
-function duplicateIssues(entries: CategoryEntry[]): CategoryIssue[] {
+function duplicateIssues(entries: EntryInLocale[]): CategoryIssue[] {
   const labels = new Set<string>();
   const ids = new Set<string>();
   const issues: CategoryIssue[] = [];
@@ -79,7 +106,7 @@ function duplicateIssues(entries: CategoryEntry[]): CategoryIssue[] {
  * label's own minimum, which the form would turn into a browser-side check:
  * the server words it, under the row, together with the other row issues.
  */
-function blankLabelIssues(entries: CategoryEntry[]): CategoryIssue[] {
+function blankLabelIssues(entries: EntryInLocale[]): CategoryIssue[] {
   return entries.flatMap((entry, index) =>
     entry.label ? [] : [{ message: LABEL_REQUIRED, path: [index, LABEL_PART] }],
   );
@@ -92,7 +119,7 @@ function marketingIssues(kept: Set<string>): CategoryIssue[] {
 }
 
 function moveIssues(
-  entries: CategoryEntry[],
+  entries: EntryInLocale[],
   kept: Set<string>,
 ): CategoryIssue[] {
   return entries.flatMap((entry, index) =>
@@ -106,20 +133,35 @@ function refineCategoryEntries(
   entries: CategoryEntry[],
   context: z.RefinementCtx,
 ): void {
-  const kept = new Set(entries.filter(isKept).map((entry) => entry.id));
-  [
-    ...blankLabelIssues(entries),
-    ...duplicateIssues(entries),
-    ...marketingIssues(kept),
-    ...moveIssues(entries, kept),
-  ].forEach((issue) =>
-    context.addIssue({ code: z.ZodIssueCode.custom, ...issue }),
+  const kept = new Set(
+    entries.filter((entry) => entry.moveTo === undefined).map(({ id }) => id),
   );
+  const labelIssues = languagesOf(entries).flatMap((locale) => {
+    const inLocale = entriesIn(entries, locale);
+    return [...blankLabelIssues(inLocale), ...duplicateIssues(inLocale)];
+  });
+  const seen = new Set<string>();
+  [
+    ...labelIssues,
+    ...marketingIssues(kept),
+    ...moveIssues(entriesIn(entries, LOCALIZED_TEXT_FALLBACK_LOCALE), kept),
+  ]
+    .filter((issue) => {
+      // One issue per row and part, whichever language shows it first.
+      const id = JSON.stringify(issue);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .forEach((issue) =>
+      context.addIssue({ code: z.ZodIssueCode.custom, ...issue }),
+    );
 }
 
 /**
- * The category list of the settings: kept labels and ids are unique, every
- * move names a kept one, and the marketing category stays.
+ * The category list of the settings: in every language, each kept label is
+ * set and unique; ids are unique, every move names a kept one, and the
+ * marketing category stays.
  */
 export const categoriesSchema = z
   .array(categoryEntrySchema)

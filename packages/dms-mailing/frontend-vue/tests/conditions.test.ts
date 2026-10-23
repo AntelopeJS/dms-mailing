@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-	describeCondition,
-	evaluateCondition,
-} from '../app/utils/conditions'
+import { describeCondition, evaluateCondition } from '../app/utils/conditions'
 
 describe('conditions', () => {
 	it('describes with translated operator labels', () => {

@@ -437,11 +437,13 @@
 		"metrics": {
 			"bounces": "Rebonds",
 			"click_rate": "Taux de clic",
+			"compared": "Période comparée",
 			"deliverability": "Délivrabilité",
 			"domain_sends": "Domaines avec 5 distributions ou plus",
 			"domains": "Taux d’ouverture par domaine",
 			"open_rate": "Taux d’ouverture",
 			"previous": "Période précédente",
+			"previous_year": "Année précédente",
 			"ranking": "Modèles les plus ouverts",
 			"sends": "Envois",
 			"unsubscribes": "Désinscriptions",
@@ -619,8 +621,9 @@
 				"latency_detail": "Appel API à {provider}",
 				"latency_detail_generic": "Appel API au fournisseur",
 				"joined": "{left} · {right}",
-				"delta_up": "▲ {delta}",
-				"delta_down": "▼ {delta}",
+				"versus": "vs {previous}",
+				"delta_up_versus": "▲ {delta} vs {previous}",
+				"delta_down_versus": "▼ {delta} vs {previous}",
 				"rate": "{rate}",
 				"latency_ms": "{value} ms",
 				"latency_s": "{value} s",
@@ -999,9 +1002,6 @@
 				"archived": "Archivés",
 				"attention": "À revoir"
 			},
-			"filters": {
-				"category": "Catégorie"
-			},
 			"footer": {
 				"count": "aucun modèle | {count} modèle | {count} modèles",
 				"hint": "Ouvrez un modèle pour le modifier · ↵ ouvrir · T envoi de test"
@@ -1075,8 +1075,12 @@
 				"description": "Le tableau de bord, ou les étapes de configuration tant que l’espace de travail ne peut pas envoyer."
 			},
 			"page_header": {
-				"name": "Fournisseur et période",
-				"description": "L’état du fournisseur et le choix de période dans l’en-tête de page."
+				"name": "Barre de page",
+				"description": "L’état du fournisseur, la dernière mise à jour, le mode direct et le choix de la période en haut de la page."
+			},
+			"provider_pill": {
+				"name": "État du fournisseur",
+				"description": "La pastille de la barre de page qui dit si un fournisseur achemine les e-mails."
 			},
 			"settings_form": {
 				"name": "Réglages Mailing",
@@ -1194,15 +1198,8 @@
 			"current_sender": "Expéditeur actuel des réglages",
 			"meant_for": "L’e-mail destiné à {name}"
 		},
-		"period": {
-			"short": {
-				"last_hour": "1 h",
-				"last_24h": "24 h",
-				"today": "1 j",
-				"last_7_days": "7 j",
-				"last_30_days": "30 j",
-				"last_90_days": "90 j"
-			}
+		"live": {
+			"new_sends": "{count} nouvel envoi | {count} nouvel envoi | {count} nouveaux envois"
 		},
 		"page_header": {
 			"provider_connected": "{name} connecté",
@@ -1266,7 +1263,8 @@
 			"error_title": "Impossible de charger l’entonnoir",
 			"retry": "Réessayer",
 			"untracked": "La distribution n’est pas mesurée : branchez le webhook du fournisseur pour suivre l’entonnoir.",
-			"no_loss": "Aucun e-mail perdu entre les étapes."
+			"no_loss": "Aucun e-mail perdu entre les étapes.",
+			"compared_count": "vs {value} sur la période comparée"
 		},
 		"common": {
 			"cancel": "Annuler",
@@ -1389,15 +1387,6 @@
 			"url": "Lien",
 			"boolean": "Oui / non",
 			"array": "Liste"
-		},
-		"categories": {
-			"defaults": {
-				"orders": "Commandes",
-				"account": "Compte et accès",
-				"billing": "Facturation",
-				"marketing": "Marketing",
-				"forms": "Formulaires"
-			}
 		},
 		"starters": {
 			"names": {

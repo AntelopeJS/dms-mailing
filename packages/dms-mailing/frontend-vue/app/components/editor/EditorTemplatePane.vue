@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import type { TemplateDetails } from '../../composables/useMailingApi'
 import { useEditorContext } from '../../composables/useEditorContext'
-import { useLocalizedDefaults } from '../../composables/useLocalizedDefaults'
 
 const KEY = 'dms_mailing.editor.template_tab'
 const NO_CATEGORY = '__none__'
@@ -10,7 +9,6 @@ const NO_CATEGORY = '__none__'
 const { t } = useI18n()
 const toast = useToast()
 const { editor, session, actions, templateId } = useEditorContext()
-const localized = useLocalizedDefaults()
 
 const template = computed(() => session.state.template)
 const name = ref(template.value.name)
@@ -22,7 +20,7 @@ watch(
 
 const categoryItems = computed(() => [
 	{ value: NO_CATEGORY, label: t(`${KEY}.no_category`), icon: 'i-ph-minus' },
-	...localized.categories(session.state.categories).map((category) => ({
+	...session.state.categories.map((category) => ({
 		value: category.id,
 		label: category.label,
 		icon: category.icon,

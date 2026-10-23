@@ -23,6 +23,7 @@ import {
 } from "../constants";
 import { BUSINESS_AUDIENCE, SEND_AUDIENCE_QUERY_KEY } from "../types";
 import { mailingNavCategory } from "./module";
+import { MAILING_LIVE, mailingToolbar } from "./toolbar";
 
 const OVERVIEW_ORDER = 0;
 const GRID_GAP = "1rem";
@@ -30,6 +31,7 @@ const CHART_HEIGHT = "260px";
 const WIDE_SPAN = 2;
 const ATTENTION_SKELETON_ROWS = 3;
 
+/** A KPI card of the Overview, refreshed on each send while the page is live. */
 const kpi = (
   id: string,
   icon: string,
@@ -40,6 +42,7 @@ const kpi = (
   variant: "stat",
   fetchUrl: `${API_BASE_PATH}/metrics/kpi/${id}?${SEND_AUDIENCE_QUERY_KEY}=${BUSINESS_AUDIENCE}`,
   periodScope: OVERVIEW_PERIOD_SCOPE,
+  realtimeTopic: MAILING_SENDS_TOPIC,
   valueFormat: "compact",
   showSparkline: true,
   ...extra,
@@ -104,9 +107,11 @@ const activity = Grid({ gap: GRID_GAP }).child(
          * `name` carried by each series goes to ApexCharts verbatim.
          */
         primaryLabel: "$dms_mailing.metrics.sends",
-        comparisonLabel: "$dms_mailing.metrics.previous",
+        /** Neutral: the toolbar compares with the previous period or year. */
+        comparisonLabel: "$dms_mailing.metrics.compared",
         fetchUrl: `${API_BASE_PATH}/metrics/volume`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
         chart: ChartArea({
           height: CHART_HEIGHT,
           xaxisType: "datetime",
@@ -157,11 +162,16 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         title: "$dms_mailing.metrics.ranking",
         fetchUrl: `${API_BASE_PATH}/metrics/top-templates?metric=open-rate`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
         valueFormat: "percent",
         showRank: true,
         highlightTopN: 2,
         showBar: true,
-        showDelta: false,
+        /**
+         * Each row's change against the window the toolbar compares with;
+         * "No comparison" leaves the rows without one.
+         */
+        showDelta: true,
         skeletonCount: 5,
         emptyLabel: "$dms_mailing.metrics.ranking_empty",
       }),
@@ -173,9 +183,10 @@ const breakdown = Grid({ gap: GRID_GAP }).child(
         description: "$dms_mailing.metrics.domain_sends",
         fetchUrl: `${API_BASE_PATH}/metrics/domains`,
         periodScope: OVERVIEW_PERIOD_SCOPE,
+        realtimeTopic: MAILING_SENDS_TOPIC,
         valueFormat: "percent",
         showRank: false,
-        showDelta: false,
+        showDelta: true,
         skeletonCount: 5,
         emptyLabel: "$dms_mailing.metrics.ranking_empty",
       }),
@@ -192,6 +203,7 @@ export class OverviewPageController extends PageController(
     module: MODULE_ID,
     category: mailingNavCategory,
     order: OVERVIEW_ORDER,
+    live: MAILING_LIVE,
   },
   DefaultLayout({
     fullWidth: true,
@@ -206,19 +218,11 @@ export class OverviewPageController extends PageController(
     ],
   }),
 ) {
-  static header = CustomComponent("MailingPageHeader")
-    .options({
-      periodScope: OVERVIEW_PERIOD_SCOPE,
-      presets: ["last-7-days", "last-30-days", "last-90-days"],
-      defaultPreset: "last-30-days",
-      defaultComparison: "previous-period",
-      showProvider: true,
-    })
-    .meta({
-      name: "$dms_mailing.permissions.page_header.name",
-      description: "$dms_mailing.permissions.page_header.description",
-      icon: "i-ph-plugs-connected",
-    });
+  static header = mailingToolbar({
+    scope: OVERVIEW_PERIOD_SCOPE,
+    presets: ["last-7-days", "last-30-days", "last-90-days"],
+    defaultPreset: "last-30-days",
+  });
 
   static dashboard = CustomComponent("MailingOverviewGate")
     .meta({

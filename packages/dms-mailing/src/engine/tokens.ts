@@ -1,3 +1,4 @@
+import { formatValue, type ValueFormat } from "./formats";
 import { getPath, isPresent } from "./paths";
 
 export const TOKEN_PATTERN = /\{\{\s*([A-Za-z0-9_.[\]]+)\s*\}\}/g;
@@ -25,14 +26,15 @@ export function extractTokens(text: string): string[] {
   return [...found];
 }
 
-function formatValue(value: unknown): string {
-  return value instanceof Date ? value.toISOString() : String(value);
-}
-
+/**
+ * Replaces each token of `text` with its value in `data`, typed values
+ * written for `format`'s locale (see {@link formatValue}).
+ */
 export function interpolate(
   text: string,
   data: Record<string, unknown>,
   mode: InterpolationMode = "preview",
+  format?: ValueFormat,
 ): InterpolationResult {
   const missing = new Set<string>();
   const output = text.replace(TOKEN_PATTERN, (token, path: string) => {
@@ -41,7 +43,7 @@ export function interpolate(
       missing.add(path);
       return MISSING_TOKEN[mode](token);
     }
-    return formatValue(value);
+    return formatValue(value, path, format);
   });
   return { text: output, missing: [...missing] };
 }
