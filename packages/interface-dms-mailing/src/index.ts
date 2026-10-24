@@ -241,18 +241,14 @@ export interface TemplateDeclaration {
 }
 
 /**
- * What a declaration did:
+ * What a declaration did. A declaration writes once, when the tenant is
+ * provisioned:
  *
- * - `created`: initial publication completed (including a resumed seed), v1.
- * - `updated`: the declaration changed since the last call and the template
- *   was still exactly as last declared, so the new one was published.
- * - `unchanged`: the declaration is already applied; content is not changed.
- *   An interrupted history insert may be repaired. This does not imply live status.
- * - `kept`: the declaration changed but the template was edited, unpublished,
- *   archived or holds a draft since (or was made in the dashboard under that
- *   slug), so it was left as it is.
+ * - `created`: the template (or category) was missing, and was written; a
+ *   template is published as version 1.
+ * - `kept`: the tenant already had it, and it was left as it is.
  */
-export type DeclarationOutcome = "created" | "updated" | "unchanged" | "kept";
+export type DeclarationOutcome = "created" | "kept";
 
 export interface DeclareTemplateResult {
   templateId: string;
@@ -348,12 +344,10 @@ export interface ImportSendsResult {
 }
 
 /**
- * Creates or refreshes a template from code. Newly created templates are
- * published; existing lifecycle choices are preserved. Idempotent on `slug`
- * within a tenant, and never overwrites what a user
- * changed since the last declaration: see {@link DeclarationOutcome}. Waits
- * for the module and its database when called early, not tenant provisioning.
- * A storage error can reject after publication; retry the same declaration.
+ * Writes a template from code, once: call it from
+ * `Hook.TENANT_BEING_PROVISIONED`. A slug the tenant does not have yet is
+ * created and published; a slug it has is left as it is, since the template
+ * belongs to the tenant from its creation on: see {@link DeclarationOutcome}.
  */
 export const DeclareTemplate =
   InterfaceFunction<
@@ -361,10 +355,10 @@ export const DeclareTemplate =
   >();
 
 /**
- * Adds a template category to the workspace settings from code. Idempotent
- * on `id`; a category a user relabelled or removed since is left as it is.
- * Waits for the module and its database when called early.
- * Serialization is process-local; coordinate concurrent settings writers.
+ * Adds a template category to the workspace settings from code, once: call it
+ * from `Hook.TENANT_BEING_PROVISIONED`. An id the settings already hold is
+ * left as it is. Serialization is process-local; coordinate concurrent
+ * settings writers.
  */
 export const DeclareTemplateCategory =
   InterfaceFunction<
@@ -377,7 +371,7 @@ export const DeclareTemplateCategory =
  * Writes the workspace's sender (from name, address, reply-to): call it once,
  * when the project provisions the workspace (`Hook.TENANT_BEING_PROVISIONED`).
  * The declared sender replaces the stored one; later edits in the settings
- * are the user's. Waits for the module and its database when called early.
+ * are the user's.
  * Do not run it concurrently with another settings writer of the same
  * workspace, such as `DeclareTemplateCategory`: each rewrites the whole
  * settings row.
@@ -388,8 +382,7 @@ export const DeclareSender =
 /**
  * Writes past sends and their events into the send log with their own dates:
  * an import, not a send. Nothing is delivered, and no suppression,
- * automation or notification follows. Idempotent on each `importId`. Waits
- * for the module and its database when called early.
+ * automation or notification follows. Idempotent on each `importId`.
  * Deduplicates events like the webhook. Batches are not transactional; retry
  * a partial failure with the same immutable payload and authorized tenantId.
  */

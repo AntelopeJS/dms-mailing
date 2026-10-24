@@ -182,8 +182,8 @@ describe("[integration] template declarations", () => {
       DeclareTemplate(declaration(slug)),
     ]);
     expect(again.map((result) => result.outcome)).to.deep.equal([
-      "unchanged",
-      "unchanged",
+      "kept",
+      "kept",
     ]);
     expect(await rowsWithSlug(slug)).to.equal(1);
 
@@ -279,195 +279,14 @@ describe("[integration] template declarations", () => {
       Array.from({ length: 4 }, () => DeclareTemplate(declaration(slug))),
     );
     const outcomes = results.map((result) => result.outcome).sort();
-    expect(outcomes).to.deep.equal([
-      "created",
-      "unchanged",
-      "unchanged",
-      "unchanged",
-    ]);
+    expect(outcomes).to.deep.equal(["created", "kept", "kept", "kept"]);
     expect(results.map((result) => result.version)).to.deep.equal([1, 1, 1, 1]);
     expect(await rowsWithSlug(slug)).to.equal(1);
   });
 
-  it("publishes a changed declaration over an untouched template", async () => {
-    const { DeclareTemplate } = await mailing();
-    const slug = `declared-update-${stamp}`;
-    const created = await DeclareTemplate(declaration(slug));
-    const updated = await DeclareTemplate(
-      declaration(slug, {
-        name: { en: "Renamed" },
-        content: contentWith("Your new order is ready"),
-      }),
-    );
-    expect(updated).to.include({ outcome: "updated", version: 2 });
-    const api = await client();
-    const content = await api.get(`${TEMPLATES}/${created.templateId}/content`);
-    expect(content.data.template.name).to.equal("Renamed");
-    expect(content.data.publishedContent.locales.en.subject).to.equal(
-      "Your new order is ready",
-    );
-    expect(await versionsOf(api, created.templateId)).to.deep.equal([2, 1]);
-  });
-
-  it("finishes a declaration whose creator failed immediately after inserting its seed", async () => {
-    const { DeclareTemplate } = await mailing();
-    const { TemplateModel } = await import("../../db");
-    const slug = `declared-interrupted-${stamp}`;
-    // Retain the original for fault injection; invoke it with the model receiver.
-    // oxlint-disable-next-line typescript/unbound-method
-    const insert = TemplateModel.prototype.insert;
-    TemplateModel.prototype.insert = async function (fields, options) {
-      const ids = await insert.call(this, fields, options);
-      if (!Array.isArray(fields) && fields.slug === slug)
-        throw new Error("Interrupted after seed insert");
-      return ids;
-    };
-    try {
-      const error = await DeclareTemplate(declaration(slug)).catch(
-        (reason: Error) => reason,
-      );
-      expect(error).to.be.instanceOf(Error);
-    } finally {
-      TemplateModel.prototype.insert = insert;
-    }
-    const resumed = await DeclareTemplate(declaration(slug));
-    expect(resumed).to.include({ outcome: "created", version: 1 });
-    expect(await rowsWithSlug(slug)).to.equal(1);
-    expect(await versionsOf(await client(), resumed.templateId)).to.deep.equal([
-      1,
-    ]);
-  });
-
-  it("preserves edits made after a declaration read its publication snapshot", async () => {
-    const { DeclareTemplate } = await mailing();
-    const { TemplateModel } = await import("../../db");
-    const api = await client();
-    const edits = [
-      async (id: string) =>
-        api.post(`${TEMPLATES}/${id}/content`, {
-          content: contentWith("User draft"),
-        }),
-      async (id: string) => api.post(`${TEMPLATES}/${id}/archive`, {}),
-      async (id: string) =>
-        api.put(`${TEMPLATES}/${id}/details`, {
-          name: "User name",
-          category: "billing",
-        }),
-      async (id: string) =>
-        api.post(`${TEMPLATES}/${id}/test-data`, { data: { user: true } }),
-      async (id: string) => {
-        const saved = await api.post(`${TEMPLATES}/${id}/content`, {
-          content: contentWith("User publication"),
-        });
-        expect(saved.status).to.equal(HTTP_OK);
-        return api.post(`${TEMPLATES}/${id}/publish`, {});
-      },
-    ];
-    for (const [index, edit] of edits.entries()) {
-      const slug = `declared-user-race-${index}-${stamp}`;
-      const created = await DeclareTemplate(declaration(slug));
-      // Invoke the saved implementation with the original receiver below.
-      // oxlint-disable-next-line typescript/unbound-method
-      const publish = TemplateModel.prototype.publishIfCurrent;
-      let edited = false;
-      TemplateModel.prototype.publishIfCurrent = async function (
-        snapshot,
-        patch,
-      ) {
-        if (snapshot._id === created.templateId && !edited) {
-          edited = true;
-          const response = await edit(snapshot._id);
-          expect(response.status, JSON.stringify(response.data)).to.equal(
-            HTTP_OK,
-          );
-        }
-        return publish.call(this, snapshot, patch);
-      };
-      try {
-        const result = await DeclareTemplate(
-          declaration(slug, { content: contentWith("Code update") }),
-        );
-        const userPublished = index === edits.length - 1;
-        expect(result).to.include({
-          outcome: "kept",
-          version: userPublished ? 2 : 1,
-        });
-        const content = await api.get(
-          `${TEMPLATES}/${created.templateId}/content`,
-        );
-        expect(content.data.publishedContent.locales.en.subject).to.equal(
-          userPublished ? "User publication" : "Your order is ready",
-        );
-        expect(await versionsOf(api, created.templateId)).to.deep.equal(
-          userPublished ? [2, 1] : [1],
-        );
-      } finally {
-        TemplateModel.prototype.publishIfCurrent = publish;
-      }
-    }
-  });
-
-  it("keeps committed history readable and recoverable when its insert fails", async () => {
-    const { DeclareTemplate } = await mailing();
-    const { GetModel } =
-      await import("@antelopejs/interface-database-decorators");
-    const { DEFAULT_TENANT_ID } =
-      await import("@antelopejs/interface-dms/constants");
-    const { TemplateVersionModel } = await import("../../db");
-    const slug = `declared-history-recovery-${stamp}`;
-    const first = await DeclareTemplate(declaration(slug));
-    // Retain the original for fault injection; invoke it with the model receiver.
-    // oxlint-disable-next-line typescript/unbound-method
-    const insert = TemplateVersionModel.prototype.insert;
-    TemplateVersionModel.prototype.insert = async function (fields, options) {
-      if (
-        !Array.isArray(fields) &&
-        fields.templateId === first.templateId &&
-        fields.version === 2
-      )
-        throw new Error("History storage unavailable");
-      return insert.call(this, fields, options);
-    };
-    const changed = declaration(slug, { content: contentWith("Committed v2") });
-    try {
-      const error = await DeclareTemplate(changed).catch(
-        (reason: Error) => reason,
-      );
-      expect(error).to.be.instanceOf(Error);
-      const api = await client();
-      expect(await versionsOf(api, first.templateId)).to.deep.equal([2, 1]);
-      const version = await GetModel(
-        TemplateVersionModel,
-        DEFAULT_TENANT_ID,
-      ).getVersion(first.templateId, 2);
-      expect(JSON.parse(version!.json_content).locales.en.subject).to.equal(
-        "Committed v2",
-      );
-    } finally {
-      TemplateVersionModel.prototype.insert = insert;
-    }
-    expect(await DeclareTemplate(changed)).to.include({
-      outcome: "unchanged",
-      version: 2,
-    });
-    const rows = await GetModel(TemplateVersionModel, DEFAULT_TENANT_ID).getBy(
-      "templateId",
-      first.templateId,
-    );
-    expect(rows.map((row) => row.version).sort((a, b) => a - b)).to.deep.equal([
-      1, 2,
-    ]);
-    expect(
-      await DeclareTemplate(
-        declaration(slug, { content: contentWith("Next v3") }),
-      ),
-    ).to.include({ outcome: "updated", version: 3 });
-    expect(await versionsOf(await client(), first.templateId)).to.deep.equal([
-      3, 2, 1,
-    ]);
-  });
-
-  it("keeps a template a user edited since it was declared", async () => {
+  // Written once: from its creation on, the template is the tenant's, and a
+  // later declaration of the same slug, changed or not, writes nothing.
+  it("leaves a template a user edited as it is, whatever the code declares", async () => {
     const { DeclareTemplate } = await mailing();
     const slug = `declared-kept-${stamp}`;
     const created = await DeclareTemplate(declaration(slug));
@@ -476,26 +295,22 @@ describe("[integration] template declarations", () => {
       content: contentWith("Edited by hand"),
     });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(HTTP_OK);
-
-    const pendingDraft = await DeclareTemplate(
-      declaration(slug, { content: contentWith("Code wants this") }),
-    );
-    expect(pendingDraft.outcome).to.equal("kept");
-
     await api.post(`${TEMPLATES}/${created.templateId}/publish`, {});
-    const published = await DeclareTemplate(
-      declaration(slug, { content: contentWith("Code wants this") }),
+
+    const redeclared = await DeclareTemplate(
+      declaration(slug, {
+        name: { en: "Code wants this name" },
+        content: contentWith("Code wants this"),
+      }),
     );
-    expect(published).to.include({ outcome: "kept", version: 2 });
+
+    expect(redeclared).to.include({ outcome: "kept", version: 2 });
     const content = await api.get(`${TEMPLATES}/${created.templateId}/content`);
+    expect(content.data.template.name).to.equal(`Declared ${slug}`);
     expect(content.data.publishedContent.locales.en.subject).to.equal(
       "Edited by hand",
     );
-
-    const original = await DeclareTemplate(declaration(slug));
-    expect(original.outcome, "the declaration last applied").to.equal(
-      "unchanged",
-    );
+    expect(await versionsOf(api, created.templateId)).to.deep.equal([2, 1]);
   });
 
   it("keeps a template archived since it was declared", async () => {
@@ -657,7 +472,7 @@ describe("[integration] template category declarations", () => {
       label: { en: "Declared subscriptions" },
       icon: "i-ph-tag",
     });
-    expect(again.outcome).to.equal("unchanged");
+    expect(again.outcome).to.equal("kept");
 
     const template = await DeclareTemplate(
       declaration("in-category", { tenantId, category: "subscriptions" }),
@@ -665,58 +480,22 @@ describe("[integration] template category declarations", () => {
     expect(template.outcome).to.equal("created");
   });
 
-  it("relabels an untouched category and keeps a removed one away", async () => {
-    const { DeclareTemplateCategory, DeclareTemplate } = await mailing();
+  it("never relabels a category the workspace already has", async () => {
+    const { DeclareTemplateCategory } = await mailing();
     const id = "workshops";
-    await DeclareTemplateCategory({
-      tenantId,
-      id,
-      label: { en: "Workshops" },
-      icon: "i-ph-tag",
-    });
-    const relabelled = await DeclareTemplateCategory({
-      tenantId,
-      id,
-      label: { en: "Trainings" },
-      icon: "i-ph-tag",
-    });
-    expect(relabelled.outcome).to.equal("updated");
+    const declare = (en: string) =>
+      DeclareTemplateCategory({
+        tenantId,
+        id,
+        label: { en },
+        icon: "i-ph-tag",
+      });
+    expect((await declare("Workshops")).outcome).to.equal("created");
+
+    expect((await declare("Trainings")).outcome).to.equal("kept");
     const labels = (await storedCategories()).map((category) => category.label);
-    expect(labels).to.deep.include({ en: "Trainings" });
-
-    const template = declaration("removed-category", {
-      tenantId,
-      category: id,
-    });
-    await DeclareTemplate(template);
-
-    const { getSettings, saveSettings } =
-      await import("../../services/settings");
-    const settings = await getSettings(tenantId);
-    await saveSettings(tenantId, {
-      ...settings,
-      categories: settings.categories.filter((category) => category.id !== id),
-    });
-    const redeclared = await DeclareTemplateCategory({
-      tenantId,
-      id,
-      label: { en: "Workshops again" },
-      icon: "i-ph-tag",
-    });
-    expect(redeclared.outcome).to.equal("kept");
-    expect(await categoryIds()).to.not.include(id);
-    expect((await DeclareTemplate(template)).outcome).to.equal("unchanged");
-
-    const { GetModel } =
-      await import("@antelopejs/interface-database-decorators");
-    const { TemplateModel } = await import("../../db");
-    const model = GetModel(TemplateModel, tenantId);
-    const stored = await model.getBySlug(template.slug);
-    await model.updateFields(stored!._id, { category: "orders" });
-    expect(
-      (await DeclareTemplate({ ...template, name: { en: "Code changed" } }))
-        .outcome,
-    ).to.equal("kept");
+    expect(labels).to.deep.include({ en: "Workshops" });
+    expect(labels).to.not.deep.include({ en: "Trainings" });
   });
 
   it("leaves a default category as the workspace has it", async () => {
