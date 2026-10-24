@@ -241,18 +241,14 @@ export interface TemplateDeclaration {
 }
 
 /**
- * What a declaration did:
+ * What a declaration did. A declaration writes once, when the tenant is
+ * provisioned:
  *
- * - `created`: initial publication completed (including a resumed seed), v1.
- * - `updated`: the declaration changed since the last call and the template
- *   was still exactly as last declared, so the new one was published.
- * - `unchanged`: the declaration is already applied; content is not changed.
- *   An interrupted history insert may be repaired. This does not imply live status.
- * - `kept`: the declaration changed but the template was edited, unpublished,
- *   archived or holds a draft since (or was made in the dashboard under that
- *   slug), so it was left as it is.
+ * - `created`: the template (or category) was missing, and was written; a
+ *   template is published as version 1.
+ * - `kept`: the tenant already had it, and it was left as it is.
  */
-export type DeclarationOutcome = "created" | "updated" | "unchanged" | "kept";
+export type DeclarationOutcome = "created" | "kept";
 
 export interface DeclareTemplateResult {
   templateId: string;
@@ -348,11 +344,10 @@ export interface ImportSendsResult {
 }
 
 /**
- * Creates or refreshes a template from code. Newly created templates are
- * published; existing lifecycle choices are preserved. Idempotent on `slug`
- * within a tenant, and never overwrites what a user
- * changed since the last declaration: see {@link DeclarationOutcome}.
- * A storage error can reject after publication; retry the same declaration.
+ * Writes a template from code, once: call it from
+ * `Hook.TENANT_BEING_PROVISIONED`. A slug the tenant does not have yet is
+ * created and published; a slug it has is left as it is, since the template
+ * belongs to the tenant from its creation on: see {@link DeclarationOutcome}.
  */
 export const DeclareTemplate =
   InterfaceFunction<
@@ -360,9 +355,10 @@ export const DeclareTemplate =
   >();
 
 /**
- * Adds a template category to the workspace settings from code. Idempotent
- * on `id`; a category a user relabelled or removed since is left as it is.
- * Serialization is process-local; coordinate concurrent settings writers.
+ * Adds a template category to the workspace settings from code, once: call it
+ * from `Hook.TENANT_BEING_PROVISIONED`. An id the settings already hold is
+ * left as it is. Serialization is process-local; coordinate concurrent
+ * settings writers.
  */
 export const DeclareTemplateCategory =
   InterfaceFunction<

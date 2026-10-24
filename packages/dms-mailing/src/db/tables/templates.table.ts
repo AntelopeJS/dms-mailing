@@ -141,24 +141,9 @@ export class MailingTemplate extends Table.with(LocalizationModifier) {
   @Field("date")
   declare unpublishedAt?: Date;
 
-  /**
-   * Fingerprint of the last declaration `DeclareTemplate` applied; blank for
-   * a template made in the dashboard. A template still matching it is
-   * untouched since, and the next declaration may refresh it.
-   */
-  @Field("string")
-  declare declaredHash?: string;
-
   /** Every semantic edit invalidates a publication's optimistic snapshot. */
   @Field("string")
   declare revision?: string;
-
-  /** An unmodified declaration seed can be completed after a crashed creator. */
-  @Field("string")
-  declare declarationSeedRevision?: string;
-
-  @Field("string")
-  declare pendingDeclaredHash?: string;
 
   /**
    * Complete latest version row, committed atomically with its content. Its
