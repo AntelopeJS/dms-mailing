@@ -7,6 +7,8 @@ import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { z } from "zod";
 import { API_BASE_PATH } from "../../constants";
 import { TemplateCategoriesType } from "../../data-types";
+import { missingVariablesPolicy } from "../../services/settings";
+import { MODULE_DEFAULT_SETTINGS } from "../../types";
 import {
   MAX_RETENTION_DAYS,
   MIN_RETENTION_DAYS,
@@ -35,6 +37,18 @@ const field = (id: string) => ({
   id,
   label: key(`fields.${id}.label`),
   description: key(`fields.${id}.description`),
+});
+
+/**
+ * A field holding a module default offers it: "Module default · Use default"
+ * while it holds something else. The retention does not: one click there
+ * could shorten it, and lowering it deletes sends, which its input asks to
+ * confirm instead. Nor do the categories: putting the default list back
+ * would move every template of a custom category.
+ */
+const moduleDefault = (defaultValue: string) => ({
+  defaultValue,
+  offersDefault: true,
 });
 
 const section = (
@@ -84,12 +98,14 @@ const guards = section("guards", "i-ph-shield-check", [
       ],
     }),
     required: true,
+    ...moduleDefault(missingVariablesPolicy(MODULE_DEFAULT_SETTINGS)),
   },
   {
     ...field("fallbackLocale"),
     type: new DefaultDataTypes.StringType({}),
     inputComponent: CustomComponent("MailingLocaleSelect").serializeSync(),
     required: true,
+    ...moduleDefault(MODULE_DEFAULT_SETTINGS.fallbackLocale),
   },
 ]);
 
