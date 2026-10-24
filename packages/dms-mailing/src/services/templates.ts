@@ -497,6 +497,52 @@ export async function initializeTemplate(
   await refreshTemplateAttention(tenantId);
 }
 
+/** The first version a template publishes. */
+const FIRST_VERSION = 1;
+
+/**
+ * A new template, published at once as version 1 of `draft`: its content
+ * and its history entry land in the one write that creates it, so no reader
+ * ever sees it unpublished. Materialize its version row afterwards, as a
+ * publication does.
+ */
+export function publishedAtCreation(
+  id: string,
+  draft: TemplateDraft,
+  author: string,
+): TemplateFields {
+  const shipped: TemplateFields = {
+    json_content: JSON.stringify(draft.content),
+    json_variables: JSON.stringify(draft.variables),
+    locales: localesOf(draft.content),
+    publishedAt: new Date(),
+    publishedBy: author,
+  };
+  const changes = [
+    ...diffContents({ locales: {} }, draft.content),
+    ...diffVariables([], draft.variables),
+  ];
+  return {
+    _id: id,
+    ...shipped,
+    json_published_version: JSON.stringify({
+      ...shipped,
+      _id: randomUUID(),
+      templateId: id,
+      version: FIRST_VERSION,
+      json_changes: JSON.stringify(changes),
+    }),
+    json_draft: "",
+    json_variables_draft: "",
+    isDraftPending: false,
+    draftRevision: FIRST_DRAFT_REVISION,
+    status: "live",
+    publishedVersion: FIRST_VERSION,
+    updatedBy: author,
+    ...NO_ATTENTION,
+  };
+}
+
 export function blankFields(content: TemplateContent): TemplateFields {
   return {
     json_content: "",

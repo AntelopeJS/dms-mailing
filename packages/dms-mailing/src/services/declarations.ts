@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   DeclareTemplateCategoryResult,
   DeclareTemplateResult,
@@ -6,7 +7,11 @@ import type {
 } from "@antelopejs/interface-dms-mailing";
 import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { type MailingTemplate, TemplateModel } from "../db";
+import {
+  type MailingTemplate,
+  TemplateModel,
+  TemplateVersionModel,
+} from "../db";
 import type { TemplateCategory, TemplateContent } from "../types";
 import {
   categoryDeclarationSchema,
@@ -17,11 +22,11 @@ import {
 import { categoriesSchema } from "../validation/settings.schema";
 import { DeclarationError, parseDeclared } from "./declaration-error";
 import { findCategory, getSettings, saveSettings } from "./settings";
+import { refreshTemplateAttention } from "./template-attention";
 import {
-  blankFields,
   localesWithoutSubject,
   publishedVersionOf,
-  publishTemplate,
+  publishedAtCreation,
   requireTemplate,
 } from "./templates";
 
@@ -68,8 +73,9 @@ function resultOf(
 }
 
 /**
- * Inserts the declared template as a draft and publishes it. `undefined` when
- * a concurrent call created the slug first (the slug index is unique).
+ * Inserts the declared template already published, as version 1, in one
+ * write. `undefined` when a concurrent call created the slug first (the slug
+ * index is unique): that call's row is published too.
  */
 async function createDeclared(
   declaration: ParsedTemplateDeclaration,
@@ -77,31 +83,32 @@ async function createDeclared(
   const { tenantId, slug } = declaration;
   const model = GetModel(TemplateModel, tenantId);
   const author = declaration.author ?? DECLARATION_AUTHOR;
-  let templateId: string;
+  let template: MailingTemplate;
   try {
     const [id] = await model.insertFields({
       slug,
       name: declaration.name,
       category: declaration.category,
-      status: "draft",
-      ...blankFields(declaration.content as TemplateContent),
-      json_variables: JSON.stringify(declaration.variables),
       json_test_data: JSON.stringify(declaration.testData),
-      updatedBy: author,
+      ...publishedAtCreation(
+        randomUUID(),
+        {
+          content: declaration.content as TemplateContent,
+          variables: declaration.variables,
+        },
+        author,
+      ),
     });
-    templateId = id as string;
+    template = await requireTemplate(model, id as string);
   } catch (error) {
     // A concurrent declaration of the slug created it first: expected, the
     // caller goes on with that template.
     if (IsDuplicateKeyError(error)) return undefined;
     throw error;
   }
-  await publishTemplate(
-    tenantId,
-    await requireTemplate(model, templateId),
-    author,
-  );
-  return requireTemplate(model, templateId);
+  await GetModel(TemplateVersionModel, tenantId).materialize(template);
+  await refreshTemplateAttention(tenantId);
+  return template;
 }
 
 /**
