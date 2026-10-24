@@ -14,11 +14,7 @@ import {
   scheduleJob,
   stopJob,
 } from "./crons";
-import {
-  registerDatabaseReady,
-  registerTenantExport,
-  unregisterTenantExport,
-} from "./hooks";
+import { registerTenantExport, unregisterTenantExport } from "./hooks";
 import { registerRealtimeTopics } from "./realtime";
 import { frontendModule } from "./frontend-module";
 
@@ -34,7 +30,6 @@ const CRON_JOBS = [RETENTION_JOB, ATTENTION_JOB];
 let scheduledJobs: ScheduledJob[] = [];
 
 export async function construct(config: DmsMailingConfig = {}): Promise<void> {
-  registerDatabaseReady();
   setConfig(config);
   ImplementInterface(
     await import("@antelopejs/interface-dms-mailing"),
