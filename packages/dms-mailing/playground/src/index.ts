@@ -1,13 +1,8 @@
-import path from "node:path";
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
+import { frontendModule } from "./frontend-module";
 
 export async function construct(): Promise<void> {
-  await AddFrontendModule({
-    name: "playground-frontend-vue",
-    sourcePath: path.join(__dirname, "../frontend-vue"),
-    renderer: { name: "vue", version: "3" },
-    priority: 1,
-  });
+  await AddFrontendModule(frontendModule());
 }
 
 export function start(): void {}
