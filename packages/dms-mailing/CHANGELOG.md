@@ -5,6 +5,14 @@
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.7.0...v0.7.1)
 
+### Upgrade notes
+
+- Runs on `@antelopejs/dms` `>=0.11.0`, `@antelopejs/interface-dms` `>=0.9.0`, `@antelopejs/dms-frontend` `>=0.9.0 <0.10.0`, `@antelopejs/interface-data-api` `>=0.4.0` ([#69](https://github.com/AntelopeJS/dms-mailing/pull/69)). **Upgrade together with dms 0.11 and dms-frontend 0.9.**
+- **Breaking: the database module must enforce unique indexes** ([#68](https://github.com/AntelopeJS/dms-mailing/pull/68)). A template's slug is a unique index (`@antelopejs/interface-database` `>=0.1.11`, `@antelopejs/interface-database-decorators` `>=0.1.10`): use `@antelopejs/mongodb` ≥ 1.5.0 or `@antelopejs/postgres` ≥ 0.2.2. RethinkDB refuses this schema. The `mailing_template_slugs` table (slug claims) is gone; creating or duplicating a template on a taken slug answers `409 $dms_mailing.errors.duplicate_slug`.
+- **Breaking:** declared templates and categories are written once ([#66](https://github.com/AntelopeJS/dms-mailing/pull/66)). An existing slug or category id is `kept`, whatever the code declares next; `declaredHash`, `pendingDeclaredHash`, `declarationSeedRevision` and `json_declared_categories` are no longer written. No migration: reset the database.
+- **Breaking:** the database ready gate is removed ([#65](https://github.com/AntelopeJS/dms-mailing/pull/65)). Call `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends` from a `Hook.TENANT_BEING_PROVISIONED` handler.
+- A declared template is created already published as version 1, in one write: concurrent declarations of one slug answer one `created` and `kept` for the others, all at version 1 ([#70](https://github.com/AntelopeJS/dms-mailing/pull/70)).
+
 ### 🚀 Enhancements
 
 - **settings:** Offer the module default on the settings fields that have one ([#67](https://github.com/AntelopeJS/dms-mailing/pull/67))
