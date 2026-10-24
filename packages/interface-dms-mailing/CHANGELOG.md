@@ -5,6 +5,11 @@
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.9.0...v0.9.1)
 
+### Upgrade notes
+
+- **Breaking (contract), released as a patch:** `DeclarationOutcome` is `"created" | "kept"` ([#66](https://github.com/AntelopeJS/dms-mailing/pull/66)). `DeclareTemplate` creates a missing slug, published as version 1; a slug the tenant already has (declared or made in the dashboard) is `kept` and nothing is written. `DeclareTemplateCategory` adds a missing id and keeps an existing one. The `updated` / `unchanged` outcomes and the `declaration_conflict` error are gone: drop the branches that tested them.
+- Call the declarations from a `Hook.TENANT_BEING_PROVISIONED` handler (fired by `@antelopejs/dms` ≥ 0.11), not from `start()` or `DATABASE_INITIALIZED` ([#65](https://github.com/AntelopeJS/dms-mailing/pull/65)).
+
 ### 🚀 Enhancements
 
 - **mailing:** Adopt the DMS page toolbar and live mode on Overview and Sends ([#55](https://github.com/AntelopeJS/dms-mailing/pull/55))
