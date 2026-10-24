@@ -52,3 +52,23 @@ export const DEFAULT_CATEGORIES: TemplateCategory[] = [
     icon: "i-ph-textbox",
   },
 ];
+
+export const DEFAULT_FALLBACK_LOCALE = "en";
+
+/**
+ * The module defaults: what a tenant's settings start with, and what the
+ * settings form offers to put back ("Use default"). The sender is empty and
+ * the webhook secret is drawn per tenant, so neither has one.
+ */
+export const MODULE_DEFAULT_SETTINGS: Pick<
+  MailingSettingsValues,
+  | "fallbackLocale"
+  | "logRetentionDays"
+  | "blockOnMissingVariables"
+  | "categories"
+> = {
+  fallbackLocale: DEFAULT_FALLBACK_LOCALE,
+  logRetentionDays: 90,
+  blockOnMissingVariables: false,
+  categories: DEFAULT_CATEGORIES,
+};
