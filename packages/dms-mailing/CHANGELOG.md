@@ -1,6 +1,36 @@
 # Changelog
 
 
+## v0.7.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.7.0...v0.7.1)
+
+### 🚀 Enhancements
+
+- **settings:** Offer the module default on the settings fields that have one ([#67](https://github.com/AntelopeJS/dms-mailing/pull/67))
+
+### 🩹 Fixes
+
+- **declarations:** Create a declared template already published, in one write ([#70](https://github.com/AntelopeJS/dms-mailing/pull/70))
+
+### 💅 Refactors
+
+- **declarations:** Drop the database ready gate ([#65](https://github.com/AntelopeJS/dms-mailing/pull/65))
+- **declarations:** Write declared templates and categories once ([#66](https://github.com/AntelopeJS/dms-mailing/pull/66))
+- **templates:** A unique slug index instead of slug claims ([#68](https://github.com/AntelopeJS/dms-mailing/pull/68))
+
+### 📦 Build
+
+- **deps:** Run on dms 0.11, interface-dms 0.9 and dms-frontend 0.9 ([#69](https://github.com/AntelopeJS/dms-mailing/pull/69))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms-mailing v0.9.1 ([4b09056](https://github.com/AntelopeJS/dms-mailing/commit/4b09056))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.6.1...v0.7.0)
