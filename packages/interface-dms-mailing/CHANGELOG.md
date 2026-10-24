@@ -1,6 +1,42 @@
 # Changelog
 
 
+## v0.9.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.9.0...v0.9.1)
+
+### 🚀 Enhancements
+
+- **mailing:** Adopt the DMS page toolbar and live mode on Overview and Sends ([#55](https://github.com/AntelopeJS/dms-mailing/pull/55))
+- **sends:** Open a send in a resizable right drawer ([#57](https://github.com/AntelopeJS/dms-mailing/pull/57))
+- **settings:** Offer the module default on the settings fields that have one ([#67](https://github.com/AntelopeJS/dms-mailing/pull/67))
+
+### 🩹 Fixes
+
+- **templates:** Render the gallery without skeleton flashes or layout shift ([#56](https://github.com/AntelopeJS/dms-mailing/pull/56))
+- **declarations:** Create a declared template already published, in one write ([#70](https://github.com/AntelopeJS/dms-mailing/pull/70))
+
+### 💅 Refactors
+
+- **declarations:** Drop the database ready gate ([#65](https://github.com/AntelopeJS/dms-mailing/pull/65))
+- **declarations:** Write declared templates and categories once ([#66](https://github.com/AntelopeJS/dms-mailing/pull/66))
+- **templates:** A unique slug index instead of slug claims ([#68](https://github.com/AntelopeJS/dms-mailing/pull/68))
+
+### 📦 Build
+
+- Require interface-dms-mailing 0.9 and interface-dms 0.8 ([#63](https://github.com/AntelopeJS/dms-mailing/pull/63))
+- Run on @antelopejs/dms 0.10 and @antelopejs/dms-frontend 0.8 ([#64](https://github.com/AntelopeJS/dms-mailing/pull/64))
+- **deps:** Run on dms 0.11, interface-dms 0.9 and dms-frontend 0.9 ([#69](https://github.com/AntelopeJS/dms-mailing/pull/69))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms-mailing v0.7.0 ([66570db](https://github.com/AntelopeJS/dms-mailing/commit/66570db))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Maxime Westhoven ([@mwesto](http://github.com/mwesto))
+
 ## v0.9.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.8.0...v0.9.0)
