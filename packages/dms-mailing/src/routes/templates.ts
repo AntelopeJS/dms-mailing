@@ -47,7 +47,6 @@ import {
   type TemplateStats,
 } from "../services/template-stats";
 import {
-  assertSlugClaimed,
   contentFieldsOf,
   discardDraft,
   displayName,
@@ -70,6 +69,7 @@ import {
   workingSnapshot,
   workingContent,
   workingVariables,
+  refuseTakenSlug,
   requireTemplate,
 } from "../services/templates";
 import {
@@ -89,7 +89,6 @@ import {
 } from "../validation/templates.schema";
 
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
-const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
 const INVALID_TRANSITION = "$dms_mailing.errors.invalid_transition";
 const NOTHING_TO_PUBLISH = "$dms_mailing.errors.nothing_to_publish";
@@ -573,17 +572,16 @@ export class TemplatesController extends Controller(
       duplicateSchema.parse(value),
     );
     const source = await requireTemplate(this.templates, id);
-    const clash = await this.templates.getBySlug(slug);
-    assert(!clash, HTTP_CONFLICT, DUPLICATE_SLUG);
-    const [copyId] = await this.templates.insertFields({
-      slug,
-      name: withTextIn(undefined, this.locale, name),
-      category: source.category,
-      status: "draft",
-      ...contentFieldsOf(source),
-      updatedBy: this.author,
-    });
-    await assertSlugClaimed(this.tenantId, slug, copyId as string);
+    const [copyId] = await refuseTakenSlug(
+      this.templates.insertFields({
+        slug,
+        name: withTextIn(undefined, this.locale, name),
+        category: source.category,
+        status: "draft",
+        ...contentFieldsOf(source),
+        updatedBy: this.author,
+      }),
+    );
     await refreshTemplateAttention(this.tenantId);
     return { id: copyId };
   }

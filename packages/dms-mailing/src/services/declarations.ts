@@ -4,6 +4,7 @@ import type {
   TemplateCategoryDeclaration,
   TemplateDeclaration,
 } from "@antelopejs/interface-dms-mailing";
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type MailingTemplate, TemplateModel } from "../db";
 import type { TemplateCategory, TemplateContent } from "../types";
@@ -17,7 +18,6 @@ import { categoriesSchema } from "../validation/settings.schema";
 import { DeclarationError, parseDeclared } from "./declaration-error";
 import { findCategory, getSettings, saveSettings } from "./settings";
 import {
-  assertSlugClaimed,
   blankFields,
   localesWithoutSubject,
   publishedVersionOf,
@@ -68,9 +68,8 @@ function resultOf(
 }
 
 /**
- * Inserts the declared template as a draft, claims its slug like the
- * dashboard's creation does, and publishes it. `undefined` when a concurrent
- * call claimed the slug first.
+ * Inserts the declared template as a draft and publishes it. `undefined` when
+ * a concurrent call created the slug first (the slug index is unique).
  */
 async function createDeclared(
   declaration: ParsedTemplateDeclaration,
@@ -78,21 +77,23 @@ async function createDeclared(
   const { tenantId, slug } = declaration;
   const model = GetModel(TemplateModel, tenantId);
   const author = declaration.author ?? DECLARATION_AUTHOR;
-  const [id] = await model.insertFields({
-    slug,
-    name: declaration.name,
-    category: declaration.category,
-    status: "draft",
-    ...blankFields(declaration.content as TemplateContent),
-    json_variables: JSON.stringify(declaration.variables),
-    json_test_data: JSON.stringify(declaration.testData),
-    updatedBy: author,
-  });
-  const templateId = id as string;
+  let templateId: string;
   try {
-    await assertSlugClaimed(tenantId, slug, templateId);
+    const [id] = await model.insertFields({
+      slug,
+      name: declaration.name,
+      category: declaration.category,
+      status: "draft",
+      ...blankFields(declaration.content as TemplateContent),
+      json_variables: JSON.stringify(declaration.variables),
+      json_test_data: JSON.stringify(declaration.testData),
+      updatedBy: author,
+    });
+    templateId = id as string;
   } catch (error) {
-    if (await model.getBySlug(slug)) return undefined;
+    // A concurrent declaration of the slug created it first: expected, the
+    // caller goes on with that template.
+    if (IsDuplicateKeyError(error)) return undefined;
     throw error;
   }
   await publishTemplate(

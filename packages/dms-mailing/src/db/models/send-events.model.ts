@@ -1,3 +1,4 @@
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { MAILING_SEND_EVENTS_TABLE_NAME, MailingSendEvent } from "../tables";
 import { SendModel } from "./sends.model";
@@ -28,11 +29,10 @@ export class SendEventModel extends BasicDataModel(
    * the same import already did.
    */
   async insertImported(event: MailingSendEvent): Promise<void> {
-    if (await this.get(event._id)) return;
     try {
       await this.insert(event);
     } catch (error) {
-      if (!(await this.get(event._id))) throw error;
+      if (!IsDuplicateKeyError(error)) throw error;
     }
   }
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   HTTP_CONFLICT,
@@ -11,9 +12,7 @@ import {
   type MailingTemplateVersion,
   type TemplateFields,
   TemplateModel,
-  TemplateSlugModel,
   TemplateVersionModel,
-  templateSlugIdOf,
 } from "../db";
 import { diffContents, diffVariables, type TemplateChange } from "../engine";
 import {
@@ -45,6 +44,7 @@ const STALE_DRAFT: TemplateAttentionReason = "stale_draft";
 const VERSION_NOT_FOUND = "$dms_mailing.errors.version_not_found";
 const TEMPLATE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
+const SLUG_FIELD = "slug";
 
 /** The template `id` names; 404 when there is none. */
 export async function requireTemplate(
@@ -57,49 +57,18 @@ export async function requireTemplate(
 }
 
 /**
- * Gives `slug` to the template just inserted; false when another template
- * holds it. A claim whose template is gone (deleted before its claim was
- * freed) is taken over, through the same insert that settles a race.
+ * Runs a write that gives a template its slug, refused with a 409 when
+ * another template of the tenant holds it: the slug's unique index settles
+ * concurrent creations, so nothing reads the table before writing.
  */
-async function claimTemplateSlug(
-  tenantId: string,
-  slug: string,
-  templateId: string,
-): Promise<boolean> {
-  const claims = GetModel(TemplateSlugModel, tenantId);
-  const id = templateSlugIdOf(tenantId, slug);
-  if (await claims.insertClaim(id, slug, templateId)) return true;
-  const holder = await claims.get(id);
-  if (holder?.templateId === templateId) return true;
-  if (holder) {
-    const templates = GetModel(TemplateModel, tenantId);
-    if (await templates.get(holder.templateId)) return false;
-    await claims.dropClaimOf(id, holder.templateId);
+export async function refuseTakenSlug<T>(write: Promise<T>): Promise<T> {
+  try {
+    return await write;
+  } catch (error) {
+    if (IsDuplicateKeyError(error) && error.fields.includes(SLUG_FIELD))
+      throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
+    throw error;
   }
-  return claims.insertClaim(id, slug, templateId);
-}
-
-/**
- * Keeps the template just inserted if it got its slug, or removes it again
- * and refuses it like any taken slug: two creations racing past the free-slug
- * check both insert, and only the claim's primary key tells them apart.
- */
-export async function assertSlugClaimed(
-  tenantId: string,
-  slug: string,
-  templateId: string,
-): Promise<void> {
-  if (await claimTemplateSlug(tenantId, slug, templateId)) return;
-  await GetModel(TemplateModel, tenantId).delete(templateId);
-  throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
-}
-
-/** Frees the slugs of deleted templates for new ones. */
-export async function releaseTemplateSlugs(
-  tenantId: string,
-  templateIds: string[],
-): Promise<void> {
-  await GetModel(TemplateSlugModel, tenantId).releaseTemplates(templateIds);
 }
 
 /** The content customers receive: the last published version. */

@@ -5,7 +5,6 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import type { LocalizedText } from "@antelopejs/interface-dms-mailing";
 import { MAILING_TEMPLATES_TABLE_NAME, MailingTemplate } from "../tables";
-import { TemplateSlugModel } from "./template-slugs.model";
 
 /** The attention fields of a template, as the refresh writes them. */
 export type TemplateAttentionFields = Pick<
@@ -90,19 +89,10 @@ export class TemplateModel extends BasicDataModel(
     return outcome === "applied";
   }
 
+  /** The template holding `slug`: the unique index keeps it to one. */
   async getBySlug(slug: string): Promise<MailingTemplate | undefined> {
-    const rows = await this.getBy("slug", slug);
-    // A losing creation can still be cleaning up (or its process can crash).
-    // Senders must see the claimed template, not an earlier draft candidate.
-    if (rows.length > 1) {
-      const claims = await new TemplateSlugModel(this.database).getBy(
-        "templateId",
-        ...rows.map((row) => row._id),
-      );
-      const claim = claims.find((candidate) => candidate.slug === slug);
-      if (claim) return rows.find((row) => row._id === claim.templateId);
-    }
-    return rows[0];
+    const [template] = await this.getBy("slug", slug);
+    return template;
   }
 
   /**

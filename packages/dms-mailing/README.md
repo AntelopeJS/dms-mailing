@@ -62,6 +62,7 @@ await SendTemplate("order-confirmation", {
 | `@antelopejs/interface-dms` | `>=0.9.0 <1.0.0` |
 | `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.6.1 <0.7.0` |
 | `@antelopejs/interface-dms-mailing` | `>=0.8.0 <0.9.0` |
+| Database module | one that enforces unique indexes: `@antelopejs/mongodb` `>=1.5.0`, `@antelopejs/postgres` `>=0.2.2` |
 | E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
 
 On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
@@ -69,12 +70,12 @@ On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
 ## Slugs
 
 Sends find a template by its slug, so a slug belongs to one template per
-workspace. The database interface has no unique index, so the primary key of
-`mailing_template_slugs` does that job: creating or duplicating a template
-claims its slug there, and of two creations racing for one slug the second
+workspace: the `slug` index of `mailing_templates` is unique. Creating or
+duplicating a template with a slug another template holds, even in a race,
 gets `409 duplicate_slug` instead of a second template. Deleting a template
-frees its slug. Templates created before the claims existed need no
-migration: a new template still cannot take their slug.
+frees its slug. This needs a database module that enforces unique indexes
+(`@antelopejs/mongodb` 1.5, `@antelopejs/postgres` 0.3); RethinkDB refuses
+the schema.
 
 ## Documentation
 

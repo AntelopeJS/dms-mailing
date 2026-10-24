@@ -75,7 +75,7 @@ export async function declareMailingContent(tenantId: string) {
 - Require explicit non-blank `tenantId` for declarations and imports. Call them once per tenant, from a
   `Hook.TENANT_BEING_PROVISIONED` handler (the DMS fires it for `default` on the start that creates it, after
   `DATABASE_INITIALIZED`; dms-saas for each workspace). Never from `start()` or `DATABASE_INITIALIZED`.
-- Written once: a missing slug is created and published (v1, version rows, slug claim, attention refresh: a normal
+- Written once: a missing slug is created and published (v1, version rows, unique slug, attention refresh: a normal
   template) → `created`; a slug the tenant already has (declared or made in the dashboard) is left as it is → `kept`.
   No fingerprint, no refresh: from its creation on, the template belongs to the tenant.
 - Categories: a missing id is added → `created`; an existing one, a default included, is `kept`.

@@ -170,7 +170,8 @@ interface EntryOutcome {
 /**
  * Writes one send: its events first, under ids derived from the send's, then
  * the send itself. A run stopped half-way leaves events no send shows yet,
- * which the next run completes; a send present means it was fully imported.
+ * which the next run completes; each write skips the row an earlier run
+ * wrote, and a send present means it was fully imported.
  */
 async function importOne(
   tenantId: string,
@@ -180,7 +181,6 @@ async function importOne(
 ): Promise<EntryOutcome> {
   const id = importedSendIdOf(tenantId, send.importId);
   const sends = GetModel(SendModel, tenantId);
-  if (await sends.get(id)) return { id, isImported: false };
   const timeline = timelineOf(send);
   const events = GetModel(SendEventModel, tenantId);
   for (const [index, entry] of timeline.entries()) {

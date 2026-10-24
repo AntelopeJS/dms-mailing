@@ -71,13 +71,12 @@ import { findCategory, getSettings } from "../services/settings";
 import { findStarter, starterFields } from "../services/starters";
 import { refreshTemplateAttention } from "../services/template-attention";
 import {
-  assertSlugClaimed,
   blankContent,
   blankFields,
   contentFieldsOf,
   displayName,
   initializeTemplate,
-  releaseTemplateSlugs,
+  refuseTakenSlug,
 } from "../services/templates";
 import type { TemplateCategory } from "../types";
 
@@ -88,7 +87,6 @@ import {
 import { parseBody } from "./body";
 import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
-const DUPLICATE_SLUG = "$dms_mailing.errors.duplicate_slug";
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
 const SOURCE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
@@ -212,25 +210,16 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
     ) {
       const { seed, normalized } = parseCreation(body, localeOfRequest(ctx));
       const tenantId = getRequestTenantId(ctx);
-      const model = GetModel(TemplateModel, tenantId);
-      if (await model.getBySlug(seed.slug)) {
-        throw new HTTPResult(HTTP_CONFLICT, DUPLICATE_SLUG);
-      }
       const settings = await getSettings(tenantId);
       assertKnownCategory(settings.categories, seed.category);
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
       // The module's creation dialogs send one typed name; the stored name
       // holds every language, written at once.
       (this as LocalizedController).language = ALL_LANGUAGES;
-      const created = (await base.func.call(
-        this,
-        ctx,
-        params,
-        normalized,
-        ...rest,
+      const created = (await refuseTakenSlug(
+        base.func.call(this, ctx, params, normalized, ...rest),
       )) as CreatedRow;
       const templateId = created._id;
-      await assertSlugClaimed(tenantId, seed.slug, templateId);
       const user = await authenticateTenantRequest(ctx);
       await initializeTemplate(tenantId, templateId, displayName(user), fields);
       return created;
@@ -291,7 +280,6 @@ export function afterDelete(tenantId: string, ids: string[]): AfterWrite {
     await Promise.all(
       ids.map((id) => versions.getAll(id, "templateId").delete().run()),
     );
-    await releaseTemplateSlugs(tenantId, ids);
     await refreshTemplateAttention(tenantId);
   };
 }

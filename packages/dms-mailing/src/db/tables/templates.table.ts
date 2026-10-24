@@ -31,7 +31,8 @@ export class MailingTemplate extends Table.with(LocalizationModifier) {
   @Field("date")
   declare updatedAt: Date;
 
-  @Index()
+  /** What sends name the template by: one template per slug in a tenant. */
+  @Index({ unique: true })
   @Field("string")
   declare slug: string;
 
