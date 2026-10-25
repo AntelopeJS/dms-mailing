@@ -72,15 +72,6 @@ importers:
       mongodb-memory-server-core:
         specifier: ^11.0.1
         version: 11.2.0(socks@2.8.10)
-      oxfmt:
-        specifier: ^0.66.0
-        version: 0.66.0
-      oxlint:
-        specifier: 1.81.0
-        version: 1.81.0(oxlint-tsgolint@7.0.2001)
-      oxlint-tsgolint:
-        specifier: ^7.0.2001
-        version: 7.0.2001
       release-it:
         specifier: ^19.2.4
         version: 19.2.4(@types/node@24.13.3)
@@ -4363,6 +4354,7 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.66.0
       '@oxfmt/binding-win32-ia32-msvc': 0.66.0
       '@oxfmt/binding-win32-x64-msvc': 0.66.0
+    optional: true
 
   oxlint-tsgolint@7.0.2001:
     optionalDependencies:
@@ -4372,6 +4364,7 @@ snapshots:
       '@oxlint-tsgolint/linux-x64': 7.0.2001
       '@oxlint-tsgolint/win32-arm64': 7.0.2001
       '@oxlint-tsgolint/win32-x64': 7.0.2001
+    optional: true
 
   oxlint@1.81.0(oxlint-tsgolint@7.0.2001):
     optionalDependencies:
@@ -4395,6 +4388,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.81.0
       '@oxlint/binding-win32-x64-msvc': 1.81.0
       oxlint-tsgolint: 7.0.2001
+    optional: true
 
   p-limit@2.3.0:
     dependencies:
@@ -4848,7 +4842,8 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
-  tinypool@2.1.0: {}
+  tinypool@2.1.0:
+    optional: true
 
   to-regex-range@5.0.1:
     dependencies:
