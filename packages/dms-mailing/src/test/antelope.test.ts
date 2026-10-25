@@ -10,6 +10,7 @@ const API_PORT = 5019;
 const JWT_SECRET = "test-jwt-secret";
 const HTML_RENDER_SECRET = "test-html-render-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
+const MONGO_DATABASE = "dms-mailing-test";
 const SMTP_HOST = "127.0.0.1";
 const EPHEMERAL_PORT = 0;
 const TEST_SENDER = "dms-mailing@test.local";
@@ -167,13 +168,14 @@ export default defineConfig({
 
       const mongoUrl = mongod.getUri();
       process.env.TEST_MONGO_URL = mongoUrl;
+      process.env.TEST_MONGO_DATABASE = MONGO_DATABASE;
       process.env.TEST_API_BASE_URL = `http://127.0.0.1:${API_PORT}`;
       process.env.TEST_JWT_SECRET = JWT_SECRET;
 
       return {
         modules: {
           mongodb: {
-            config: { url: mongoUrl, database: "dms-mailing-test" },
+            config: { url: mongoUrl, database: MONGO_DATABASE },
           },
           "file-storage-local": {
             config: {
