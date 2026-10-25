@@ -24,15 +24,6 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
-      oxfmt:
-        specifier: ^0.66.0
-        version: 0.66.0
-      oxlint:
-        specifier: 1.81.0
-        version: 1.81.0(oxlint-tsgolint@7.0.2001)
-      oxlint-tsgolint:
-        specifier: ^7.0.2001
-        version: 7.0.2001
       release-it:
         specifier: ^19.2.4
         version: 19.2.4(@types/node@24.13.3)
@@ -2912,6 +2903,7 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.66.0
       '@oxfmt/binding-win32-ia32-msvc': 0.66.0
       '@oxfmt/binding-win32-x64-msvc': 0.66.0
+    optional: true
 
   oxlint-tsgolint@7.0.2001:
     optionalDependencies:
@@ -2921,6 +2913,7 @@ snapshots:
       '@oxlint-tsgolint/linux-x64': 7.0.2001
       '@oxlint-tsgolint/win32-arm64': 7.0.2001
       '@oxlint-tsgolint/win32-x64': 7.0.2001
+    optional: true
 
   oxlint@1.81.0(oxlint-tsgolint@7.0.2001):
     optionalDependencies:
@@ -2944,6 +2937,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.81.0
       '@oxlint/binding-win32-x64-msvc': 1.81.0
       oxlint-tsgolint: 7.0.2001
+    optional: true
 
   pac-proxy-agent@7.2.0:
     dependencies:
@@ -3204,7 +3198,8 @@ snapshots:
       picomatch: 4.0.7
     optional: true
 
-  tinypool@2.1.0: {}
+  tinypool@2.1.0:
+    optional: true
 
   to-regex-range@5.0.1:
     dependencies:
