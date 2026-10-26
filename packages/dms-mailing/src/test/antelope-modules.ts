@@ -23,7 +23,7 @@ export const SHARED_MODULE_SOURCES = {
   mongodb: {
     type: "package",
     package: "@antelopejs/mongodb",
-    version: ">=1.5.0 <2",
+    version: ">=1.5.1 <2",
   },
   "auth-jwt": {
     type: "package",
