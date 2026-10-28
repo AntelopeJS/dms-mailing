@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "mailing-send-template",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Send the welcome e-mail template when a user signs up.",
+      "expect": {
+        "skills": ["dms-mailing"],
+        "acceptable": ["dms", "dms-auth"],
+        "mustMention": ["SendTemplate"]
+      }
+    },
+    {
+      "id": "mailing-bounces",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Our e-mail provider reports bounces through a webhook. How do we record them?",
+      "expect": {
+        "skills": ["dms-mailing"],
+        "acceptable": ["dms"],
+        "mustMention": ["RecordEmailEvent"]
+      }
+    },
+    {
+      "id": "mailing-missing-variable-casual",
+      "area": "modules",
+      "style": "casual",
+      "prompt": "mail send says missing variable firstName??",
+      "expect": {
+        "skills": ["dms-mailing"],
+        "acceptable": ["dms"]
+      }
+    },
+    {
+      "id": "dms-mailing-avoid-tracker",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Put the tracking script on our public website and count how many visitors click the signup button.",
+      "expect": {
+        "skills": ["dms-marketing"],
+        "acceptable": ["dms"],
+        "mustMention": ["data-website-id"],
+        "avoid": ["dms-mailing"]
+      }
+    }
+  ]
+}
