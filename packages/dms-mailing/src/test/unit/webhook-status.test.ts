@@ -50,7 +50,7 @@ describe("[unit] services/webhook-status", () => {
       lastRefused: null,
     });
     const at = new Date(0);
-    const row = {
+    const row: MailingWebhookStatus = {
       _id: "default",
       receivedAt: at,
       receivedProvider: "postmark",
@@ -59,7 +59,7 @@ describe("[unit] services/webhook-status", () => {
       refusedAt: at,
       refusedProvider: "postmark",
       refusedReason: "bad_secret",
-    } as MailingWebhookStatus;
+    };
     expect(toWebhookStatus(row)).to.deep.equal({
       lastReceived: {
         at,

@@ -4,7 +4,6 @@ import type { TenantExportArchive } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
 import {
   contributeTenantExport,
-  type ExportedCollection,
   exportedCollections,
   jsonArrayChunks,
 } from "../../hooks/tenant-export";
@@ -117,7 +116,7 @@ describe("[integration] tenant export", () => {
 
     let text = "";
     for await (const chunk of jsonArrayChunks(
-      (templates as ExportedCollection).load,
+      templates.load,
       new AbortController().signal,
       SINGLE_ROW_PAGE,
     )) {
