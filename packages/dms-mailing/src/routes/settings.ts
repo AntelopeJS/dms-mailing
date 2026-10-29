@@ -62,9 +62,9 @@ const NEXT_RUN_MINUTE = 15;
 const RETENTION_DAYS_PARAM = "days";
 
 /** A settings field the form shows under another name. */
-const FORM_FIELD_OF: Record<string, string> = {
-  blockOnMissingVariables: "missingVariables",
-};
+const FORM_FIELD_OF = new Map([
+  ["blockOnMissingVariables", "missingVariables"],
+]);
 
 const retentionDaysSchema = z.coerce
   .number()
@@ -142,7 +142,7 @@ function webhookUrl(
 /** The issue of a refused write, under the form field it belongs to. */
 function formIssue(issue: z.ZodIssue): z.ZodIssue {
   const [field, ...rest] = issue.path;
-  const formField = FORM_FIELD_OF[String(field)];
+  const formField = FORM_FIELD_OF.get(String(field));
   return formField ? { ...issue, path: [formField, ...rest] } : issue;
 }
 

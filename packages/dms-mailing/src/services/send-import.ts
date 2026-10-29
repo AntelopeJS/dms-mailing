@@ -142,13 +142,14 @@ function sendRow(
   };
 }
 
-/** The templates the sends name, by slug; refused before anything is written. */
+/** The refusal of an import that names a template the workspace lacks. */
 const missingTemplate = (slug: string): DeclarationError =>
   new DeclarationError(
     "template_not_found",
     `Imported sends name template "${slug}", which the workspace does not have`,
   );
 
+/** The templates the sends name, by slug; refused before anything is written. */
 async function templatesOf(
   tenantId: string,
   sends: ParsedImportedSend[],
