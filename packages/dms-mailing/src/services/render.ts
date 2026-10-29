@@ -17,13 +17,17 @@ export interface MailingEmailProps {
 const MailingEmailTemplate =
   RegisterHtmlTemplate<MailingEmailProps>(EMAIL_TEMPLATE_NAME);
 
+/**
+ * The HTML of `email`: through the DMS renderer, which already drops Vue's
+ * SSR markers (dms-frontend 0.5.4), else the module's fallback HTML when the
+ * configuration turns HTML rendering off or the renderer fails.
+ */
 export async function renderEmailHtml(
   email: ResolvedEmail,
   locale: string,
 ): Promise<string> {
   if (!getConfig().useHtmlRender) return renderFallbackHtml(email, locale);
   try {
-    // The DMS renderer already drops Vue's SSR markers (dms-frontend 0.5.4).
     return await GenerateHtml(MailingEmailTemplate, { locale, email });
   } catch (error) {
     Logging.Warn(

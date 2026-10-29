@@ -108,8 +108,10 @@ describe("[integration] settings", () => {
     });
     expect(invalid.status).to.equal(HTTP_BAD_REQUEST);
 
-    // Blanking the secret would leave the unauthenticated event endpoint with
-    // no gate, so the write has to be refused rather than silently accepted.
+    /**
+     * Blanking the secret would leave the unauthenticated event endpoint with
+     * no gate, so the write has to be refused rather than silently accepted.
+     */
     const blankSecret = await client.put("/api/mailing/settings", {
       ...writableOf(after.data),
       webhookSecret: "",
@@ -139,9 +141,11 @@ async function loadSettingsModules() {
 }
 
 describe("[integration] settings row per tenant", () => {
-  // Every request path reads the settings, so a tenant's first reads arrive
-  // together. Each used to insert its own default row with its own webhook
-  // secret; the row is now keyed by the tenant id so only one can land.
+  /**
+   * Every request path reads the settings, so a tenant's first reads arrive
+   * together. Each used to insert its own default row with its own webhook
+   * secret; the row is now keyed by the tenant id so only one can land.
+   */
   it("creates a single row when first readers race", async () => {
     const { getSettings, rowsOf } = await loadSettingsModules();
     const tenantId = `settings-race-${Date.now()}`;

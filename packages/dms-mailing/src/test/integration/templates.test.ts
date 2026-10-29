@@ -55,8 +55,10 @@ describe("[integration] templates table", () => {
     expect(content.data.variables).to.deep.equal([]);
   });
 
-  // interface-data-api 0.3 answers `new` with the row, not `["<id>"]`, and
-  // refuses a body handed on as a JSON string.
+  /**
+   * interface-data-api 0.3 answers `new` with the row, not `["<id>"]`, and
+   * refuses a body handed on as a JSON string.
+   */
   it("answers the creation with the row of the seeded template", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -138,8 +140,10 @@ describe("[integration] templates table", () => {
     expect(row.data.category).to.equal("billing");
   });
 
-  // From interface-data-api 0.2.0 on, an absent key leaves the field unchanged:
-  // the editor clears a category by sending `null`, which every version stores.
+  /**
+   * From interface-data-api 0.2.0 on, an absent key leaves the field unchanged:
+   * the editor clears a category by sending `null`, which every version stores.
+   */
   it("clears the category when the edit sends null", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -161,8 +165,10 @@ describe("[integration] templates table", () => {
     expect(row.data.category || null).to.equal(null);
   });
 
-  // Sends resolve a template by slug and only the create paths check it is
-  // free, so an edit must neither move it nor, by omitting it, clear it.
+  /**
+   * Sends resolve a template by slug and only the create paths check it is
+   * free, so an edit must neither move it nor, by omitting it, clear it.
+   */
   it("refuses a slug change on edit and keeps the slug when it is omitted", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -293,8 +299,10 @@ describe("[integration] template content and status", () => {
   it("previews the current content with test data and reports missing variables", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    // Looked up by slug rather than on the table's first page, which other
-    // tests fill with their own templates.
+    /**
+     * Looked up by slug rather than on the table's first page, which other
+     * tests fill with their own templates.
+     */
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");
     const { DEFAULT_TENANT_ID } =
@@ -486,7 +494,7 @@ describe("[integration] templates table guards", () => {
       category: "orders",
     });
     expect(blank.status).to.be.at.least(HTTP_BAD_REQUEST);
-    // The DMS edit form writes every language at once.
+    /** The DMS edit form writes every language at once. */
     const all = { headers: { "x-content-language": "*" } };
     const blankEverywhere = await api.put(
       `${TABLE}/edit?id=${id}`,
@@ -513,7 +521,7 @@ describe("[integration] templates table guards", () => {
     expect(fr.data.name).to.equal("Renommé");
     expect(en.data.name).to.equal("localized-rename");
 
-    // The DMS edit form reads and writes every language at once.
+    /** The DMS edit form reads and writes every language at once. */
     const all = { headers: { "x-content-language": "*" } };
     const record = await api.get(`${TABLE}/get?id=${id}`, all);
     expect(record.data.name).to.deep.equal({

@@ -140,8 +140,10 @@ describe("[integration] events", () => {
 });
 
 describe("[integration] webhook for a tenant without settings", () => {
-  // The endpoint is unauthenticated and takes the tenant from the URL: reading
-  // the secret must not create a settings row for whatever tenant id it names.
+  /**
+   * The endpoint is unauthenticated and takes the tenant from the URL: reading
+   * the secret must not create a settings row for whatever tenant id it names.
+   */
   it("refuses the event and stores nothing", async () => {
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");
@@ -162,9 +164,11 @@ describe("[integration] webhook for a tenant without settings", () => {
 });
 
 describe("[integration] send event purge", () => {
-  // The retention cron deletes a send's events in one filtered statement. A
-  // wrong predicate there would take another send's history with it, so pin
-  // that it removes exactly one send's rows.
+  /**
+   * The retention cron deletes a send's events in one filtered statement. A
+   * wrong predicate there would take another send's history with it, so pin
+   * that it removes exactly one send's rows.
+   */
   it("deletes only the events of the send it targets", async () => {
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");

@@ -101,8 +101,6 @@ async function createDeclared(
     });
     template = await requireTemplate(model, id as string);
   } catch (error) {
-    // A concurrent declaration of the slug created it first: expected, the
-    // caller goes on with that template.
     if (IsDuplicateKeyError(error)) return undefined;
     throw error;
   }

@@ -102,8 +102,10 @@ export default defineConfig({
       source: {
         type: "local",
         path: ".",
-        // CI builds the module once before the run and sets DMS_PREBUILT, so
-        // the harness does not build it a second time.
+        /**
+         * CI builds the module once before the run and sets DMS_PREBUILT, so
+         * the harness does not build it a second time.
+         */
         installCommand: process.env.DMS_PREBUILT ? [] : ["pnpm build"],
       },
       config: { useHtmlRender: false },
@@ -112,14 +114,18 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.dms,
       config: {
         apiBaseUrl: `http://127.0.0.1:${API_PORT}`,
-        // No frontend server runs here: the dashboard URL is the API, whose
-        // paths the front proxy serves unchanged.
+        /**
+         * No frontend server runs here: the dashboard URL is the API, whose
+         * paths the front proxy serves unchanged.
+         */
         clientBaseUrl: `http://127.0.0.1:${API_PORT}`,
         auth: {
           jwtSecret: JWT_SECRET,
         },
-        // Outside development, which the test run is not, dms 0.10 refuses
-        // to start without a render secret of its own.
+        /**
+         * Outside development, which the test run is not, dms 0.10 refuses to
+         * start without a render secret of its own.
+         */
         htmlRender: {
           serviceSecret: HTML_RENDER_SECRET,
         },
@@ -138,7 +144,7 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.api,
       config: {
         servers: [{ protocol: "http", host: "127.0.0.1", port: API_PORT }],
-        // Required outside development, which the test run is not.
+        /** Required outside development, which the test run is not. */
         publicBaseUrl: `http://127.0.0.1:${API_PORT}`,
       },
     },

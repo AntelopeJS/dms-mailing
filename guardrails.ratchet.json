@@ -1,6 +1,5 @@
 {
   "rules": {
-    "antelopejs/no-comments": 113,
     "anti-slop/no-known-value-widening": 21,
     "anti-slop/no-runtime-typeof": 20,
     "anti-slop/no-unknown-parameters": 46,
@@ -11,6 +10,6 @@
   },
   "oversizeFiles": {
     "packages/dms-mailing/frontend-vue/app/components/TemplateDrawer.vue": 24962,
-    "packages/dms-mailing/src/test/integration/declarations.test.ts": 20744
+    "packages/dms-mailing/src/test/integration/declarations.test.ts": 20713
   }
 }

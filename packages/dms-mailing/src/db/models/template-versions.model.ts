@@ -45,8 +45,12 @@ export class TemplateVersionModel extends BasicDataModel(
     }
   }
 
+  /**
+   * The published versions of a template, newest first. It reads the
+   * template's publication before the version rows: any later publication
+   * must have materialized the version that read names.
+   */
   async listForTemplate(templateId: string): Promise<MailingTemplateVersion[]> {
-    // Read the publication first: any later publication must have materialized it.
     const template = await new TemplateModel(this.database).get(templateId);
     if (!template) return [];
     const rows = await this.getBy("templateId", templateId);

@@ -37,9 +37,11 @@ export class TemplateModel extends BasicDataModel(
     return TemplateModel.fromPlainData(fields).localize("*", ["name"]);
   }
 
-  /** The names of `template`, one per language. */
+  /**
+   * The names of `template`, one per language: unlocked with `"*"`, the
+   * localized field holds the whole per-language record.
+   */
   static namesOf(template: MailingTemplate): LocalizedText {
-    // Unlocked with "*", the localized field holds the whole per-language record.
     const names: unknown = template.localize("*", ["name"]).name;
     return isLocalizedText(names) ? names : {};
   }

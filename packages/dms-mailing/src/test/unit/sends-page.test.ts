@@ -19,7 +19,7 @@ describe("[unit] pages/sends row click", () => {
       deepLink: true,
       notFound: {},
     });
-    // The DMS's default width: the user's resize is remembered.
+    /** The DMS's default width: the user's resize is remembered. */
     expect(details?.target).to.not.have.property("size");
   });
 });

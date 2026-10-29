@@ -110,7 +110,10 @@ describe("[integration] template declarations", () => {
         sentAt: new Date(),
       },
     ];
-    // These calls are both compile-time contract checks and JavaScript boundary tests.
+    /**
+     * These calls are both compile-time contract checks and JavaScript boundary
+     * tests.
+     */
     const calls = [
       // @ts-expect-error tenantId is required
       () => DeclareTemplate(withoutTenant),
@@ -148,7 +151,6 @@ describe("[integration] template declarations", () => {
       ),
     ).to.deep.equal([]);
     expect(await events.table.count().run()).to.equal(eventCount);
-    // A valid explicit default tenant still supports all three APIs.
     expect(
       await DeclareTemplateCategory({
         ...category,
@@ -259,7 +261,7 @@ describe("[integration] template declarations", () => {
       declaration(`declared-thumbnail-${stamp}`),
     );
     const api = await client();
-    // The card of a live template: its published version, no locale.
+    /** The card of a live template: its published version, no locale. */
     const preview = await api.post(
       `${TEMPLATES}/${declared.templateId}/preview`,
       { version: "published" },
@@ -284,8 +286,10 @@ describe("[integration] template declarations", () => {
     expect(await rowsWithSlug(slug)).to.equal(1);
   });
 
-  // Written once: from its creation on, the template is the tenant's, and a
-  // later declaration of the same slug, changed or not, writes nothing.
+  /**
+   * Written once: from its creation on, the template is the tenant's, and a
+   * later declaration of the same slug, changed or not, writes nothing.
+   */
   it("leaves a template a user edited as it is, whatever the code declares", async () => {
     const { DeclareTemplate } = await mailing();
     const slug = `declared-kept-${stamp}`;

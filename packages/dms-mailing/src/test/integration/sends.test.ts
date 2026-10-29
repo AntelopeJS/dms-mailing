@@ -45,8 +45,10 @@ describe("[integration] sends", () => {
     expect(detail.data.events[0].type).to.equal(detail.data.send.status);
   });
 
-  // Metrics load every send of their window; the rendered variables are the
-  // one unbounded field and none of them reads it.
+  /**
+   * Metrics load every send of their window; the rendered variables are the one
+   * unbounded field and none of them reads it.
+   */
   it("reads a metrics window without the rendered variables", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -161,7 +163,7 @@ describe("[integration] sends", () => {
         (item: TemplateRow) => item.slug === "test-send",
       ) as TemplateRow
     )._id;
-    // Blank content references nothing, so give it a token to miss.
+    /** Blank content references nothing, so give it a token to miss. */
     await client.post(`/api/mailing/templates/${id}/content`, {
       content: {
         locales: {

@@ -129,6 +129,12 @@ function moveIssues(
   );
 }
 
+/**
+ * Adds the issues of the category rows: blank labels and duplicates in each
+ * language, a removed marketing category, a move to a category that is not
+ * kept. Each issue is reported once per row and part, whichever language
+ * shows it first.
+ */
 function refineCategoryEntries(
   entries: CategoryEntry[],
   context: z.RefinementCtx,
@@ -147,7 +153,6 @@ function refineCategoryEntries(
     ...moveIssues(entriesIn(entries, LOCALIZED_TEXT_FALLBACK_LOCALE), kept),
   ]
     .filter((issue) => {
-      // One issue per row and part, whichever language shows it first.
       const id = JSON.stringify(issue);
       if (seen.has(id)) return false;
       seen.add(id);

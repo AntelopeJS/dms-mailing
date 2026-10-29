@@ -21,9 +21,11 @@ describe("[unit] engine/paths", () => {
 });
 
 describe("[unit] engine/paths reserved keys", () => {
-  // A token path is authored, not recipient-supplied, but `{{constructor}}`
-  // still resolved to the Object constructor and String()'d its source into the
-  // e-mail. Nothing legitimate walks through these.
+  /**
+   * A token path is authored, not recipient-supplied, but `{{constructor}}`
+   * still resolved to the Object constructor and String()'d its source into the
+   * e-mail. Nothing legitimate walks through these.
+   */
   it("refuses to walk the prototype chain", () => {
     expect(getPath({ a: 1 }, "constructor")).to.equal(undefined);
     expect(getPath({ a: 1 }, "__proto__")).to.equal(undefined);
