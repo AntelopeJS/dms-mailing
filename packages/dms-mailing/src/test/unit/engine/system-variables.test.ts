@@ -90,11 +90,13 @@ describe("[unit] engine/system-variables", () => {
     expect(hasFooterLinksByDefault("marketing")).to.equal(true);
     expect(hasFooterLinksByDefault("account")).to.equal(false);
     const content = { locales: { en: locale(footer()) } };
-    const stripped = footerForCategory(content, "account").locales.en!
-      .blocks[0] as FooterBlock;
-    expect(stripped.unsubscribeLabel).to.equal("");
-    expect(stripped.preferencesLabel).to.equal("");
-    expect(stripped.text).to.equal("Antelope");
+    const [stripped] = footerForCategory(content, "account").locales.en.blocks;
+    expect(stripped).to.include({
+      type: "footer",
+      unsubscribeLabel: "",
+      preferencesLabel: "",
+      text: "Antelope",
+    });
     expect(footerForCategory(content, "marketing")).to.equal(content);
   });
 

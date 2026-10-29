@@ -1,15 +1,13 @@
 {
   "rules": {
-    "anti-slop/no-known-value-widening": 21,
-    "anti-slop/no-runtime-typeof": 20,
+    "anti-slop/no-known-value-widening": 11,
     "anti-slop/no-unknown-parameters": 46,
-    "anti-slop/no-unknown-returns": 8,
-    "anti-slop/no-unsafe-dictionary-type": 47,
-    "anti-slop/require-safety-comment-for-type-assertion": 183,
-    "jest/valid-title": 1
+    "anti-slop/no-unknown-returns": 5,
+    "anti-slop/no-unsafe-dictionary-type": 44,
+    "anti-slop/require-safety-comment-for-type-assertion": 79
   },
   "oversizeFiles": {
     "packages/dms-mailing/frontend-vue/app/components/TemplateDrawer.vue": 24962,
-    "packages/dms-mailing/src/test/integration/declarations.test.ts": 20713
+    "packages/dms-mailing/src/test/integration/declarations.test.ts": 20711
   }
 }

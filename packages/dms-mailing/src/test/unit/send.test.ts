@@ -17,6 +17,7 @@ import {
 } from "../../services/send";
 import type { MailingTemplate } from "../../db";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
+import { checkedText } from "../helpers/checked";
 
 const TRANSPORT_FAILURE = "socket hang up";
 const INSERT_FAILURE = "insert rejected";
@@ -80,7 +81,7 @@ describe("[unit] services/send delivery", () => {
   it("keeps the messages the provider accepted when a later send throws", async () => {
     const seen: string[] = [];
     const send = async (params: EmailParams): Promise<EmailResponse> => {
-      const to = params.to as string;
+      const to = checkedText(params.to);
       seen.push(to);
       if (to === RECIPIENTS[1]) throw new Error(TRANSPORT_FAILURE);
       return accepted("m-1");

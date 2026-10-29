@@ -5,7 +5,7 @@ import cron, { type ScheduledTask } from "node-cron";
 export interface CronJob {
   name: string;
   schedule: string;
-  run: () => Promise<unknown>;
+  run: () => Promise<number | void>;
 }
 
 /** A job as it runs once scheduled. */

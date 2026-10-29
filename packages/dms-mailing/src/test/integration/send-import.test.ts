@@ -119,7 +119,7 @@ describe("[integration] send import", () => {
     });
     expect(plain).to.include({ status: "sent", stage: "in_progress" });
 
-    const timeline = await events.getBySend(first.sendIds[0] as string);
+    const timeline = await events.getBySend(first.sendIds[0]);
     expect(timeline.map((event) => event.type).sort()).to.deep.equal([
       "clicked",
       "delivered",
@@ -151,7 +151,7 @@ describe("[integration] send import", () => {
         },
       ],
     }).catch((reason: { code?: string }) => reason);
-    expect((error as { code?: string }).code).to.equal("template_not_found");
+    expect(error).to.have.property("code", "template_not_found");
   });
 
   it("refuses an entry it cannot read, naming the field", async () => {
@@ -168,6 +168,8 @@ describe("[integration] send import", () => {
       ],
     }).catch((reason: { code?: string; message: string }) => reason);
     expect(error).to.include({ code: "invalid_import" });
-    expect((error as Error).message).to.match(/sends\.0\.to/);
+    expect(error)
+      .to.have.property("message")
+      .that.matches(/sends\.0\.to/);
   });
 });

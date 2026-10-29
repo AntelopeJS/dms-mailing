@@ -1,7 +1,7 @@
 import { LOCALIZED_TEXT_FALLBACK_LOCALE } from "@antelopejs/interface-dms-mailing";
 import { z } from "zod";
 import { MAX_NAME_LENGTH } from "../constants";
-import { SEND_EVENT_TYPES } from "../types";
+import { sendEventTypeSchema } from "./send-event-type.schema";
 import { categorySchema, settingsSchema } from "./settings.schema";
 import {
   slugSchema,
@@ -76,7 +76,7 @@ const recipientSchema = z.union([
 ]);
 
 const importedEventSchema = z.object({
-  type: z.enum(SEND_EVENT_TYPES as [string, ...string[]]),
+  type: sendEventTypeSchema,
   at: z.coerce.date(),
   details: z.record(z.unknown()).optional(),
 });

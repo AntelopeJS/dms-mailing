@@ -16,6 +16,7 @@ import { publishSendUpdated } from "../realtime";
 import type { SendEventType, SendStatus } from "../types";
 import { notifyProblems } from "./notify";
 import { suppressAddress, suppressionReasonOf } from "./suppressions";
+import { isObject, isText } from "../validation/guards";
 
 export interface SendCounters {
   status: SendStatus;
@@ -59,8 +60,7 @@ const HARD_BOUNCE_TYPE = /hard|permanent/i;
 /** A temporary SMTP answer: a `4xx` reply code or a `4.x.x` enhanced status. */
 const SOFT_SMTP_ANSWER = /^\s*4\d\d\b|\b4\.\d{1,3}\.\d{1,3}\b/;
 
-const textOf = (value: unknown): string =>
-  typeof value === "string" ? value : "";
+const textOf = (value: unknown): string => (isText(value) ? value : "");
 
 /**
  * The provider's own words for a problem event (`550 5.1.1 Mailbox does not
@@ -70,7 +70,7 @@ const textOf = (value: unknown): string =>
 export function problemReason(event: EmailEvent): string | undefined {
   if (!PROBLEM_EVENTS.has(event.type)) return undefined;
   const reason = event.details?.reason;
-  return typeof reason === "string" && reason ? reason : undefined;
+  return isText(reason) && reason ? reason : undefined;
 }
 
 function overridesStatus(current: SendStatus, next: SendStatus): boolean {
@@ -163,11 +163,10 @@ export function isSameEvent(
 ): boolean {
   const eventId = eventIdOf(event.details);
   if (eventId) {
-    const storedDetails = JSON.parse(stored.json_details || "{}") as Record<
-      string,
-      unknown
-    >;
-    return eventIdOf(storedDetails) === eventId;
+    const storedDetails: unknown = JSON.parse(stored.json_details || "{}");
+    return (
+      eventIdOf(isObject(storedDetails) ? storedDetails : undefined) === eventId
+    );
   }
   if (!event.at || stored.type !== event.type) return false;
   return (

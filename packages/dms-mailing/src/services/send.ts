@@ -52,6 +52,7 @@ import {
   type VersionedSnapshot,
   workingSnapshot,
 } from "./templates";
+import { isText } from "../validation/guards";
 
 export class SendError extends Error {
   constructor(
@@ -161,11 +162,10 @@ const OUTCOME_SEVERITY: Record<SendStatus, number> = {
 const describeError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const addressOf = (to: EmailAddress): string =>
-  typeof to === "string" ? to : to.email;
+const addressOf = (to: EmailAddress): string => (isText(to) ? to : to.email);
 
 const nameOf = (to: EmailAddress): string | undefined =>
-  typeof to === "string" ? undefined : to.name;
+  isText(to) ? undefined : to.name;
 
 const toRecipients = (to: EmailAddress | EmailAddress[]): EmailAddress[] =>
   Array.isArray(to) ? to : [to];
@@ -468,15 +468,15 @@ async function record(
     isTest: Boolean(params.isTest),
   });
   await GetModel(SendEventModel, tenantId).insertForActiveSend({
-    sendId: sendId as string,
+    sendId,
     type: status,
     at: new Date(),
     json_details: JSON.stringify(
       outcome.error ? { reason: outcome.error } : {},
     ),
   });
-  publishSendCreated(tenantId, sendId as string);
-  return sendId as string;
+  publishSendCreated(tenantId, sendId);
+  return sendId;
 }
 
 async function recordOne(
@@ -525,7 +525,7 @@ export async function recordAll(
 export function aggregateResults(
   results: SendTemplateResult[],
 ): SendTemplateResult {
-  const first = results[0] as SendTemplateResult;
+  const first = results[0];
   const worst = results.reduce((left, right) =>
     OUTCOME_SEVERITY[right.status] > OUTCOME_SEVERITY[left.status]
       ? right

@@ -17,15 +17,12 @@ import {
   secretRefusal,
   WEBHOOK_SECRET_HEADER,
 } from "../services/webhook-status";
-import {
-  SEND_EVENT_TYPES,
-  type SendEventType,
-  type WebhookRefusal,
-} from "../types";
+import type { WebhookRefusal } from "../types";
+import { sendEventTypeSchema } from "../validation/send-event-type.schema";
 
 const eventSchema = z.object({
   messageId: z.string().min(1),
-  type: z.enum(SEND_EVENT_TYPES as [SendEventType, ...SendEventType[]]),
+  type: sendEventTypeSchema,
   at: z.coerce.date().optional(),
   details: z.record(z.unknown()).optional(),
 });

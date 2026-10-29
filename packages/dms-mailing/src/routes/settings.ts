@@ -48,6 +48,7 @@ import {
   settingsPatchSchema,
 } from "../validation/settings.schema";
 import { retentionLimit } from "../crons/retention";
+import { isJsonObject } from "../validation/guards";
 
 const INVALID_SETTINGS = "$dms_mailing.errors.invalid_settings";
 const CATEGORIES_REASSIGNED = "$dms_mailing.settings.categories.reassigned";
@@ -146,7 +147,7 @@ function formIssue(issue: z.ZodIssue): z.ZodIssue {
 }
 
 /** A refused write: the generic message, and each issue for its field. */
-function invalidSettings(error: unknown): unknown {
+function invalidSettings(error: unknown) {
   if (!(error instanceof z.ZodError)) return INVALID_SETTINGS;
   return { message: INVALID_SETTINGS, issues: error.issues.map(formIssue) };
 }
@@ -236,11 +237,9 @@ export class MailingSettingsController extends Controller(
   /** The body as a checked patch; 400 for anything else. */
   private readPatch(raw: Buffer): SettingsPatch {
     const body: unknown = parseBody(raw);
-    const isPatch =
-      typeof body === "object" && body !== null && !Array.isArray(body);
-    assert(isPatch, HTTP_BAD_REQUEST, INVALID_SETTINGS);
+    assert(isJsonObject(body), HTTP_BAD_REQUEST, INVALID_SETTINGS);
     return assertValidation(
-      clearedToEmpty(body as Record<string, unknown>),
+      clearedToEmpty(body),
       (value) => settingsPatchSchema.parse(value),
       invalidSettings,
     );

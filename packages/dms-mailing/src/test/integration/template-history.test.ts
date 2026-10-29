@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText, checkedNumber } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -42,7 +43,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return created.data._id as string;
+  return checkedText(created.data._id);
 }
 
 interface DraftBody {
@@ -62,7 +63,7 @@ function draft(subject: string, variables?: Declaration[]): DraftBody {
 async function publish(api: Client, id: string): Promise<number> {
   const published = await api.post(`${TEMPLATES}/${id}/publish`, {});
   expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
-  return published.data.version as number;
+  return checkedNumber(published.data.version);
 }
 
 describe("[integration] template history and restore", () => {

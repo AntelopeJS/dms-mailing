@@ -27,6 +27,7 @@ import {
 } from "./events";
 import { getSettings } from "./settings";
 import { refreshTemplateAttention } from "./template-attention";
+import { isText } from "../validation/guards";
 
 /** Labels an imported send in the log when its caller gives no source. */
 const IMPORT_SOURCE = "import";
@@ -47,7 +48,7 @@ function importedSendIdOf(tenantId: string, importId: string): string {
 }
 
 const addressOf = (to: ParsedImportedSend["to"]) =>
-  typeof to === "string" ? { email: to } : to;
+  isText(to) ? { email: to } : to;
 
 /** Chronological events, with the webhook's retry deduplication rules. */
 function timelineOf(send: ParsedImportedSend): ImportedEvent[] {
@@ -59,11 +60,11 @@ function timelineOf(send: ParsedImportedSend): ImportedEvent[] {
     const repeated = timeline.some((stored) =>
       isSameEvent(
         {
-          type: stored.type as SendEventType,
+          type: stored.type,
           at: stored.at,
           json_details: JSON.stringify(stored.details ?? {}),
         },
-        { ...entry, type: entry.type as SendEventType },
+        entry,
       ),
     );
     if (!repeated) timeline.push(entry);
@@ -87,7 +88,7 @@ function foldEvents(
       const event: EmailEvent = {
         provider: send.provider ?? IMPORT_SOURCE,
         messageId: send.providerMessageId ?? "",
-        type: entry.type as SendEventType,
+        type: entry.type,
         at: entry.at,
         details: entry.details,
       };
@@ -142,6 +143,12 @@ function sendRow(
 }
 
 /** The templates the sends name, by slug; refused before anything is written. */
+const missingTemplate = (slug: string): DeclarationError =>
+  new DeclarationError(
+    "template_not_found",
+    `Imported sends name template "${slug}", which the workspace does not have`,
+  );
+
 async function templatesOf(
   tenantId: string,
   sends: ParsedImportedSend[],
@@ -151,11 +158,7 @@ async function templatesOf(
   const templates = new Map<string, MailingTemplate>();
   for (const slug of slugs) {
     const template = await model.getBySlug(slug);
-    if (!template)
-      throw new DeclarationError(
-        "template_not_found",
-        `Imported sends name template "${slug}", which the workspace does not have`,
-      );
+    if (!template) throw missingTemplate(slug);
     templates.set(slug, template);
   }
   return templates;
@@ -187,7 +190,7 @@ async function importOne(
     await events.insertImported({
       _id: `${id}-${index}`,
       sendId: id,
-      type: entry.type as SendEventType,
+      type: entry.type,
       at: entry.at,
       json_details: JSON.stringify(entry.details ?? {}),
     });
@@ -219,7 +222,8 @@ export async function importSends(
   const { fallbackLocale } = await getSettings(tenantId);
   const result: ImportSendsResult = { imported: 0, skipped: 0, sendIds: [] };
   for (const send of sends) {
-    const template = templates.get(send.templateSlug) as MailingTemplate;
+    const template = templates.get(send.templateSlug);
+    if (!template) throw missingTemplate(send.templateSlug);
     const { id, isImported } = await importOne(
       tenantId,
       send,

@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_UNPROCESSABLE = 422;
@@ -27,7 +28,7 @@ describe("[integration] sends", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     const sent = await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -62,7 +63,7 @@ describe("[integration] sends", () => {
       { to: ["metrics@example.test"], locale: "en", data: { any: "value" } },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    const sendId = sent.data.results[0].sendId as string;
+    const sendId = checkedText(sent.data.results[0].sendId);
 
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");
@@ -88,7 +89,7 @@ describe("[integration] sends", () => {
       name: "Real draft",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     const sent = await client.post(`/api/mailing/templates/${id}/send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -105,7 +106,7 @@ describe("[integration] sends", () => {
       name: "Real send",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     await client.post(`/api/mailing/templates/${id}/content`, {
       content: {
         locales: { en: { subject: "Real send", preheader: "", blocks: [] } },

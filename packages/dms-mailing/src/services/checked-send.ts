@@ -10,6 +10,7 @@ import {
   sendTemplate,
 } from "./send";
 import { suppressionsOf } from "./suppressions";
+import { isText } from "../validation/guards";
 
 /**
  * A send the module checks against the suppression list. `allowSuppressed`
@@ -24,8 +25,7 @@ export const SUPPRESSED_ERROR_PREFIX = "$dms_mailing.errors.suppressed.";
 
 const NO_LATENCY = null;
 
-const addressOf = (to: EmailAddress): string =>
-  typeof to === "string" ? to : to.email;
+const addressOf = (to: EmailAddress): string => (isText(to) ? to : to.email);
 
 const toRecipients = (to: EmailAddress | EmailAddress[]): EmailAddress[] =>
   Array.isArray(to) ? to : [to];
@@ -68,16 +68,10 @@ function suppressedMessage(
 async function recordSuppressed(
   slug: string,
   params: CheckedSendParams,
-  blocked: EmailAddress[],
-  rows: Map<string, MailingSuppression>,
+  blocked: { to: EmailAddress; row: MailingSuppression }[],
 ): Promise<SendTemplateResult[]> {
   const prepared = await prepare(params.tenantId, slug, params);
-  const messages = blocked.map((to) =>
-    suppressedMessage(
-      to,
-      rows.get(normalizeAddress(addressOf(to))) as MailingSuppression,
-    ),
-  );
+  const messages = blocked.map(({ to, row }) => suppressedMessage(to, row));
   return recordAll(prepared, params, messages);
 }
 
@@ -103,21 +97,25 @@ export async function sendUnlessSuppressed(
   const recipients = toRecipients(params.to);
   const rows = await blockedRecipients(params, recipients);
   if (!rows.size) return sendTemplate(slug, params);
-  const isBlocked = (to: EmailAddress): boolean =>
-    rows.has(normalizeAddress(addressOf(to)));
-  const blocked = recipients.filter(isBlocked);
-  const suppressedResults = await recordSuppressed(slug, params, blocked, rows);
+  const rowOf = (to: EmailAddress) => rows.get(normalizeAddress(addressOf(to)));
+  const isBlocked = (to: EmailAddress): boolean => rowOf(to) !== undefined;
+  const blocked = recipients.flatMap((to) => {
+    const row = rowOf(to);
+    return row ? [{ to, row }] : [];
+  });
+  const suppressedResults = await recordSuppressed(slug, params, blocked);
   const sentResults = await sendAllowed(
     slug,
     params,
     recipients.filter((to) => !isBlocked(to)),
   );
+  let nextSuppressed = 0;
+  let nextSent = 0;
   return aggregateResults(
-    recipients.map(
-      (to) =>
-        (isBlocked(to)
-          ? suppressedResults.shift()
-          : sentResults.shift()) as SendTemplateResult,
+    recipients.map((to) =>
+      isBlocked(to)
+        ? suppressedResults[nextSuppressed++]
+        : sentResults[nextSent++],
     ),
   );
 }

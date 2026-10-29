@@ -84,6 +84,7 @@ import {
   createTemplateSchema,
   templateDetailsSchema,
 } from "../validation/templates.schema";
+import { isObject, isText } from "../validation/guards";
 import { parseBody } from "./body";
 import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
@@ -155,7 +156,7 @@ function assertKnownCategory(
   category: unknown,
 ): void {
   if (isBlank(category)) return;
-  if (typeof category === "string" && findCategory(categories, category)) {
+  if (isText(category) && findCategory(categories, category)) {
     return;
   }
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
@@ -338,8 +339,8 @@ export async function saveDetails(
  * or, from a form editing every language, all of them.
  */
 function isBlankName(name: unknown): boolean {
-  const texts = typeof name === "object" && name ? Object.values(name) : [name];
-  return !texts.some((text) => typeof text === "string" && text.trim());
+  const texts = isObject(name) ? Object.values(name) : [name];
+  return !texts.some((text) => isText(text) && text.trim());
 }
 
 /** The names trimmed, blank ones left out, the fallback language filled. */

@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -17,7 +18,7 @@ async function client(): Promise<Client> {
 }
 
 async function secretOf(api: Client): Promise<string> {
-  return (await api.get(SETTINGS)).data.webhookSecret as string;
+  return checkedText((await api.get(SETTINGS)).data.webhookSecret);
 }
 
 describe("[integration] webhook status", () => {

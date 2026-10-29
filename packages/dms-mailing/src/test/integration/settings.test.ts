@@ -2,6 +2,7 @@ import { expect } from "chai";
 import type { AxiosInstance } from "axios";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -369,7 +370,7 @@ describe("[integration] settings categories in use", () => {
       category: ALPHA.id,
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data._id as string;
+    return checkedText(created.data._id);
   }
 
   const categoryOf = async (client: AxiosInstance, id: string) =>

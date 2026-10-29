@@ -21,8 +21,7 @@ const MISSING_TOKEN: Record<InterpolationMode, (token: string) => string> = {
 
 export function extractTokens(text: string): string[] {
   const found = new Set<string>();
-  for (const match of text.matchAll(TOKEN_PATTERN))
-    found.add(match[1] as string);
+  for (const match of text.matchAll(TOKEN_PATTERN)) found.add(match[1]);
   return [...found];
 }
 

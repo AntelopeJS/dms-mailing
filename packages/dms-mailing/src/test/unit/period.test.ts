@@ -1,4 +1,3 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import { MAX_WINDOW_DAYS } from "../../constants";
 import {
@@ -12,7 +11,7 @@ import {
 const DAY_MS = 86_400_000;
 
 const ctxWith = (query: Record<string, string>): RangeContext => ({
-  url: { searchParams: new URLSearchParams(query) } as RequestContext["url"],
+  url: new URL(`http://localhost/?${new URLSearchParams(query)}`),
 });
 
 const spanDays = (range: { from: Date; to: Date }) =>

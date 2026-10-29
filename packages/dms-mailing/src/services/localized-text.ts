@@ -1,8 +1,10 @@
+import type { IncomingHttpHeaders } from "node:http";
 import type { RequestContext } from "@antelopejs/interface-api";
 import {
   LOCALIZED_TEXT_FALLBACK_LOCALE,
   type LocalizedText,
 } from "@antelopejs/interface-dms-mailing";
+import { isText } from "../validation/guards";
 
 /** Header the DMS frontend states the reader's language in on every request. */
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
@@ -13,8 +15,8 @@ export const CONTENT_LANGUAGE_HEADER = "x-content-language";
  *
  * @param header Value of {@link CONTENT_LANGUAGE_HEADER}
  */
-export function requestLocale(header: unknown): string {
-  return typeof header === "string" && header.length > 0
+export function requestLocale(header: IncomingHttpHeaders[string]): string {
+  return isText(header) && header.length > 0
     ? header
     : LOCALIZED_TEXT_FALLBACK_LOCALE;
 }

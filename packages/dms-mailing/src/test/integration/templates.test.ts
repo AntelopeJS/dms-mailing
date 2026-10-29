@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -84,7 +85,7 @@ describe("[integration] templates table", () => {
       name: "Copy source",
       category: "orders",
     });
-    const sourceId = source.data._id as string;
+    const sourceId = checkedText(source.data._id);
     await client.post(`/api/mailing/templates/${sourceId}/content`, {
       content: {
         locales: {
@@ -109,7 +110,7 @@ describe("[integration] templates table", () => {
     });
     expect(copy.status, JSON.stringify(copy.data)).to.equal(HTTP_OK);
     const content = await client.get(
-      `/api/mailing/templates/${copy.data._id as string}/content`,
+      `/api/mailing/templates/${checkedText(copy.data._id)}/content`,
     );
     expect(content.data.content.locales.en.subject).to.equal(
       "Hello {{customer.firstName}}",
@@ -127,7 +128,7 @@ describe("[integration] templates table", () => {
       name: "Keeps slug",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     const edited = await client.put(`${DETAILS}/${id}/details`, {
       slug: "keeps-slug",
       name: "Renamed",
@@ -152,7 +153,7 @@ describe("[integration] templates table", () => {
       name: "Clears category",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
 
     const edited = await client.put(`${DETAILS}/${id}/details`, {
       slug: "clears-category",
@@ -177,7 +178,7 @@ describe("[integration] templates table", () => {
       name: "Fixed slug",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
 
     const moved = await client.put(`${DETAILS}/${id}/details`, {
       slug: "order-confirmed",
@@ -239,7 +240,7 @@ describe("[integration] template content and status", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data._id as string;
+    return checkedText(created.data._id);
   }
 
   it("replaces the content, publishes and duplicates", async () => {
@@ -311,7 +312,7 @@ describe("[integration] template content and status", () => {
     const welcome = await GetModel(TemplateModel, DEFAULT_TENANT_ID).getBySlug(
       "welcome",
     );
-    const id = welcome?._id as string;
+    const id = checkedText(welcome?._id);
     const preview = await client.post(`/api/mailing/templates/${id}/preview`, {
       locale: "en",
       data: {},
@@ -325,7 +326,6 @@ describe("[integration] template content and status", () => {
 
 describe("[integration] templates table guards", () => {
   const HTTP_UNPROCESSABLE = 422;
-  const TEMPLATES = "/api/mailing/templates";
   const RACERS = 3;
 
   type Client = ReturnType<typeof authorizedClient>;
@@ -354,16 +354,16 @@ describe("[integration] templates table guards", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data._id as string;
+    return checkedText(created.data._id);
   }
 
   async function publish(api: Client, id: string): Promise<void> {
-    await api.post(`${TEMPLATES}/${id}/content`, {
+    await api.post(`${DETAILS}/${id}/content`, {
       content: {
         locales: { en: { subject: "Published", preheader: "", blocks: [] } },
       },
     });
-    const published = await api.post(`${TEMPLATES}/${id}/publish`, {});
+    const published = await api.post(`${DETAILS}/${id}/publish`, {});
     expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
   }
 
@@ -390,12 +390,12 @@ describe("[integration] templates table guards", () => {
     expect(live.status).to.equal(HTTP_CONFLICT);
     expect(JSON.stringify(live.data)).to.contain("template_in_use");
 
-    const sent = await api.post(`${TEMPLATES}/${id}/test-send`, {
+    const sent = await api.post(`${DETAILS}/${id}/test-send`, {
       to: ["sofie@example.test"],
       locale: "en",
     });
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    await api.post(`${TEMPLATES}/${id}/archive`, {});
+    await api.post(`${DETAILS}/${id}/archive`, {});
     const archived = await remove(api, id);
     expect(archived.status).to.equal(HTTP_CONFLICT);
     expect(JSON.stringify(archived.data)).to.contain("template_was_sent");
@@ -408,7 +408,7 @@ describe("[integration] templates table guards", () => {
     const api = await client();
     const id = await create(api, "fix-l2-delete-archived");
     await publish(api, id);
-    const archive = await api.post(`${TEMPLATES}/${id}/archive`, {});
+    const archive = await api.post(`${DETAILS}/${id}/archive`, {});
     expect(archive.status, JSON.stringify(archive.data)).to.equal(HTTP_OK);
     const { templates, versions } = await models();
     expect(await versions.listForTemplate(id)).to.have.length.greaterThan(0);
@@ -448,7 +448,9 @@ describe("[integration] templates table guards", () => {
       name: "  Trimmed  ",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const row = await api.get(`${TABLE}/get?id=${created.data._id as string}`);
+    const row = await api.get(
+      `${TABLE}/get?id=${checkedText(created.data._id)}`,
+    );
     expect(row.data.slug).to.equal("fix-l2-trim");
     expect(row.data.name).to.equal("Trimmed");
 

@@ -41,7 +41,7 @@ const LOCALE_PARTS = /[-_]/;
 /** A test text in the language of `locale`, English when it has none. */
 function inLanguageOf(texts: Record<string, string>, locale: string): string {
   const language = locale.toLowerCase().split(LOCALE_PARTS)[0] ?? "";
-  return texts[language] ?? (texts[DEFAULT_TEST_DATA_LOCALE] as string);
+  return texts[language] ?? texts[DEFAULT_TEST_DATA_LOCALE];
 }
 
 /** An amount the way `locale` writes it: "€1,556.00", "1 556,00 €". */

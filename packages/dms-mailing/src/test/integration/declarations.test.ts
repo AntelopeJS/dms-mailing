@@ -138,7 +138,7 @@ describe("[integration] template declarations", () => {
         error = reason;
       }
       expect(error).to.include({ code: codes[index % codes.length] });
-      expect((error as Error).message).to.include("tenantId");
+      expect(error).to.have.property("message").that.includes("tenantId");
     }
     expect(await rowsWithSlug(slug)).to.equal(0);
     expect(JSON.stringify(await settings.get(DEFAULT_TENANT_ID))).to.equal(
@@ -356,14 +356,14 @@ describe("[integration] template declarations", () => {
         declaration(`declared-refused-${stamp}`, overrides),
       ).then(
         () => undefined,
-        (reason: unknown) => reason as { code?: string; message: string },
+        (reason: unknown) => reason,
       );
-      expect(error?.code, JSON.stringify(overrides)).to.equal(code);
+      expect(error, JSON.stringify(overrides)).to.have.property("code", code);
     }
     const invalid = await DeclareTemplate(
       declaration(`declared-refused-${stamp}`, { slug: "Bad Slug" }),
     ).catch((reason: Error) => reason);
-    expect((invalid as Error).message).to.match(/slug/);
+    expect(invalid).to.have.property("message").that.matches(/slug/);
   });
 
   it("isolates declarations and imports with identical keys in different tenants", async () => {
@@ -521,7 +521,7 @@ describe("[integration] template category declarations", () => {
       label: { en: "Billing" },
       icon: "i-ph-receipt",
     }).catch((reason: { code?: string }) => reason);
-    expect((error as { code?: string }).code).to.equal("invalid_category");
+    expect(error).to.have.property("code", "invalid_category");
   });
 });
 
@@ -583,9 +583,9 @@ describe("[integration] sender declarations", () => {
         (reason: { code?: string; message: string }) => reason,
       );
       expect(error).to.include({ code: "invalid_sender" });
-      expect((error as Error).message).to.include(
-        index < 2 ? "email" : "tenantId",
-      );
+      expect(error)
+        .to.have.property("message")
+        .that.includes(index < 2 ? "email" : "tenantId");
     }
   });
 });

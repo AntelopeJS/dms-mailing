@@ -123,7 +123,7 @@ function moveIssues(
   kept: Set<string>,
 ): CategoryIssue[] {
   return entries.flatMap((entry, index) =>
-    isKept(entry) || kept.has(entry.moveTo as string)
+    entry.moveTo === undefined || kept.has(entry.moveTo)
       ? []
       : [{ message: UNKNOWN_MOVE_TARGET, path: [index, "moveTo"] }],
   );

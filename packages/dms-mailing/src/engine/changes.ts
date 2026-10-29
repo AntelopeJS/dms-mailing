@@ -6,6 +6,7 @@ import type {
   VariableDefinition,
 } from "../types";
 import { walkBlocks } from "./walk";
+import { isObject } from "../validation/guards";
 
 export type TemplateChangeKind =
   | "locale_added"
@@ -51,11 +52,11 @@ const NESTED_KEYS = new Set(["children", "elseChildren"]);
  */
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
-  if (!value || typeof value !== "object") return value;
+  if (!isObject(value)) return value;
   return Object.fromEntries(
     Object.keys(value)
       .sort()
-      .map((key) => [key, canonical((value as Record<string, unknown>)[key])]),
+      .map((key) => [key, canonical(value[key])]),
   );
 }
 
