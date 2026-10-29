@@ -4,11 +4,7 @@ import SendDrawer from '../app/components/SendDrawer.vue'
 import type { SendRow } from '../app/types/mailing'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
-
-vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	useMailingApi: () => ({ replay: vi.fn() }),
-}))
+import { stubAuthFetch } from './helpers/auth-fetch'
 
 const SEND: SendRow = {
 	_id: '041f125a00000000',
@@ -55,6 +51,7 @@ async function render(): Promise<HTMLElement> {
 describe('send drawer layout', () => {
 	beforeEach(() => {
 		stubNuxtGlobals()
+		stubAuthFetch()
 		vi.stubGlobal('useApiError', () => undefined)
 		stubApiData().respond(
 			mailingReads({ send: () => ({ send: SEND, events: [] }) }),

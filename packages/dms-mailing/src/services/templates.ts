@@ -180,13 +180,18 @@ interface FooterLabels {
   preferences: string;
 }
 
+const ENGLISH_FOOTER_LABELS: FooterLabels = {
+  unsubscribe: "Unsubscribe",
+  preferences: "Preferences",
+};
+
 /**
  * The one piece of content the module still writes for a new template. An
  * e-mail without an unsubscribe link is a legal problem, so a blank template
  * ships a footer — and nothing else: no invented subject, prose or address.
  */
 const FOOTER_LABELS: Record<string, FooterLabels> = {
-  en: { unsubscribe: "Unsubscribe", preferences: "Preferences" },
+  en: ENGLISH_FOOTER_LABELS,
   fr: { unsubscribe: "Se désinscrire", preferences: "Préférences" },
 };
 
@@ -194,7 +199,7 @@ const FOOTER_BLOCK_ID = "footer";
 
 /** A footer in `locale`: its legal line and the labels of its two links. */
 export function footerBlock(locale: string, text = ""): Block {
-  const labels = FOOTER_LABELS[locale] ?? (FOOTER_LABELS.en as FooterLabels);
+  const labels = FOOTER_LABELS[locale] ?? ENGLISH_FOOTER_LABELS;
   return {
     id: FOOTER_BLOCK_ID,
     type: "footer",
@@ -226,16 +231,13 @@ export function isStaleRevision(
   return revision !== undefined && revision !== template.draftRevision;
 }
 
-function draftWriteFields(
-  template: MailingTemplate,
-  author: string,
-): TemplateFields {
+function draftWriteFields(template: MailingTemplate, author: string) {
   return {
     draftRevision: template.draftRevision + 1,
     draftUpdatedAt: new Date(),
     draftUpdatedBy: author,
     updatedBy: author,
-  };
+  } satisfies TemplateFields;
 }
 
 /** Whether `draft` is exactly what customers and callers already have. */
@@ -271,7 +273,7 @@ export async function saveDraft(
     ...locales,
   });
   await refreshAttentionIfFlagged(tenantId, template, STALE_DRAFT);
-  return fields.draftRevision as number;
+  return fields.draftRevision;
 }
 
 export async function discardDraft(

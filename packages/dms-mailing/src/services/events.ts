@@ -16,6 +16,7 @@ import { publishSendUpdated } from "../realtime";
 import type { SendEventType, SendStatus } from "../types";
 import { notifyProblems } from "./notify";
 import { suppressAddress, suppressionReasonOf } from "./suppressions";
+import { isObject, isText } from "../validation/guards";
 
 export interface SendCounters {
   status: SendStatus;
@@ -59,8 +60,11 @@ const HARD_BOUNCE_TYPE = /hard|permanent/i;
 /** A temporary SMTP answer: a `4xx` reply code or a `4.x.x` enhanced status. */
 const SOFT_SMTP_ANSWER = /^\s*4\d\d\b|\b4\.\d{1,3}\.\d{1,3}\b/;
 
-const textOf = (value: unknown): string =>
-  typeof value === "string" ? value : "";
+/** The text an event's details hold under `key`, else an empty string. */
+function textOf(details: EmailEvent["details"], key: string): string {
+  const value = details?.[key];
+  return isText(value) ? value : "";
+}
 
 /**
  * The provider's own words for a problem event (`550 5.1.1 Mailbox does not
@@ -70,7 +74,7 @@ const textOf = (value: unknown): string =>
 export function problemReason(event: EmailEvent): string | undefined {
   if (!PROBLEM_EVENTS.has(event.type)) return undefined;
   const reason = event.details?.reason;
-  return typeof reason === "string" && reason ? reason : undefined;
+  return isText(reason) && reason ? reason : undefined;
 }
 
 function overridesStatus(current: SendStatus, next: SendStatus): boolean {
@@ -95,10 +99,10 @@ export function applyEvent(
  * provider's `bounceType` when it gives one, else the SMTP answer's class.
  */
 export function isSoftBounce(event: EmailEvent): boolean {
-  const bounceType = textOf(event.details?.bounceType);
+  const bounceType = textOf(event.details, "bounceType");
   if (SOFT_BOUNCE_TYPE.test(bounceType)) return true;
   if (HARD_BOUNCE_TYPE.test(bounceType)) return false;
-  return SOFT_SMTP_ANSWER.test(textOf(event.details?.reason));
+  return SOFT_SMTP_ANSWER.test(textOf(event.details, "reason"));
 }
 
 /**
@@ -144,8 +148,8 @@ async function publishEmailEvent(
   });
 }
 
-const eventIdOf = (details: Record<string, unknown> | undefined): string =>
-  textOf(details?.eventId);
+const eventIdOf = (details: EmailEvent["details"]): string =>
+  textOf(details, "eventId");
 
 type StoredEventIdentity = Pick<
   MailingSendEvent,
@@ -163,11 +167,10 @@ export function isSameEvent(
 ): boolean {
   const eventId = eventIdOf(event.details);
   if (eventId) {
-    const storedDetails = JSON.parse(stored.json_details || "{}") as Record<
-      string,
-      unknown
-    >;
-    return eventIdOf(storedDetails) === eventId;
+    const storedDetails: unknown = JSON.parse(stored.json_details || "{}");
+    return (
+      eventIdOf(isObject(storedDetails) ? storedDetails : undefined) === eventId
+    );
   }
   if (!event.at || stored.type !== event.type) return false;
   return (
@@ -223,7 +226,7 @@ async function suppressAfterEvent(
       email: send.recipientEmail,
       reason,
       sendId: send._id,
-      detail: textOf(event.details?.reason) || undefined,
+      detail: textOf(event.details, "reason") || undefined,
     });
   } catch (error) {
     Logging.Error("[dms-mailing] Could not suppress an address:", error);

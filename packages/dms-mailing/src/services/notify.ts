@@ -38,7 +38,7 @@ const PERCENT = 100;
 const SENDS_PAGE = "/modules/mailing/sends";
 const PROBLEMS_VIEW = "problems";
 const IDEMPOTENCY_KEY_SEPARATOR = ":";
-// The DMS keys notifications across every module: ours carry the module's name.
+/** The DMS keys notifications across every module: ours carry the module's name. */
 const IDEMPOTENCY_KEY_PREFIX = "mailing:problems";
 const PROBLEMS_ICON = "i-ph-warning";
 const PROBLEMS_TITLE = "$dms_mailing.notifications.problems_title";

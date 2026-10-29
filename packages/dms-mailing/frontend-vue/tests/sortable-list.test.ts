@@ -5,8 +5,7 @@
  * changes its array, and Vue renders the new order. The drags are replayed as
  * SortableJS reports them, DOM moves included.
  */
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import Sortable from 'sortablejs'
 import {
 	createApp,
 	defineComponent,
@@ -17,41 +16,9 @@ import {
 	type App,
 } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useSortableList } from '../app/composables/useSortableList'
 
 type Options = Record<string, unknown>
-
-interface FakeSortable {
-	el: HTMLElement
-	options: Options
-}
-
-const instances: FakeSortable[] = []
-
-// SortableJS needs a pointer to drag with: what the test drives is the
-// options the list hands it, called as SortableJS calls them.
-vi.mock('@vueuse/integrations/useSortable', async () => {
-	const { onMounted, unref } = await import('vue')
-	return {
-		useSortable: (
-			target: { value: HTMLElement },
-			_list: unknown,
-			options: Options,
-		) => {
-			const sortable = { el: undefined as unknown as HTMLElement, options }
-			onMounted(() => {
-				sortable.el = unref(target)
-				instances.push(sortable)
-			})
-			return {
-				option: (name: string, value: unknown) => {
-					sortable.options[name] = value
-				},
-			}
-		},
-	}
-})
-
-const { useSortableList } = await import('../app/composables/useSortableList')
 
 interface Item {
 	id: string
@@ -62,7 +29,6 @@ let app: App | undefined
 afterEach(() => {
 	app?.unmount()
 	app = undefined
-	instances.length = 0
 })
 
 const List = defineComponent({
@@ -84,34 +50,58 @@ const List = defineComponent({
 	},
 })
 
-function mountLists(lists: { items: Item[]; options: Options }[]) {
+/**
+ * Mounts the lists and returns the SortableJS instance VueUse created on each
+ * list element. SortableJS needs a pointer to drag with: the tests call the
+ * handlers of its options as it calls them, DOM moves included.
+ */
+function mountLists(lists: { items: Item[]; options: Options }[]): Sortable[] {
 	const host = document.createElement('div')
 	document.body.append(host)
 	app = createApp({
 		render: () => lists.map((list) => h(List, list)),
 	})
 	app.mount(host)
-	return host
+	return [...host.children].map((element) => {
+		const sortable = element instanceof HTMLElement && Sortable.get(element)
+		if (!sortable) throw new Error('no SortableJS instance on a list')
+		return sortable
+	})
 }
 
 const ids = (items: Item[]) => items.map((item) => item.id)
-const domIds = (sortable: FakeSortable) =>
+const domIds = (sortable: Sortable) =>
 	[...sortable.el.children].map((child) => child.getAttribute('data-id'))
-const call = (sortable: FakeSortable, name: string, event: unknown) =>
-	(sortable.options[name] as (event: unknown) => void)(event)
+function call(sortable: Sortable, name: string, event: unknown): void {
+	const handler: unknown = Reflect.get(sortable.options, name)
+	if (typeof handler !== 'function') throw new Error(`no ${name} handler`)
+	handler(event)
+}
+
+/** Asks the group SortableJS built from the list's options, as a drag does. */
+function groupCheck(
+	sortable: Sortable,
+	name: 'checkPull' | 'checkPut',
+	to: Sortable,
+	from: Sortable,
+): unknown {
+	const check: unknown = Reflect.get(Object(sortable.options.group), name)
+	if (typeof check !== 'function') throw new Error(`no ${name} in the group`)
+	return check(to, from)
+}
 
 describe('useSortableList', () => {
 	it('reorders a list in place and renders the new order', async () => {
 		const items = reactive([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
 		const changes: unknown[] = []
 		const ended = vi.fn()
-		mountLists([
+		const sortables = mountLists([
 			{
 				items,
 				options: { onChange: (c: unknown) => changes.push(c), onEnd: ended },
 			},
 		])
-		const [list] = instances
+		const [list] = sortables
 		const item = list!.el.children[0] as HTMLElement
 		call(list!, 'onStart', { item, oldIndex: 0 })
 		// SortableJS has moved the element already when it reports the update.
@@ -132,7 +122,7 @@ describe('useSortableList', () => {
 		const target = reactive([{ id: 'x' }])
 		const sourceChanges: unknown[] = []
 		const targetChanges: unknown[] = []
-		mountLists([
+		const sortables = mountLists([
 			{
 				items: source,
 				options: {
@@ -148,7 +138,7 @@ describe('useSortableList', () => {
 				},
 			},
 		])
-		const [from, to] = instances
+		const [from, to] = sortables
 		const item = from!.el.children[1] as HTMLElement
 		call(from!, 'onStart', { item, oldIndex: 1 })
 		to!.el.prepend(item)
@@ -173,7 +163,7 @@ describe('useSortableList', () => {
 		const palette = reactive([{ id: 'tile' }])
 		const canvas = reactive<Item[]>([])
 		const group = { name: 'g', pull: 'clone', put: false }
-		mountLists([
+		const sortables = mountLists([
 			{
 				items: palette,
 				options: {
@@ -184,8 +174,10 @@ describe('useSortableList', () => {
 			},
 			{ items: canvas, options: { group: { name: 'g' } } },
 		])
-		const [from, to] = instances
-		expect(from!.options.group).toBe(group)
+		const [from, to] = sortables
+		expect(Reflect.get(Object(from!.options.group), 'name')).toBe('g')
+		expect(groupCheck(from!, 'checkPull', to!, from!)).toBe('clone')
+		expect(groupCheck(from!, 'checkPut', from!, to!)).toBe(false)
 		expect(from!.options.sort).toBe(false)
 		const item = from!.el.children[0] as HTMLElement
 		call(from!, 'onStart', { item, oldIndex: 0 })
@@ -210,7 +202,7 @@ describe('useSortableList', () => {
 
 	it('passes the handle, the item selector and a disabled state it follows', async () => {
 		const disabled = ref(false)
-		mountLists([
+		const sortables = mountLists([
 			{
 				items: reactive([{ id: 'a' }]),
 				options: {
@@ -221,7 +213,7 @@ describe('useSortableList', () => {
 				},
 			},
 		])
-		const [list] = instances
+		const [list] = sortables
 		expect(list!.options).toMatchObject({
 			handle: '[data-drag-handle]',
 			draggable: '>[data-drag-item]',
@@ -235,19 +227,19 @@ describe('useSortableList', () => {
 	})
 
 	it('leaves SortableJS its defaults for what the list does not set', () => {
-		mountLists([{ items: reactive([{ id: 'a' }]), options: {} }])
-		const [list] = instances
+		const sortables = mountLists([
+			{ items: reactive([{ id: 'a' }]), options: {} },
+		])
+		const [list] = sortables
+		const bare = new Sortable(document.createElement('div'))
 		// A key present with `undefined` would replace the default: an
 		// undefined `draggable` makes no child an item, and nothing drags.
-		for (const name of ['group', 'handle', 'draggable', 'ghostClass'])
-			expect(list!.options).not.toHaveProperty(name)
-	})
-
-	it('no longer ships vuedraggable, which bundled the Vue compiler', () => {
-		const manifest = JSON.parse(
-			readFileSync(resolve(__dirname, '../package.json'), 'utf8'),
-		) as { dependencies: Record<string, string> }
-		expect(manifest.dependencies).not.toHaveProperty('vuedraggable')
-		expect(manifest.dependencies).toHaveProperty('sortablejs')
+		for (const name of ['handle', 'draggable', 'ghostClass'] as const)
+			expect(list!.options[name]).toBe(bare.options[name])
+		expect(list!.options.draggable).toBe('>*')
+		expect(Reflect.get(Object(list!.options.group), 'name')).toBe(
+			Reflect.get(Object(bare.options.group), 'name'),
+		)
+		bare.destroy()
 	})
 })

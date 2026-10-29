@@ -18,6 +18,7 @@ import {
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
+import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
 const api = {
 	templateContent: vi.fn(),
@@ -25,11 +26,6 @@ const api = {
 	testSend: vi.fn(),
 	realSend: vi.fn(),
 }
-
-vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	useMailingApi: () => api,
-}))
 
 const DRAFT_CONTENT = {
 	locales: { en: { subject: 'Hi', preheader: '', blocks: [] } },
@@ -104,6 +100,13 @@ let stubs: NuxtStubs
 
 beforeEach(() => {
 	stubs = stubNuxtGlobals('camille@acme.com')
+	stubAuthFetch().respond(
+		mailingWrites({
+			preview: api.preview,
+			testSend: api.testSend,
+			realSend: api.realSend,
+		}),
+	)
 	stubApiData().respond(
 		mailingReads({ templateContent: api.templateContent }, ({ url }) => {
 			throw new Error(`unexpected read ${url}`)

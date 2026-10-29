@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @antelopejs/dms-mailing build",
-    "lint": "oxlint && pnpm --dir packages/dms-mailing/frontend-vue lint && pnpm --dir packages/dms-mailing exec antelopejs-check-interface-ranges",
+    "lint": "oxlint && pnpm --dir packages/dms-mailing/frontend-vue lint && node packages/dms-mailing/scripts/check-locales.mts && node packages/dms-mailing/scripts/check-frontend-dependencies.mts && pnpm --dir packages/dms-mailing exec antelopejs-check-interface-ranges",
     "typecheck": "pnpm --dir packages/interface-dms-mailing build && pnpm --dir packages/dms-mailing typecheck",
     "knip": "pnpm --filter @antelopejs/dms-mailing knip",
     "test": "pnpm --dir packages/dms-mailing test:layer",
@@ -18,10 +18,12 @@
     "sync:check": "antelopejs-sync --check",
     "format": "oxfmt . && pnpm --dir packages/dms-mailing/frontend-vue format",
     "format:check": "oxfmt --check .",
-    "lint:fix": "oxlint --fix && oxfmt . && pnpm --dir packages/dms-mailing/frontend-vue lint:fix"
+    "lint:fix": "oxlint --fix && oxfmt . && pnpm --dir packages/dms-mailing/frontend-vue lint:fix",
+    "suppressions": "antelopejs-suppressions",
+    "suppressions:update": "antelopejs-suppressions --update"
   },
   "devDependencies": {
-    "@antelopejs/tooling-configs": "^0.2.0",
+    "@antelopejs/tooling-configs": "^0.2.12",
     "knip": "^6.34.0",
     "lefthook": "^2.2.2",
     "oxfmt": "^0.66.0",

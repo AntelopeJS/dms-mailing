@@ -92,14 +92,13 @@ describe("[unit] services/events isSameEvent", () => {
   const stored = (
     type: SendEventType,
     details: Record<string, unknown>,
-  ): MailingSendEvent =>
-    ({
-      _id: "e1",
-      sendId: "s1",
-      type,
-      at: AT,
-      json_details: JSON.stringify(details),
-    }) as MailingSendEvent;
+  ): MailingSendEvent => ({
+    _id: "e1",
+    sendId: "s1",
+    type,
+    at: AT,
+    json_details: JSON.stringify(details),
+  });
   const incoming = (
     type: SendEventType,
     details: Record<string, unknown>,

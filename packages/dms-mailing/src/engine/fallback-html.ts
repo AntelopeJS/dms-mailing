@@ -1,15 +1,15 @@
 import type { ResolvedBlock, ResolvedEmail } from "../types";
 
-const ESCAPES: Record<string, string> = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-};
+const ESCAPES = new Map([
+  ["&", "&amp;"],
+  ["<", "&lt;"],
+  [">", "&gt;"],
+  ['"', "&quot;"],
+  ["'", "&#39;"],
+]);
 
 export const escapeHtml = (value: string): string =>
-  value.replace(/[&<>"']/g, (char) => ESCAPES[char] ?? char);
+  value.replace(/[&<>"']/g, (char) => ESCAPES.get(char) ?? char);
 
 const LINE_BREAK = /\r?\n/g;
 
@@ -77,7 +77,7 @@ const row = (label: string, value: string, weight: string): string =>
 const table = (rows: string): string =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="${BLOCK_SPACING}">${rows}</table>`;
 
-const TEXT_RENDERERS: Record<string, BlockHtml> = {
+const TEXT_RENDERERS = {
   heading: (block) =>
     block.type === "heading"
       ? `<h1 style="${FONT};font-size:${block.size}px;font-weight:600;color:${HEADING_COLOR};text-align:${block.align};margin:0 0 24px;${WRAP}">${escapeLines(block.text)}</h1>`
@@ -94,7 +94,7 @@ const TEXT_RENDERERS: Record<string, BlockHtml> = {
     block.type === "button"
       ? `<div style="text-align:${block.align};margin:24px 0"><a href="${escapeHtml(safeUrl(block.href))}" style="${FONT};${BUTTON_STYLE}">${escapeHtml(block.text)}</a></div>`
       : "",
-};
+} satisfies Record<string, BlockHtml>;
 
 const footerHtml = (block: ResolvedBlock): string => {
   if (block.type !== "footer") return "";
@@ -109,7 +109,7 @@ const footerHtml = (block: ResolvedBlock): string => {
   return `${DIVIDER}<p style="${FOOTER_STYLE}">${escapeLines(block.text)}${linkLine}</p>`;
 };
 
-const LAYOUT_RENDERERS: Record<string, BlockHtml> = {
+const LAYOUT_RENDERERS = {
   hero: (block) =>
     block.type === "hero" && block.imageUrl
       ? `<img src="${escapeHtml(safeUrl(block.imageUrl))}" alt="${escapeHtml(block.alt)}" style="display:block;width:100%;border-radius:8px;margin:0 0 20px">`
@@ -124,12 +124,12 @@ const LAYOUT_RENDERERS: Record<string, BlockHtml> = {
     block.type === "total" ? table(row(block.label, block.value, "600")) : "",
   divider: () => DIVIDER,
   footer: footerHtml,
-};
+} satisfies Record<string, BlockHtml>;
 
 const RENDERERS: Record<ResolvedBlock["type"], BlockHtml> = {
   ...TEXT_RENDERERS,
   ...LAYOUT_RENDERERS,
-} as Record<ResolvedBlock["type"], BlockHtml>;
+};
 
 const FOOTER_TYPE = "footer";
 

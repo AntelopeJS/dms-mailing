@@ -28,18 +28,19 @@ describe("[unit] automation nodes", () => {
     });
   });
 
-  // The automation module ships no loop node: a procedure cannot call this
-  // action once per contact, so the fan-out has to happen inside it. The port
-  // must therefore accept a list, which `sendTemplate` already handles.
+  /**
+   * The automation module ships no loop node: a procedure cannot call this
+   * action once per contact, so the fan-out has to happen inside it. The port
+   * must therefore accept a list, which `sendTemplate` already handles.
+   */
   it("accepts a list of recipients on the `to` port, not just one address", () => {
-    const properties = (
-      sendTemplateAction.inputSchema as {
-        properties: Record<string, { type?: unknown; items?: unknown }>;
-      }
-    ).properties;
-    const to = properties.to as { type?: unknown; items?: unknown };
-    expect(to.type).to.deep.equal(["string", "array"]);
-    expect(to.items).to.deep.equal({ type: "string" });
+    const schema = sendTemplateAction.inputSchema;
+    expect(schema)
+      .to.have.nested.property("properties.to.type")
+      .that.deep.equals(["string", "array"]);
+    expect(schema)
+      .to.have.nested.property("properties.to.items")
+      .that.deep.equals({ type: "string" });
   });
 
   it("fans e-mail events out to active trigger subscriptions filtered by type", async () => {

@@ -17,8 +17,10 @@ const settings = (webhookSecret: string) => ({
 });
 
 describe("[unit] webhook secret", () => {
-  // The event endpoint is the module's only unauthenticated route: the secret
-  // is the whole gate, so an absent or blank one must close it, not open it.
+  /**
+   * The event endpoint is the module's only unauthenticated route: the secret
+   * is the whole gate, so an absent or blank one must close it, not open it.
+   */
   it("refuses every request when no secret is stored", () => {
     expect(webhookSecretMatches("", "")).to.equal(false);
     expect(webhookSecretMatches(undefined, "")).to.equal(false);

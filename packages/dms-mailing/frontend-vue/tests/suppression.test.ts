@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SEND_STATUS_TONES, sendFooterActions } from '../app/utils/send-actions'
+import { sendFooterActions } from '../app/utils/send-actions'
 import {
 	isSuppressedStatus,
 	reasonKey,
@@ -119,7 +119,6 @@ describe('a suppressed send in the drawer', () => {
 			'rendering',
 			'send_again',
 		])
-		expect(SEND_STATUS_TONES.suppressed).toBe('neutral')
 	})
 
 	it('draws one step, without a queued one nor a raw reason', () => {

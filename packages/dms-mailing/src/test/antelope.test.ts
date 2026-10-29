@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 import { SHARED_MODULE_SOURCES } from "./antelope-modules";
+import { isText } from "../validation/guards";
 
 const API_PORT = 5019;
 const JWT_SECRET = "test-jwt-secret";
@@ -13,16 +14,16 @@ const MONGO_BINARY_VERSION = "8.0.8";
 const SMTP_HOST = "127.0.0.1";
 const EPHEMERAL_PORT = 0;
 const TEST_SENDER = "dms-mailing@test.local";
-const SMTP_RESPONSES: Record<string, string> = {
-  EHLO: "250-dms-mailing.test\r\n250 PIPELINING\r\n",
-  HELO: "250 dms-mailing.test\r\n",
-  MAIL: "250 OK\r\n",
-  RCPT: "250 OK\r\n",
-  DATA: "354 End data with <CR><LF>.<CR><LF>\r\n",
-  RSET: "250 OK\r\n",
-  NOOP: "250 OK\r\n",
-  QUIT: "221 Bye\r\n",
-};
+const SMTP_RESPONSES = new Map([
+  ["EHLO", "250-dms-mailing.test\r\n250 PIPELINING\r\n"],
+  ["HELO", "250 dms-mailing.test\r\n"],
+  ["MAIL", "250 OK\r\n"],
+  ["RCPT", "250 OK\r\n"],
+  ["DATA", "354 End data with <CR><LF>.<CR><LF>\r\n"],
+  ["RSET", "250 OK\r\n"],
+  ["NOOP", "250 OK\r\n"],
+  ["QUIT", "221 Bye\r\n"],
+]);
 
 interface SmtpConnectionState {
   pending: string;
@@ -47,7 +48,7 @@ function processSmtpLine(
   }
   const command = line.split(" ", 1)[0]?.toUpperCase() ?? "";
   state.isReadingData = command === "DATA";
-  const response = SMTP_RESPONSES[command] ?? "250 OK\r\n";
+  const response = SMTP_RESPONSES.get(command) ?? "250 OK\r\n";
   if (command === "QUIT") socket.end(response);
   else socket.write(response);
 }
@@ -77,8 +78,7 @@ async function startSmtpFixture(): Promise<number> {
     });
   });
   const address = smtpServer.address();
-  if (!address || typeof address === "string")
-    throw new Error("Invalid SMTP address");
+  if (!address || isText(address)) throw new Error("Invalid SMTP address");
   return address.port;
 }
 
@@ -102,8 +102,10 @@ export default defineConfig({
       source: {
         type: "local",
         path: ".",
-        // CI builds the module once before the run and sets DMS_PREBUILT, so
-        // the harness does not build it a second time.
+        /**
+         * CI builds the module once before the run and sets DMS_PREBUILT, so
+         * the harness does not build it a second time.
+         */
         installCommand: process.env.DMS_PREBUILT ? [] : ["pnpm build"],
       },
       config: { useHtmlRender: false },
@@ -112,14 +114,18 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.dms,
       config: {
         apiBaseUrl: `http://127.0.0.1:${API_PORT}`,
-        // No frontend server runs here: the dashboard URL is the API, whose
-        // paths the front proxy serves unchanged.
+        /**
+         * No frontend server runs here: the dashboard URL is the API, whose
+         * paths the front proxy serves unchanged.
+         */
         clientBaseUrl: `http://127.0.0.1:${API_PORT}`,
         auth: {
           jwtSecret: JWT_SECRET,
         },
-        // Outside development, which the test run is not, dms 0.10 refuses
-        // to start without a render secret of its own.
+        /**
+         * Outside development, which the test run is not, dms 0.10 refuses to
+         * start without a render secret of its own.
+         */
         htmlRender: {
           serviceSecret: HTML_RENDER_SECRET,
         },
@@ -138,7 +144,7 @@ export default defineConfig({
       source: SHARED_MODULE_SOURCES.api,
       config: {
         servers: [{ protocol: "http", host: "127.0.0.1", port: API_PORT }],
-        // Required outside development, which the test run is not.
+        /** Required outside development, which the test run is not. */
         publicBaseUrl: `http://127.0.0.1:${API_PORT}`,
       },
     },

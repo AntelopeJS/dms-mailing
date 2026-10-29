@@ -9,6 +9,7 @@ on:
   # single gate -- only the secret scanner ran.
   pull_request:
 
+  workflow_dispatch: null
 permissions:
   contents: read
 
@@ -20,7 +21,7 @@ concurrency:
 # not for their sum.
 jobs:
   # Typecheck, lint, format, knip, the Vue layer tests, size, ratchet and sync.
-  checks:
+  ci:
     uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
     with:
       docs-files: |
@@ -30,6 +31,9 @@ jobs:
         packages/interface-dms-mailing/README.md
         packages/interface-dms-mailing/docs
       docs-typescript-project: packages/interface-dms-mailing/docs/tsconfig.json
+    permissions:
+      contents: write
+      actions: write
 
   backend-tests:
     runs-on: ubuntu-latest
@@ -64,7 +68,7 @@ jobs:
   # to have: it now stands for all of them, and fails if any did not pass.
   ubuntu:
     if: always()
-    needs: [checks, backend-tests]
+    needs: [ci, backend-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

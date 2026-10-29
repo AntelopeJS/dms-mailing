@@ -1,4 +1,5 @@
 import type { VariableDefinition } from "../types";
+import { isObject, isText } from "../validation/guards";
 
 /**
  * An amount in the minor unit of its currency (cents for `EUR`), like the
@@ -55,12 +56,11 @@ export function valueFormatOf(
 }
 
 export function isMoneyValue(value: unknown): value is MoneyValue {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<MoneyValue>;
+  if (!isObject(value)) return false;
   return (
-    typeof candidate.value === "number" &&
-    Number.isFinite(candidate.value) &&
-    typeof candidate.currency === "string"
+    typeof value.value === "number" &&
+    Number.isFinite(value.value) &&
+    typeof value.currency === "string"
   );
 }
 
@@ -118,7 +118,7 @@ export function formatValue(
     return Number.isNaN(value.getTime())
       ? String(value)
       : formatDate(value, DATE_STYLE, locale);
-  if (typeof value === "string" && format?.datePaths.has(path))
+  if (isText(value) && format?.datePaths.has(path))
     return formatIsoDate(value, locale) ?? value;
   return String(value);
 }

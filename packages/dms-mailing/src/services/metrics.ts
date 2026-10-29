@@ -122,7 +122,7 @@ const wasOpened = (send: SendSummary): boolean =>
 function median(values: number[]): number {
   if (!values.length) return 0;
   const sorted = [...values].sort((left, right) => left - right);
-  return sorted[Math.floor(sorted.length / 2)] as number;
+  return sorted[Math.floor(sorted.length / 2)];
 }
 
 /** A send to a suppressed address never left: no figure counts it. */
@@ -262,7 +262,7 @@ export function alignSeries(
   axis: SeriesPoint[],
 ): SeriesPoint[] {
   return points.slice(0, axis.length).map((point, index) => ({
-    x: (axis[index] as SeriesPoint).x,
+    x: axis[index].x,
     y: point.y,
   }));
 }

@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const TABLE = "/api/mailing/tables/templates";
@@ -22,7 +23,7 @@ async function client(): Promise<Client> {
 async function liveTemplate(api: Client, slug: string): Promise<string> {
   const created = await api.post(`${TABLE}/new`, { slug, name: slug });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  const id = created.data._id as string;
+  const id = checkedText(created.data._id);
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },

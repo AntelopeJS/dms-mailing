@@ -53,9 +53,11 @@ const withHref = (href: string): ResolvedEmail => ({
 });
 
 describe("[unit] engine/fallback-html link schemes", () => {
-  // A link target can come straight from an interpolated variable, so it is
-  // recipient-supplied data. Escaping the entities is not enough: the scheme
-  // itself has to be one a mail client may follow.
+  /**
+   * A link target can come straight from an interpolated variable, so it is
+   * recipient-supplied data. Escaping the entities is not enough: the scheme
+   * itself has to be one a mail client may follow.
+   */
   it("keeps the schemes an e-mail legitimately uses", () => {
     for (const href of [
       "https://x.test/a?b=1",

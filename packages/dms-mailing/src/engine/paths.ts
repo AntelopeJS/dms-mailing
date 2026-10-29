@@ -1,3 +1,5 @@
+import { isObject } from "../validation/guards";
+
 const PATH_SEPARATOR = ".";
 const ARRAY_SUFFIX = "[]";
 
@@ -16,10 +18,9 @@ export function normalizePath(path: string): string {
 const RESERVED_SEGMENTS = ["__proto__", "constructor", "prototype"];
 
 function readSegment(current: unknown, segment: string): unknown {
-  if (current === null || current === undefined) return undefined;
-  if (typeof current !== "object") return undefined;
+  if (!isObject(current)) return undefined;
   if (RESERVED_SEGMENTS.includes(segment)) return undefined;
-  return (current as Record<string, unknown>)[segment];
+  return current[segment];
 }
 
 export function getPath(data: unknown, path: string): unknown {

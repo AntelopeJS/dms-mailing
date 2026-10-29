@@ -146,7 +146,7 @@ export class TemplatesPageController extends PageController(
           deepLink: true,
           target: {
             type: "drawer",
-            // On the right, as the gallery opens it (useTemplateDrawer).
+            /** On the right, as the gallery opens it (`useTemplateDrawer`). */
             direction: "right",
             component: templateDrawer,
             title: "$dms_mailing.templates.actions.details",

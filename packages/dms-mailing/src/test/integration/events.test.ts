@@ -5,6 +5,7 @@ import {
 } from "../../automation/email-event-trigger";
 import { authorizedClient, createClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
@@ -31,10 +32,10 @@ describe("[integration] events", () => {
       { to: ["events@example.test"], locale: "en", data: {} },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    const sendId = sent.data.results[0].sendId as string;
+    const sendId = checkedText(sent.data.results[0].sendId);
 
     const detail = await client.get(`/api/mailing/sends/${sendId}`);
-    const messageId = detail.data.send.providerMessageId as string;
+    const messageId = checkedText(detail.data.send.providerMessageId);
     expect(messageId, "provider message id").to.be.a("string");
     expect(messageId.length, "provider message id").to.be.greaterThan(0);
 
@@ -75,9 +76,9 @@ describe("[integration] events", () => {
       { to: ["throwing@example.test"], locale: "en", data: {} },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    const sendId = sent.data.results[0].sendId as string;
+    const sendId = checkedText(sent.data.results[0].sendId);
     const detail = await client.get(`/api/mailing/sends/${sendId}`);
-    const messageId = detail.data.send.providerMessageId as string;
+    const messageId = checkedText(detail.data.send.providerMessageId);
 
     await emailEventTrigger.activate({}, () => {
       throw new Error("subscriber exploded");
@@ -113,7 +114,7 @@ describe("[integration] events", () => {
       `/api/mailing/templates/${created.data._id}/test-send`,
       { to: ["retried@example.test"], locale: "en", data: {} },
     );
-    const sendId = sent.data.results[0].sendId as string;
+    const sendId = checkedText(sent.data.results[0].sendId);
     const detail = await client.get(`/api/mailing/sends/${sendId}`);
     const body = {
       messageId: detail.data.send.providerMessageId,
@@ -140,8 +141,10 @@ describe("[integration] events", () => {
 });
 
 describe("[integration] webhook for a tenant without settings", () => {
-  // The endpoint is unauthenticated and takes the tenant from the URL: reading
-  // the secret must not create a settings row for whatever tenant id it names.
+  /**
+   * The endpoint is unauthenticated and takes the tenant from the URL: reading
+   * the secret must not create a settings row for whatever tenant id it names.
+   */
   it("refuses the event and stores nothing", async () => {
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");
@@ -162,9 +165,11 @@ describe("[integration] webhook for a tenant without settings", () => {
 });
 
 describe("[integration] send event purge", () => {
-  // The retention cron deletes a send's events in one filtered statement. A
-  // wrong predicate there would take another send's history with it, so pin
-  // that it removes exactly one send's rows.
+  /**
+   * The retention cron deletes a send's events in one filtered statement. A
+   * wrong predicate there would take another send's history with it, so pin
+   * that it removes exactly one send's rows.
+   */
   it("deletes only the events of the send it targets", async () => {
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");

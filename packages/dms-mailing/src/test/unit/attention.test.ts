@@ -135,8 +135,10 @@ describe("[unit] services/attention untracked rates", () => {
     expect(item?.params).to.deep.equal({ provider: "smtp" });
   });
 
-  // The webhook may report opens the provider does not track itself: the
-  // item would then contradict the rates on screen.
+  /**
+   * The webhook may report opens the provider does not track itself: the item
+   * would then contradict the rates on screen.
+   */
   it("stays quiet once the window shows an open or a click", () => {
     const items = buildAttentionItems(
       windowWith({
@@ -173,7 +175,7 @@ describe("[unit] services/attention untracked rates", () => {
     expect(findUntrackedDelivery(items)).to.equal(undefined);
   });
 
-  // The provider may be unreachable; that is the provider card's business.
+  /** The provider may be unreachable; that is the provider card's business. */
   it("stays quiet when the provider capabilities are unknown", () => {
     const items = buildAttentionItems(windowWith({ sends: [send(false)] }));
     expect(findUntracked(items)).to.equal(undefined);

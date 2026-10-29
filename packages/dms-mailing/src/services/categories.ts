@@ -48,10 +48,10 @@ export function reassignRemovedCategories(
   moves: ReadonlyMap<string, string> = new Map(),
 ): CategoryReassignment[] {
   const kept = new Set(categories.map((category) => category.id));
-  return templates
-    .filter((template) => template.category && !kept.has(template.category))
-    .map((template) => ({
-      templateId: template._id,
-      category: moves.get(template.category as string) ?? "",
-    }));
+  return templates.flatMap((template) => {
+    const { category } = template;
+    return category && !kept.has(category)
+      ? [{ templateId: template._id, category: moves.get(category) ?? "" }]
+      : [];
+  });
 }

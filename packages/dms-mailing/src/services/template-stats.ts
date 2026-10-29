@@ -66,18 +66,25 @@ export function sourcesOf(sends: SendSummary[]): SourceCount[] {
     .slice(0, MAX_SOURCES);
 }
 
-export function isFallback(send: SendSummary): boolean {
+/** Whether `send` went out in another locale than the one it asked for. */
+function isRequestedFallback(
+  send: SendSummary,
+): send is SendSummary & { requestedLocale: string } {
   return Boolean(send.requestedLocale && send.requestedLocale !== send.locale);
 }
 
+export function isFallback(send: SendSummary): boolean {
+  return isRequestedFallback(send);
+}
+
 export function fallbacksOf(sends: SendSummary[]): FallbackCount[] {
-  const fallbacks = sends.filter(isFallback);
+  const fallbacks = sends.filter(isRequestedFallback);
   return [
     ...groupBy(fallbacks, (send) => `${send.requestedLocale}>${send.locale}`),
   ].map(([, rows]) => {
-    const first = rows[0] as SendSummary;
+    const first = rows[0];
     return {
-      requested: first.requestedLocale as string,
+      requested: first.requestedLocale,
       used: first.locale,
       count: rows.length,
     };

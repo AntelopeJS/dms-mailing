@@ -93,16 +93,14 @@ async function createDeclared(
       ...publishedAtCreation(
         randomUUID(),
         {
-          content: declaration.content as TemplateContent,
+          content: declaration.content,
           variables: declaration.variables,
         },
         author,
       ),
     });
-    template = await requireTemplate(model, id as string);
+    template = await requireTemplate(model, id);
   } catch (error) {
-    // A concurrent declaration of the slug created it first: expected, the
-    // caller goes on with that template.
     if (IsDuplicateKeyError(error)) return undefined;
     throw error;
   }
@@ -127,7 +125,7 @@ export async function declareTemplate(
     `template declaration "${String(input?.slug)}"`,
   );
   const { tenantId, slug } = declaration;
-  assertPublishable(declaration.content as TemplateContent, slug);
+  assertPublishable(declaration.content, slug);
   const model = GetModel(TemplateModel, tenantId);
   const existing = await model.getBySlug(slug);
   if (existing) return resultOf(existing, "kept");

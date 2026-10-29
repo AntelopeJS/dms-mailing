@@ -11,6 +11,7 @@ import {
   type TemplateAttentionReason,
 } from "../types";
 import { isDeliveryUntracked, type ProviderTracking } from "./metrics";
+import { isNumber } from "../validation/guards";
 
 export type AttentionTone = "error" | "warning" | "neutral";
 
@@ -238,7 +239,7 @@ function namesOf(templates: MailingTemplate[]): ComposedTextParam {
   };
 }
 
-function problemBreakdown(problems: SendSummary[]): Record<string, number> {
+function problemBreakdown(problems: SendSummary[]) {
   const countOf = (status: string) =>
     problems.filter((send) => send.status === status).length;
   return {
@@ -334,9 +335,9 @@ const COUNT_PARAM = "count";
 function feedParams(
   item: AttentionItem,
 ): Record<string, ComposedTextParam> | undefined {
-  const params: Record<string, ComposedTextParam> = { ...item.params };
+  const params = { ...item.params };
   const count = item.count ?? item.params?.[COUNT_PARAM];
-  if (typeof count === "number") {
+  if (isNumber(count)) {
     params[COUNT_PARAM] = { type: "count", value: count };
   }
   return Object.keys(params).length ? params : undefined;
