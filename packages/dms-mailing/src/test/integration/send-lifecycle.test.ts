@@ -237,8 +237,9 @@ describe("[integration] send lifecycle", () => {
 
     const first = await api.post(`${SENDS}/replay-failed`, {});
     expect(first.status, JSON.stringify(first.data)).to.equal(HTTP_OK);
-    const replayedBy = (await api.get(`${SENDS}/${sendId}`)).data.send
-      .replayedBy as string;
+    const replayedBy = checkedText(
+      (await api.get(`${SENDS}/${sendId}`)).data.send.replayedBy,
+    );
     expect(replayedBy).to.be.a("string");
 
     const second = await api.post(`${SENDS}/replay-failed`, {});

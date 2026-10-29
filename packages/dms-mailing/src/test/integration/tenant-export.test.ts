@@ -10,6 +10,7 @@ import {
 } from "../../hooks/tenant-export";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const TABLE = "/api/mailing/tables/templates";
@@ -45,7 +46,7 @@ class CollectingArchive implements TenantExportArchive {
 }
 
 function parsed<T>(archive: CollectingArchive, entry: string): T {
-  return JSON.parse(archive.entries.get(entry) as string) as T;
+  return JSON.parse(checkedText(archive.entries.get(entry))) as T;
 }
 
 describe("[integration] tenant export", () => {

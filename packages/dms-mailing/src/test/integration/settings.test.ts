@@ -255,7 +255,7 @@ describe("[integration] settings writes (partial, checked)", () => {
       "$dms_mailing.settings.fields.webhookSecret.too_short",
     );
 
-    const refused: Record<string, string> = {
+    const refused = {
       senderName: "fix-L7\r\nBcc: evil@example.com",
       fallbackLocale: "not a locale",
       senderEmail: "not an address",
