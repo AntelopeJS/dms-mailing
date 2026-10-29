@@ -2,7 +2,7 @@
   "rules": {
     "antelopejs/no-comments": 113,
     "anti-slop/no-known-value-widening": 21,
-    "anti-slop/no-runtime-typeof": 24,
+    "anti-slop/no-runtime-typeof": 20,
     "anti-slop/no-unknown-parameters": 46,
     "anti-slop/no-unknown-returns": 8,
     "anti-slop/no-unsafe-dictionary-type": 47,
@@ -11,8 +11,6 @@
   },
   "oversizeFiles": {
     "packages/dms-mailing/frontend-vue/app/components/TemplateDrawer.vue": 24962,
-    "packages/dms-mailing/frontend-vue/i18n/locales/mailing-en-GB.json": 57247,
-    "packages/dms-mailing/frontend-vue/i18n/locales/mailing-fr-FR.json": 66304,
     "packages/dms-mailing/src/test/integration/declarations.test.ts": 20744
   }
 }
