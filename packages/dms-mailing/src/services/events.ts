@@ -60,7 +60,11 @@ const HARD_BOUNCE_TYPE = /hard|permanent/i;
 /** A temporary SMTP answer: a `4xx` reply code or a `4.x.x` enhanced status. */
 const SOFT_SMTP_ANSWER = /^\s*4\d\d\b|\b4\.\d{1,3}\.\d{1,3}\b/;
 
-const textOf = (value: unknown): string => (isText(value) ? value : "");
+/** The text an event's details hold under `key`, else an empty string. */
+function textOf(details: EmailEvent["details"], key: string): string {
+  const value = details?.[key];
+  return isText(value) ? value : "";
+}
 
 /**
  * The provider's own words for a problem event (`550 5.1.1 Mailbox does not
@@ -95,10 +99,10 @@ export function applyEvent(
  * provider's `bounceType` when it gives one, else the SMTP answer's class.
  */
 export function isSoftBounce(event: EmailEvent): boolean {
-  const bounceType = textOf(event.details?.bounceType);
+  const bounceType = textOf(event.details, "bounceType");
   if (SOFT_BOUNCE_TYPE.test(bounceType)) return true;
   if (HARD_BOUNCE_TYPE.test(bounceType)) return false;
-  return SOFT_SMTP_ANSWER.test(textOf(event.details?.reason));
+  return SOFT_SMTP_ANSWER.test(textOf(event.details, "reason"));
 }
 
 /**
@@ -144,8 +148,8 @@ async function publishEmailEvent(
   });
 }
 
-const eventIdOf = (details: Record<string, unknown> | undefined): string =>
-  textOf(details?.eventId);
+const eventIdOf = (details: EmailEvent["details"]): string =>
+  textOf(details, "eventId");
 
 type StoredEventIdentity = Pick<
   MailingSendEvent,
@@ -222,7 +226,7 @@ async function suppressAfterEvent(
       email: send.recipientEmail,
       reason,
       sendId: send._id,
-      detail: textOf(event.details?.reason) || undefined,
+      detail: textOf(event.details, "reason") || undefined,
     });
   } catch (error) {
     Logging.Error("[dms-mailing] Could not suppress an address:", error);
