@@ -32,16 +32,16 @@ const DEFAULT_TEST_DATA_LOCALE = "en";
 const STARTER_CURRENCY = "EUR";
 
 /** The ordered item of the order starter's test data, by language. */
-const ORDER_LINE_NAMES: Record<string, string> = {
-  en: "Ergo chair · Graphite × 4",
-  fr: "Fauteuil ergonomique · Graphite × 4",
-};
+const ORDER_LINE_NAMES = new Map([
+  [DEFAULT_TEST_DATA_LOCALE, "Ergo chair · Graphite × 4"],
+  ["fr", "Fauteuil ergonomique · Graphite × 4"],
+]);
 const LOCALE_PARTS = /[-_]/;
 
 /** A test text in the language of `locale`, English when it has none. */
-function inLanguageOf(texts: Record<string, string>, locale: string): string {
+function inLanguageOf(texts: ReadonlyMap<string, string>, locale: string) {
   const language = locale.toLowerCase().split(LOCALE_PARTS)[0] ?? "";
-  return texts[language] ?? texts[DEFAULT_TEST_DATA_LOCALE];
+  return texts.get(language) ?? texts.get(DEFAULT_TEST_DATA_LOCALE);
 }
 
 /** An amount the way `locale` writes it: "€1,556.00", "1 556,00 €". */
