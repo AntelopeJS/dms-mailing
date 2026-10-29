@@ -6,8 +6,5 @@
     "anti-slop/no-unsafe-dictionary-type": 44,
     "anti-slop/require-safety-comment-for-type-assertion": 79
   },
-  "oversizeFiles": {
-    "packages/dms-mailing/frontend-vue/app/components/TemplateDrawer.vue": 24962,
-    "packages/dms-mailing/src/test/integration/declarations.test.ts": 20711
-  }
+  "oversizeFiles": {}
 }
