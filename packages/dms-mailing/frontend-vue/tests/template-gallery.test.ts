@@ -16,15 +16,11 @@ import {
 	stubRegionalFormat,
 	type ApiDataStub,
 } from './helpers/api-data'
+import { stubAuthFetch, type AuthFetchStub } from './helpers/auth-fetch'
 
 const CATEGORIES_URL = '/api/mailing/templates/categories'
 const OVERVIEW_URL = '/api/mailing/templates/overview'
 const LIST_URL = '/api/mailing/tables/templates/list'
-
-vi.mock('../app/components/TemplatePreviewFrame.vue', async () => {
-	const { slotStub } = await import('./helpers/nuxt-globals')
-	return { default: slotStub('MailingTemplatePreviewFrame') }
-})
 
 const RECENT = new Date(Date.now() - 3_600_000).toISOString()
 
@@ -116,6 +112,7 @@ const globals = {
 }
 
 let stubs: NuxtStubs
+let writes: AuthFetchStub
 let api: ApiDataStub
 let routeQuery: Record<string, unknown> = {}
 let templateTotal = 3
@@ -125,6 +122,7 @@ const readsOf = (url: string) => api.reads.filter((read) => read.url === url)
 beforeEach(() => {
 	stubs = stubNuxtGlobals()
 	stubRegionalFormat()
+	writes = stubAuthFetch()
 	routeQuery = {}
 	templateTotal = 3
 	vi.stubGlobal('useDmsRoute', () => ({ query: routeQuery }))
@@ -169,6 +167,10 @@ describe('TemplateGallery', () => {
 			'Shipping update',
 			'Delivery delayed',
 		])
+		expect(
+			view.host.querySelectorAll('[data-preview-placeholder]'),
+		).toHaveLength(3)
+		expect(writes.calls).toEqual([])
 		view.unmount()
 	})
 

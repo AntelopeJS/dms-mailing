@@ -9,14 +9,10 @@ import {
 	stubRegionalFormat,
 	type ApiDataStub,
 } from './helpers/api-data'
+import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 
 const api = { webhookTest: vi.fn() }
-
-vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	useMailingApi: () => api,
-}))
 
 const PROVIDER_URL = '/api/mailing/provider'
 const STATUS_URL = '/api/mailing/settings/webhook-status'
@@ -58,6 +54,7 @@ beforeEach(() => {
 	vi.stubGlobal('useApiError', vi.fn())
 	api$ = stubApiData()
 	api.webhookTest.mockReset()
+	stubAuthFetch().respond(mailingWrites({ webhookTest: api.webhookTest }))
 })
 
 afterEach(() => {
