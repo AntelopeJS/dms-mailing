@@ -69,6 +69,7 @@ import {
   snapshotOfVersion,
 } from "../services/templates";
 import type { SendStatus, SuppressionSummary, TemplateStatus } from "../types";
+import type { JsonObject } from "../types/json";
 import {
   type previewVersionSchema,
   realSendSchema,
@@ -574,8 +575,8 @@ function requestedVersionOf(
   return version === "draft" || version === "published" ? undefined : version;
 }
 
-function variablesOf(send: MailingSend): Record<string, unknown> {
-  return JSON.parse(send.json_variables || "{}") as Record<string, unknown>;
+function variablesOf(send: MailingSend): JsonObject {
+  return JSON.parse(send.json_variables || "{}") as JsonObject;
 }
 
 function summarize(template: MailingTemplate): SendTemplateSummary {

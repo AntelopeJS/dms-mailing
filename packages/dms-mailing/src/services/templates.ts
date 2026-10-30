@@ -27,6 +27,7 @@ import type {
   VariableDefinition,
 } from "../types";
 import { DEFAULT_FALLBACK_LOCALE } from "../types";
+import type { JsonObject } from "../types/json";
 
 export interface TemplateAuthor {
   name?: string;
@@ -169,10 +170,8 @@ export function pendingChanges(template: MailingTemplate): TemplateChange[] {
   });
 }
 
-export function parseTestData(
-  template: MailingTemplate,
-): Record<string, unknown> {
-  return JSON.parse(template.json_test_data) as Record<string, unknown>;
+export function parseTestData(template: MailingTemplate): JsonObject {
+  return JSON.parse(template.json_test_data) as JsonObject;
 }
 
 interface FooterLabels {
