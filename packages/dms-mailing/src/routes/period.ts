@@ -18,10 +18,10 @@ const PREVIOUS_YEAR = "previous-year";
  * What the comparison series is called, by the selector's `comparison`. A
  * custom window, or a caller naming none, is neither of the two.
  */
-const COMPARISON_SERIES_LABELS: Record<string, string> = {
-  "previous-period": "$dms_mailing.metrics.previous",
-  [PREVIOUS_YEAR]: "$dms_mailing.metrics.previous_year",
-};
+const COMPARISON_SERIES_LABELS = new Map([
+  ["previous-period", "$dms_mailing.metrics.previous"],
+  [PREVIOUS_YEAR, "$dms_mailing.metrics.previous_year"],
+]);
 const COMPARED_SERIES_LABEL = "$dms_mailing.metrics.compared";
 
 function readQuery(ctx: RangeContext, key: string): string | undefined {
@@ -67,7 +67,7 @@ export function isComparisonWanted(ctx: RangeContext): boolean {
 /** The label of the comparison series, for the comparison the caller asks. */
 export function comparisonLabel(ctx: RangeContext): string {
   const comparison = readQuery(ctx, "comparison") ?? "previous-period";
-  return COMPARISON_SERIES_LABELS[comparison] ?? COMPARED_SERIES_LABEL;
+  return COMPARISON_SERIES_LABELS.get(comparison) ?? COMPARED_SERIES_LABEL;
 }
 
 function yearBefore(date: Date): Date {

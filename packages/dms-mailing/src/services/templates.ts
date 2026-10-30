@@ -197,16 +197,16 @@ const ENGLISH_FOOTER_LABELS: FooterLabels = {
  * e-mail without an unsubscribe link is a legal problem, so a blank template
  * ships a footer — and nothing else: no invented subject, prose or address.
  */
-const FOOTER_LABELS: Record<string, FooterLabels> = {
-  en: ENGLISH_FOOTER_LABELS,
-  fr: { unsubscribe: "Se désinscrire", preferences: "Préférences" },
-};
+const FOOTER_LABELS = new Map<string, FooterLabels>([
+  ["en", ENGLISH_FOOTER_LABELS],
+  ["fr", { unsubscribe: "Se désinscrire", preferences: "Préférences" }],
+]);
 
 const FOOTER_BLOCK_ID = "footer";
 
 /** A footer in `locale`: its legal line and the labels of its two links. */
 export function footerBlock(locale: string, text = ""): Block {
-  const labels = FOOTER_LABELS[locale] ?? ENGLISH_FOOTER_LABELS;
+  const labels = FOOTER_LABELS.get(locale) ?? ENGLISH_FOOTER_LABELS;
   return {
     id: FOOTER_BLOCK_ID,
     type: "footer",

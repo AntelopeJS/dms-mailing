@@ -11,14 +11,12 @@ const AUDIENCE_KEEPS: Record<SendAudience, (send: SendSummary) => boolean> = {
   [OPERATIONAL_AUDIENCE]: () => true,
 };
 
-const AUDIENCE_BY_NAME: Record<string, SendAudience> = {
-  [BUSINESS_AUDIENCE]: BUSINESS_AUDIENCE,
-  [OPERATIONAL_AUDIENCE]: OPERATIONAL_AUDIENCE,
-};
+const isAudience = (raw: string): raw is SendAudience =>
+  Object.hasOwn(AUDIENCE_KEEPS, raw);
 
 /** Named audience behind a query value; anything unknown is the business view. */
 export function readAudience(raw: string | null | undefined): SendAudience {
-  return AUDIENCE_BY_NAME[raw ?? ""] ?? BUSINESS_AUDIENCE;
+  return raw != null && isAudience(raw) ? raw : BUSINESS_AUDIENCE;
 }
 
 const STATS_WINDOW_DAYS = 30;
