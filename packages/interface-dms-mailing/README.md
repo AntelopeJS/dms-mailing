@@ -55,12 +55,14 @@ A recipient on the workspace's suppression list gets no e-mail: its result has t
 
 Interface 0.8 requires `@antelopejs/dms-mailing >=0.6.0`, whose interface dependency is `>=0.8.0 <0.9.0`. This includes `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends`, all requiring an explicit `tenantId`. Mailing 0.5 remains on interface 0.7. `DeclareSender` needs interface 0.9 and the first release implementing it (`>=0.9.0 <0.10.0`). The interface declares these dependencies:
 
-<!-- docs-compat: ./package.json#dependencies -->
+<!-- antelopejs-docs-compat:start -->
 
-| Package | Range |
-| --- | --- |
-| `@antelopejs/interface-core` | `>=0.2.4 <1.0.0` |
-| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` |
+| Package                       | Supported        | Tested with |
+| ----------------------------- | ---------------- | ----------- |
+| `@antelopejs/interface-core`  | `>=0.2.4 <1.0.0` | —           |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` | —           |
+
+<!-- antelopejs-docs-compat:end -->
 
 ## Documentation
 
