@@ -306,12 +306,12 @@ export class MailingSettingsController extends Controller(
   @Get("/category-usage")
   async categoryUsage(): Promise<{ counts: Record<string, number> }> {
     const templates = await this.templates.getAll();
-    const counts: Record<string, number> = {};
+    const counts = new Map<string, number>();
     for (const template of templates) {
       if (!template.category || template.status === ARCHIVED_STATUS) continue;
-      counts[template.category] = (counts[template.category] ?? 0) + 1;
+      counts.set(template.category, (counts.get(template.category) ?? 0) + 1);
     }
-    return { counts };
+    return { counts: Object.fromEntries(counts) };
   }
 
   /**
