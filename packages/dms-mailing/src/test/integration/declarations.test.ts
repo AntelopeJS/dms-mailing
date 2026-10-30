@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { authorizedClient } from "../helpers/http";
 import type { TemplateDeclaration } from "@antelopejs/interface-dms-mailing";
@@ -20,9 +21,10 @@ async function client(): Promise<Client> {
 async function versionsOf(api: Client, id: string): Promise<number[]> {
   const history = await api.get(`${TEMPLATES}/${id}/versions`);
   expect(history.status, JSON.stringify(history.data)).to.equal(HTTP_OK);
-  return (history.data.versions as { version: number }[]).map(
-    (row) => row.version,
-  );
+  return z
+    .array(z.object({ version: z.number() }))
+    .parse(history.data.versions)
+    .map((row) => row.version);
 }
 
 async function rowsWithSlug(slug: string): Promise<number> {
@@ -199,7 +201,9 @@ describe("[integration] template declarations", () => {
         inLocale(locale),
       );
       expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-      return (list.data.results as { _id: string; name: string }[])
+      return z
+        .array(z.object({ _id: z.string(), name: z.string() }))
+        .parse(list.data.results)
         .filter((row) => row._id === declared.templateId)
         .map((row) => row.name);
     };
@@ -319,7 +323,7 @@ describe("[integration] template declarations", () => {
     }
     const invalid = await DeclareTemplate(
       declaration(`declared-refused-${stamp}`, { slug: "Bad Slug" }),
-    ).catch((reason: Error) => reason);
+    ).catch((reason: unknown) => reason);
     expect(invalid).to.have.property("message").that.matches(/slug/);
   });
 

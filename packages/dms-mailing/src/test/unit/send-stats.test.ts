@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { SendSummary } from "../../db";
+import { summaryRow } from "../helpers/rows";
 import {
   buildSendStats,
   isProviderFailure,
@@ -12,13 +13,13 @@ const send = (
   status: SendStatus,
   extra: Partial<SendSummary> = {},
 ): SendSummary =>
-  ({
+  summaryRow({
     status,
     isTest: false,
     latencyMs: 200,
     createdAt: new Date("2026-10-01T10:00:00Z"),
     ...extra,
-  }) as SendSummary;
+  });
 
 describe("[unit] services/send-stats", () => {
   it("counts real sends, keeps tests aside and breaks problems down", () => {

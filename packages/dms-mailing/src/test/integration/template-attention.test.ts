@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText } from "../helpers/checked";
@@ -10,10 +11,9 @@ const ATTENTION_FILTER = "filter_needsAttention=is:true";
 
 type Client = ReturnType<typeof authorizedClient>;
 
-interface AttentionRow {
-  _id: string;
-  attention: string;
-}
+const attentionRowSchema = z.object({ _id: z.string(), attention: z.string() });
+
+type AttentionRow = z.infer<typeof attentionRowSchema>;
 
 async function client(): Promise<Client> {
   const session = await ensureOwnerSession();
@@ -23,7 +23,7 @@ async function client(): Promise<Client> {
 async function liveTemplate(api: Client, slug: string): Promise<string> {
   const created = await api.post(`${TABLE}/new`, { slug, name: slug });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  const id = checkedText(created.data._id);
+  const id = checkedText.parse(created.data._id);
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },
@@ -42,7 +42,7 @@ async function attentionRow(
     `${TABLE}/list?limit=20&search=${slug}&${ATTENTION_FILTER}`,
   );
   expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-  return (list.data.results as AttentionRow[])[0];
+  return z.array(attentionRowSchema).parse(list.data.results)[0];
 }
 
 describe("[integration] templates needing attention", () => {

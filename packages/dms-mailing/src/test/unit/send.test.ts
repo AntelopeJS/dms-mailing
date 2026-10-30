@@ -15,9 +15,9 @@ import {
   refusedMissing,
   type SendRecordInput,
 } from "../../services/send";
-import type { MailingTemplate } from "../../db";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
 import { checkedText } from "../helpers/checked";
+import { templateRow } from "../helpers/rows";
 
 const TRANSPORT_FAILURE = "socket hang up";
 const INSERT_FAILURE = "insert rejected";
@@ -81,7 +81,7 @@ describe("[unit] services/send delivery", () => {
   it("keeps the messages the provider accepted when a later send throws", async () => {
     const seen: string[] = [];
     const send = async (params: EmailParams): Promise<EmailResponse> => {
-      const to = checkedText(params.to);
+      const to = checkedText.parse(params.to);
       seen.push(to);
       if (to === RECIPIENTS[1]) throw new Error(TRANSPORT_FAILURE);
       return accepted("m-1");
@@ -172,13 +172,13 @@ describe("[unit] services/send result aggregation", () => {
 });
 
 describe("[unit] services/send manual real sends", () => {
-  const template = {
+  const template = templateRow({
     json_variables: JSON.stringify([
       { path: "user.firstName", type: "string", required: true },
       { path: "reset.url", type: "url", required: true },
       { path: "promo", type: "string", required: false },
     ]),
-  } as MailingTemplate;
+  });
   const manual = {
     ...PARAMS,
     source: MANUAL_SEND_SOURCE,

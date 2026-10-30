@@ -29,7 +29,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return checkedText(created.data._id);
+  return checkedText.parse(created.data._id);
 }
 
 function withSubject(subject: string) {

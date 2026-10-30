@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import type { JsonObject } from "../../types/json";
 import type { MailingSendEvent } from "../../db";
 import {
   applyEvent,
@@ -58,7 +59,7 @@ describe("[unit] services/events delivery after a failure", () => {
 });
 
 describe("[unit] services/events isSoftBounce", () => {
-  const bounce = (details: Record<string, unknown>) => ({
+  const bounce = (details: JsonObject) => ({
     provider: "smtp",
     messageId: "m1",
     type: "bounced" as const,
@@ -91,7 +92,7 @@ describe("[unit] services/events isSameEvent", () => {
   const AT = new Date("2026-10-11T10:00:00.000Z");
   const stored = (
     type: SendEventType,
-    details: Record<string, unknown>,
+    details: JsonObject,
   ): MailingSendEvent => ({
     _id: "e1",
     sendId: "s1",
@@ -99,11 +100,13 @@ describe("[unit] services/events isSameEvent", () => {
     at: AT,
     json_details: JSON.stringify(details),
   });
-  const incoming = (
-    type: SendEventType,
-    details: Record<string, unknown>,
-    at?: Date,
-  ) => ({ provider: "smtp", messageId: "m1", type, details, at });
+  const incoming = (type: SendEventType, details: JsonObject, at?: Date) => ({
+    provider: "smtp",
+    messageId: "m1",
+    type,
+    details,
+    at,
+  });
 
   it("matches a retried webhook on the provider's event id", () => {
     expect(

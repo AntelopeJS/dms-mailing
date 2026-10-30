@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { AxiosInstance } from "axios";
+import { z } from "zod";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText } from "../helpers/checked";
@@ -15,7 +16,6 @@ const DEFAULT_RETENTION_DAYS = 90;
 const UPDATED_RETENTION_DAYS = 30;
 const INVALID_RETENTION_DAYS = 0;
 
-const READ_ONLY_FIELDS = new Set(["webhookUrl", "provider"]);
 const MARKETING = {
   id: "marketing",
   label: { en: "Marketing" },
@@ -23,11 +23,19 @@ const MARKETING = {
 };
 
 /** A settings read as a write takes it back: without its read-only fields. */
-function writableOf(read: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(read).filter(([key]) => !READ_ONLY_FIELDS.has(key)),
-  );
-}
+const settingsWriteSchema = z.object({
+  fallbackLocale: z.string(),
+  logRetentionDays: z.number(),
+  blockOnMissingVariables: z.boolean(),
+  senderName: z.string(),
+  senderEmail: z.string(),
+  replyTo: z.string(),
+  webhookSecret: z.string(),
+  categories: z.array(z.object({ id: z.string() }).passthrough()),
+  missingVariables: z.enum(["refuse", "send"]),
+});
+
+type SettingsWrite = z.infer<typeof settingsWriteSchema>;
 
 describe("[integration] settings form", () => {
   it("applies a partial post without touching the other fields", async () => {
@@ -93,7 +101,7 @@ describe("[integration] settings", () => {
     expect(initial.data.categories).to.have.length(DEFAULT_CATEGORY_COUNT);
 
     const update = await client.put("/api/mailing/settings", {
-      ...writableOf(initial.data),
+      ...settingsWriteSchema.parse(initial.data),
       fallbackLocale: "fr",
       logRetentionDays: UPDATED_RETENTION_DAYS,
       blockOnMissingVariables: true,
@@ -104,7 +112,7 @@ describe("[integration] settings", () => {
     expect(after.data.blockOnMissingVariables).to.equal(true);
 
     const invalid = await client.put("/api/mailing/settings", {
-      ...writableOf(after.data),
+      ...settingsWriteSchema.parse(after.data),
       logRetentionDays: INVALID_RETENTION_DAYS,
     });
     expect(invalid.status).to.equal(HTTP_BAD_REQUEST);
@@ -114,14 +122,14 @@ describe("[integration] settings", () => {
      * no gate, so the write has to be refused rather than silently accepted.
      */
     const blankSecret = await client.put("/api/mailing/settings", {
-      ...writableOf(after.data),
+      ...settingsWriteSchema.parse(after.data),
       webhookSecret: "",
     });
     expect(blankSecret.status).to.equal(HTTP_BAD_REQUEST);
 
     const restored = await client.put(
       "/api/mailing/settings",
-      writableOf(initial.data),
+      settingsWriteSchema.parse(initial.data),
     );
     expect(restored.status).to.equal(HTTP_OK);
   });
@@ -194,7 +202,7 @@ async function ownerClient(): Promise<AxiosInstance> {
 /** Puts back the fields a test changes, whatever it left. */
 async function restore(
   client: AxiosInstance,
-  initial: Record<string, unknown>,
+  initial: SettingsWrite,
 ): Promise<void> {
   const { categories, senderName, senderEmail, replyTo, logRetentionDays } =
     initial;
@@ -226,16 +234,15 @@ describe("[integration] settings writes (partial, checked)", () => {
       staleTab.data.logRetentionDays,
     );
     expect(after.data.categories).to.deep.equal(staleTab.data.categories);
-    await restore(client, staleTab.data);
+    await restore(client, settingsWriteSchema.parse(staleTab.data));
   });
 
   it("answers 400, never 500, to a body that is not a settings patch", async () => {
     const client = await ownerClient();
     const bodies = ['"hello"', "[1,2]", "{not json", '{"bogus":1}'];
     for (const body of bodies) {
-      const response = await client.put(SETTINGS, body, {
+      const response = await client.put(SETTINGS, Buffer.from(body), {
         headers: JSON_HEADERS,
-        transformRequest: [(data: unknown) => data],
       });
       expect(response.status, body).to.equal(HTTP_BAD_REQUEST);
     }
@@ -278,7 +285,7 @@ describe("[integration] settings writes (partial, checked)", () => {
     const after = await client.get(SETTINGS);
     expect(after.data.senderEmail).to.equal("fix-l7@example.com");
     expect(after.data.replyTo).to.equal("");
-    await restore(client, initial.data);
+    await restore(client, settingsWriteSchema.parse(initial.data));
   });
 
   it("refuses duplicate, blank or free-form categories", async () => {
@@ -311,7 +318,7 @@ describe("[integration] settings writes (partial, checked)", () => {
   it("keeps the marketing category, renamed or not", async () => {
     const client = await ownerClient();
     const initial = await client.get(SETTINGS);
-    const stored = initial.data.categories as Array<{ id: string }>;
+    const { categories: stored } = settingsWriteSchema.parse(initial.data);
     const others = stored.filter((entry) => entry.id !== MARKETING.id);
     const dropped = await client.put(SETTINGS, { categories: others });
     expect(dropped.status).to.equal(HTTP_BAD_REQUEST);
@@ -323,7 +330,7 @@ describe("[integration] settings writes (partial, checked)", () => {
       ],
     });
     expect(renamed.status, JSON.stringify(renamed.data)).to.equal(HTTP_OK);
-    await restore(client, initial.data);
+    await restore(client, settingsWriteSchema.parse(initial.data));
   });
 
   it("takes only a PUT of the writable fields", async () => {
@@ -370,7 +377,7 @@ describe("[integration] settings categories in use", () => {
       category: ALPHA.id,
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return checkedText(created.data._id);
+    return checkedText.parse(created.data._id);
   }
 
   const categoryOf = async (client: AxiosInstance, id: string) =>
@@ -379,7 +386,7 @@ describe("[integration] settings categories in use", () => {
   it("counts the active templates and moves those of a removed category", async () => {
     const client = await ownerClient();
     const initial = await client.get(SETTINGS);
-    const kept = initial.data.categories as unknown[];
+    const { categories: kept } = settingsWriteSchema.parse(initial.data);
     const added = await client.put(SETTINGS, {
       categories: [...kept, ALPHA, BETA],
     });
@@ -403,6 +410,6 @@ describe("[integration] settings categories in use", () => {
     const dropped = await client.put(SETTINGS, { categories: kept });
     expect(dropped.status, JSON.stringify(dropped.data)).to.equal(HTTP_OK);
     expect(await categoryOf(client, moved)).to.equal("");
-    await restore(client, initial.data);
+    await restore(client, settingsWriteSchema.parse(initial.data));
   });
 });

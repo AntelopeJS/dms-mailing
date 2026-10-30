@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import type { MailingTemplate, SendSummary } from "../../db";
+import type { SendSummary } from "../../db";
+import { summaryRow, templateRow } from "../helpers/rows";
 import {
   MIN_RANKED_DELIVERIES,
   comparedSteps,
@@ -15,7 +16,7 @@ const send = (
   status: SendSummary["status"],
   extra: Partial<SendSummary> = {},
 ): SendSummary =>
-  ({
+  summaryRow({
     status,
     templateSlug: "welcome",
     recipientEmail: "a@gmail.com",
@@ -24,7 +25,7 @@ const send = (
     clicks: 0,
     latencyMs: 0,
     ...extra,
-  }) as SendSummary;
+  });
 
 /** `count` deliveries of which `opened` were opened. */
 const delivered = (count: number, opened: number): SendSummary[] =>
@@ -38,8 +39,8 @@ const OPEN_RATE = {
 };
 
 const templates = [
-  { _id: "t1", slug: "welcome", name: "Welcome" },
-] as MailingTemplate[];
+  templateRow({ _id: "t1", slug: "welcome", name: "Welcome" }),
+];
 
 describe("[unit] overview rankings against the comparison window", () => {
   it("gives a template its change in open rate", () => {

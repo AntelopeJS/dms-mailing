@@ -52,9 +52,10 @@ describe("[unit] services/starters", () => {
   it("writes the test amounts the way the workspace locale writes them", () => {
     const starter = orderStarter();
     const totalIn = (locale?: string) =>
-      checkedText(
-        JSON.parse(checkedText(starterFields(starter, locale).json_test_data))
-          .order.total,
+      checkedText.parse(
+        JSON.parse(
+          checkedText.parse(starterFields(starter, locale).json_test_data),
+        ).order.total,
       );
     expect(totalIn()).to.equal("€1,556.00");
     expect(totalIn("fr").replace(/\s/g, " ")).to.equal("1 556,00 €");
@@ -64,9 +65,10 @@ describe("[unit] services/starters", () => {
   it("writes the test texts in the workspace locale's language", () => {
     const starter = orderStarter();
     const lineIn = (locale?: string) =>
-      checkedText(
-        JSON.parse(checkedText(starterFields(starter, locale).json_test_data))
-          .order.lines[0].name,
+      checkedText.parse(
+        JSON.parse(
+          checkedText.parse(starterFields(starter, locale).json_test_data),
+        ).order.lines[0].name,
       );
     expect(lineIn()).to.equal("Ergo chair · Graphite × 4");
     expect(lineIn("fr-BE")).to.equal("Fauteuil ergonomique · Graphite × 4");

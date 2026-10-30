@@ -6,10 +6,20 @@ import {
   resetCapabilitiesCache,
 } from "../../services/provider";
 
-const CAPABILITIES = {
+const CAPABILITIES: ProviderCapabilities = {
   name: "smtp",
-  features: { openTracking: false, clickTracking: false },
-} as ProviderCapabilities;
+  features: {
+    batch: false,
+    templates: false,
+    scheduling: false,
+    openTracking: false,
+    clickTracking: false,
+    inlineAttachments: false,
+    tags: false,
+    metadata: false,
+    priority: false,
+  },
+};
 
 function countingLoader() {
   let calls = 0;

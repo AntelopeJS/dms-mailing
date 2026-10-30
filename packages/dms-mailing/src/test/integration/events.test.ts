@@ -32,10 +32,10 @@ describe("[integration] events", () => {
       { to: ["events@example.test"], locale: "en", data: {} },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    const sendId = checkedText(sent.data.results[0].sendId);
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
 
     const detail = await client.get(`/api/mailing/sends/${sendId}`);
-    const messageId = checkedText(detail.data.send.providerMessageId);
+    const messageId = checkedText.parse(detail.data.send.providerMessageId);
     expect(messageId, "provider message id").to.be.a("string");
     expect(messageId.length, "provider message id").to.be.greaterThan(0);
 
@@ -76,9 +76,9 @@ describe("[integration] events", () => {
       { to: ["throwing@example.test"], locale: "en", data: {} },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    const sendId = checkedText(sent.data.results[0].sendId);
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
     const detail = await client.get(`/api/mailing/sends/${sendId}`);
-    const messageId = checkedText(detail.data.send.providerMessageId);
+    const messageId = checkedText.parse(detail.data.send.providerMessageId);
 
     await emailEventTrigger.activate({}, () => {
       throw new Error("subscriber exploded");
@@ -114,7 +114,7 @@ describe("[integration] events", () => {
       `/api/mailing/templates/${created.data._id}/test-send`,
       { to: ["retried@example.test"], locale: "en", data: {} },
     );
-    const sendId = checkedText(sent.data.results[0].sendId);
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
     const detail = await client.get(`/api/mailing/sends/${sendId}`);
     const body = {
       messageId: detail.data.send.providerMessageId,

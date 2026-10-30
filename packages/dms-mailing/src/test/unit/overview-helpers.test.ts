@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { MailingTemplate, SendSummary } from "../../db";
+import { summaryRow, templateRow } from "../helpers/rows";
 import {
   MIN_RANKED_DELIVERIES,
   filterByKind,
@@ -25,7 +26,7 @@ const template = (
   locales: string,
   extra: Partial<MailingTemplate> = {},
 ): MailingTemplate =>
-  ({ slug, name: slug, locales, status: "live", ...extra }) as MailingTemplate;
+  templateRow({ slug, name: slug, locales, status: "live", ...extra });
 
 describe("[unit] overview helpers", () => {
   it("finds live templates missing a locale other live ones carry", () => {
@@ -43,10 +44,10 @@ describe("[unit] overview helpers", () => {
       template("receipt", "en", { category: "orders" }),
     ];
     const sends = [
-      { templateSlug: "promo" },
-      { templateSlug: "receipt" },
-      { templateSlug: "gone" },
-    ] as SendSummary[];
+      summaryRow({ templateSlug: "promo" }),
+      summaryRow({ templateSlug: "receipt" }),
+      summaryRow({ templateSlug: "gone" }),
+    ];
     expect(filterByKind(sends, templates, "marketing")).to.have.length(1);
     expect(filterByKind(sends, templates, "transactional")).to.have.length(2);
     expect(filterByKind(sends, templates, "all")).to.have.length(3);
@@ -78,7 +79,7 @@ const sendOn = (
   status: SendSummary["status"],
   extra: Partial<SendSummary> = {},
 ): SendSummary =>
-  ({
+  summaryRow({
     status,
     templateSlug: "welcome",
     recipientEmail: "a@gmail.com",
@@ -87,7 +88,7 @@ const sendOn = (
     clicks: 0,
     latencyMs: 0,
     ...extra,
-  }) as SendSummary;
+  });
 
 describe("[unit] overview figures", () => {
   it("leaves the change out when no comparison window is read", () => {
@@ -316,11 +317,11 @@ describe("[unit] template attention reasons", () => {
     sentSlugs: new Set(["sent", "partial"]),
     knownLocales: knownLocalesOf(templates),
   };
-  const reasonsOf = (slug: string) =>
-    templateAttentionReasons(
-      templates.find((entry) => entry.slug === slug) as MailingTemplate,
-      context,
-    );
+  const reasonsOf = (slug: string) => {
+    const found = templates.find((entry) => entry.slug === slug);
+    if (!found) throw new Error(`no template "${slug}"`);
+    return templateAttentionReasons(found, context);
+  };
 
   it("flags a live template no real send used, or missing a locale", () => {
     expect(reasonsOf("sent")).to.deep.equal([]);
