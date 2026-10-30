@@ -6,6 +6,11 @@ import {
   type MailingSettingsValues,
   type TemplateCategory,
 } from "../types";
+import type { JsonObject } from "../types/json";
+import {
+  type SettingsPatch,
+  parseStoredCategories,
+} from "../validation/settings.schema";
 
 export const WEBHOOK_SECRET_BYTES = 24;
 
@@ -28,7 +33,7 @@ function toValues(row: MailingSettings): MailingSettingsValues {
     senderEmail: row.senderEmail,
     replyTo: row.replyTo,
     webhookSecret: row.webhookSecret,
-    categories: JSON.parse(row.json_categories) as TemplateCategory[],
+    categories: parseStoredCategories(row.json_categories),
   };
 }
 
@@ -71,7 +76,7 @@ export async function getSettings(
   if (existing) return existing;
   const created = defaults();
   if (await insertKeyedSettings(tenantId, created)) return created;
-  return (await findSettings(tenantId)) as MailingSettingsValues;
+  return getSettings(tenantId);
 }
 
 export async function saveSettings(
@@ -105,36 +110,28 @@ export function missingVariablesPolicy(
 }
 
 /** The form-only field folded back into `blockOnMissingVariables`. */
-const MISSING_VARIABLES_KEY = "missingVariables";
 const CLEARED_VALUE = "";
 /** The patch with each cleared field (`null`) as the empty value it stores. */
-export function clearedToEmpty(
-  patch: Record<string, unknown>,
-): Record<string, unknown> {
+export function clearedToEmpty(patch: JsonObject): JsonObject {
   return Object.fromEntries(
     Object.entries(patch).map(([key, value]) => [key, value ?? CLEARED_VALUE]),
   );
 }
 
 /**
- * The settings once `patch` (the fields a form changed, `null` for a cleared
- * one) is laid over the stored ones, the missing-variables choice folded back
- * into its boolean.
+ * The settings once `patch` (the fields a form changed, cleared ones already
+ * stored as empty) is laid over the stored ones, the missing-variables choice
+ * folded back into its boolean.
  */
 export function mergeSettingsPatch(
   current: MailingSettingsValues,
-  patch: Record<string, unknown>,
+  patch: SettingsPatch,
 ): MailingSettingsValues {
-  const written = Object.fromEntries(
-    Object.entries(clearedToEmpty(patch)).filter(
-      ([key]) => key !== MISSING_VARIABLES_KEY,
-    ),
-  );
-  const policy = patch.missingVariables;
+  const { missingVariables: policy, ...written } = patch;
   const isChoice = policy === REFUSE_POLICY || policy === SEND_POLICY;
   const guard =
     isChoice && !("blockOnMissingVariables" in patch)
       ? { blockOnMissingVariables: policy === REFUSE_POLICY }
       : {};
-  return { ...current, ...written, ...guard } as MailingSettingsValues;
+  return { ...current, ...written, ...guard };
 }

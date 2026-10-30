@@ -3,6 +3,7 @@ import { z } from "zod";
 import { MAX_NAME_LENGTH, SLUG_PATTERN } from "../constants";
 import { LOCALIZED_TEXT_FALLBACK_LOCALE } from "@antelopejs/interface-dms-mailing";
 import { MARKETING_CATEGORY } from "../engine";
+import type { TemplateCategory } from "../types";
 
 export const MIN_RETENTION_DAYS = 1;
 export const MAX_RETENTION_DAYS = 3650;
@@ -36,6 +37,19 @@ export const categorySchema = z.object({
   label: z.record(z.string().trim().max(MAX_NAME_LENGTH)),
   icon: z.string().regex(CATEGORY_ICON_PATTERN),
 });
+
+const storedCategoriesSchema: z.ZodType<TemplateCategory[]> = z.array(
+  z.object({
+    id: z.string(),
+    label: z.record(z.string()),
+    icon: z.string(),
+  }),
+);
+
+/** The category list the settings row stores as JSON text. */
+export function parseStoredCategories(json: string): TemplateCategory[] {
+  return storedCategoriesSchema.parse(JSON.parse(json));
+}
 
 /**
  * A category as the settings form sends it: a kept one, or one removed whose

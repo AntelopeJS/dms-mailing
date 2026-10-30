@@ -38,6 +38,8 @@ import {
 import { resolveEmail, valueFormatOf } from "../engine";
 import type { InterpolationMode } from "../engine/tokens";
 import { SendsPageController } from "../pages/sends";
+import type { JsonObject } from "../types/json";
+import { parseJsonObject } from "../validation/json";
 import { localeOfRequest } from "../services/localized-text";
 import { readCapabilities } from "../services/provider";
 import { buildProviderBanner } from "../services/provider-banner";
@@ -574,8 +576,8 @@ function requestedVersionOf(
   return version === "draft" || version === "published" ? undefined : version;
 }
 
-function variablesOf(send: MailingSend): Record<string, unknown> {
-  return JSON.parse(send.json_variables || "{}") as Record<string, unknown>;
+function variablesOf(send: MailingSend): JsonObject {
+  return parseJsonObject(send.json_variables || "{}");
 }
 
 function summarize(template: MailingTemplate): SendTemplateSummary {

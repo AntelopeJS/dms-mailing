@@ -48,7 +48,7 @@ import {
   settingsPatchSchema,
 } from "../validation/settings.schema";
 import { retentionLimit } from "../crons/retention";
-import { isJsonObject } from "../validation/guards";
+import { isJsonObject } from "../validation/json";
 
 const INVALID_SETTINGS = "$dms_mailing.errors.invalid_settings";
 const CATEGORIES_REASSIGNED = "$dms_mailing.settings.categories.reassigned";

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH, SLUG_PATTERN } from "../constants";
-import type { Block } from "../types";
+import type { TemplateChange, TemplateChangeKind } from "../engine";
+import type { Block, BlockType } from "../types";
 
 const MIN_HEADING_SIZE = 12;
 const MAX_HEADING_SIZE = 48;
@@ -206,3 +207,51 @@ export const replaySchema = z.object({
 export const replayFailedSchema = z.object({
   since: z.coerce.date().optional(),
 });
+
+const BLOCK_TYPES = {
+  hero: true,
+  heading: true,
+  paragraph: true,
+  code: true,
+  list: true,
+  total: true,
+  button: true,
+  if: true,
+  divider: true,
+  footer: true,
+} satisfies Record<BlockType, true>;
+
+const CHANGE_KINDS = {
+  locale_added: true,
+  locale_removed: true,
+  subject: true,
+  preheader: true,
+  block_added: true,
+  block_removed: true,
+  block_changed: true,
+  blocks_reordered: true,
+  variable_added: true,
+  variable_removed: true,
+  variable_changed: true,
+} satisfies Record<TemplateChangeKind, true>;
+
+const isBlockType = (value: string): value is BlockType =>
+  Object.hasOwn(BLOCK_TYPES, value);
+
+const isChangeKind = (value: string): value is TemplateChangeKind =>
+  Object.hasOwn(CHANGE_KINDS, value);
+
+/** The changes a published version stores as JSON text. */
+export const templateChangeListSchema: z.ZodType<
+  TemplateChange[],
+  z.ZodTypeDef,
+  unknown
+> = z.array(
+  z.object({
+    locale: z.string(),
+    kind: z.string().refine(isChangeKind),
+    blockId: z.string().optional(),
+    blockType: z.string().refine(isBlockType).optional(),
+    variable: z.string().optional(),
+  }),
+);

@@ -1,21 +1,17 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { ModuleStatus } from "@antelopejs/interface-dms/page";
+import { isText } from "../validation/guards";
+import { parseJsonObject } from "../validation/json";
 import { readCapabilities } from "./provider";
 
 const PACKAGE_JSON_PATH = path.join(__dirname, "../../package.json");
 
-interface PackageManifest {
-  version?: string;
-}
-
 /** The module's published version, as the catalog tile and the sidebar show it. */
 export function moduleVersion(): string | undefined {
   try {
-    const manifest = JSON.parse(
-      readFileSync(PACKAGE_JSON_PATH, "utf8"),
-    ) as PackageManifest;
-    return manifest.version;
+    const manifest = parseJsonObject(readFileSync(PACKAGE_JSON_PATH, "utf8"));
+    return isText(manifest.version) ? manifest.version : undefined;
   } catch {
     return undefined;
   }

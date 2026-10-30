@@ -156,7 +156,7 @@ export class MailingTemplate extends Table.with(LocalizationModifier) {
 
 /** Covers model updates and generated data-api edits in the same database write. */
 class TemplateRevisionModifier extends Modifier {
-  update(object: Record<string, unknown>, field: string): void {
+  update(object: Pick<MailingTemplate, "revision">, field: "revision"): void {
     object[field] = randomUUID();
   }
 }

@@ -133,7 +133,7 @@ export async function declareTemplate(
   assertKnownCategory(settings.categories, declaration.category, slug);
   const created = await createDeclared(declaration);
   if (created) return resultOf(created, "created");
-  return resultOf((await model.getBySlug(slug)) as MailingTemplate, "kept");
+  return declareTemplate(input);
 }
 
 /** Category declarations of one tenant run one after the other. */

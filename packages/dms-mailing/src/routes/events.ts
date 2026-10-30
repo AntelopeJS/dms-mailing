@@ -18,6 +18,8 @@ import {
   WEBHOOK_SECRET_HEADER,
 } from "../services/webhook-status";
 import type { WebhookRefusal } from "../types";
+import type { JsonValue } from "../types/json";
+import { parseJson } from "../validation/json";
 import { sendEventTypeSchema } from "../validation/send-event-type.schema";
 
 const eventSchema = z.object({
@@ -38,7 +40,7 @@ const STATUS_OF_REFUSAL: Record<WebhookRefusal, number> = {
 interface ReceivedEvent {
   provider: string;
   secret: string | undefined;
-  body: unknown;
+  body: JsonValue | undefined;
   /** The tenant the URL names. */
   tenantId: string;
 }
@@ -54,9 +56,9 @@ export interface WebhookResponse {
  * The body as JSON, `undefined` when it is not: a malformed body is refused
  * as an invalid event, after the secret, never answered with a parser error.
  */
-function parseBody(raw: Buffer): unknown {
+function parseBody(raw: Buffer): JsonValue | undefined {
   try {
-    return JSON.parse(raw.toString("utf8"));
+    return parseJson(raw.toString("utf8"));
   } catch {
     return undefined;
   }

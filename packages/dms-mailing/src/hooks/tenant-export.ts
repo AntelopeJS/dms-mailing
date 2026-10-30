@@ -17,6 +17,7 @@ import {
   TemplateVersionModel,
 } from "../db";
 import type { MailingSettingsValues } from "../types";
+import { parseStoredCategories } from "../validation/settings.schema";
 
 export type ExportedSettings = Omit<MailingSettingsValues, "webhookSecret">;
 
@@ -26,7 +27,7 @@ export type ExportPageLoader<T> = (
 ) => Promise<T[]>;
 
 interface RowCodec<T> {
-  fromDatabase(row: unknown): T | undefined;
+  fromDatabase(row: T): T | undefined;
 }
 
 export interface ExportedCollection {
@@ -81,9 +82,7 @@ async function exportedSettings(
     senderName: row.senderName,
     senderEmail: row.senderEmail,
     replyTo: row.replyTo,
-    categories: JSON.parse(
-      row.json_categories,
-    ) as ExportedSettings["categories"],
+    categories: parseStoredCategories(row.json_categories),
   };
 }
 

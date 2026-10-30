@@ -1,4 +1,5 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
+import { z } from "zod";
 import {
   MAILING_TEMPLATE_VERSIONS_TABLE_NAME,
   type MailingTemplate,
@@ -6,16 +7,30 @@ import {
 } from "../tables";
 import { TemplateModel } from "./templates.model";
 
+const committedVersionSchema: z.ZodType<
+  MailingTemplateVersion,
+  z.ZodTypeDef,
+  unknown
+> = z.object({
+  _id: z.string(),
+  templateId: z.string(),
+  version: z.number(),
+  json_content: z.string(),
+  json_variables: z.string(),
+  locales: z.string(),
+  publishedAt: z.coerce.date(),
+  publishedBy: z.string(),
+  json_changes: z.string(),
+});
+
 /** The latest committed history row, even before its separate insert completes. */
 export function committedVersionOf(
   template: Pick<MailingTemplate, "json_published_version">,
 ): MailingTemplateVersion | undefined {
   if (!template.json_published_version) return undefined;
-  const row = JSON.parse(
-    template.json_published_version,
-  ) as MailingTemplateVersion;
-  row.publishedAt = new Date(row.publishedAt);
-  return row;
+  return committedVersionSchema.parse(
+    JSON.parse(template.json_published_version),
+  );
 }
 
 export class TemplateVersionModel extends BasicDataModel(
@@ -33,12 +48,12 @@ export class TemplateVersionModel extends BasicDataModel(
       await this.insert(version);
     } catch (error) {
       const stored = await this.get(version._id);
+      if (!stored) throw error;
+      const storedFields = new Map(Object.entries(stored));
       if (
-        !stored ||
         Object.entries(version).some(
           ([key, value]) =>
-            JSON.stringify(stored[key as keyof MailingTemplateVersion]) !==
-            JSON.stringify(value),
+            JSON.stringify(storedFields.get(key)) !== JSON.stringify(value),
         )
       )
         throw error;

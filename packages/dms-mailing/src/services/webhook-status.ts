@@ -7,6 +7,7 @@ import type {
   WebhookRefusal,
   WebhookStatus,
 } from "../types";
+import { isObject, isText } from "../validation/guards";
 import { webhookSecretMatches } from "./events";
 import { WEBHOOK_SECRET_HEADER } from "../constants";
 
@@ -143,11 +144,6 @@ export async function readWebhookStatus(
   );
 }
 
-const describeError = (error: unknown): string =>
-  error instanceof Error
-    ? String((error.cause as Error | undefined)?.message ?? error.message)
-    : String(error);
-
 async function refusalOf(
   response: Response,
 ): Promise<WebhookRefusal | undefined> {
@@ -192,11 +188,17 @@ export async function sendWebhookTest(
       refusal: response.ok ? undefined : await refusalOf(response),
     };
   } catch (error) {
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeMessage =
+      isObject(cause) && isText(cause.message) ? cause.message : undefined;
     return {
       isReceived: false,
       url,
       durationMs: elapsed(),
-      networkError: describeError(error),
+      networkError:
+        error instanceof Error
+          ? (causeMessage ?? error.message)
+          : String(error),
     };
   }
 }

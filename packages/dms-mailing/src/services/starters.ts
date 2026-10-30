@@ -5,6 +5,7 @@ import type {
   TemplateContent,
   VariableDefinition,
 } from "../types";
+import type { JsonObject } from "../types/json";
 import { footerForCategory, formattingLocale } from "../engine";
 import { blankFields, footerBlock } from "./templates";
 
@@ -21,9 +22,9 @@ export interface StarterTemplate {
   content: TemplateContent;
   variables: VariableDefinition[];
   /** The test data as an English-speaking workspace gets it. */
-  testData: Record<string, unknown>;
+  testData: JsonObject;
   /** The test data with its amounts written the way `locale` writes them. */
-  testDataFor: (locale: string) => Record<string, unknown>;
+  testDataFor: (locale: string) => JsonObject;
 }
 
 type StarterSource = Omit<StarterTemplate, "testData">;
@@ -39,9 +40,12 @@ const ORDER_LINE_NAMES = new Map([
 const LOCALE_PARTS = /[-_]/;
 
 /** A test text in the language of `locale`, English when it has none. */
-function inLanguageOf(texts: ReadonlyMap<string, string>, locale: string) {
+function inLanguageOf(
+  texts: ReadonlyMap<string, string>,
+  locale: string,
+): string {
   const language = locale.toLowerCase().split(LOCALE_PARTS)[0] ?? "";
-  return texts.get(language) ?? texts.get(DEFAULT_TEST_DATA_LOCALE);
+  return texts.get(language) ?? texts.get(DEFAULT_TEST_DATA_LOCALE) ?? "";
 }
 
 /** An amount the way `locale` writes it: "€1,556.00", "1 556,00 €". */
