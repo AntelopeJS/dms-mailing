@@ -221,9 +221,9 @@ export class TemplatesController extends Controller(
   }
 
   @Get("/starters")
-  starters(): { starters: StarterSummary[] } {
+  starters() {
     return {
-      starters: STARTER_TEMPLATES.map((starter) => ({
+      starters: STARTER_TEMPLATES.map((starter): StarterSummary => ({
         id: starter.id,
         name: starter.name,
         slug: starter.slug,

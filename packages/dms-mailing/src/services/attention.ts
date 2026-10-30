@@ -375,20 +375,21 @@ type TemplateAttentionRule = (
   context: TemplateAttentionContext,
 ) => boolean;
 
-const TEMPLATE_ATTENTION_RULES: Record<
+const TEMPLATE_ATTENTION_RULES = new Map<
   TemplateAttentionReason,
   TemplateAttentionRule
-> = {
-  stale_draft: (template, context) => isStaleDraft(template, context.now),
-  never_sent: (template, context) =>
-    template.status === "live" && !context.sentSlugs.has(template.slug),
-  missing_locale: (template, context) =>
-    isMissingLocale(template, context.knownLocales),
-};
-
-const TEMPLATE_ATTENTION_REASONS = Object.keys(
-  TEMPLATE_ATTENTION_RULES,
-) as TemplateAttentionReason[];
+>([
+  ["stale_draft", (template, context) => isStaleDraft(template, context.now)],
+  [
+    "never_sent",
+    (template, context) =>
+      template.status === "live" && !context.sentSlugs.has(template.slug),
+  ],
+  [
+    "missing_locale",
+    (template, context) => isMissingLocale(template, context.knownLocales),
+  ],
+]);
 
 /**
  * Why a template needs a look, in a stable order: a draft never published and
@@ -399,7 +400,7 @@ export function templateAttentionReasons(
   template: MailingTemplate,
   context: TemplateAttentionContext,
 ): TemplateAttentionReason[] {
-  return TEMPLATE_ATTENTION_REASONS.filter((reason) =>
-    TEMPLATE_ATTENTION_RULES[reason](template, context),
-  );
+  return [...TEMPLATE_ATTENTION_RULES]
+    .filter(([, applies]) => applies(template, context))
+    .map(([reason]) => reason);
 }

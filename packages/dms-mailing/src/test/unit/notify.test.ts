@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { SendSummary } from "../../db";
+import { summaryRow } from "../helpers/rows";
 import {
   crossesThreshold,
   type ProblemNotificationInput,
@@ -21,7 +22,7 @@ const INPUT: ProblemNotificationInput = {
 const AT = new Date("2026-10-11T14:20:00.000Z");
 
 const summary = (status: SendStatus, isTest = false): SendSummary =>
-  ({ status, isTest }) as SendSummary;
+  summaryRow({ status, isTest });
 
 describe("[unit] services/notify", () => {
   it("only weighs the problems of real sends", () => {

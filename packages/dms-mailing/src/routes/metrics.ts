@@ -63,16 +63,16 @@ const TEMPLATE_VOLUME_KEY = "$dms_mailing.metrics.template_volume";
 const FIRST_ROW_OFFSET = 0;
 const SINGLE_ROW = 1;
 
-const KPI_EXTRACTORS: Record<string, TotalsExtractor> = {
-  sends: (totals) => totals.sends,
-  deliverability: (totals) => totals.deliverability,
-  "open-rate": (totals) => totals.openRate,
-  "click-rate": (totals) => totals.clickRate,
-  bounces: (totals) => totals.bounced,
-  unsubscribes: (totals) => totals.unsubscribed,
-  queued: (totals) => totals.queued,
-  latency: (totals) => totals.latencyMedian,
-};
+const KPI_EXTRACTORS = new Map<string, TotalsExtractor>([
+  ["sends", (totals) => totals.sends],
+  ["deliverability", (totals) => totals.deliverability],
+  ["open-rate", (totals) => totals.openRate],
+  ["click-rate", (totals) => totals.clickRate],
+  ["bounces", (totals) => totals.bounced],
+  ["unsubscribes", (totals) => totals.unsubscribed],
+  ["queued", (totals) => totals.queued],
+  ["latency", (totals) => totals.latencyMedian],
+]);
 
 /** The KPIs read from delivery events: unmeasured when nothing reports them. */
 const DELIVERY_METRICS = new Set(["deliverability", "open-rate", "click-rate"]);
@@ -88,14 +88,17 @@ const OPEN_RATE_METRIC: TopMetric = {
   minDeliveries: MIN_RANKED_DELIVERIES,
 };
 
-const TOP_METRICS: Record<string, TopMetric> = {
-  "open-rate": OPEN_RATE_METRIC,
-  "click-rate": {
-    extract: (totals) => totals.clickRate,
-    minDeliveries: MIN_RANKED_DELIVERIES,
-  },
-  sends: { extract: (totals) => totals.sends, minDeliveries: 0 },
-};
+const TOP_METRICS = new Map<string, TopMetric>([
+  ["open-rate", OPEN_RATE_METRIC],
+  [
+    "click-rate",
+    {
+      extract: (totals) => totals.clickRate,
+      minDeliveries: MIN_RANKED_DELIVERIES,
+    },
+  ],
+  ["sends", { extract: (totals) => totals.sends, minDeliveries: 0 }],
+]);
 const DEFAULT_TOP_METRIC = OPEN_RATE_METRIC;
 
 interface FunnelStepDefinition {
@@ -225,7 +228,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   async kpi(
     @Parameter("metric", "param") metric: string,
   ): Promise<KpiCardData> {
-    const extract = KPI_EXTRACTORS[metric];
+    const extract = KPI_EXTRACTORS.get(metric);
     assert(extract, HTTP_NOT_FOUND, UNKNOWN_METRIC);
     const range = currentRange(this.ctx);
     const [current, previous, tracking] = await Promise.all([
@@ -254,7 +257,7 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   @Get("/top-templates")
   async topTemplates() {
     const metric =
-      TOP_METRICS[this.ctx.url.searchParams.get("metric") ?? ""] ??
+      TOP_METRICS.get(this.ctx.url.searchParams.get("metric") ?? "") ??
       DEFAULT_TOP_METRIC;
     const range = currentRange(this.ctx);
     const [sends, previous, templates] = await Promise.all([
@@ -469,21 +472,18 @@ export function comparedSteps(
 /** Which sends the funnel counts: all, or one side of the marketing split. */
 export type FunnelKind = "all" | "marketing" | "transactional";
 
-const FUNNEL_KINDS: Record<string, FunnelKind> = {
-  all: "all",
-  marketing: "marketing",
-  transactional: "transactional",
-};
-
-export function readFunnelKind(raw: string | null): FunnelKind {
-  return FUNNEL_KINDS[raw ?? ""] ?? "all";
-}
-
 const KIND_KEEPS: Record<FunnelKind, (category: string) => boolean> = {
   all: () => true,
   marketing: (category) => isMarketingCategory(category),
   transactional: (category) => !isMarketingCategory(category),
 };
+
+const isFunnelKind = (raw: string): raw is FunnelKind =>
+  Object.hasOwn(KIND_KEEPS, raw);
+
+export function readFunnelKind(raw: string | null): FunnelKind {
+  return raw !== null && isFunnelKind(raw) ? raw : "all";
+}
 
 /**
  * Sends of the templates on one side of the split. A template's category

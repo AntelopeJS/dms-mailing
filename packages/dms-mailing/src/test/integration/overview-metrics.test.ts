@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText } from "../helpers/checked";
@@ -8,10 +9,9 @@ const DAY_MS = 86_400_000;
 const TABLE = "/api/mailing/tables/templates";
 const METRICS = "/api/mailing/metrics";
 
-interface SeriesPoint {
-  x: string;
-  y: number;
-}
+const seriesSchema = z
+  .array(z.object({ data: z.array(z.object({ x: z.string() })) }))
+  .nonempty();
 
 describe("[integration] overview metrics", () => {
   it("reads the first-run checklist facts in one call", async () => {
@@ -23,7 +23,7 @@ describe("[integration] overview metrics", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     await client.post(`/api/mailing/templates/${id}/publish`, {});
     await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["setup@example.test"],
@@ -96,12 +96,10 @@ describe("[integration] overview metrics", () => {
     const from = new Date(Date.now() - 2 * DAY_MS).toISOString();
     const to = new Date(Date.now() + DAY_MS).toISOString();
     const volume = await client.get(`${METRICS}/volume?from=${from}&to=${to}`);
-    const axis = (volume.data.series[0].data as SeriesPoint[]).map(
-      (point) => point.x,
-    );
-    const compared = (
-      volume.data.comparisonSeries[0].data as SeriesPoint[]
-    ).map((point) => point.x);
+    const [axisSeries] = seriesSchema.parse(volume.data.series);
+    const [comparedSeries] = seriesSchema.parse(volume.data.comparisonSeries);
+    const axis = axisSeries.data.map((point) => point.x);
+    const compared = comparedSeries.data.map((point) => point.x);
     expect(compared).to.deep.equal(axis);
   });
 
@@ -114,7 +112,8 @@ describe("[integration] overview metrics", () => {
       `${METRICS}/volume?from=${later}&to=${earlier}`,
     );
     expect(volume.status).to.equal(HTTP_OK);
-    const points = volume.data.series[0].data as SeriesPoint[];
+    const [series] = seriesSchema.parse(volume.data.series);
+    const points = series.data;
     expect(points.length).to.be.greaterThan(1);
     expect(new Date(points[0]?.x ?? "").getTime()).to.be.lessThan(Date.now());
   });

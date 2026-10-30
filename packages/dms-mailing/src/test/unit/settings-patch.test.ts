@@ -5,6 +5,8 @@ import {
   missingVariablesPolicy,
 } from "../../services/settings";
 import { DEFAULT_CATEGORIES, type MailingSettingsValues } from "../../types";
+import type { JsonObject } from "../../types/json";
+import { parseJsonObject } from "../../validation/json";
 import { settingsPatchSchema } from "../../validation/settings.schema";
 
 const CURRENT: MailingSettingsValues = {
@@ -25,7 +27,10 @@ describe("[unit] services/settings mergeSettingsPatch", () => {
   });
 
   it("turns a cleared field into an empty string", () => {
-    const merged = mergeSettingsPatch(CURRENT, { replyTo: null });
+    const merged = mergeSettingsPatch(
+      CURRENT,
+      settingsPatchSchema.parse(clearedToEmpty({ replyTo: null })),
+    );
     expect(merged.replyTo).to.equal("");
   });
 
@@ -64,12 +69,12 @@ describe("[unit] services/settings mergeSettingsPatch", () => {
 });
 
 describe("[unit] validation settingsPatchSchema", () => {
-  const accepts = (patch: Record<string, unknown>) =>
+  const accepts = (patch: JsonObject) =>
     settingsPatchSchema.safeParse(clearedToEmpty(patch)).success;
 
   it("accepts a partial patch, and no read-only field", () => {
     expect(accepts({ senderName: "Acme" })).to.equal(true);
-    expect(accepts({ ...CURRENT })).to.equal(true);
+    expect(accepts(parseJsonObject(JSON.stringify(CURRENT)))).to.equal(true);
     expect(accepts({ replyTo: null })).to.equal(true);
     expect(accepts({ webhookUrl: "x" })).to.equal(false);
     expect(accepts({ provider: "y" })).to.equal(false);

@@ -33,12 +33,12 @@ export class TemplateVersionModel extends BasicDataModel(
       await this.insert(version);
     } catch (error) {
       const stored = await this.get(version._id);
+      if (!stored) throw error;
+      const storedFields = new Map(Object.entries(stored));
       if (
-        !stored ||
         Object.entries(version).some(
           ([key, value]) =>
-            JSON.stringify(stored[key as keyof MailingTemplateVersion]) !==
-            JSON.stringify(value),
+            JSON.stringify(storedFields.get(key)) !== JSON.stringify(value),
         )
       )
         throw error;

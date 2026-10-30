@@ -27,6 +27,7 @@ import type {
   VariableDefinition,
 } from "../types";
 import { DEFAULT_FALLBACK_LOCALE } from "../types";
+import type { JsonObject } from "../types/json";
 
 export interface TemplateAuthor {
   name?: string;
@@ -169,10 +170,8 @@ export function pendingChanges(template: MailingTemplate): TemplateChange[] {
   });
 }
 
-export function parseTestData(
-  template: MailingTemplate,
-): Record<string, unknown> {
-  return JSON.parse(template.json_test_data) as Record<string, unknown>;
+export function parseTestData(template: MailingTemplate): JsonObject {
+  return JSON.parse(template.json_test_data) as JsonObject;
 }
 
 interface FooterLabels {
@@ -190,16 +189,16 @@ const ENGLISH_FOOTER_LABELS: FooterLabels = {
  * e-mail without an unsubscribe link is a legal problem, so a blank template
  * ships a footer — and nothing else: no invented subject, prose or address.
  */
-const FOOTER_LABELS: Record<string, FooterLabels> = {
-  en: ENGLISH_FOOTER_LABELS,
-  fr: { unsubscribe: "Se désinscrire", preferences: "Préférences" },
-};
+const FOOTER_LABELS = new Map<string, FooterLabels>([
+  ["en", ENGLISH_FOOTER_LABELS],
+  ["fr", { unsubscribe: "Se désinscrire", preferences: "Préférences" }],
+]);
 
 const FOOTER_BLOCK_ID = "footer";
 
 /** A footer in `locale`: its legal line and the labels of its two links. */
 export function footerBlock(locale: string, text = ""): Block {
-  const labels = FOOTER_LABELS[locale] ?? ENGLISH_FOOTER_LABELS;
+  const labels = FOOTER_LABELS.get(locale) ?? ENGLISH_FOOTER_LABELS;
   return {
     id: FOOTER_BLOCK_ID,
     type: "footer",

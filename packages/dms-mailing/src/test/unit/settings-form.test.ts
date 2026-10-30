@@ -1,16 +1,21 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { mailingSettingsForm } from "../../pages/settings/form";
 import { MODULE_DEFAULT_SETTINGS } from "../../types";
 
-interface SerializedField {
-  id: string;
-  defaultValue?: unknown;
-  offersDefault?: boolean;
-}
+const formOptionsSchema = z.object({
+  fields: z.array(
+    z.object({
+      id: z.string(),
+      defaultValue: z.unknown().optional(),
+      offersDefault: z.boolean().optional(),
+    }),
+  ),
+});
 
-async function fieldsById(): Promise<Map<string, SerializedField>> {
+async function fieldsById() {
   const { options } = await mailingSettingsForm.serialize();
-  const fields = (options as { fields: SerializedField[] }).fields;
+  const { fields } = formOptionsSchema.parse(options);
   return new Map(fields.map((field) => [field.id, field]));
 }
 

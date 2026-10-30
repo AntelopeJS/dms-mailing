@@ -23,7 +23,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return checkedText(created.data._id);
+  return checkedText.parse(created.data._id);
 }
 
 function withSubject(subject: string, revision?: number) {
@@ -37,12 +37,12 @@ function withSubject(subject: string, revision?: number) {
 
 async function revisionOf(api: Client, id: string): Promise<number> {
   const content = await api.get(`${TEMPLATES}/${id}/content`);
-  return checkedNumber(content.data.revision);
+  return checkedNumber.parse(content.data.revision);
 }
 
 async function versionCount(api: Client, id: string): Promise<number> {
   const history = await api.get(`${TEMPLATES}/${id}/versions`);
-  return checkedNumber(history.data.versions.length);
+  return checkedNumber.parse(history.data.versions.length);
 }
 
 describe("[integration] template draft revisions", () => {

@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { MailingSend } from "../../db";
+import { sendRow } from "../helpers/rows";
 import {
   aggregate,
   alignSeries,
@@ -24,14 +25,14 @@ const send = (
   opens = 0,
   clicks = 0,
 ): MailingSend =>
-  ({
+  sendRow({
     status,
     recipientEmail: email,
     createdAt: new Date(Date.UTC(YEAR, MONTH, day)),
     opens,
     clicks,
     latencyMs: LATENCY_MS,
-  }) as MailingSend;
+  });
 
 const SENDS = [
   send("delivered", "a@gmail.com", 1),
@@ -192,7 +193,7 @@ describe("[unit] services/metrics comparison series", () => {
 });
 
 const testSend = (): MailingSend =>
-  ({
+  sendRow({
     status: "sent",
     recipientEmail: "t@gmail.com",
     createdAt: new Date(Date.UTC(YEAR, MONTH, 1)),
@@ -200,7 +201,7 @@ const testSend = (): MailingSend =>
     clicks: 0,
     latencyMs: LATENCY_MS,
     isTest: true,
-  }) as MailingSend;
+  });
 
 const MIXED = [...SENDS, testSend()];
 
@@ -236,14 +237,14 @@ const WINDOW_TO = new Date("2026-09-10T21:59:59.999Z");
 const DAYS_IN_WINDOW = 7;
 
 const sentAt = (iso: string): MailingSend =>
-  ({
+  sendRow({
     status: "sent",
     recipientEmail: "a@gmail.com",
     createdAt: new Date(iso),
     opens: 0,
     clicks: 0,
     latencyMs: LATENCY_MS,
-  }) as MailingSend;
+  });
 
 describe("[unit] services/metrics daily series over a DMS period", () => {
   it("covers every day of the window, last one included", () => {

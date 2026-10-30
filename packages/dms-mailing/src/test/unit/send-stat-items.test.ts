@@ -5,6 +5,7 @@ import {
   latencyText,
 } from "../../services/send-stat-items";
 import type { SendStats } from "../../services/send-stats";
+import { isNumber, isText } from "../../validation/guards";
 
 const STATS: SendStats = {
   sends: 20,
@@ -60,11 +61,23 @@ describe("[unit] services/send-stat-items", () => {
 
   it("compares the deliverability, the problems and the latency", () => {
     /** The first text of a detail: "joined" folds its parts from the left. */
-    const first = (text: ComposedText): ComposedText =>
-      text.key.endsWith(".joined")
-        ? first(text.params?.left as ComposedText)
-        : text;
-    const left = (id: string) => first(byId(id)?.detail as ComposedText);
+    const first = (text: ComposedText): ComposedText => {
+      if (!text.key.endsWith(".joined")) return text;
+      const joinedLeft = text.params?.left;
+      if (
+        !joinedLeft ||
+        isText(joinedLeft) ||
+        isNumber(joinedLeft) ||
+        !("key" in joinedLeft)
+      )
+        throw new Error(`"${text.key}" does not start with a text`);
+      return first(joinedLeft);
+    };
+    const left = (id: string) => {
+      const detail = byId(id)?.detail;
+      if (!detail || isText(detail)) throw new Error(`"${id}" has no detail`);
+      return first(detail);
+    };
     expect(left("delivered")).to.deep.equal({
       key: "$dms_mailing.sends.stats.delta_down_versus",
       params: {

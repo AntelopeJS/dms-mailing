@@ -18,7 +18,7 @@ async function client(): Promise<Client> {
 }
 
 async function secretOf(api: Client): Promise<string> {
-  return checkedText((await api.get(SETTINGS)).data.webhookSecret);
+  return checkedText.parse((await api.get(SETTINGS)).data.webhookSecret);
 }
 
 describe("[integration] webhook status", () => {
@@ -67,9 +67,8 @@ describe("[integration] webhook status", () => {
   it("refuses a body that is not JSON as an invalid event, after the secret", async () => {
     const api = await client();
     const raw = (headers: Record<string, string>) =>
-      api.post(EVENTS, "{x", {
+      api.post(EVENTS, Buffer.from("{x"), {
         headers: { "content-type": "application/json", ...headers },
-        transformRequest: [(data: unknown) => data],
       });
     const anonymous = await raw({});
     expect(anonymous.status).to.equal(HTTP_FORBIDDEN);

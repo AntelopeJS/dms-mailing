@@ -26,7 +26,7 @@ export type ExportPageLoader<T> = (
 ) => Promise<T[]>;
 
 interface RowCodec<T> {
-  fromDatabase(row: unknown): T | undefined;
+  fromDatabase(row: T): T | undefined;
 }
 
 export interface ExportedCollection {

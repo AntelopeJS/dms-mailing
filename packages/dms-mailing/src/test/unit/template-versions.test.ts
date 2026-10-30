@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { MailingTemplate } from "../../db";
+import { templateRow } from "../helpers/rows";
 import {
   contentFieldsOf,
   isStaleRevision,
@@ -20,7 +21,7 @@ const DRAFT = JSON.stringify({
 });
 
 const template = (extra: Partial<MailingTemplate>): MailingTemplate =>
-  ({
+  templateRow({
     _id: "t1",
     status: "draft",
     json_content: PUBLISHED,
@@ -28,7 +29,7 @@ const template = (extra: Partial<MailingTemplate>): MailingTemplate =>
     json_test_data: "{}",
     publishedVersion: extra.status === "live" ? 1 : 0,
     ...extra,
-  }) as MailingTemplate;
+  });
 
 describe("[unit] services/templates versions", () => {
   it("reads the version the last publish stored", () => {

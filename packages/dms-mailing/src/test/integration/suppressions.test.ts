@@ -1,7 +1,9 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText } from "../helpers/checked";
+import type { JsonObject } from "../../types/json";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -15,12 +17,22 @@ const SUPPRESSIONS_TABLE = "/api/mailing/tables/suppressions";
 
 type Client = ReturnType<typeof authorizedClient>;
 
-interface SuppressionRow {
-  _id: string;
-  email: string;
-  reason: string;
-  sendId?: string;
-}
+const suppressionRowSchema = z.object({
+  _id: z.string(),
+  email: z.string(),
+  reason: z.string(),
+  sendId: z.string().optional(),
+});
+
+type SuppressionRow = z.infer<typeof suppressionRowSchema>;
+
+const sentResultsSchema = z.array(
+  z.object({
+    sendId: z.string(),
+    status: z.string(),
+    error: z.string().optional(),
+  }),
+);
 
 async function client(): Promise<{ api: Client; email: string }> {
   const session = await ensureOwnerSession();
@@ -33,7 +45,7 @@ async function liveTemplate(api: Client, slug: string): Promise<string> {
     name: slug,
     category: "orders",
   });
-  const id = checkedText(created.data._id);
+  const id = checkedText.parse(created.data._id);
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },
@@ -47,7 +59,7 @@ async function markEvent(
   api: Client,
   sendId: string,
   type: string,
-  details: Record<string, unknown> = {},
+  details: JsonObject = {},
 ): Promise<void> {
   const settings = await api.get("/api/mailing/settings");
   const detail = await api.get(`${SENDS}/${sendId}`);
@@ -62,11 +74,7 @@ async function markEvent(
 async function realSend(api: Client, id: string, to: string[]) {
   const sent = await api.post(`${TEMPLATES}/${id}/send`, { to });
   expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-  return sent.data.results as {
-    sendId: string;
-    status: string;
-    error?: string;
-  }[];
+  return sentResultsSchema.parse(sent.data.results);
 }
 
 async function entryOf(
@@ -77,9 +85,10 @@ async function entryOf(
     `${SUPPRESSIONS_TABLE}/list?limit=50&search=${encodeURIComponent(email)}`,
   );
   expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-  return (list.data.results as SuppressionRow[]).find(
-    (row) => row.email === email,
-  );
+  return z
+    .array(suppressionRowSchema)
+    .parse(list.data.results)
+    .find((row) => row.email === email);
 }
 
 describe("[integration] suppression list", () => {
@@ -184,7 +193,7 @@ describe("[integration] suppression list", () => {
       `${SUPPRESSIONS_TABLE}/list?limit=50&filter_email=${encodeURIComponent(`is:${emails[0]}`)}`,
     );
     expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-    const rows = list.data.results as SuppressionRow[];
+    const rows = z.array(suppressionRowSchema).parse(list.data.results);
     expect(rows.map((row) => row.email)).to.deep.equal([emails[0]]);
     for (const email of emails) {
       const entry = await entryOf(api, email);
