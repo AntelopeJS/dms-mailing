@@ -31,9 +31,9 @@ jobs:
         packages/interface-dms-mailing/README.md
         packages/interface-dms-mailing/docs
       docs-typescript-project: packages/interface-dms-mailing/docs/tsconfig.json
+      renovate-sync: false
     permissions:
-      contents: write
-      actions: write
+      contents: read
 
   backend-tests:
     runs-on: ubuntu-latest
@@ -74,3 +74,10 @@ jobs:
     steps:
       - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
         run: exit 1
+  renovate-sync:
+    if: >-
+      github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+      actions: write
+    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v1
