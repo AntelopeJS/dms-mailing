@@ -144,15 +144,12 @@ export async function readWebhookStatus(
   );
 }
 
-const isRefusal = (reason: unknown): reason is WebhookRefusal =>
-  isText(reason) && Object.hasOwn(WEBHOOK_REFUSAL_MESSAGES, reason);
-
 async function refusalOf(
   response: Response,
 ): Promise<WebhookRefusal | undefined> {
   try {
-    const body: unknown = await response.json();
-    return isObject(body) && isRefusal(body.reason) ? body.reason : undefined;
+    const body = (await response.json()) as Partial<WebhookRefusalBody>;
+    return body.reason;
   } catch {
     return undefined;
   }
