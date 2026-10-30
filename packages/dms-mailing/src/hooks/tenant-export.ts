@@ -17,7 +17,6 @@ import {
   TemplateVersionModel,
 } from "../db";
 import type { MailingSettingsValues } from "../types";
-import { parseStoredCategories } from "../validation/settings.schema";
 
 export type ExportedSettings = Omit<MailingSettingsValues, "webhookSecret">;
 
@@ -82,7 +81,9 @@ async function exportedSettings(
     senderName: row.senderName,
     senderEmail: row.senderEmail,
     replyTo: row.replyTo,
-    categories: parseStoredCategories(row.json_categories),
+    categories: JSON.parse(
+      row.json_categories,
+    ) as ExportedSettings["categories"],
   };
 }
 

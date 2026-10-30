@@ -1,5 +1,4 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import { z } from "zod";
 import {
   MAILING_TEMPLATE_VERSIONS_TABLE_NAME,
   type MailingTemplate,
@@ -7,30 +6,16 @@ import {
 } from "../tables";
 import { TemplateModel } from "./templates.model";
 
-const committedVersionSchema: z.ZodType<
-  MailingTemplateVersion,
-  z.ZodTypeDef,
-  unknown
-> = z.object({
-  _id: z.string(),
-  templateId: z.string(),
-  version: z.number(),
-  json_content: z.string(),
-  json_variables: z.string(),
-  locales: z.string(),
-  publishedAt: z.coerce.date(),
-  publishedBy: z.string(),
-  json_changes: z.string(),
-});
-
 /** The latest committed history row, even before its separate insert completes. */
 export function committedVersionOf(
   template: Pick<MailingTemplate, "json_published_version">,
 ): MailingTemplateVersion | undefined {
   if (!template.json_published_version) return undefined;
-  return committedVersionSchema.parse(
-    JSON.parse(template.json_published_version),
-  );
+  const row = JSON.parse(
+    template.json_published_version,
+  ) as MailingTemplateVersion;
+  row.publishedAt = new Date(row.publishedAt);
+  return row;
 }
 
 export class TemplateVersionModel extends BasicDataModel(

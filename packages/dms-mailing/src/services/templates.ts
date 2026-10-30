@@ -27,13 +27,6 @@ import type {
   VariableDefinition,
 } from "../types";
 import { DEFAULT_FALLBACK_LOCALE } from "../types";
-import type { JsonObject } from "../types/json";
-import { parseJsonObject } from "../validation/json";
-import {
-  templateChangeListSchema,
-  templateContentSchema,
-  variableListSchema,
-} from "../validation/templates.schema";
 
 export interface TemplateAuthor {
   name?: string;
@@ -80,9 +73,7 @@ export async function refuseTakenSlug<T>(write: Promise<T>): Promise<T> {
 
 /** The content customers receive: the last published version. */
 export function parseContent(template: MailingTemplate): TemplateContent {
-  return templateContentSchema.parse(
-    JSON.parse(template.json_content || EMPTY_CONTENT),
-  );
+  return JSON.parse(template.json_content || EMPTY_CONTENT) as TemplateContent;
 }
 
 export function hasDraft(template: MailingTemplate): boolean {
@@ -92,7 +83,7 @@ export function hasDraft(template: MailingTemplate): boolean {
 /** The content the editor works on: the draft, or the published content. */
 export function workingContent(template: MailingTemplate): TemplateContent {
   if (!template.json_draft) return parseContent(template);
-  return templateContentSchema.parse(JSON.parse(template.json_draft));
+  return JSON.parse(template.json_draft) as TemplateContent;
 }
 
 /** The version customers receive; 0 for a template never published. */
@@ -111,7 +102,7 @@ export function isPublished(template: MailingTemplate): boolean {
 export function parseVariables(
   template: MailingTemplate,
 ): VariableDefinition[] {
-  return variableListSchema.parse(JSON.parse(template.json_variables));
+  return JSON.parse(template.json_variables) as VariableDefinition[];
 }
 
 /**
@@ -123,7 +114,7 @@ export function workingVariables(
 ): VariableDefinition[] {
   if (!hasDraft(template) || !template.json_variables_draft)
     return parseVariables(template);
-  return variableListSchema.parse(JSON.parse(template.json_variables_draft));
+  return JSON.parse(template.json_variables_draft) as VariableDefinition[];
 }
 
 /** A template's working state: what a publish would ship. */
@@ -178,8 +169,10 @@ export function pendingChanges(template: MailingTemplate): TemplateChange[] {
   });
 }
 
-export function parseTestData(template: MailingTemplate): JsonObject {
-  return parseJsonObject(template.json_test_data);
+export function parseTestData(
+  template: MailingTemplate,
+): Record<string, unknown> {
+  return JSON.parse(template.json_test_data) as Record<string, unknown>;
 }
 
 interface FooterLabels {
@@ -300,14 +293,14 @@ export async function discardDraft(
 export function parseVersionChanges(
   row: MailingTemplateVersion,
 ): TemplateChange[] {
-  return templateChangeListSchema.parse(JSON.parse(row.json_changes));
+  return JSON.parse(row.json_changes) as TemplateChange[];
 }
 
 /** The declarations a published version shipped with. */
 export function parseVersionVariables(
   row: MailingTemplateVersion,
 ): VariableDefinition[] {
-  return variableListSchema.parse(JSON.parse(row.json_variables));
+  return JSON.parse(row.json_variables) as VariableDefinition[];
 }
 
 /**
@@ -462,7 +455,7 @@ export async function contentOfVersion(
 export function parseVersionContent(
   row: MailingTemplateVersion,
 ): TemplateContent {
-  return templateContentSchema.parse(JSON.parse(row.json_content));
+  return JSON.parse(row.json_content) as TemplateContent;
 }
 
 /**

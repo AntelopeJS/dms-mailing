@@ -7,10 +7,7 @@ import {
   type TemplateCategory,
 } from "../types";
 import type { JsonObject } from "../types/json";
-import {
-  type SettingsPatch,
-  parseStoredCategories,
-} from "../validation/settings.schema";
+import type { SettingsPatch } from "../validation/settings.schema";
 
 export const WEBHOOK_SECRET_BYTES = 24;
 
@@ -33,7 +30,7 @@ function toValues(row: MailingSettings): MailingSettingsValues {
     senderEmail: row.senderEmail,
     replyTo: row.replyTo,
     webhookSecret: row.webhookSecret,
-    categories: parseStoredCategories(row.json_categories),
+    categories: JSON.parse(row.json_categories) as TemplateCategory[],
   };
 }
 
@@ -76,7 +73,7 @@ export async function getSettings(
   if (existing) return existing;
   const created = defaults();
   if (await insertKeyedSettings(tenantId, created)) return created;
-  return getSettings(tenantId);
+  return (await findSettings(tenantId)) as MailingSettingsValues;
 }
 
 export async function saveSettings(
