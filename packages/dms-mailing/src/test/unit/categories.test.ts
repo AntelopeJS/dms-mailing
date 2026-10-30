@@ -104,7 +104,8 @@ describe("[unit] services/categories labels per language", () => {
 });
 
 describe("[unit] validation categoriesSchema", () => {
-  const parse = (value: unknown) => categoriesSchema.safeParse(value).success;
+  const parse = (value: string | z.input<typeof categoriesSchema>) =>
+    categoriesSchema.safeParse(value).success;
   const category = (patch: Partial<TemplateCategory>) => ({
     ...CATEGORIES[0],
     ...patch,
