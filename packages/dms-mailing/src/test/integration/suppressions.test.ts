@@ -66,7 +66,10 @@ async function markEvent(
   const hook = await api.post(
     eventsPath("manual"),
     {
-      messageId: checkedText.parse(detail.data.send.providerMessageId),
+      messageId: z
+        .string()
+        .nullable()
+        .parse(detail.data.send.providerMessageId),
       type,
       details,
     },
@@ -123,7 +126,7 @@ describe("[integration] suppression list", () => {
       stage: "suppressed",
     });
     expect(
-      checkedText.parse(detail.data.send.providerMessageId) || "",
+      z.string().nullable().parse(detail.data.send.providerMessageId) || "",
     ).to.equal("");
     expect(detail.data.suppression).to.deep.include({
       email: "complaint@example.test",

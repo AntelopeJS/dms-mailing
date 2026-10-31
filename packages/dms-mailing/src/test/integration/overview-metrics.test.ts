@@ -5,7 +5,7 @@ import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText, parsedBody } from "../helpers/checked";
 
 const funnelBodySchema = z.object({
-  steps: z.array(z.object({ id: z.string() })),
+  steps: z.array(z.object({ id: z.string() }).passthrough()),
 });
 
 const HTTP_OK = 200;
