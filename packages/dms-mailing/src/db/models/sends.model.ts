@@ -123,7 +123,7 @@ export class SendModel extends BasicDataModel(
       .filter((row) => row.key("createdAt").ge(from))
       .filter((row) => row.key("createdAt").lt(to))
       .without("json_variables")
-      .run() as Promise<SendSummary[]>;
+      .run();
   }
 
   listOlderThan(limit: Date, pageSize: number): Promise<MailingSend[]> {
@@ -260,7 +260,7 @@ export class SendModel extends BasicDataModel(
       .getAll(templateSlug, "templateSlug")
       .filter((row) => row.key("createdAt").ge(from))
       .without("json_variables")
-      .run() as Promise<SendSummary[]>;
+      .run();
   }
 
   /** How many sends the retention would delete with this cutoff. */
