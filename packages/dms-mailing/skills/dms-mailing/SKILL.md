@@ -23,7 +23,7 @@ https://dms.antelopejs.com/docs/modules/mailing (sending from code and the webho
 
 - `ajs project modules add @antelopejs/dms-mailing`, plus a module implementing `@antelopejs/interface-email`
   (`@antelopejs/nodemailer`, `config: { ethereal: true }` in dev).
-- Mailing 0.6 requires `@antelopejs/dms` >=0.9 (interface-dms 0.7, renderer `@antelopejs/dms-frontend` 0.6);
+- The DMS backend and renderer releases the module runs on are in the README compatibility block and in `engines["@antelopejs/dms-frontend"]` of `frontend-vue/package.json`;
   0.4 is the DMS 0.8 line. Mailing 0.6 implements `@antelopejs/interface-dms-mailing` `>=0.8.0 <0.9.0`, adding declaration and import calls;
   interface 0.9 adds `DeclareSender`; `SendTemplate` / `RecordEmailEvent` callers do not change.
 - Module option: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML).
