@@ -34,7 +34,7 @@ ajs project modules add @antelopejs/nodemailer
 
 In development, send to a throwaway Ethereal inbox:
 
-```ts
+```ts fragment
 // antelope.config.ts
 nodemailer: {
   source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.5 <1.0.0" },
@@ -44,7 +44,7 @@ nodemailer: {
 
 Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). Create a template from a starter such as **Order confirmation**, publish it, then send it from any module through [`@antelopejs/interface-dms-mailing`](./packages/interface-dms-mailing):
 
-```ts
+```ts fragment
 import { SendTemplate } from "@antelopejs/interface-dms-mailing";
 
 await SendTemplate("order-confirmation", {
@@ -56,15 +56,9 @@ await SendTemplate("order-confirmation", {
 
 ## Compatibility
 
-| Package | Version |
-| --- | --- |
-| `@antelopejs/dms` | `>=0.11.0 <1.0.0` |
-| `@antelopejs/interface-dms` | `>=0.9.0 <1.0.0` |
-| `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.9.1 <0.10.0` |
-| `@antelopejs/interface-dms-mailing` | `>=0.8.0 <0.9.0` |
-| E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
+The module also needs a DMS backend in a release that implements the `@antelopejs/interface-dms` range in the [module README compatibility block](packages/dms-mailing/README.md#compatibility), and the `@antelopejs/dms-frontend` renderer in the range its frontend module declares in `engines["@antelopejs/dms-frontend"]` of `packages/dms-mailing/frontend-vue/package.json`; the `ajs dms` CLI refuses to build it with a renderer outside that range.
 
-On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
+- E-mail provider: an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer`.
 
 ## Packages
 
