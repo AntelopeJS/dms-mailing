@@ -212,7 +212,7 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
       this.language = ALL_LANGUAGES;
       const created: unknown = await refuseTakenSlug(
-        base.func.call(this, ctx, params, normalized, ...rest),
+        Promise.resolve(base.func.call(this, ctx, params, normalized, ...rest)),
       );
       const templateId = createdRowSchema.parse(created)._id;
       const user = await authenticateTenantRequest(ctx);
