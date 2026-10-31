@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
-    "@antelopejs/interface-database": ">=0.1.11 <1.0.0",
+    "@antelopejs/interface-database": "file:../../../.campaign/tgz/antelopejs-interface-database-6bef278.tgz",
     "@antelopejs/interface-dms": ">=0.9.0 <1.0.0"
   },
   "devDependencies": {
