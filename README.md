@@ -7,7 +7,7 @@
 <a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/modules/mailing"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
-E-mail templates, sends and delivery metrics for the AntelopeJS DMS.
+E-mail templates, sends and delivery metrics for the [AntelopeJS DMS](https://github.com/AntelopeJS/dms).
 
 </div>
 
@@ -15,7 +15,7 @@ E-mail templates, sends and delivery metrics for the AntelopeJS DMS.
 
 ## What it does
 
-- Designs e-mail templates in a block editor, with typed variables, conditions, lists and live test data.
+- Designs e-mail templates in a block editor, with typed variables, conditions, lists and test data.
 - Keeps edits in draft and publishes them as versions, in several locales.
 - Sends a template by its slug from your code, an automation or the dashboard, through any `@antelopejs/interface-email` provider.
 - Logs every send with the provider's timeline, and turns delivery, open and click events into an overview.
