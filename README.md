@@ -7,7 +7,7 @@
 <a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/modules/mailing"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
-E-mail templates, sends and delivery metrics for the AntelopeJS DMS.
+E-mail templates, sends and delivery metrics for the [AntelopeJS DMS](https://github.com/AntelopeJS/dms).
 
 </div>
 
