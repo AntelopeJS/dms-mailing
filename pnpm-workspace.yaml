@@ -6,3 +6,6 @@ packages:
 onlyBuiltDependencies:
   - mongodb-memory-server-core
   - esbuild
+# Paths resolve from packages/dms-mailing, the one workspace package that installs the mongodb tarball.
+overrides:
+  "@antelopejs/mongodb>@antelopejs/interface-database": "file:../../.campaign/tgz/antelopejs-interface-database-beb5f5b.tgz"
