@@ -22,7 +22,6 @@ import {
 import {
   collectContentVariablePaths,
   resolveEmail,
-  type TemplateChange,
   valueFormatOf,
 } from "../engine";
 import {
@@ -31,7 +30,7 @@ import {
   type TemplateFields,
   TemplateModel,
 } from "../db";
-import { saveDetails } from "../data/templates-table";
+import { INVALID_TEMPLATE, saveDetails } from "../data/templates-table";
 import { TemplatesPageController } from "../pages/templates";
 import { forAudience, statsWindowStart } from "../services/metrics";
 import { refreshTemplateAttention } from "../services/template-attention";
@@ -75,18 +74,18 @@ import {
 import {
   BUSINESS_AUDIENCE,
   type CategoryInLocale,
-  type TemplateContent,
   type TemplateStatus,
-  type VariableDefinition,
 } from "../types";
 import {
   duplicateSchema,
   previewSchema,
   publishSchema,
   saveContentSchema,
+  templateDetailsSchema,
   testDataSchema,
   variablesSchema,
 } from "../validation/templates.schema";
+import type { TemplateContentResponse } from "./template-content";
 
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
@@ -123,43 +122,6 @@ const TRANSITION_FIELDS: Partial<Record<TemplateAction, () => TemplateFields>> =
 
 export interface CategoriesResponse {
   categories: CategoryInLocale[];
-}
-
-export interface TemplateSender {
-  name: string;
-  email: string;
-  replyTo: string;
-}
-
-export interface TemplateContentResponse {
-  /** The template, its name in the reader's language. */
-  template: MailingTemplate;
-  /** The content the editor works on: the draft, else the published one. */
-  content: TemplateContent;
-  /** What customers receive; `null` when the template was never published. */
-  publishedContent: TemplateContent | null;
-  hasDraft: boolean;
-  /** Version customers receive; 0 when never published. */
-  version: number;
-  /** The draft revision a save or a publish must carry back. */
-  revision: number;
-  changes: TemplateChange[];
-  /** The declarations the editor works on: the draft's, else the published. */
-  variables: VariableDefinition[];
-  /** Paths the working content references, across every locale. */
-  detectedVariables: string[];
-  /**
-   * The contract callers send against: the published declarations and the
-   * paths the published content references; `null` when never published.
-   */
-  publishedVariables: VariableDefinition[] | null;
-  publishedDetectedVariables: string[] | null;
-  testData: Record<string, unknown>;
-  fallbackLocale: string;
-  /** Whether a send missing a variable fails rather than goes out blank. */
-  blockOnMissingVariables: boolean;
-  categories: CategoryInLocale[];
-  sender: TemplateSender;
 }
 
 export interface StarterSummary {
@@ -559,7 +521,12 @@ export class TemplatesController extends Controller(
     @JSONBody() body: unknown,
   ) {
     const template = await requireTemplate(this.templates, id);
-    await saveDetails(this.ctx, template, body, this.author);
+    const details = assertValidation(
+      body,
+      (value) => templateDetailsSchema.parse(value),
+      () => INVALID_TEMPLATE,
+    );
+    await saveDetails(this.ctx, template, details, this.author);
     return { id };
   }
 

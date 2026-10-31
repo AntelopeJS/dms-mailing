@@ -1,3 +1,7 @@
+import type {
+  TemplateVariables,
+  TemplateVariableValue,
+} from "@antelopejs/interface-dms-mailing";
 import {
   PREFERENCES_URL_PATH,
   SYSTEM_VARIABLE_PATHS,
@@ -15,12 +19,12 @@ import type {
 } from "../types";
 import { evaluateCondition } from "./conditions";
 import { safeUrl } from "./fallback-html";
-import { formatValue, type ValueFormat } from "./formats";
+import { formatValue, plainText, type ValueFormat } from "./formats";
 import { getPath, isPresent } from "./paths";
 import { footerLinkPaths } from "./system-variables";
 import { type InterpolationMode, interpolate } from "./tokens";
 
-type Data = Record<string, unknown>;
+type Data = TemplateVariables;
 
 interface ResolveState {
   data: Data;
@@ -60,11 +64,15 @@ function systemUrl(
 ): string {
   if (!footerLinkPaths(block).includes(path)) return "";
   const value = getPath(state.data, path);
-  return isPresent(value) ? safeUrl(String(value)) : "";
+  return isPresent(value) ? safeUrl(plainText(value)) : "";
 }
 
 /** A list cell: a money value or a date in it is written for the locale. */
-function cell(item: unknown, path: string, state: ResolveState): string {
+function cell(
+  item: TemplateVariableValue,
+  path: string,
+  state: ResolveState,
+): string {
   const value = getPath(item, path);
   return isPresent(value) ? formatValue(value, "", state.format) : "";
 }

@@ -20,13 +20,14 @@ import {
 import type { WebhookRefusal } from "../types";
 import type { JsonValue } from "../types/json";
 import { parseJson } from "../validation/json";
+import { jsonObjectSchema } from "../validation/json.schema";
 import { sendEventTypeSchema } from "../validation/send-event-type.schema";
 
 const eventSchema = z.object({
   messageId: z.string().min(1),
   type: sendEventTypeSchema,
   at: z.coerce.date().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: jsonObjectSchema.optional(),
 });
 
 type ParsedEvent = z.infer<typeof eventSchema>;

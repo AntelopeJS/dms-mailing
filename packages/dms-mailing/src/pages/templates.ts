@@ -109,7 +109,9 @@ export class TemplatesPageController extends PageController(
       },
       async edit(ctx, { id, body, current }) {
         await assertEditable(getRequestTenantId(ctx), body, current);
-        return afterEdit(this.model, id, body.name, localeOfRequest(ctx));
+        return body.name === undefined
+          ? undefined
+          : afterEdit(this.model, id, localeOfRequest(ctx));
       },
     },
     rowActions: {

@@ -4,7 +4,7 @@ import {
   Parameter,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assertValidation } from "@antelopejs/interface-api-util";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { z } from "zod";
 import {
   DataController,
@@ -83,19 +83,23 @@ import {
   refuseTakenSlug,
 } from "../services/templates";
 import type { TemplateCategory } from "../types";
+import type { JsonObject } from "../types/json";
 
 import {
   createTemplateSchema,
-  templateDetailsSchema,
+  type TemplateDetails,
 } from "../validation/templates.schema";
 import { isObject, isText } from "../validation/guards";
+import { isJsonObject } from "../validation/json";
 import { parseBody } from "./body";
 import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
 const SOURCE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
-const INVALID_TEMPLATE = "$dms_mailing.errors.invalid_template";
+export type { TemplateDetails };
+
+export const INVALID_TEMPLATE = "$dms_mailing.errors.invalid_template";
 const UNKNOWN_CATEGORY = "$dms_mailing.errors.unknown_category";
 const TEMPLATE_IN_USE = "$dms_mailing.errors.template_in_use";
 const TEMPLATE_WAS_SENT = "$dms_mailing.errors.template_was_sent";
@@ -163,6 +167,13 @@ function assertKnownCategory(
 /** The key of the row `new` answers since interface-data-api 0.3. */
 const createdRowSchema = z.object({ _id: z.string() });
 
+/** The JSON object a creation sends; 400 for any other JSON. */
+function parseCreationBody(body: Buffer): JsonObject {
+  const parsed = parseBody(body);
+  assert(isJsonObject(parsed), HTTP_BAD_REQUEST, INVALID_TEMPLATE);
+  return parsed;
+}
+
 /**
  * The creation's seed, and the body to store: slug trimmed, and the name
  * typed in the reader's language as every language of the localized field,
@@ -171,7 +182,7 @@ const createdRowSchema = z.object({ _id: z.string() });
  * object: interface-data-api 0.3 refuses a JSON string.
  */
 function parseCreation(body: Validation.WrittenBody, locale: string) {
-  const raw = Buffer.isBuffer(body) ? parseBody(body) : body;
+  const raw = Buffer.isBuffer(body) ? parseCreationBody(body) : body;
   const seed = assertValidation(
     raw,
     (value) => createTemplateSchema.parse(value),
@@ -311,14 +322,9 @@ export async function assertEditable(
 export async function saveDetails(
   ctx: RequestContext,
   template: MailingTemplate,
-  body: unknown,
+  details: TemplateDetails,
   author: string,
 ): Promise<void> {
-  const details = assertValidation(
-    body,
-    (value) => templateDetailsSchema.parse(value),
-    () => INVALID_TEMPLATE,
-  );
   const tenantId = getRequestTenantId(ctx);
   await assertEditable(tenantId, details, template);
   const names = TemplateModel.namesOf(template);
@@ -350,10 +356,8 @@ function tidyNames(names: LocalizedText, locale: string): LocalizedText {
 export function afterEdit(
   model: TemplateModel,
   id: string,
-  name: unknown,
   locale: string,
-): AfterWrite | undefined {
-  if (name === undefined) return undefined;
+): AfterWrite {
   return async () => {
     const template = await model.get(id);
     if (!template) return;

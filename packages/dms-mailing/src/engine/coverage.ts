@@ -1,3 +1,4 @@
+import type { TemplateVariables } from "@antelopejs/interface-dms-mailing";
 import { SYSTEM_VARIABLE_PATHS } from "../constants";
 import type {
   Block,
@@ -63,7 +64,7 @@ export function collectContentVariablePaths(
 
 export function missingRequiredVariables(
   declared: VariableDefinition[],
-  data: Record<string, unknown>,
+  data: TemplateVariables,
 ): string[] {
   return declared
     .filter((variable) => variable.required)

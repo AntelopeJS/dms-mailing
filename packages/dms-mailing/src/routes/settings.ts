@@ -90,7 +90,7 @@ export interface MailingSettingsResponse extends MailingSettingsValues {
 export interface SettingsNotice {
   title: string;
   color?: string;
-  params?: Record<string, unknown>;
+  params?: Record<string, number | string>;
 }
 
 export interface SettingsWriteResponse extends MailingSettingsValues {
