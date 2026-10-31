@@ -73,7 +73,12 @@ export async function getSettings(
   if (existing) return existing;
   const created = defaults();
   if (await insertKeyedSettings(tenantId, created)) return created;
-  return (await findSettings(tenantId)) as MailingSettingsValues;
+  const winner = await findSettings(tenantId);
+  if (!winner)
+    throw new Error(
+      `The settings of tenant "${tenantId}" disappeared before they were read`,
+    );
+  return winner;
 }
 
 export async function saveSettings(
