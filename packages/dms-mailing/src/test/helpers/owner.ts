@@ -1,3 +1,4 @@
+import { checkedText } from "./checked";
 import { createClient } from "./http";
 
 const OWNER_EMAIL = "owner@test.local";
@@ -35,5 +36,8 @@ export async function ensureOwnerSession(): Promise<OwnerSession> {
       `Login failed [${login.status}]: ${JSON.stringify(login.data)}`,
     );
   }
-  return { accessToken: login.data.access_token, email: OWNER_EMAIL };
+  return {
+    accessToken: checkedText.parse(login.data.access_token),
+    email: OWNER_EMAIL,
+  };
 }

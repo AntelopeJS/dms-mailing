@@ -2,8 +2,18 @@ import { expect } from "chai";
 import { z } from "zod";
 import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText } from "../helpers/checked";
+import { checkedRow, checkedText, parsedBody } from "../helpers/checked";
 import type { JsonObject } from "../../types/json";
+
+const sendListSchema = z.object({
+  results: z.array(
+    z.object({
+      _id: z.string(),
+      localeLabel: z.string(),
+      localeFallback: z.unknown(),
+    }),
+  ),
+});
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -47,8 +57,18 @@ async function markEvent(
   const detail = await api.get(`${SENDS}/${sendId}`);
   const hook = await api.post(
     eventsPath("manual"),
-    { messageId: detail.data.send.providerMessageId, type, details },
-    { headers: { "x-mailing-webhook-secret": settings.data.webhookSecret } },
+    {
+      messageId: checkedText.parse(detail.data.send.providerMessageId),
+      type,
+      details,
+    },
+    {
+      headers: {
+        "x-mailing-webhook-secret": checkedText.parse(
+          settings.data.webhookSecret,
+        ),
+      },
+    },
   );
   expect(hook.status, JSON.stringify(hook.data)).to.equal(HTTP_OK);
 }
@@ -104,8 +124,11 @@ describe("[integration] send lifecycle", () => {
     });
 
     const list = await api.get("/api/mailing/tables/sends/list?limit=100");
-    const row = list.data.results.find(
-      (item: { _id: string }) => item._id === sent.data.results[0].sendId,
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
+    const row = checkedRow(
+      parsedBody(list, sendListSchema).results.find(
+        (item) => item._id === sendId,
+      ),
     );
     expect(row.localeLabel).to.equal("EN");
     expect(row.localeFallback).to.deep.equal({
@@ -224,7 +247,7 @@ describe("[integration] send lifecycle", () => {
     expect(replay.status, JSON.stringify(replay.data)).to.equal(HTTP_OK);
     const original = await api.get(`${SENDS}/${sendId}`);
     expect(original.data.send).to.deep.include({
-      replayedBy: replay.data.sendId,
+      replayedBy: checkedText.parse(replay.data.sendId),
       stage: "resolved",
     });
     expect(original.data.send.resolvedAt).to.be.a("string");

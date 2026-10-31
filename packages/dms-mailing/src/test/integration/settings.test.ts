@@ -57,8 +57,9 @@ describe("[integration] settings form", () => {
     expect(after.data.fallbackLocale).to.equal(initial.data.fallbackLocale);
 
     const restored = await client.put("/api/mailing/settings", {
-      senderName: initial.data.senderName,
-      blockOnMissingVariables: initial.data.blockOnMissingVariables,
+      senderName: settingsWriteSchema.parse(initial.data).senderName,
+      blockOnMissingVariables: settingsWriteSchema.parse(initial.data)
+        .blockOnMissingVariables,
     });
     expect(restored.status).to.equal(HTTP_OK);
   });
@@ -185,14 +186,11 @@ describe("[integration] settings row per tenant", () => {
   });
 });
 
-interface SettingsIssue {
-  path: Array<string | number>;
-  message: string;
-}
-
-interface IssuesBody {
-  issues?: SettingsIssue[];
-}
+const issuesBodySchema = z.object({
+  issues: z
+    .array(z.object({ path: z.array(z.union([z.string(), z.number()])) }))
+    .optional(),
+});
 
 async function ownerClient(): Promise<AxiosInstance> {
   const session = await ensureOwnerSession();
@@ -216,8 +214,10 @@ async function restore(
   expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);
 }
 
-const issuePaths = (data: IssuesBody): string[] =>
-  (data.issues ?? []).map((issue) => issue.path.join("."));
+const issuePaths = (response: { data: unknown }): string[] =>
+  (issuesBodySchema.parse(response.data).issues ?? []).map((issue) =>
+    issue.path.join("."),
+  );
 
 describe("[integration] settings writes (partial, checked)", () => {
   it("puts only the fields sent: a stale tab cannot bring back an old secret", async () => {
@@ -250,7 +250,7 @@ describe("[integration] settings writes (partial, checked)", () => {
       missingVariables: "bogus",
     });
     expect(unknownPolicy.status).to.equal(HTTP_BAD_REQUEST);
-    expect(issuePaths(unknownPolicy.data)).to.deep.equal(["missingVariables"]);
+    expect(issuePaths(unknownPolicy)).to.deep.equal(["missingVariables"]);
   });
 
   it("names the field a refused value belongs to", async () => {
@@ -270,7 +270,7 @@ describe("[integration] settings writes (partial, checked)", () => {
     for (const [field, value] of Object.entries(refused)) {
       const response = await client.put(SETTINGS, { [field]: value });
       expect(response.status, field).to.equal(HTTP_BAD_REQUEST);
-      expect(issuePaths(response.data), field).to.deep.equal([field]);
+      expect(issuePaths(response), field).to.deep.equal([field]);
     }
   });
 
@@ -306,9 +306,11 @@ describe("[integration] settings writes (partial, checked)", () => {
       expect(response.status, JSON.stringify(categories)).to.equal(
         HTTP_BAD_REQUEST,
       );
-      expect(issuePaths(response.data)[0]).to.match(/^categories\./);
+      expect(issuePaths(response)[0]).to.match(/^categories\./);
     }
-    const stored = (await client.get(SETTINGS)).data.categories;
+    const stored = settingsWriteSchema.parse(
+      (await client.get(SETTINGS)).data,
+    ).categories;
     const asText = await client.put(SETTINGS, {
       categories: JSON.stringify(stored),
     });
@@ -322,7 +324,7 @@ describe("[integration] settings writes (partial, checked)", () => {
     const others = stored.filter((entry) => entry.id !== MARKETING.id);
     const dropped = await client.put(SETTINGS, { categories: others });
     expect(dropped.status).to.equal(HTTP_BAD_REQUEST);
-    expect(issuePaths(dropped.data)).to.deep.equal(["categories"]);
+    expect(issuePaths(dropped)).to.deep.equal(["categories"]);
     const renamed = await client.put(SETTINGS, {
       categories: [
         ...others,
@@ -381,7 +383,10 @@ describe("[integration] settings categories in use", () => {
   }
 
   const categoryOf = async (client: AxiosInstance, id: string) =>
-    (await client.get(`${TEMPLATES_TABLE}/get?id=${id}`)).data.category ?? "";
+    z
+      .object({ category: z.string().optional() })
+      .parse((await client.get(`${TEMPLATES_TABLE}/get?id=${id}`)).data)
+      .category ?? "";
 
   it("counts the active templates and moves those of a removed category", async () => {
     const client = await ownerClient();
