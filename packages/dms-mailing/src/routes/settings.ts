@@ -49,7 +49,6 @@ import {
 } from "../validation/settings.schema";
 import { retentionLimit } from "../crons/retention";
 import { isJsonObject } from "../validation/json";
-import type { ValidationErrorHandler } from "./validation-error";
 
 const INVALID_SETTINGS = "$dms_mailing.errors.invalid_settings";
 const CATEGORIES_REASSIGNED = "$dms_mailing.settings.categories.reassigned";
@@ -148,10 +147,10 @@ function formIssue(issue: z.ZodIssue): z.ZodIssue {
 }
 
 /** A refused write: the generic message, and each issue for its field. */
-const invalidSettings: ValidationErrorHandler = (error) => {
+function invalidSettings(error: unknown) {
   if (!(error instanceof z.ZodError)) return INVALID_SETTINGS;
   return { message: INVALID_SETTINGS, issues: error.issues.map(formIssue) };
-};
+}
 
 function senderNotice(values: MailingSettingsValues): SettingsNotice[] {
   return values.senderName && !values.senderEmail
