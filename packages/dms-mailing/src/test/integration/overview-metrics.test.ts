@@ -2,7 +2,11 @@ import { expect } from "chai";
 import { z } from "zod";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText } from "../helpers/checked";
+import { checkedText, parsedBody } from "../helpers/checked";
+
+const funnelBodySchema = z.object({
+  steps: z.array(z.object({ id: z.string() }).passthrough()),
+});
 
 const HTTP_OK = 200;
 const DAY_MS = 86_400_000;
@@ -84,8 +88,8 @@ describe("[integration] overview metrics", () => {
       `${METRICS}/funnel?from=${from}&to=${to}&comparison=previous-year`,
     );
     expect(funnel.status).to.equal(HTTP_OK);
-    const sent = funnel.data.steps.find(
-      (step: { id: string }) => step.id === "sent",
+    const sent = parsedBody(funnel, funnelBodySchema).steps.find(
+      (step) => step.id === "sent",
     );
     expect(sent).to.have.property("previousCount").that.is.a("number");
   });

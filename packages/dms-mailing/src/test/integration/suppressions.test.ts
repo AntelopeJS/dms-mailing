@@ -65,8 +65,21 @@ async function markEvent(
   const detail = await api.get(`${SENDS}/${sendId}`);
   const hook = await api.post(
     eventsPath("manual"),
-    { messageId: detail.data.send.providerMessageId, type, details },
-    { headers: { "x-mailing-webhook-secret": settings.data.webhookSecret } },
+    {
+      messageId: z
+        .string()
+        .nullable()
+        .parse(detail.data.send.providerMessageId),
+      type,
+      details,
+    },
+    {
+      headers: {
+        "x-mailing-webhook-secret": checkedText.parse(
+          settings.data.webhookSecret,
+        ),
+      },
+    },
   );
   expect(hook.status, JSON.stringify(hook.data)).to.equal(HTTP_OK);
 }
@@ -112,7 +125,9 @@ describe("[integration] suppression list", () => {
       status: "suppressed",
       stage: "suppressed",
     });
-    expect(detail.data.send.providerMessageId || "").to.equal("");
+    expect(
+      z.string().nullable().parse(detail.data.send.providerMessageId) || "",
+    ).to.equal("");
     expect(detail.data.suppression).to.deep.include({
       email: "complaint@example.test",
       reason: "complaint",
@@ -151,7 +166,11 @@ describe("[integration] suppression list", () => {
       locale: "en",
     });
     expect(test.status, JSON.stringify(test.data)).to.equal(HTTP_OK);
-    await markEvent(api, test.data.results[0].sendId, "spam");
+    await markEvent(
+      api,
+      checkedText.parse(test.data.results[0].sendId),
+      "spam",
+    );
     expect(await entryOf(api, "tester@example.test")).to.equal(undefined);
   });
 

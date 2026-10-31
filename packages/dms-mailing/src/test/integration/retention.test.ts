@@ -81,10 +81,13 @@ function sweep(f: Fixture): Promise<number> {
 async function loseAcknowledgement(
   action: () => Promise<void>,
 ): Promise<number> {
-  const original: AtomicMutationQuery["run"] = Object.getOwnPropertyDescriptor(
+  const original: unknown = Object.getOwnPropertyDescriptor(
     AtomicMutationQuery.prototype,
     "run",
   )?.value;
+  if (!(original instanceof Function)) {
+    throw new TypeError("AtomicMutationQuery has no run method");
+  }
   let calls = 0;
   const run = mock.method(AtomicMutationQuery.prototype, "run");
   run.mock.mockImplementation(async function (this: AtomicMutationQuery) {

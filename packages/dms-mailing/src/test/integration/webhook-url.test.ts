@@ -1,6 +1,8 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient, createClient, getBaseUrl } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { parsedBody } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
@@ -15,10 +17,15 @@ const EVENT = {
   type: "delivered",
 };
 
+const webhookSettingsSchema = z.object({
+  webhookUrl: z.string(),
+  webhookSecret: z.string(),
+});
+
 async function readSettings() {
   const session = await ensureOwnerSession();
   const client = authorizedClient(session.accessToken);
-  return (await client.get(SETTINGS)).data;
+  return parsedBody(await client.get(SETTINGS), webhookSettingsSchema);
 }
 
 describe("[integration] webhook URL", () => {
@@ -33,7 +40,10 @@ describe("[integration] webhook URL", () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
     const headers = { "x-forwarded-host": "internal.example.test" };
-    const settings = (await client.get(SETTINGS, { headers })).data;
+    const settings = parsedBody(
+      await client.get(SETTINGS, { headers }),
+      webhookSettingsSchema,
+    );
     expect(settings.webhookUrl).not.to.contain("internal.example.test");
   });
 
