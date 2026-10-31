@@ -34,7 +34,7 @@ ajs project modules add @antelopejs/nodemailer
 
 In development, send to a throwaway Ethereal inbox:
 
-```ts
+```ts fragment
 // antelope.config.ts
 nodemailer: {
   source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.5 <1.0.0" },
@@ -44,7 +44,7 @@ nodemailer: {
 
 Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). Create a template from a starter such as **Order confirmation**, publish it, then send it from any module through [`@antelopejs/interface-dms-mailing`](./packages/interface-dms-mailing):
 
-```ts
+```ts fragment
 import { SendTemplate } from "@antelopejs/interface-dms-mailing";
 
 await SendTemplate("order-confirmation", {
@@ -56,15 +56,9 @@ await SendTemplate("order-confirmation", {
 
 ## Compatibility
 
-| Package | Version |
-| --- | --- |
-| `@antelopejs/dms` | `>=0.11.0 <1.0.0` |
-| `@antelopejs/interface-dms` | `>=0.9.0 <1.0.0` |
-| `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.9.1 <0.10.0` |
-| `@antelopejs/interface-dms-mailing` | `>=0.8.0 <0.9.0` |
-| E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
+The module also needs a DMS backend in a release that implements the `@antelopejs/interface-dms` range in the [module README compatibility block](packages/dms-mailing/README.md#compatibility), and the `@antelopejs/dms-frontend` renderer in the range its frontend module declares in `engines["@antelopejs/dms-frontend"]` of `packages/dms-mailing/frontend-vue/package.json`; the `ajs dms` CLI refuses to build it with a renderer outside that range.
 
-On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.
+- E-mail provider: an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer`.
 
 ## Packages
 
@@ -105,7 +99,7 @@ pnpm test           # backend (unit and integration), then the frontend layer
 
 - Every backend-declared text uses the `$key` convention: a string starting with `$` is resolved against the i18n catalogs by the frontend. Add keys to `frontend-vue/i18n/locales/mailing-en-GB.json` and its French counterpart.
 - Every read goes through the DMS's `useApiData`: what a page renders is read by the server render and handed to the browser; what a drawer, a dialog, a preview frame or the editor shows is read when it opens (`immediate: false`, `useMailingReads`). Writes stay on `useMailingApi`.
-- The module implements the interface, so it caps its range below the next minor (`>=0.8.0 <0.9.0`); inside the workspace that range resolves to the sibling package. Release the interface first (**Release DMS mailing interface**), then the module (**Release DMS mailing module**), which refuses to run until the interface version its range is floored at resolves on npm.
+- The module implements the interface, so it caps its range below the next minor (see the `@antelopejs/interface-dms-mailing` row of the [module README compatibility block](packages/dms-mailing/README.md#compatibility)); inside the workspace that range resolves to the sibling package. Release the interface first (**Release DMS mailing interface**), then the module (**Release DMS mailing module**), which refuses to run until the interface version its range is floored at resolves on npm.
 - `docs/design/design-v2-grill-me.md` records the decisions behind the v2 redesign.
 
 </details>

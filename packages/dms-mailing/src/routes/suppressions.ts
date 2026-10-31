@@ -32,12 +32,6 @@ const manualSuppressionSchema = z.object({
   note: z.string().trim().max(MAX_NOTE_LENGTH).optional(),
 });
 
-/** A refused entry: the generic message, and each issue under its field. */
-function invalidSuppression(error: unknown) {
-  if (!(error instanceof z.ZodError)) return INVALID_SUPPRESSION;
-  return { message: INVALID_SUPPRESSION, issues: error.issues };
-}
-
 /** An address already on the list, told under the address field. */
 const alreadySuppressed = () => ({
   message: ALREADY_SUPPRESSED,
@@ -56,13 +50,19 @@ export class SuppressionsController extends Controller(
   @TenantScopedModel(SuppressionModel)
   declare suppressions: SuppressionModel;
 
-  /** Puts an address on the list by hand: nothing is sent to it any more. */
+  /**
+   * Puts an address on the list by hand: nothing is sent to it any more. A
+   * refused entry answers the generic message, and each issue under its field.
+   */
   @Post("")
   async add(@JSONBody() body: unknown): Promise<{ added: true }> {
     const input = assertValidation(
       body ?? {},
       (value) => manualSuppressionSchema.parse(value),
-      invalidSuppression,
+      (error) => {
+        if (!(error instanceof z.ZodError)) return INVALID_SUPPRESSION;
+        return { message: INVALID_SUPPRESSION, issues: error.issues };
+      },
     );
     const isAdded = await suppressAddress(getRequestTenantId(this.ctx), {
       email: input.email,

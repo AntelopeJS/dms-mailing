@@ -1,7 +1,7 @@
 # dms-mailing on DMS v2: the grill-me session
 
 This is the decision log behind the move of `@antelopejs/dms-mailing` to
-`@antelopejs/dms` 0.6 / `@antelopejs/interface-dms` 0.4 / `@antelopejs/dms-frontend`
+`dms` 0.6 / `interface-dms` 0.4 / `dms-frontend`
 0.5 and to the v2 design (`dms-design-mockup/modules/mailing`, UX review
 ML-01 → ML-18).
 
@@ -33,14 +33,14 @@ resolves:
 
 | Package | Range |
 | --- | --- |
-| `@antelopejs/interface-dms` | `>=0.5.13 <1.0.0` (module and playground; 0.5.10 types `publicEndpoints` and visible `queryParamFilters`, 0.5.13 the `showRow` prop of a row panel) |
-| `@antelopejs/interface-data-api` | `>=0.2.1 <1.0.0` |
-| `@antelopejs/interface-database` | `>=0.1.9 <1.0.0` (interface-data-api 0.2.1 calls its `IsStream`) |
-| `@antelopejs/interface-database-decorators` | `>=0.1.7 <1.0.0` |
-| `@antelopejs/dms` (shared module sources) | `>=0.7.21 <0.8.0` (0.7.15 ships the fixes listed in §12, 0.7.20 reopens a closed record link, 0.7.21 gives a row panel `showRow`) |
-| `@antelopejs/mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
-| `@antelopejs/dms-frontend` (playground) | `0.5.5` |
-| `engines["@antelopejs/dms-frontend"]` (layer and playground layer) | `>=0.5.5 <0.6.0` (public endpoints, e-mails without SSR markers, proxy refuses foreign request targets) |
+| `interface-dms` | `>=0.5.13 <1.0.0` (module and playground; 0.5.10 types `publicEndpoints` and visible `queryParamFilters`, 0.5.13 the `showRow` prop of a row panel) |
+| `interface-data-api` | `>=0.2.1 <1.0.0` |
+| `interface-database` | `>=0.1.9 <1.0.0` (interface-data-api 0.2.1 calls its `IsStream`) |
+| `interface-database-decorators` | `>=0.1.7 <1.0.0` |
+| `dms` (shared module sources) | `>=0.7.21 <0.8.0` (0.7.15 ships the fixes listed in §12, 0.7.20 reopens a closed record link, 0.7.21 gives a row panel `showRow`) |
+| `mongodb` (shared module sources) | `>=1.4.2 <2` (stores `$`-prefixed strings) |
+| `dms-frontend` (playground) | `0.5.5` |
+| the renderer entry of `engines` (layer and playground layer) | `>=0.5.5 <0.6.0` (public endpoints, e-mails without SSR markers, proxy refuses foreign request targets) |
 
 The repository's own lint (`antelopejs-check-interface-ranges`) requires an
 interface range open up to the next breaking release, so `interface-dms`
@@ -542,7 +542,7 @@ Still custom, and why:
 
 ## 10. Playground
 
-`@antelopejs/dms-automation` 0.2.7 does not boot on dms 0.6 (its run log
+`dms-automation` 0.2.7 does not boot on dms 0.6 (its run log
 offers a display id without a module namespace, which 0.6 refuses). It leaves
 the playground until a release supports dms 0.6; the automation nodes stay
 an optional dependency of the module and register when the interface is

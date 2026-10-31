@@ -159,9 +159,6 @@ const OUTCOME_SEVERITY: Record<SendStatus, number> = {
   failed: 9,
 };
 
-const describeError = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
-
 const addressOf = (to: EmailAddress): string => (isText(to) ? to : to.email);
 
 const nameOf = (to: EmailAddress): string | undefined =>
@@ -376,7 +373,7 @@ async function deliverOne(
       status: "failed",
       outcome: {
         latencyMs: Date.now() - startedAt,
-        error: describeError(error),
+        error: error instanceof Error ? error.message : String(error),
       },
     };
   }
@@ -423,7 +420,7 @@ export async function deliverBatch(
     return failAll(
       input.recipients,
       Date.now() - startedAt,
-      describeError(error),
+      error instanceof Error ? error.message : String(error),
     );
   }
 }
@@ -504,7 +501,7 @@ async function recordOne(
       sendId: UNRECORDED_SEND_ID,
       status: "failed",
       messageId: message.outcome.providerMessageId,
-      error: describeError(error),
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

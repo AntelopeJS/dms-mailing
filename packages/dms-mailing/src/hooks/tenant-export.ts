@@ -11,11 +11,11 @@ import {
 import { MODULE_ID } from "../constants";
 import {
   type MailingTemplate,
-  SettingsModel,
   SuppressionModel,
   TemplateModel,
   TemplateVersionModel,
 } from "../db";
+import { findSettings } from "../services/settings";
 import type { MailingSettingsValues } from "../types";
 
 export type ExportedSettings = Omit<MailingSettingsValues, "webhookSecret">;
@@ -72,18 +72,16 @@ export async function* jsonArrayChunks<T>(
 async function exportedSettings(
   tenantId: string,
 ): Promise<ExportedSettings | null> {
-  const row = await GetModel(SettingsModel, tenantId).get(tenantId);
-  if (!row) return null;
+  const settings = await findSettings(tenantId);
+  if (!settings) return null;
   return {
-    fallbackLocale: row.fallbackLocale,
-    logRetentionDays: row.logRetentionDays,
-    blockOnMissingVariables: row.blockOnMissingVariables,
-    senderName: row.senderName,
-    senderEmail: row.senderEmail,
-    replyTo: row.replyTo,
-    categories: JSON.parse(
-      row.json_categories,
-    ) as ExportedSettings["categories"],
+    fallbackLocale: settings.fallbackLocale,
+    logRetentionDays: settings.logRetentionDays,
+    blockOnMissingVariables: settings.blockOnMissingVariables,
+    senderName: settings.senderName,
+    senderEmail: settings.senderEmail,
+    replyTo: settings.replyTo,
+    categories: settings.categories,
   };
 }
 
