@@ -6,7 +6,7 @@ settings:
 
 overrides:
   '@antelopejs/interface-database': file:../../.campaign/tgz/antelopejs-interface-database-6bef278.tgz
-  '@antelopejs/mongodb': file:../../.campaign/tgz/antelopejs-mongodb-07203a7.tgz
+  '@antelopejs/mongodb': file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz
   '@antelopejs/mongodb>@antelopejs/interface-core': 0.2.4
 
 importers:
@@ -51,8 +51,8 @@ importers:
         specifier: '>=1.17.1 <2'
         version: 1.17.1
       '@antelopejs/mongodb':
-        specifier: file:../../.campaign/tgz/antelopejs-mongodb-07203a7.tgz
-        version: file:../../.campaign/tgz/antelopejs-mongodb-07203a7.tgz(socks@2.8.10)
+        specifier: file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz
+        version: file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz(socks@2.8.10)
       '@antelopejs/tooling-configs':
         specifier: ^0.2.12
         version: 0.2.12(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
@@ -179,8 +179,8 @@ packages:
   '@antelopejs/interface-mongodb@0.0.6':
     resolution: {integrity: sha512-jNb6fVIMQFFTkUnaY4KrSdA5JknmUCpnjIMC6/GuN8wEoUbo/LBZGq7q1Kz1IGcNpiByRbWHvDVW9J693i1kFw==}
 
-  '@antelopejs/mongodb@file:../../.campaign/tgz/antelopejs-mongodb-07203a7.tgz':
-    resolution: {integrity: sha512-nRLmY6/8o/MMovBk4xtKaxyOdQT5ahUrPjHx/AB3SvSCBoOlvdtNIOBd/WfWuLdupVwLrTMDEtjsywKCCRz7+Q==, tarball: file:../../.campaign/tgz/antelopejs-mongodb-07203a7.tgz}
+  '@antelopejs/mongodb@file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz':
+    resolution: {integrity: sha512-TYsky9nke/285WBLltxHDK8yMHtzf5LJ85N45+xdGCmO/8UDNifTCb9brOkADBNB7FFByGZOguoz7Ux/iVEsPg==, tarball: file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz}
     version: 1.7.0
 
   '@antelopejs/tooling-configs@0.2.12':
@@ -2780,7 +2780,7 @@ snapshots:
       - socks
     optional: true
 
-  '@antelopejs/mongodb@file:../../.campaign/tgz/antelopejs-mongodb-07203a7.tgz(socks@2.8.10)':
+  '@antelopejs/mongodb@file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz(socks@2.8.10)':
     dependencies:
       '@antelopejs/interface-core': 0.2.4
       '@antelopejs/interface-database': file:../../.campaign/tgz/antelopejs-interface-database-6bef278.tgz(@antelopejs/interface-core@0.2.4)
