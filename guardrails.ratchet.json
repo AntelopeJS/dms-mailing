@@ -1,7 +1,7 @@
 {
   "pack": "0.2.17",
   "rules": {
-    "anti-slop/no-unknown-parameters": 14,
+    "anti-slop/no-unknown-parameters": 10,
     "anti-slop/no-unknown-returns": 3,
     "anti-slop/no-unsafe-dictionary-type": 17,
     "anti-slop/require-safety-comment-for-type-assertion": 18,

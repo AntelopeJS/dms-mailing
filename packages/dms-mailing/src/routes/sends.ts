@@ -78,6 +78,7 @@ import {
   testSendSchema,
 } from "../validation/templates.schema";
 import { comparisonRange, currentRange, isComparisonWanted } from "./period";
+import type { ValidationErrorHandler } from "./validation-error";
 
 const NOT_FOUND = "$dms_mailing.errors.send_not_found";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
@@ -185,12 +186,12 @@ const sameAddress = (left: string, right: string): boolean =>
   normalizeAddress(left) === normalizeAddress(right);
 
 /** A bad address gets its own message; any other invalid field is the content's. */
-function sendInputError(error: unknown): string {
+const sendInputError: ValidationErrorHandler = (error) => {
   const isRecipient =
     error instanceof ZodError &&
     error.issues.some((issue) => issue.path[0] === RECIPIENT_FIELD);
   return isRecipient ? INVALID_RECIPIENT : INVALID_CONTENT;
-}
+};
 
 const isSuppressedResult = (result: SendTemplateResult): boolean =>
   result.status === "suppressed";

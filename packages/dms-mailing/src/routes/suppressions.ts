@@ -18,6 +18,7 @@ import { API_BASE_PATH, HTTP_CONFLICT, HTTP_NOT_FOUND } from "../constants";
 import { SuppressionModel } from "../db";
 import { SuppressionsPageController } from "../pages/suppressions";
 import { suppressAddress } from "../services/suppressions";
+import type { ValidationErrorHandler } from "./validation-error";
 
 const INVALID_SUPPRESSION = "$dms_mailing.suppressions.errors.invalid";
 const ALREADY_SUPPRESSED = "$dms_mailing.suppressions.errors.already";
@@ -33,10 +34,10 @@ const manualSuppressionSchema = z.object({
 });
 
 /** A refused entry: the generic message, and each issue under its field. */
-function invalidSuppression(error: unknown) {
+const invalidSuppression: ValidationErrorHandler = (error) => {
   if (!(error instanceof z.ZodError)) return INVALID_SUPPRESSION;
   return { message: INVALID_SUPPRESSION, issues: error.issues };
-}
+};
 
 /** An address already on the list, told under the address field. */
 const alreadySuppressed = () => ({
