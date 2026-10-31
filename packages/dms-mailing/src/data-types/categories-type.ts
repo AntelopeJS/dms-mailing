@@ -12,8 +12,8 @@ import { categoriesSchema } from "../validation/settings.schema";
  */
 @RegisterDataType(TEMPLATE_CATEGORIES_TYPE_ID)
 export class TemplateCategoriesType extends DataType {
-  constructor(public readonly options: Record<string, unknown> = {}) {
-    super([], undefined, options);
+  constructor() {
+    super([], undefined, {});
   }
 
   protected defaultInputComponent() {
