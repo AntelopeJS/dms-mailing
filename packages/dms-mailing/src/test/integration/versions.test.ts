@@ -1,7 +1,15 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText } from "../helpers/checked";
+import { z } from "zod";
+import { checkedText, parsedBody } from "../helpers/checked";
+
+const localesBodySchema = z.object({
+  content: z.object({ locales: z.record(z.string(), z.unknown()) }),
+});
+const overviewBodySchema = z.object({
+  items: z.array(z.object({ id: z.string() }).passthrough()),
+});
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -141,10 +149,9 @@ describe("[integration] template drafts and versions", () => {
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
     const content = await api.get(`${TEMPLATES}/${created.data._id}/content`);
     expect(content.data.template.status).to.equal("draft");
-    expect(Object.keys(content.data.content.locales)).to.have.members([
-      "en",
-      "fr",
-    ]);
+    expect(
+      Object.keys(parsedBody(content, localesBodySchema).content.locales),
+    ).to.have.members(["en", "fr"]);
     expect(content.data.variables.length).to.be.greaterThan(0);
     expect(content.data.testData.reset.url).to.be.a("string");
 
@@ -174,7 +181,7 @@ describe("[integration] template drafts and versions", () => {
     const overview = await api.get(`${TEMPLATES}/overview`);
     expect(overview.status).to.equal(HTTP_OK);
     expect(overview.data.items.length).to.be.greaterThan(0);
-    const first = overview.data.items[0];
+    const first = parsedBody(overview, overviewBodySchema).items[0];
     expect(first).to.have.keys([
       "id",
       "slug",
