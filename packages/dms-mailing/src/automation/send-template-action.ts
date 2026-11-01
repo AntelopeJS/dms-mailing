@@ -3,7 +3,10 @@ import type {
   JsonSchema,
 } from "@antelopejs/interface-dms-automation";
 import type { EmailAddress } from "@antelopejs/interface-email";
-import type { SendTemplateResult } from "@antelopejs/interface-dms-mailing";
+import type {
+  SendTemplateResult,
+  TemplateVariables,
+} from "@antelopejs/interface-dms-mailing";
 import { sendUnlessSuppressed } from "../services/checked-send";
 import { SEND_STATUSES } from "../types";
 
@@ -12,7 +15,7 @@ export interface SendTemplateActionInput {
   slug: string;
   to: EmailAddress | EmailAddress[];
   locale?: string;
-  variables?: Record<string, unknown>;
+  variables?: TemplateVariables;
   source?: string;
 }
 

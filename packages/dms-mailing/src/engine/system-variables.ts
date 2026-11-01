@@ -1,3 +1,4 @@
+import type { TemplateVariables } from "@antelopejs/interface-dms-mailing";
 import {
   PREFERENCES_URL_PATH,
   SYSTEM_VARIABLE_PATHS,
@@ -93,7 +94,7 @@ export function systemVariables(
 export function missingSystemVariables(
   content: LocaleContent,
   category: string | null | undefined,
-  data: Record<string, unknown>,
+  data: TemplateVariables,
 ): string[] {
   return systemVariables(localeSystemPaths(content), category)
     .filter((variable) => variable.required)
