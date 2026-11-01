@@ -85,6 +85,38 @@ const fields = (host: HTMLElement) =>
 	[...host.querySelectorAll('[data-stub="UFormField"]')] as HTMLElement[]
 
 describe('NewTemplateModal', () => {
+	it.each([false, true])(
+		'shows one translated warning for a JSON 403, core already presented %s',
+		async (alreadyPresented) => {
+			const data = { message: 'error.read_only_demo', severity: 'warning' }
+			const error = {
+				response: new Response(JSON.stringify(data), { status: 403 }),
+				data,
+			}
+			api.createTemplate.mockImplementation(() => {
+				if (alreadyPresented)
+					globalThis.useApiErrorPresenter().presentError(error, {
+						fallbackKey: 'error.500.description',
+					})
+				return Promise.reject(error)
+			})
+			const view = mount(NewTemplateModal, { initialName: 'Refund' }, globals)
+			await flush()
+			view.host.querySelector('form')!.dispatchEvent(new Event('submit'))
+			await flush()
+			expect(stubs.toasts).toHaveLength(1)
+			expect(stubs.toasts[0]).toMatchObject({
+				title: 'Read-only demo, changes are not saved',
+				color: 'warning',
+			})
+			expect(stubs.navigations).toEqual([])
+			expect(
+				view.host.querySelector('[type="submit"]')?.getAttribute('loading'),
+			).toBe('false')
+			view.unmount()
+		},
+	)
+
 	it('derives the slug from the name until the slug is edited', async () => {
 		const view = mount(NewTemplateModal, {}, globals)
 		await flush()
