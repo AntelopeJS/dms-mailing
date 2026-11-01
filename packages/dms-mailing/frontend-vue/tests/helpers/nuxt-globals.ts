@@ -72,6 +72,23 @@ export function stubNuxtGlobals(email = 'camille@acme.com'): NuxtStubs {
 	vi.stubGlobal('useToast', () => ({
 		add: (toast: Record<string, unknown>) => stubs.toasts.push(toast),
 	}))
+	const presented = new WeakSet<Response>()
+	vi.stubGlobal('useReadOnlyRefusal', () => (error: unknown) => {
+		if (!error || typeof error !== 'object' || !('response' in error))
+			return false
+		const { response } = error
+		if (
+			!(response instanceof Response) ||
+			response.status !== 403 ||
+			response.headers.get('x-dms-readonly') !== '1'
+		)
+			return false
+		if (!presented.has(response)) {
+			presented.add(response)
+			stubs.toasts.push({ title: 'Read-only demo, changes are not saved' })
+		}
+		return true
+	})
 	vi.stubGlobal('useUniqueLocales', () => ({
 		uniqueLocales: ref([
 			{ code: 'en', name: 'English' },

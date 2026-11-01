@@ -85,6 +85,37 @@ const fields = (host: HTMLElement) =>
 	[...host.querySelectorAll('[data-stub="UFormField"]')] as HTMLElement[]
 
 describe('NewTemplateModal', () => {
+	it.each([true, false])(
+		'keeps only the owning notice for a 403 with read-only mark %s',
+		async (marked) => {
+			const error = {
+				response: new Response(null, {
+					status: 403,
+					headers: marked ? { 'x-dms-readonly': '1' } : {},
+				}),
+				data: 'Forbidden',
+			}
+			api.createTemplate.mockImplementation(() => {
+				globalThis.useReadOnlyRefusal()(error)
+				return Promise.reject(error)
+			})
+			const view = mount(NewTemplateModal, { initialName: 'Refund' }, globals)
+			await flush()
+			view.host.querySelector('form')!.dispatchEvent(new Event('submit'))
+			await flush()
+			expect(stubs.toasts).toEqual([
+				marked
+					? { title: 'Read-only demo, changes are not saved' }
+					: { color: 'error', title: 'Forbidden' },
+			])
+			expect(stubs.navigations).toEqual([])
+			expect(
+				view.host.querySelector('[type="submit"]')?.getAttribute('loading'),
+			).toBe('false')
+			view.unmount()
+		},
+	)
+
 	it('derives the slug from the name until the slug is edited', async () => {
 		const view = mount(NewTemplateModal, {}, globals)
 		await flush()

@@ -77,6 +77,24 @@ afterEach(() => {
 })
 
 describe('FunnelCard', () => {
+	it.each([true, false])(
+		'shows only unmarked request failures, read-only mark %s',
+		async (marked) => {
+			chart.error.value = {
+				response: new Response(null, {
+					status: 403,
+					headers: marked ? { 'x-dms-readonly': '1' } : {},
+				}),
+			}
+			const view = mount(FunnelCard, {}, GLOBALS)
+			await flush()
+			expect(Boolean(view.host.querySelector('[data-empty-state]'))).toBe(
+				!marked,
+			)
+			view.unmount()
+		},
+	)
+
 	it('reads the funnel of the overview period, again on each sent e-mail', () => {
 		mount(FunnelCard, {}, GLOBALS)
 		expect(chart.options?.fetchUrl).toContain('/metrics/funnel?kind=')

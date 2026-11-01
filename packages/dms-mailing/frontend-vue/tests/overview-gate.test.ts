@@ -87,6 +87,27 @@ afterEach(() => {
 })
 
 describe('OverviewGate', () => {
+	it.each([true, false])(
+		'shows only unmarked setup failures, read-only mark %s',
+		async (marked) => {
+			api.respond(() =>
+				Promise.reject({
+					response: new Response(null, {
+						status: 403,
+						headers: marked ? { 'x-dms-readonly': '1' } : {},
+					}),
+				}),
+			)
+			const view = mount(Gate, {}, GLOBALS)
+			await flush()
+			expect(Boolean(view.host.querySelector('[data-empty-state]'))).toBe(
+				!marked,
+			)
+			expect(view.host.querySelector('uskeleton')).toBeNull()
+			view.unmount()
+		},
+	)
+
 	it('mounts nothing of the dashboard before the facts are known', () => {
 		api.respond(() => new Promise(() => undefined))
 		const { host } = mount(Gate, {}, GLOBALS)

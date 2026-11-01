@@ -14,7 +14,7 @@ import type {
 	TemplateContentResponse,
 	VariableDefinition,
 } from '../app/types/mailing'
-import { flush, mount } from './helpers/nuxt-globals'
+import { flush, mount, stubNuxtGlobals } from './helpers/nuxt-globals'
 import type { Mounted } from './helpers/nuxt-globals'
 
 const CONFLICT = {
@@ -101,12 +101,36 @@ describe('editor session autosave', () => {
 	let harness: Harness
 
 	beforeEach(() => {
+		stubNuxtGlobals()
 		harness = setup()
 	})
 	afterEach(() => {
 		harness.mounted.unmount()
 		vi.useRealTimers()
+		vi.unstubAllGlobals()
 	})
+
+	it.each([true, false])(
+		'keeps unsaved work but hides the save-error notice only for read-only mark %s',
+		async (marked) => {
+			const error = {
+				response: new Response(null, {
+					status: 403,
+					headers: marked ? { 'x-dms-readonly': '1' } : {},
+				}),
+				statusCode: 403,
+			}
+			harness.api.saveContent!.mockRejectedValue(error)
+			harness.editor.updateLocale({ subject: 'Unsaved subject' })
+			expect(await harness.session.save()).toBe(false)
+			expect(harness.session.state.saveStatus).toBe('error')
+			expect(harness.session.hasUnsavedWork).toBe(true)
+			expect(harness.editor.dirty).toBeGreaterThan(0)
+			expect(harness.session.notice?.kind ?? null).toBe(
+				marked ? null : 'save_error',
+			)
+		},
+	)
 
 	it('carries the revision it saw and keeps the one the server answers', async () => {
 		harness.api.saveContent!.mockResolvedValue(saved(4))
