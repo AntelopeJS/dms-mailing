@@ -22,15 +22,16 @@ export const MARKETING_CATEGORY = "marketing";
 
 const SYSTEM_VARIABLE_TYPE = "url";
 
-type FooterLabelKey = "unsubscribeLabel" | "preferencesLabel";
+/** The footer fields that label a link, in the order the links show. */
+const LABEL_KEYS = ["unsubscribeLabel", "preferencesLabel"] as const;
+
+type FooterLabelKey = (typeof LABEL_KEYS)[number];
 
 /** Each footer link: the label that shows it and the URL the caller passes. */
 const FOOTER_LINKS: Record<FooterLabelKey, string> = {
   unsubscribeLabel: UNSUBSCRIBE_URL_PATH,
   preferencesLabel: PREFERENCES_URL_PATH,
 };
-
-const LABEL_KEYS = Object.keys(FOOTER_LINKS) as FooterLabelKey[];
 
 export function isMarketingCategory(category?: string | null): boolean {
   return category === MARKETING_CATEGORY;

@@ -3,16 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplatePreviewFrame from '../app/components/TemplatePreviewFrame.vue'
 import { flush, mount, stubNuxtGlobals } from './helpers/nuxt-globals'
 import { stubApiData } from './helpers/api-data'
+import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
 /** Past the frame's debounce before it reads. */
 const DEBOUNCE_WAIT_MS = 400
 
 const api = { preview: vi.fn() }
-
-vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	useMailingApi: () => api,
-}))
 
 const skeleton = (host: HTMLElement) => host.querySelector('uskeleton')
 const placeholder = (host: HTMLElement) =>
@@ -30,6 +26,7 @@ beforeEach(() => {
 	stubNuxtGlobals()
 	stubApiData()
 	api.preview.mockReset()
+	stubAuthFetch().respond(mailingWrites({ preview: api.preview }))
 })
 
 afterEach(() => {

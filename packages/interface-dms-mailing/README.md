@@ -4,7 +4,7 @@
 
 <a href="https://www.npmjs.com/package/@antelopejs/interface-dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
 <a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/modules/mailing/extending"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
 The AntelopeJS interface to send DMS mailing templates and report e-mail events from any module.
@@ -55,12 +55,14 @@ A recipient on the workspace's suppression list gets no e-mail: its result has t
 
 Interface 0.8 requires `@antelopejs/dms-mailing >=0.6.0`, whose interface dependency is `>=0.8.0 <0.9.0`. This includes `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends`, all requiring an explicit `tenantId`. Mailing 0.5 remains on interface 0.7. `DeclareSender` needs interface 0.9 and the first release implementing it (`>=0.9.0 <0.10.0`). The interface declares these dependencies:
 
-<!-- docs-compat: ./package.json#dependencies -->
+<!-- antelopejs-docs-compat:start -->
 
-| Package | Range |
-| --- | --- |
-| `@antelopejs/interface-core` | `>=0.2.4 <1.0.0` |
-| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` |
+| Package                       | Supported        | Tested with |
+| ----------------------------- | ---------------- | ----------- |
+| `@antelopejs/interface-core`  | `>=0.2.4 <1.0.0` | —           |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` | —           |
+
+<!-- antelopejs-docs-compat:end -->
 
 ## Documentation
 

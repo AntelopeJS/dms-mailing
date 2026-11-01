@@ -83,18 +83,20 @@ export interface TopMetric {
   minDeliveries: number;
 }
 
+const OPEN_RATE_METRIC: TopMetric = {
+  extract: (totals) => totals.openRate,
+  minDeliveries: MIN_RANKED_DELIVERIES,
+};
+
 const TOP_METRICS: Record<string, TopMetric> = {
-  "open-rate": {
-    extract: (totals) => totals.openRate,
-    minDeliveries: MIN_RANKED_DELIVERIES,
-  },
+  "open-rate": OPEN_RATE_METRIC,
   "click-rate": {
     extract: (totals) => totals.clickRate,
     minDeliveries: MIN_RANKED_DELIVERIES,
   },
   sends: { extract: (totals) => totals.sends, minDeliveries: 0 },
 };
-const DEFAULT_TOP_METRIC = TOP_METRICS["open-rate"] as TopMetric;
+const DEFAULT_TOP_METRIC = OPEN_RATE_METRIC;
 
 interface FunnelStepDefinition {
   id: string;

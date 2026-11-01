@@ -3,15 +3,13 @@ import { getPath } from "./paths";
 
 type Evaluator = (actual: unknown, expected: string) => boolean;
 
-const asNumber = (value: unknown): number => Number(value);
-
 const EVALUATORS: Record<ConditionOperator, Evaluator> = {
   truthy: (actual) => Boolean(actual),
   falsy: (actual) => !actual,
   eq: (actual, expected) => String(actual) === expected,
   ne: (actual, expected) => String(actual) !== expected,
-  gt: (actual, expected) => asNumber(actual) > asNumber(expected),
-  lt: (actual, expected) => asNumber(actual) < asNumber(expected),
+  gt: (actual, expected) => Number(actual) > Number(expected),
+  lt: (actual, expected) => Number(actual) < Number(expected),
 };
 
 /** Whether `data` passes the condition a block is shown under. */

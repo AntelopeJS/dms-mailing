@@ -42,8 +42,10 @@ describe("[unit] provider capabilities cache", () => {
     expect(loader.calls).to.equal(2);
   });
 
-  // An unreachable provider is polled by the dashboard like any other: retrying
-  // on every request would turn one outage into a burst of failing calls.
+  /**
+   * An unreachable provider is polled by the dashboard like any other: retrying
+   * on every request would turn one outage into a burst of failing calls.
+   */
   it("memoises a failure instead of retrying on every request", async () => {
     let calls = 0;
     const failing = () => {

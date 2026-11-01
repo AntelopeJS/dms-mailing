@@ -109,9 +109,11 @@ describe("[unit] engine/resolve", () => {
   it("hides blocks whose visibleIf is false and reports them", () => {
     expect(email.hiddenBlockIds).to.deep.equal(["nogift", "b"]);
   });
-  // The only unresolved user path in this fixture is the tracking URL of the
-  // button, which `order.shipped` hides — so it is not reported. The two
-  // directions of that rule are covered below.
+  /**
+   * The only unresolved user path in this fixture is the tracking URL of the
+   * button, which `order.shipped` hides — so it is not reported. The two
+   * directions of that rule are covered below.
+   */
   it("resolves the footer's system urls without reporting them missing", () => {
     expect(email.missing).to.deep.equal([]);
     const footer = email.blocks[4]!;
@@ -141,10 +143,12 @@ describe("[unit] engine/resolve hidden blocks", () => {
     ],
   };
 
-  // `blockOnMissingVariables` refuses a send whose resolved e-mail reports a
-  // missing variable. A block the condition hides is never rendered, so what it
-  // references must not count — otherwise conditional content makes that
-  // setting unusable.
+  /**
+   * `blockOnMissingVariables` refuses a send whose resolved e-mail reports a
+   * missing variable. A block the condition hides is never rendered, so what it
+   * references must not count — otherwise conditional content makes that
+   * setting unusable.
+   */
   it("does not report a variable only a hidden block references", () => {
     const email = resolveEmail(hiddenParagraph, { order: { hasGift: false } });
     expect(email.blocks).to.have.lengthOf(0);
@@ -160,8 +164,10 @@ describe("[unit] engine/resolve hidden blocks", () => {
 });
 
 describe("[unit] engine/resolve system variables", () => {
-  // `unsubscribeUrl` and `preferencesUrl` are filled by the runtime, so a
-  // template referencing one must not ask the author to declare it.
+  /**
+   * `unsubscribeUrl` and `preferencesUrl` are filled by the runtime, so a
+   * template referencing one must not ask the author to declare it.
+   */
   it("keeps system paths out of the missing list, unlike user paths", () => {
     const email = resolveEmail(
       {
@@ -206,8 +212,10 @@ describe("[unit] engine/resolve urls and send mode", () => {
     ],
   };
 
-  // Both renderers (the Vue e-mail and the fallback) draw what the resolver
-  // hands them, so the scheme filter belongs here.
+  /**
+   * Both renderers (the Vue e-mail and the fallback) draw what the resolver
+   * hands them, so the scheme filter belongs here.
+   */
   it("neutralises a link or image whose scheme carries code", () => {
     const email = resolveEmail(content, {
       image: "javascript:alert(1)",

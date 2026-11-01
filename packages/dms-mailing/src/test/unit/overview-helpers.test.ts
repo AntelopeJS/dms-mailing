@@ -129,7 +129,7 @@ describe("[unit] overview figures", () => {
         sends: [
           { ...sendOn(0, "sent"), createdAt: previousRange.from },
           { ...sendOn(0, "suppressed"), createdAt: previousRange.from },
-        ] as SendSummary[],
+        ],
         label: PREVIOUS_LABEL,
       },
     );
@@ -163,9 +163,7 @@ describe("[unit] overview figures", () => {
       from: new Date(RANGE.from.getTime() - 3 * DAY_MS),
       to: RANGE.from,
     };
-    const previous = [
-      { ...sendOn(0, "sent"), createdAt: previousRange.from },
-    ] as SendSummary[];
+    const previous = [{ ...sendOn(0, "sent"), createdAt: previousRange.from }];
     const chart = volumeChart([sendOn(1, "sent")], RANGE, {
       range: previousRange,
       sends: previous,
@@ -190,7 +188,7 @@ describe("[unit] overview figures", () => {
       sends: [
         { ...sendOn(0, "sent"), createdAt: previousRange.from },
         { ...sendOn(0, "sent"), createdAt: previousRange.from },
-      ] as SendSummary[],
+      ],
       label: "$dms_mailing.metrics.previous_year",
     });
     expect(chart).to.deep.include({ value: 1, previousValue: 2, delta: -50 });

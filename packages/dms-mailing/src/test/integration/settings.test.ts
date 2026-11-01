@@ -2,6 +2,7 @@ import { expect } from "chai";
 import type { AxiosInstance } from "axios";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -108,8 +109,10 @@ describe("[integration] settings", () => {
     });
     expect(invalid.status).to.equal(HTTP_BAD_REQUEST);
 
-    // Blanking the secret would leave the unauthenticated event endpoint with
-    // no gate, so the write has to be refused rather than silently accepted.
+    /**
+     * Blanking the secret would leave the unauthenticated event endpoint with
+     * no gate, so the write has to be refused rather than silently accepted.
+     */
     const blankSecret = await client.put("/api/mailing/settings", {
       ...writableOf(after.data),
       webhookSecret: "",
@@ -139,9 +142,11 @@ async function loadSettingsModules() {
 }
 
 describe("[integration] settings row per tenant", () => {
-  // Every request path reads the settings, so a tenant's first reads arrive
-  // together. Each used to insert its own default row with its own webhook
-  // secret; the row is now keyed by the tenant id so only one can land.
+  /**
+   * Every request path reads the settings, so a tenant's first reads arrive
+   * together. Each used to insert its own default row with its own webhook
+   * secret; the row is now keyed by the tenant id so only one can land.
+   */
   it("creates a single row when first readers race", async () => {
     const { getSettings, rowsOf } = await loadSettingsModules();
     const tenantId = `settings-race-${Date.now()}`;
@@ -250,7 +255,7 @@ describe("[integration] settings writes (partial, checked)", () => {
       "$dms_mailing.settings.fields.webhookSecret.too_short",
     );
 
-    const refused: Record<string, string> = {
+    const refused = {
       senderName: "fix-L7\r\nBcc: evil@example.com",
       fallbackLocale: "not a locale",
       senderEmail: "not an address",
@@ -365,7 +370,7 @@ describe("[integration] settings categories in use", () => {
       category: ALPHA.id,
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return created.data._id as string;
+    return checkedText(created.data._id);
   }
 
   const categoryOf = async (client: AxiosInstance, id: string) =>

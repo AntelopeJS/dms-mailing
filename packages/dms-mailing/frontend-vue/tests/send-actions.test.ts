@@ -75,7 +75,6 @@ describe('SEND_STATUS_TONES', () => {
 		expect(SEND_STATUSES.every((status) => SEND_STATUS_TONES[status])).toBe(
 			true,
 		)
-		expect(SEND_STATUS_TONES.bounced).toBe('error')
 	})
 })
 

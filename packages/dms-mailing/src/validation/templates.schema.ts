@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH, SLUG_PATTERN } from "../constants";
+import type { Block } from "../types";
 
 const MIN_HEADING_SIZE = 12;
 const MAX_HEADING_SIZE = 48;
@@ -31,7 +32,7 @@ export const conditionSchema = z.object({
 const alignSchema = z.enum(["left", "center", "right"]);
 const base = { id: z.string().min(1), visibleIf: conditionSchema.nullable() };
 
-export const blockSchema: z.ZodType<unknown> = z.lazy(() =>
+export const blockSchema: z.ZodType<Block, z.ZodTypeDef, unknown> = z.lazy(() =>
   z.discriminatedUnion("type", [
     z.object({
       ...base,

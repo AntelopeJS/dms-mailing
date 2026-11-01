@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText, checkedNumber } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -22,7 +23,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return created.data._id as string;
+  return checkedText(created.data._id);
 }
 
 function withSubject(subject: string, revision?: number) {
@@ -36,12 +37,12 @@ function withSubject(subject: string, revision?: number) {
 
 async function revisionOf(api: Client, id: string): Promise<number> {
   const content = await api.get(`${TEMPLATES}/${id}/content`);
-  return content.data.revision as number;
+  return checkedNumber(content.data.revision);
 }
 
 async function versionCount(api: Client, id: string): Promise<number> {
   const history = await api.get(`${TEMPLATES}/${id}/versions`);
-  return history.data.versions.length as number;
+  return checkedNumber(history.data.versions.length);
 }
 
 describe("[integration] template draft revisions", () => {

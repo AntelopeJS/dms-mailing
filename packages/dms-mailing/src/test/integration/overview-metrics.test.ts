@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const DAY_MS = 86_400_000;
@@ -22,7 +23,7 @@ describe("[integration] overview metrics", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     await client.post(`/api/mailing/templates/${id}/publish`, {});
     await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["setup@example.test"],

@@ -26,8 +26,10 @@ describe("[unit] engine/tokens", () => {
 });
 
 describe("[unit] engine/tokens send mode", () => {
-  // A real send never shows a recipient the braces of a missing value; the
-  // preview keeps them so the author sees the gap.
+  /**
+   * A real send never shows a recipient the braces of a missing value; the
+   * preview keeps them so the author sees the gap.
+   */
   it("blanks a missing token but still reports it", () => {
     const result = interpolate(
       "Hi {{customer.firstName}}, ref {{order.ref}}",

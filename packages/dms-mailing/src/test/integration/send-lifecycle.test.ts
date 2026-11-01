@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -24,7 +25,7 @@ async function liveTemplate(api: Client, slug: string): Promise<string> {
     name: slug,
     category: "orders",
   });
-  const id = created.data._id as string;
+  const id = checkedText(created.data._id);
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },
@@ -53,7 +54,7 @@ async function markEvent(
 async function sendOnce(api: Client, id: string, to: string): Promise<string> {
   const sent = await api.post(`${TEMPLATES}/${id}/send`, { to: [to] });
   expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-  return sent.data.results[0].sendId as string;
+  return checkedText(sent.data.results[0].sendId);
 }
 
 async function sendsTo(api: Client, recipient: string): Promise<number> {
@@ -119,7 +120,7 @@ describe("[integration] send lifecycle", () => {
       name: "Draft only",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     const test = await api.post(`${TEMPLATES}/${id}/test-send`, {
       to: ["draft@example.test"],
       locale: "en",
@@ -158,7 +159,7 @@ describe("[integration] send lifecycle", () => {
     const sent = await api.post(`${TEMPLATES}/${id}/send`, {
       to: ["wrong@example.test"],
     });
-    const sendId = sent.data.results[0].sendId as string;
+    const sendId = checkedText(sent.data.results[0].sendId);
     await markEvent(api, sendId, "bounced");
     const bounced = await api.get(`${SENDS}/${sendId}`);
     expect(bounced.data.send.stage).to.equal("problem");
@@ -185,7 +186,7 @@ describe("[integration] send lifecycle", () => {
     const sent = await api.post(`${TEMPLATES}/${id}/send`, {
       to: ["spam@example.test"],
     });
-    const sendId = sent.data.results[0].sendId as string;
+    const sendId = checkedText(sent.data.results[0].sendId);
     await markEvent(api, sendId, "spam");
     const refused = await api.post(`${SENDS}/${sendId}/replay`, {
       to: "other@example.test",
@@ -236,8 +237,9 @@ describe("[integration] send lifecycle", () => {
 
     const first = await api.post(`${SENDS}/replay-failed`, {});
     expect(first.status, JSON.stringify(first.data)).to.equal(HTTP_OK);
-    const replayedBy = (await api.get(`${SENDS}/${sendId}`)).data.send
-      .replayedBy as string;
+    const replayedBy = checkedText(
+      (await api.get(`${SENDS}/${sendId}`)).data.send.replayedBy,
+    );
     expect(replayedBy).to.be.a("string");
 
     const second = await api.post(`${SENDS}/replay-failed`, {});
@@ -346,7 +348,7 @@ describe("[integration] send lifecycle", () => {
       name: "Draft rendering",
       category: "orders",
     });
-    const id = created.data._id as string;
+    const id = checkedText(created.data._id);
     await api.post(`${TEMPLATES}/${id}/content`, {
       content: {
         locales: { en: { subject: "Draft", preheader: "", blocks: [] } },

@@ -25,7 +25,7 @@ describe("[unit] services/templates localesOf", () => {
 describe("[unit] services/templates blankContent", () => {
   it("carries only a footer with the unsubscribe and preferences labels", () => {
     const content = blankContent("en");
-    const locale = content.locales.en as LocaleContent;
+    const locale = content.locales.en;
     expect(Object.keys(content.locales)).to.deep.equal(["en"]);
     expect(locale.blocks).to.have.lengthOf(1);
     const [footer] = locale.blocks;
@@ -37,16 +37,16 @@ describe("[unit] services/templates blankContent", () => {
   });
 
   it("invents no subject, preheader or footer prose", () => {
-    const locale = blankContent("en").locales.en as LocaleContent;
+    const locale = blankContent("en").locales.en;
     expect(locale.subject).to.equal("");
     expect(locale.preheader).to.equal("");
     expect(locale.blocks[0]).to.include({ text: "" });
   });
 
   it("localises the labels and falls back to English", () => {
-    const french = blankContent("fr").locales.fr as LocaleContent;
+    const french = blankContent("fr").locales.fr;
     expect(french.blocks[0]).to.include({ unsubscribeLabel: "Se désinscrire" });
-    const unknown = blankContent("de").locales.de as LocaleContent;
+    const unknown = blankContent("de").locales.de;
     expect(unknown.blocks[0]).to.include({ unsubscribeLabel: "Unsubscribe" });
   });
 });

@@ -6,7 +6,7 @@
 	"license": "Apache-2.0",
 	"packageManager": "pnpm@10.2.0",
 	"engines": {
-		"@antelopejs/dms-frontend": ">=0.9.0 <0.10.0"
+		"@antelopejs/dms-frontend": ">=0.9.1 <0.10.0"
 	},
 	"scripts": {
 		"format": "prettier --write .",
@@ -21,12 +21,14 @@
 		"vue": "^3.5.18"
 	},
 	"devDependencies": {
+		"@antelopejs/tooling-configs": "^0.2.12",
 		"@nuxt/ui": "4.10.0",
 		"@vitejs/plugin-vue": "^6.0.0",
 		"@vitest/runner": "^4.1.5",
 		"eslint": "^9.0.0",
 		"eslint-plugin-vue": "^10.0.0",
 		"typescript-eslint": "^8.0.0",
+		"vite": "^8.2.2",
 		"jsdom": "^26",
 		"prettier": "^3.5.3",
 		"prettier-plugin-tailwindcss": "^0.6.11",

@@ -352,7 +352,7 @@ export class TemplatesController extends Controller(
       (value) => saveContentSchema.parse(value),
       () => INVALID_CONTENT,
     );
-    const content = input.content as TemplateContent;
+    const { content } = input;
     const template = await requireTemplate(this.templates, id);
     assertCurrentDraft(template, input.revision);
     const variables = input.variables ?? workingVariables(template);
@@ -514,7 +514,7 @@ export class TemplatesController extends Controller(
     const { content, variables } = input.content
       ? {
           ...workingSnapshot(template),
-          content: input.content as TemplateContent,
+          content: input.content,
         }
       : await this.previewSnapshot(template, input.version);
     const settings = await getSettings(this.tenantId);
@@ -542,9 +542,9 @@ export class TemplatesController extends Controller(
     version: "draft" | "published" | number | undefined,
   ): Promise<TemplateDraft> | TemplateDraft {
     if (version === "published") return publishedSnapshot(template);
-    if (typeof version === "number")
-      return snapshotOfVersion(this.tenantId, template, version);
-    return workingSnapshot(template);
+    if (version === undefined || version === "draft")
+      return workingSnapshot(template);
+    return snapshotOfVersion(this.tenantId, template, version);
   }
 
   /**

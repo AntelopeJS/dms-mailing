@@ -10,7 +10,7 @@ import {
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { ZodError } from "zod";
+import { ZodError, type z } from "zod";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -68,13 +68,9 @@ import {
   requireTemplate,
   snapshotOfVersion,
 } from "../services/templates";
-import type {
-  SendStatus,
-  SuppressionSummary,
-  TemplateContent,
-  TemplateStatus,
-} from "../types";
+import type { SendStatus, SuppressionSummary, TemplateStatus } from "../types";
 import {
+  type previewVersionSchema,
   realSendSchema,
   replayFailedSchema,
   replaySchema,
@@ -97,12 +93,6 @@ const HOUR_MS = 3_600_000;
 const DRAFT_VERSION = 0;
 /** Renders as the recipient got it, not as the editor previews it. */
 const SEND_MODE: InterpolationMode = "send";
-
-interface TestSendInput {
-  locale: string;
-  content?: TemplateContent;
-  data?: Record<string, unknown>;
-}
 
 export interface SendTemplateSummary {
   id: string;
@@ -274,9 +264,9 @@ export class SendsController extends Controller(API_BASE_PATH) {
         tenantId: this.tenantId,
         to: input.to,
         allowSuppressed: [this.user.email],
-        locale: (input as TestSendInput).locale,
-        variables: (input as TestSendInput).data,
-        content: (input as TestSendInput).content,
+        locale: input.locale,
+        variables: input.data,
+        content: input.content,
         version: requestedVersionOf(input.version),
         isTest: true,
         source: TEST_SEND_SOURCE,
@@ -578,8 +568,10 @@ export class SendsController extends Controller(API_BASE_PATH) {
  * The version a test of a published version records: a number names one,
  * "draft" or "published" let the send decide.
  */
-function requestedVersionOf(version: unknown): number | undefined {
-  return typeof version === "number" ? version : undefined;
+function requestedVersionOf(
+  version: z.infer<typeof previewVersionSchema> | undefined,
+): number | undefined {
+  return version === "draft" || version === "published" ? undefined : version;
 }
 
 function variablesOf(send: MailingSend): Record<string, unknown> {

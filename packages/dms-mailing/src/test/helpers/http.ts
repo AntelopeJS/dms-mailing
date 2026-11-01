@@ -12,7 +12,7 @@ export function createClient(): AxiosInstance {
     validateStatus: () => true,
     headers: {
       "x-antelopejs-namespace": "default",
-      // The DMS frontend states the reader's language on every request.
+      /** The DMS frontend states the reader's language on every request. */
       "x-content-language": "en",
     },
   });

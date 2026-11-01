@@ -4,7 +4,7 @@
 
 <a href="https://www.npmjs.com/package/@antelopejs/dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
 <a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
 <a href="https://dms.antelopejs.com/docs/modules/mailing"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
 E-mail templates, sends and delivery metrics for the AntelopeJS DMS.
@@ -56,13 +56,30 @@ await SendTemplate("order-confirmation", {
 
 ## Compatibility
 
+<!-- antelopejs-docs-compat:start -->
+
+| Package                                     | Supported         | Tested with |
+| ------------------------------------------- | ----------------- | ----------- |
+| `@antelopejs/interface-api`                 | `>=0.0.15 <1.0.0` | —           |
+| `@antelopejs/interface-api-util`            | `>=0.1.3 <1.0.0`  | —           |
+| `@antelopejs/interface-core`                | `>=0.2.4 <1.0.0`  | —           |
+| `@antelopejs/interface-data-api`            | `>=0.4.0 <1.0.0`  | —           |
+| `@antelopejs/interface-database`            | `>=0.1.11 <1.0.0` | —           |
+| `@antelopejs/interface-database-decorators` | `>=0.1.10 <1.0.0` | —           |
+| `@antelopejs/interface-dms`                 | `>=0.9.0 <1.0.0`  | —           |
+| `@antelopejs/interface-dms-automation`      | `>=0.2.1 <1.0.0`  | —           |
+| `@antelopejs/interface-dms-mailing`         | `>=0.9.0 <0.10.0` | —           |
+| `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`  | —           |
+
+<!-- antelopejs-docs-compat:end -->
+
 | Package | Version |
 | --- | --- |
 | `@antelopejs/dms` | `>=0.11.0 <1.0.0` |
 | `@antelopejs/interface-dms` | `>=0.9.0 <1.0.0` |
-| `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.9.0 <0.10.0` |
+| `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.9.1 <0.10.0` |
 | `@antelopejs/interface-dms-mailing` | `>=0.9.0 <0.10.0` |
-| Database module | one that enforces unique indexes: `@antelopejs/mongodb` `>=1.5.0`, `@antelopejs/postgres` `>=0.2.2` |
+| Database module | one that enforces unique indexes: `@antelopejs/mongodb` `>=1.5.1`, `@antelopejs/postgres` `>=0.2.2` |
 | E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
 
 On DMS 0.8, use `@antelopejs/dms-mailing` 0.4.

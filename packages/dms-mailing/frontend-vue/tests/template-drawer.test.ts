@@ -18,6 +18,7 @@ import {
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
+import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
 const api = {
 	templateContent: vi.fn(),
@@ -33,11 +34,6 @@ const api = {
 	createTemplate: vi.fn(),
 	saveTemplateDetails: vi.fn(),
 }
-
-vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	useMailingApi: () => api,
-}))
 
 function row(
 	status: TemplateStatus,
@@ -113,6 +109,18 @@ let starters: unknown[] = []
 
 beforeEach(() => {
 	stubs = stubNuxtGlobals()
+	stubAuthFetch().respond(
+		mailingWrites({
+			publish: api.publish,
+			unpublish: api.unpublish,
+			archive: api.archive,
+			restore: api.restore,
+			saveVariables: api.saveVariables,
+			duplicate: api.duplicate,
+			createTemplate: api.createTemplate,
+			saveTemplateDetails: api.saveTemplateDetails,
+		}),
+	)
 	menuGroups = []
 	starters = []
 	stubApiData().respond(
@@ -145,7 +153,10 @@ beforeEach(() => {
 	api.archive.mockResolvedValue({ status: 'archived' })
 	api.restore.mockResolvedValue({ status: 'draft' })
 	api.saveVariables.mockImplementation(
-		async (_id: string, variables: unknown) => ({ variables, revision: 4 }),
+		async (_id: string, body: { variables: unknown }) => ({
+			variables: body.variables,
+			revision: 4,
+		}),
 	)
 })
 
@@ -186,7 +197,7 @@ describe('TemplateDrawer', () => {
 		expect(stubs.confirmations[0]?.title).toContain('lifecycle.publish_title')
 		const onConfirm = stubs.confirmations[0]?.onConfirm as () => Promise<void>
 		await onConfirm()
-		expect(api.publish).toHaveBeenCalledWith('t1')
+		expect(api.publish).toHaveBeenCalledWith('t1', { revision: undefined })
 		await flush()
 		expect(onChanged).toHaveBeenCalled()
 		expect(api.templateContent).toHaveBeenCalledTimes(2)
@@ -205,7 +216,7 @@ describe('TemplateDrawer', () => {
 		menuGroups.flat()[0]!.onSelect()
 		await flush()
 		expect(stubs.confirmations).toEqual([])
-		expect(api.restore).toHaveBeenCalledWith('t1')
+		expect(api.restore).toHaveBeenCalledWith('t1', {})
 		expect(onSuccessCallback).toHaveBeenCalled()
 		view.unmount()
 	})
@@ -227,13 +238,12 @@ describe('TemplateDrawer', () => {
 		) as HTMLElement
 		declare.click()
 		await flush()
-		expect(api.saveVariables).toHaveBeenCalledWith(
-			't1',
-			expect.arrayContaining([
+		expect(api.saveVariables).toHaveBeenCalledWith('t1', {
+			variables: expect.arrayContaining([
 				{ path: 'order.trackingUrl', type: 'string', required: false },
 			]),
-			3,
-		)
+			revision: 3,
+		})
 		view.unmount()
 	})
 
@@ -394,11 +404,10 @@ describe('DuplicateModal', () => {
 			new Event('submit'),
 		)
 		await flush()
-		expect(api.duplicate).toHaveBeenCalledWith(
-			't1',
-			'order-confirmation-b2b',
-			'Order confirmation (B2B)',
-		)
+		expect(api.duplicate).toHaveBeenCalledWith('t1', {
+			slug: 'order-confirmation-b2b',
+			name: 'Order confirmation (B2B)',
+		})
 		expect(stubs.navigations).toEqual([
 			{ path: '/modules/mailing/templates/copy-id', query: {} },
 		])

@@ -10,6 +10,7 @@ import {
   WEBHOOK_TEST_MESSAGE_ID,
   type WebhookFetch,
 } from "../../services/webhook-status";
+import { checkedText } from "../helpers/checked";
 
 const SECRET = "s".repeat(48);
 const URL = "https://api.example.test/api/mailing/events/smtp/default";
@@ -49,7 +50,7 @@ describe("[unit] services/webhook-status", () => {
       lastRefused: null,
     });
     const at = new Date(0);
-    const row = {
+    const row: MailingWebhookStatus = {
       _id: "default",
       receivedAt: at,
       receivedProvider: "postmark",
@@ -58,7 +59,7 @@ describe("[unit] services/webhook-status", () => {
       refusedAt: at,
       refusedProvider: "postmark",
       refusedReason: "bad_secret",
-    } as MailingWebhookStatus;
+    };
     expect(toWebhookStatus(row)).to.deep.equal({
       lastReceived: {
         at,
@@ -83,9 +84,8 @@ describe("[unit] services/webhook-status", () => {
       url: URL,
       httpStatus: HTTP_OK,
     });
-    const headers = calls[0]?.headers as Record<string, string>;
-    expect(headers[WEBHOOK_SECRET_HEADER]).to.equal(SECRET);
-    expect(JSON.parse(calls[0]?.body as string).messageId).to.equal(
+    expect(calls[0]?.headers).to.have.property(WEBHOOK_SECRET_HEADER, SECRET);
+    expect(JSON.parse(checkedText(calls[0]?.body)).messageId).to.equal(
       WEBHOOK_TEST_MESSAGE_ID,
     );
   });

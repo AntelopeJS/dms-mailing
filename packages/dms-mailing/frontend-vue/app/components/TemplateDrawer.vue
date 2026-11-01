@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { SENDS_PATH } from '../utils/pages'
+import { useDrawerStats } from '../build/composables/useDrawerStats'
+import TemplateDrawerFooter from '../build/components/TemplateDrawerFooter.vue'
+import TemplateDrawerPerformance from '../build/components/TemplateDrawerPerformance.vue'
+import TemplateDrawerVariables from '../build/components/TemplateDrawerVariables.vue'
 import { useElementSize } from '@vueuse/core'
 import {
 	useMailingApi,
@@ -14,7 +17,6 @@ import { apiErrorMessage } from '../utils/api-error'
 import { formatCardDate } from '../utils/gallery'
 import { localeCoverage } from '../utils/locales'
 import { sendSnippet } from '../utils/send-snippet'
-import { variableTypeLabelKey } from '../utils/variable-types'
 import { validateName } from '../utils/slug'
 import {
 	validTransitions,
@@ -66,14 +68,8 @@ interface LifecycleSpec {
 	confirmColor?: ConfirmTone
 }
 
-/** The send log reads these: `?template=` narrows it, `?view=` opens a tab. */
-const SENDS_TEMPLATE_KEY = 'template'
-const SENDS_VIEW_KEY = 'view'
-const PROBLEMS_VIEW = 'problems'
 const PREVIEW_WIDTH = 600
 const PREVIEW_FALLBACK_SCALE = 0.72
-const OPEN_RATE_DIGITS = 1
-const PERCENT = 100
 const DEFAULT_VARIABLE_TYPE: VariableType = 'string'
 
 const STATUS_TONES: Record<TemplateStatus, string> = {
@@ -261,60 +257,12 @@ const versionLabel = computed(() =>
 		: t('dms_mailing.templates.drawer.never_published'),
 )
 
-const formatNumber = (value: number) =>
-	new Intl.NumberFormat(uiLocale.value, {
-		maximumFractionDigits: OPEN_RATE_DIGITS,
-	}).format(value)
-
-/** A rate in percent, written the reader's way ("20.8%", "20,8 %"). */
-const formatPercent = (value: number) =>
-	new Intl.NumberFormat(uiLocale.value, {
-		style: 'percent',
-		maximumFractionDigits: OPEN_RATE_DIGITS,
-	}).format(value / PERCENT)
-
-/** The send log narrowed to this template, on one of its tabs if given. */
-function sendLogRoute(view?: string) {
-	return {
-		path: SENDS_PATH,
-		query: {
-			[SENDS_TEMPLATE_KEY]: template.value?.slug ?? '',
-			...(view ? { [SENDS_VIEW_KEY]: view } : {}),
-		},
-	}
-}
-
-function sendLogUrl(view?: string): string {
-	const { path, query } = sendLogRoute(view)
-	return `${path}?${new URLSearchParams(query).toString()}`
-}
-
-const hasSends = computed(() => Boolean(performance.value?.sends))
-
-const stats = computed(() => [
-	{
-		id: 'sends',
-		eyebrow: t('dms_mailing.templates.drawer.stats_sends'),
-		value: formatNumber(performance.value?.sends ?? 0),
-	},
-	{
-		id: 'open',
-		eyebrow: t('dms_mailing.templates.drawer.stats_open'),
-		value: performance.value?.sends
-			? formatPercent(performance.value.openRate)
-			: '—',
-	},
-	{
-		id: 'problems',
-		eyebrow: t('dms_mailing.templates.drawer.stats_problems'),
-		value: formatNumber(performance.value?.problems ?? 0),
-		detail: performance.value?.problems
-			? t('dms_mailing.templates.drawer.problems_detail')
-			: undefined,
-		detailTone: 'error' as const,
-		to: performance.value?.problems ? sendLogUrl(PROBLEMS_VIEW) : undefined,
-	},
-])
+const { formatNumber, sendLogRoute, hasSends, stats } = useDrawerStats(
+	template,
+	performance,
+	t,
+	uiLocale,
+)
 
 const snippet = computed(() =>
 	sendSnippet({
@@ -701,172 +649,26 @@ function onResolved(preview: PreviewResponse): void {
 			</div>
 
 			<div v-show="tab === 'variables'" class="flex flex-col gap-4 py-4">
-				<div class="flex flex-col gap-1">
-					<DmsEyebrow
-						:label="t('dms_mailing.templates.drawer.declared_detected')"
-					/>
-					<p v-if="!variables.length" class="text-muted text-[12.5px]">
-						{{ t('dms_mailing.templates.drawer.no_variables') }}
-					</p>
-					<div
-						v-for="variable in variables"
-						:key="variable.path"
-						class="border-default flex min-h-9 items-center gap-2 border-b last:border-b-0"
-					>
-						<code
-							class="truncate font-mono text-[12px]"
-							:class="
-								variable.usage === 'unused' ? 'text-dimmed' : 'text-toned'
-							"
-						>
-							{{ variable.path }}
-						</code>
-						<span
-							v-if="variable.required && variable.usage !== 'detected'"
-							class="text-error"
-							:title="t('dms_mailing.templates.drawer.required')"
-						>
-							*
-						</span>
-						<DmsStatusPill
-							v-if="variable.usage === 'detected'"
-							tone="warning"
-							size="sm"
-							dot="none"
-							:label="t('dms_mailing.templates.drawer.not_declared')"
-						/>
-						<DmsStatusPill
-							v-if="variable.usage === 'unused'"
-							tone="neutral"
-							size="sm"
-							dot="none"
-							:label="t('dms_mailing.templates.drawer.unused')"
-						/>
-						<UButton
-							v-if="variable.usage === 'detected' && !isLive"
-							class="ml-auto"
-							color="neutral"
-							variant="ghost"
-							size="xs"
-							:label="t('dms_mailing.templates.drawer.declare')"
-							@click="declareVariable(variable.path)"
-						/>
-						<span
-							v-else-if="variable.usage !== 'detected'"
-							class="text-dimmed ml-auto font-mono text-[11px]"
-						>
-							{{ t(variableTypeLabelKey(variable.type)) }}
-						</span>
-					</div>
-				</div>
-				<DmsBanner
-					v-if="hasDraftDeclarations"
-					tone="info"
-					size="sm"
-					icon="i-ph-brackets-curly"
-					:title="t('dms_mailing.templates.drawer.draft_declarations')"
-					:description="
-						t('dms_mailing.templates.drawer.draft_declarations_description')
-					"
-				>
-					<template #actions>
-						<UButton
-							color="neutral"
-							variant="outline"
-							size="xs"
-							:label="t('dms_mailing.templates.actions.open_editor')"
-							@click="openEditor()"
-						/>
-					</template>
-				</DmsBanner>
-				<MailingSystemVariables :variables="systemVars" />
-				<div class="flex flex-col gap-1.5">
-					<div class="flex items-center justify-between">
-						<DmsEyebrow
-							:label="t('dms_mailing.templates.drawer.call_from_code')"
-						/>
-						<DmsCopyButton :value="snippet" />
-					</div>
-					<pre
-						class="bg-elevated text-toned overflow-x-auto rounded-md p-3 font-mono text-[11.5px] leading-relaxed"
-						>{{ snippet }}</pre>
-				</div>
+				<TemplateDrawerVariables
+					:variables="variables"
+					:is-live="isLive"
+					:has-draft-declarations="hasDraftDeclarations"
+					:system-vars="systemVars"
+					:snippet="snippet"
+					:declare-variable="declareVariable"
+					:open-editor="openEditor"
+				/>
 			</div>
 
 			<div v-show="tab === 'performance'" class="flex flex-col gap-4 py-4">
-				<div class="flex flex-col gap-2">
-					<div class="flex items-center justify-between">
-						<DmsEyebrow
-							:label="t('dms_mailing.templates.drawer.last_30_days')"
-						/>
-						<UButton
-							variant="link"
-							size="xs"
-							class="p-0"
-							:label="t('dms_mailing.templates.drawer.open_send_log')"
-							@click="openSendLog"
-						/>
-					</div>
-					<DmsStatGroup
-						layout="joined"
-						:columns="3"
-						:items="stats"
-						:loading="loading"
-					/>
-				</div>
-				<div class="flex flex-col gap-1">
-					<DmsEyebrow :label="t('dms_mailing.templates.drawer.called_from')" />
-					<p
-						v-if="!hasSends || !performance?.sources.length"
-						class="text-muted text-[12.5px]"
-					>
-						{{ t('dms_mailing.templates.drawer.no_sources') }}
-					</p>
-					<DmsListRow
-						v-for="source in performance?.sources ?? []"
-						:key="source.source"
-						icon="i-ph-code"
-						size="sm"
-						mono
-						:title="
-							source.source || t('dms_mailing.templates.drawer.unknown_source')
-						"
-						:trailing="
-							t(
-								'dms_mailing.templates.drawer.sends_count',
-								{ count: formatNumber(source.count) },
-								source.count,
-							)
-						"
-					/>
-				</div>
-				<div class="flex flex-col gap-1">
-					<DmsEyebrow :label="t('dms_mailing.templates.drawer.fallbacks')" />
-					<p v-if="!hasSends" class="text-muted text-[12.5px]">
-						{{ t('dms_mailing.templates.drawer.no_sources') }}
-					</p>
-					<p
-						v-else-if="!performance?.fallbacks.length"
-						class="text-muted text-[12.5px]"
-					>
-						{{ t('dms_mailing.templates.drawer.no_fallbacks') }}
-					</p>
-					<DmsListRow
-						v-for="fallback in performance?.fallbacks ?? []"
-						:key="`${fallback.requested}-${fallback.used}`"
-						icon="i-ph-translate"
-						tone="warning"
-						size="sm"
-						:title="`${fallback.requested.toUpperCase()} → ${fallback.used.toUpperCase()}`"
-						:trailing="
-							t(
-								'dms_mailing.templates.drawer.sends_count',
-								{ count: formatNumber(fallback.count) },
-								fallback.count,
-							)
-						"
-					/>
-				</div>
+				<TemplateDrawerPerformance
+					:stats="stats"
+					:loading="loading"
+					:has-sends="hasSends"
+					:performance="performance"
+					:open-send-log="openSendLog"
+					:format-number="formatNumber"
+				/>
 			</div>
 
 			<div v-if="tab === 'history'" class="flex flex-col gap-2 py-4">
@@ -882,28 +684,13 @@ function onResolved(preview: PreviewResponse): void {
 				/>
 			</div>
 
-			<DmsContainerFooter data-template-footer>
-				<UButton
-					icon="i-ph-flask"
-					color="neutral"
-					variant="ghost"
-					:label="t('dms_mailing.templates.card.test')"
-					@click="overlays.openTestSend(templateId, { locale })"
-				/>
-				<UButton
-					class="ml-auto"
-					icon="i-ph-copy"
-					color="neutral"
-					variant="outline"
-					:label="t('dms_mailing.templates.actions.duplicate')"
-					@click="overlays.openDuplicate(templateId, { rowData: template })"
-				/>
-				<UButton
-					icon="i-ph-pencil-simple"
-					:label="t('dms_mailing.templates.actions.open_editor')"
-					@click="openEditor(locale)"
-				/>
-			</DmsContainerFooter>
+			<TemplateDrawerFooter
+				:template-id="templateId"
+				:locale="locale"
+				:template="template"
+				:overlays="overlays"
+				:open-editor="openEditor"
+			/>
 		</template>
 	</div>
 </template>

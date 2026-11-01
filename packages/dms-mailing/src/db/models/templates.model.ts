@@ -5,6 +5,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import type { LocalizedText } from "@antelopejs/interface-dms-mailing";
 import { MAILING_TEMPLATES_TABLE_NAME, MailingTemplate } from "../tables";
+import { isText } from "../../validation/guards";
 
 /** The attention fields of a template, as the refresh writes them. */
 export type TemplateAttentionFields = Pick<
@@ -15,7 +16,7 @@ export type TemplateAttentionFields = Pick<
 const isLocalizedText = (value: unknown): value is LocalizedText =>
   typeof value === "object" &&
   value !== null &&
-  Object.values(value).every((text) => typeof text === "string");
+  Object.values(value).every(isText);
 
 /** Where a row keeps its modifier-held fields, the localized name among them. */
 const MODIFIER_CONTAINER = "_internal";
@@ -37,9 +38,11 @@ export class TemplateModel extends BasicDataModel(
     return TemplateModel.fromPlainData(fields).localize("*", ["name"]);
   }
 
-  /** The names of `template`, one per language. */
+  /**
+   * The names of `template`, one per language: unlocked with `"*"`, the
+   * localized field holds the whole per-language record.
+   */
   static namesOf(template: MailingTemplate): LocalizedText {
-    // Unlocked with "*", the localized field holds the whole per-language record.
     const names: unknown = template.localize("*", ["name"]).name;
     return isLocalizedText(names) ? names : {};
   }

@@ -84,6 +84,7 @@ import {
   createTemplateSchema,
   templateDetailsSchema,
 } from "../validation/templates.schema";
+import { isObject, isText } from "../validation/guards";
 import { parseBody } from "./body";
 import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
@@ -155,7 +156,7 @@ function assertKnownCategory(
   category: unknown,
 ): void {
   if (isBlank(category)) return;
-  if (typeof category === "string" && findCategory(categories, category)) {
+  if (isText(category) && findCategory(categories, category)) {
     return;
   }
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
@@ -171,7 +172,8 @@ interface CreatedRow {
  * The creation's seed, and the body to store: slug trimmed, and the name
  * typed in the reader's language as every language of the localized field,
  * the fallback one included until someone translates it. A body a guard
- * already parsed arrives as an object.
+ * already parsed arrives as an object. The body to store is handed on as an
+ * object: interface-data-api 0.3 refuses a JSON string.
  */
 function parseCreation(body: Validation.WrittenBody, locale: string) {
   const raw = Buffer.isBuffer(body) ? parseBody(body) : body;
@@ -181,7 +183,6 @@ function parseCreation(body: Validation.WrittenBody, locale: string) {
     () => INVALID_TEMPLATE,
     HTTP_BAD_REQUEST,
   );
-  // Handed as an object: interface-data-api 0.3 refuses a JSON string.
   const normalized = {
     ...raw,
     slug: seed.slug,
@@ -198,6 +199,12 @@ interface LocalizedController {
 /** The key that writes every language of a localized field at once. */
 const ALL_LANGUAGES = "*";
 
+/**
+ * The data API's `new` callback, seeding the template it creates. The
+ * module's creation dialogs send one typed name, and the stored name holds
+ * every language, written at once: the controller's language key is set to
+ * all languages before the creation.
+ */
 function withSeeding(base: DataControllerCallback): DataControllerCallback {
   return {
     ...base,
@@ -213,8 +220,6 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       const settings = await getSettings(tenantId);
       assertKnownCategory(settings.categories, seed.category);
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
-      // The module's creation dialogs send one typed name; the stored name
-      // holds every language, written at once.
       (this as LocalizedController).language = ALL_LANGUAGES;
       const created = (await refuseTakenSlug(
         base.func.call(this, ctx, params, normalized, ...rest),
@@ -334,8 +339,8 @@ export async function saveDetails(
  * or, from a form editing every language, all of them.
  */
 function isBlankName(name: unknown): boolean {
-  const texts = typeof name === "object" && name ? Object.values(name) : [name];
-  return !texts.some((text) => typeof text === "string" && text.trim());
+  const texts = isObject(name) ? Object.values(name) : [name];
+  return !texts.some((text) => isText(text) && text.trim());
 }
 
 /** The names trimmed, blank ones left out, the fallback language filled. */

@@ -50,7 +50,7 @@ const PAGES = [
 
 describe("[unit] pages page toolbar", () => {
   for (const { page, scope, presets, defaultPreset } of PAGES) {
-    describe(page.name, () => {
+    describe(`${page.name}`, () => {
       it("declares the module's live mode", () => {
         const { pageInfo } = GetMetadata(page, PageMetadata);
         expect(pageInfo?.live).to.deep.equal(MAILING_LIVE);

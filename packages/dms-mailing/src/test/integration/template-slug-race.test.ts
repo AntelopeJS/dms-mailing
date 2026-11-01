@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -104,7 +105,7 @@ describe("[integration] template slug races", function () {
       category: "orders",
     });
     expect(source.status, JSON.stringify(source.data)).to.equal(HTTP_OK);
-    const sourceId = source.data._id as string;
+    const sourceId = checkedText(source.data._id);
     try {
       const outcomes = await race(`${prefix}-copy`, (slug) =>
         api.post(`${TEMPLATES}/${sourceId}/duplicate`, { slug, name: slug }),
@@ -123,7 +124,7 @@ describe("[integration] template slug races", function () {
     try {
       const created = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-      const id = created.data._id as string;
+      const id = checkedText(created.data._id);
       await api.post(`${TEMPLATES}/${id}/archive`, {});
       const deleted = await api.delete(`${TABLE}/delete?id=${id}`);
       expect(deleted.status, JSON.stringify(deleted.data)).to.equal(HTTP_OK);
@@ -147,7 +148,7 @@ describe("[integration] template slug races", function () {
 
       const created = await api.post(`${TABLE}/new`, { slug, name: slug });
       expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-      expect(await other.get(otherId as string)).to.not.equal(undefined);
+      expect(await other.get(otherId)).to.not.equal(undefined);
     } finally {
       await removeSlugs(slug);
       await removeSlugs(slug, otherTenant);

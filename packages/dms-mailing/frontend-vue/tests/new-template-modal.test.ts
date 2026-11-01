@@ -11,6 +11,11 @@ import {
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
+import {
+	mailingWrites,
+	stubAuthFetch,
+	type AuthFetchStub,
+} from './helpers/auth-fetch'
 
 const api = {
 	listTemplates: vi.fn(),
@@ -18,20 +23,18 @@ const api = {
 	createTemplate: vi.fn(),
 }
 
-vi.mock('../app/composables/useMailingApi', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	useMailingApi: () => api,
-}))
-
 const globals = {
 	...FORM_STUBS,
 	MailingTemplatePreviewFrame: slotStub('MailingTemplatePreviewFrame'),
 }
 
 let stubs: NuxtStubs
+let writes: AuthFetchStub
 
 beforeEach(() => {
 	stubs = stubNuxtGlobals()
+	writes = stubAuthFetch()
+	writes.respond(mailingWrites({ createTemplate: api.createTemplate }))
 	api.listTemplates.mockResolvedValue({
 		results: [
 			{
@@ -148,7 +151,7 @@ describe('NewTemplateModal', () => {
 			new Event('submit'),
 		)
 		await flush()
-		expect(api.createTemplate).not.toHaveBeenCalled()
+		expect(writes.calls).toEqual([])
 		view.unmount()
 	})
 

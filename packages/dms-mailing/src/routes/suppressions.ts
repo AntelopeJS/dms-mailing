@@ -33,7 +33,7 @@ const manualSuppressionSchema = z.object({
 });
 
 /** A refused entry: the generic message, and each issue under its field. */
-function invalidSuppression(error: unknown): unknown {
+function invalidSuppression(error: unknown) {
   if (!(error instanceof z.ZodError)) return INVALID_SUPPRESSION;
   return { message: INVALID_SUPPRESSION, issues: error.issues };
 }

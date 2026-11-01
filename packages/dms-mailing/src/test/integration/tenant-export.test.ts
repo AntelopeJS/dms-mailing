@@ -4,12 +4,12 @@ import type { TenantExportArchive } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
 import {
   contributeTenantExport,
-  type ExportedCollection,
   exportedCollections,
   jsonArrayChunks,
 } from "../../hooks/tenant-export";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedText } from "../helpers/checked";
 
 const HTTP_OK = 200;
 const TABLE = "/api/mailing/tables/templates";
@@ -45,7 +45,7 @@ class CollectingArchive implements TenantExportArchive {
 }
 
 function parsed<T>(archive: CollectingArchive, entry: string): T {
-  return JSON.parse(archive.entries.get(entry) as string) as T;
+  return JSON.parse(checkedText(archive.entries.get(entry))) as T;
 }
 
 describe("[integration] tenant export", () => {
@@ -103,7 +103,10 @@ describe("[integration] tenant export", () => {
   it("pages the reads without skipping or repeating a row", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    // The list answers 10 rows unless told otherwise; the export reads them all.
+    /**
+     * The list answers 10 rows unless told otherwise; the export reads them
+     * all.
+     */
     const list = await client.get(`${TABLE}/list?limit=${LIST_ALL}`);
     expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
     const slugs = (list.data.results as TemplateRow[]).map(
@@ -113,7 +116,7 @@ describe("[integration] tenant export", () => {
 
     let text = "";
     for await (const chunk of jsonArrayChunks(
-      (templates as ExportedCollection).load,
+      templates.load,
       new AbortController().signal,
       SINGLE_ROW_PAGE,
     )) {

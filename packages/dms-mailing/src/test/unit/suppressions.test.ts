@@ -56,13 +56,13 @@ describe("[unit] services/suppressions", () => {
   });
 
   it("words a suppressed send by its reason and drops an empty send id", () => {
-    const row = {
+    const row: MailingSuppression = {
       _id: "id",
       email: "ana@example.com",
       reason: "manual",
       sendId: "",
       createdAt: new Date(0),
-    } as MailingSuppression;
+    };
     expect(suppressedError(row)).to.equal(
       "$dms_mailing.errors.suppressed.manual",
     );
