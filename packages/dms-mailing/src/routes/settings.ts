@@ -26,6 +26,7 @@ import {
   reassignRemovedCategories,
 } from "../services/categories";
 import { readCapabilities } from "../services/provider";
+import { zodIssuesJson } from "../services/zod-json";
 import {
   clearedToEmpty,
   getSettings,
@@ -149,7 +150,10 @@ function formIssue(issue: z.ZodIssue): z.ZodIssue {
 /** A refused write: the generic message, and each issue for its field. */
 function invalidSettings(error: unknown) {
   if (!(error instanceof z.ZodError)) return INVALID_SETTINGS;
-  return { message: INVALID_SETTINGS, issues: error.issues.map(formIssue) };
+  return {
+    message: INVALID_SETTINGS,
+    issues: zodIssuesJson(error.issues.map(formIssue)),
+  };
 }
 
 function senderNotice(values: MailingSettingsValues): SettingsNotice[] {
