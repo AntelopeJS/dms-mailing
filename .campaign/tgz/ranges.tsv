@@ -38,3 +38,5 @@
 @antelopejs/interface-data-api	packages/dms-mailing/playground/package.json	pnpm.overrides	
 @antelopejs/interface-dms	packages/dms-mailing/playground/package.json	pnpm.overrides	
 @antelopejs/dms	packages/dms-mailing/playground/package.json	pnpm.overrides	
+@antelopejs/interface-dms-automation	packages/dms-mailing/package.json	optionalDependencies	>=0.2.1 <1.0.0
+@antelopejs/interface-dms-automation	packages/dms-mailing/package.json	pnpm.overrides	
