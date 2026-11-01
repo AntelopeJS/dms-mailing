@@ -18,6 +18,7 @@ import { API_BASE_PATH, HTTP_CONFLICT, HTTP_NOT_FOUND } from "../constants";
 import { SuppressionModel } from "../db";
 import { SuppressionsPageController } from "../pages/suppressions";
 import { suppressAddress } from "../services/suppressions";
+import { zodIssuesJson } from "./zod-json";
 
 const INVALID_SUPPRESSION = "$dms_mailing.suppressions.errors.invalid";
 const ALREADY_SUPPRESSED = "$dms_mailing.suppressions.errors.already";
@@ -61,7 +62,10 @@ export class SuppressionsController extends Controller(
       (value) => manualSuppressionSchema.parse(value),
       (error) => {
         if (!(error instanceof z.ZodError)) return INVALID_SUPPRESSION;
-        return { message: INVALID_SUPPRESSION, issues: error.issues };
+        return {
+          message: INVALID_SUPPRESSION,
+          issues: zodIssuesJson(error.issues),
+        };
       },
     );
     const isAdded = await suppressAddress(getRequestTenantId(this.ctx), {
