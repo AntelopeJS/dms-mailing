@@ -29,11 +29,11 @@ export const WEBHOOK_REFUSAL_MESSAGES: Record<WebhookRefusal, string> = {
 };
 
 /** The body of a refused webhook call. */
-export interface WebhookRefusalBody {
+export type WebhookRefusalBody = {
   error: "webhook_refused";
   reason: WebhookRefusal;
   message: string;
-}
+};
 
 /** What "Send a test event" found when it called the webhook URL. */
 export interface WebhookTestOutcome {
