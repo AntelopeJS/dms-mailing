@@ -1,6 +1,50 @@
 # Changelog
 
 
+## v0.8.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.7.1...v0.8.0)
+
+### 🚀 Enhancements
+
+- **frontend:** Enforce the backend boundary in production builds ([#80](https://github.com/AntelopeJS/dms-mailing/pull/80))
+
+### 🩹 Fixes
+
+- Require @antelopejs/mongodb 1.5.1, which builds unique indexes before queries ([#76](https://github.com/AntelopeJS/dms-mailing/pull/76))
+- **playground:** Declare the frontend, so renderer 0.9 serves it ([#73](https://github.com/AntelopeJS/dms-mailing/pull/73))
+- **mailing:** Present API failures once through DMS core ([#111](https://github.com/AntelopeJS/dms-mailing/pull/111))
+
+### 💅 Refactors
+
+- Clean up the tests, comments, types and oversize files ([#78](https://github.com/AntelopeJS/dms-mailing/pull/78))
+- **amp:** Narrow the forwarded location header with a JSDoc type guard ([#81](https://github.com/AntelopeJS/dms-mailing/pull/81))
+
+### 📖 Documentation
+
+- **changelog:** Upgrade notes of interface-dms-mailing 0.9.1 ([#71](https://github.com/AntelopeJS/dms-mailing/pull/71))
+- **changelog:** Upgrade notes of dms-mailing 0.7.1 ([#72](https://github.com/AntelopeJS/dms-mailing/pull/72))
+- **readme:** Link the DMS in the opening line ([#100](https://github.com/AntelopeJS/dms-mailing/pull/100))
+- **readme:** Use one Discord invite ([#97](https://github.com/AntelopeJS/dms-mailing/pull/97))
+
+### 📦 Build
+
+- **deps:** Bump @antelopejs/tooling-configs to 0.2.17 ([#82](https://github.com/AntelopeJS/dms-mailing/pull/82))
+
+### 🏡 Chore
+
+- Adopt the guardrail pack from tooling-configs 0.2.0 ([#74](https://github.com/AntelopeJS/dms-mailing/pull/74))
+- Configure Renovate with the shared preset ([#75](https://github.com/AntelopeJS/dms-mailing/pull/75))
+
+### ✅ Tests
+
+- **skills:** Add eval cases for dms-mailing ([#77](https://github.com/AntelopeJS/dms-mailing/pull/77))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.7.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.7.0...v0.7.1)
