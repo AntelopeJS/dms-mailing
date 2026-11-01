@@ -13,7 +13,6 @@ import {
 	useTemplatePerformanceRead,
 } from '../composables/useMailingReads'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
-import { apiErrorMessage } from '../utils/api-error'
 import { formatCardDate } from '../utils/gallery'
 import { localeCoverage } from '../utils/locales'
 import { sendSnippet } from '../utils/send-snippet'
@@ -84,9 +83,9 @@ defineEmits<{ success: [changed?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
-const { processApiMessage } = useTranslation()
 const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
 
@@ -138,10 +137,7 @@ async function load(): Promise<void> {
 		performance.value = stats
 		locale.value ||= content.fallbackLocale
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		loading.value = false
 	}
@@ -311,10 +307,7 @@ async function saveDetails(changes: Partial<TemplateDetails>): Promise<void> {
 		})
 		reloadInPlace()
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	}
 }
 
@@ -372,10 +365,7 @@ async function runLifecycle(action: LifecycleAction): Promise<void> {
 		})
 		settle()
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	}
 }
 
@@ -420,10 +410,7 @@ async function declareVariable(path: string): Promise<void> {
 		detail.value.variables = response.variables
 		detail.value.revision = response.revision
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 		reloadInPlace()
 	}
 }
@@ -447,10 +434,7 @@ async function restoreVersion(version: number): Promise<void> {
 			],
 		})
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	}
 	reloadInPlace()
 }

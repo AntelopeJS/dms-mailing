@@ -11,7 +11,6 @@ import {
 	useEditorShortcuts,
 } from '../../composables/useEditorShortcuts'
 import { createEditorState } from '../../composables/useTemplateEditor'
-import { apiErrorMessage } from '../../utils/api-error'
 
 interface Props {
 	loaded: TemplateContentResponse
@@ -23,8 +22,7 @@ const props = defineProps<Props>()
 const locale = defineModel<string | null>('locale', { default: null })
 const emit = defineEmits<{ renamed: [string] }>()
 
-const toast = useToast()
-const { processApiMessage } = useTranslation()
+const { presentError } = useApiErrorPresenter()
 const { uniqueLocales } = useUniqueLocales()
 const api = useMailingApi()
 
@@ -44,10 +42,7 @@ const editor = createEditorState(
 )
 
 function reportFailure(error: unknown): void {
-	toast.add({
-		color: 'error',
-		title: processApiMessage(apiErrorMessage(error)),
-	})
+	presentError(error, { fallbackKey: 'error.500.description' })
 }
 
 const reads = useEditorReads(props.templateId)
