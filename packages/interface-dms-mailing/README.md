@@ -57,10 +57,10 @@ Interface 0.8 needs a `@antelopejs/dms-mailing` release that implements it; the 
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                       | Supported        | Tested with |
-| ----------------------------- | ---------------- | ----------- |
-| `@antelopejs/interface-core`  | `>=0.2.4 <1.0.0` | —           |
-| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` | —           |
+| Package                       | Supported                                                        | Tested with |
+| ----------------------------- | ---------------------------------------------------------------- | ----------- |
+| `@antelopejs/interface-core`  | `file:../../.campaign/tgz/antelopejs-interface-core-52413a9.tgz` | —           |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0`                                                 | —           |
 
 <!-- antelopejs-docs-compat:end -->
 

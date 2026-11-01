@@ -5,7 +5,6 @@
 @antelopejs/interface-database	packages/dms-mailing/package.json	pnpm.overrides	
 @antelopejs/interface-database	packages/interface-dms-mailing/package.json	pnpm.overrides	
 @antelopejs/mongodb	packages/dms-mailing/package.json	pnpm.overrides	
-@antelopejs/mongodb>@antelopejs/interface-core	packages/dms-mailing/package.json	pnpm.overrides	
 @antelopejs/interface-data-api	packages/dms-mailing/package.json	dependencies	>=0.4.0 <1.0.0
 @antelopejs/interface-data-api	packages/dms-mailing/package.json	pnpm.overrides	
 @antelopejs/interface-api	packages/dms-mailing/package.json	dependencies	>=0.0.15 <1.0.0
@@ -40,3 +39,13 @@
 @antelopejs/dms	packages/dms-mailing/playground/package.json	pnpm.overrides	
 @antelopejs/interface-dms-automation	packages/dms-mailing/package.json	optionalDependencies	>=0.2.1 <1.0.0
 @antelopejs/interface-dms-automation	packages/dms-mailing/package.json	pnpm.overrides	
+@antelopejs/core	packages/dms-mailing/package.json	devDependencies	>=1.17.1 <2
+@antelopejs/core	packages/dms-mailing/playground/package.json	devDependencies	>=1.17.1 <2
+@antelopejs/core	packages/dms-mailing/playground/package.json	pnpm.overrides	
+@antelopejs/core	packages/dms-mailing/package.json	pnpm.overrides	
+@antelopejs/interface-core	packages/dms-mailing/package.json	dependencies	>=0.2.4 <1.0.0
+@antelopejs/interface-core	packages/dms-mailing/playground/package.json	dependencies	>=0.2.4 <1.0.0
+@antelopejs/interface-core	packages/interface-dms-mailing/package.json	dependencies	>=0.2.4 <1.0.0
+@antelopejs/interface-core	packages/dms-mailing/playground/package.json	pnpm.overrides	
+@antelopejs/interface-core	packages/dms-mailing/package.json	pnpm.overrides	
+@antelopejs/interface-core	packages/interface-dms-mailing/package.json	pnpm.overrides	
