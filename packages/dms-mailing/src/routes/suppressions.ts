@@ -8,7 +8,11 @@ import {
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import {
+  assert,
+  assertValidation,
+  zodIssuesJson,
+} from "@antelopejs/interface-api-util";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -18,7 +22,6 @@ import { API_BASE_PATH, HTTP_CONFLICT, HTTP_NOT_FOUND } from "../constants";
 import { SuppressionModel } from "../db";
 import { SuppressionsPageController } from "../pages/suppressions";
 import { suppressAddress } from "../services/suppressions";
-import { zodIssuesJson } from "../services/zod-json";
 
 const INVALID_SUPPRESSION = "$dms_mailing.suppressions.errors.invalid";
 const ALREADY_SUPPRESSED = "$dms_mailing.suppressions.errors.already";

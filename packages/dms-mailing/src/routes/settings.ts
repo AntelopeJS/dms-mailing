@@ -8,7 +8,11 @@ import {
   RawBody,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import {
+  assert,
+  assertValidation,
+  zodIssuesJson,
+} from "@antelopejs/interface-api-util";
 import { GetApiBaseUrl } from "@antelopejs/interface-dms/api-base-url";
 import { GetClientBaseUrl } from "@antelopejs/interface-dms/client-base-url";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -26,7 +30,6 @@ import {
   reassignRemovedCategories,
 } from "../services/categories";
 import { readCapabilities } from "../services/provider";
-import { zodIssuesJson } from "../services/zod-json";
 import {
   clearedToEmpty,
   getSettings,
