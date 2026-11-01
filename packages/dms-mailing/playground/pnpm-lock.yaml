@@ -13,6 +13,7 @@ overrides:
   '@antelopejs/interface-dms': file:../../../.campaign/tgz/antelopejs-interface-dms-e0787e6.tgz
   '@antelopejs/core': file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz
   '@antelopejs/interface-core': file:../../../.campaign/tgz/antelopejs-interface-core-52413a9.tgz
+  '@antelopejs/dms-frontend': file:../../../.campaign/tgz/antelopejs-dms-frontend-ee4e931.tgz
 
 importers:
 
@@ -44,8 +45,8 @@ importers:
         specifier: file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz
         version: file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz
       '@antelopejs/dms-frontend':
-        specifier: '>=0.9.1 <0.10.0'
-        version: 0.9.1(@antelopejs/core@file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz)
+        specifier: file:../../../.campaign/tgz/antelopejs-dms-frontend-ee4e931.tgz
+        version: file:../../../.campaign/tgz/antelopejs-dms-frontend-ee4e931.tgz(@antelopejs/core@file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz)
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -64,9 +65,9 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.9.1':
-    resolution: {integrity: sha512-X0l/4uSCrRdO+7Y05918KJbaNatG6pI1iLzQ6xy/dkn7wNMY3aepFmkAT9ztu0YzFxYiKp2JCaBBX5C0xZDZHQ==}
-    version: 0.9.1
+  '@antelopejs/dms-frontend@file:../../../.campaign/tgz/antelopejs-dms-frontend-ee4e931.tgz':
+    resolution: {integrity: sha512-TvJ4NLCTodFHqXxjzTBBjro+VJ0dgjqXO2gTrkByFB01sz3sU6BzPC0Jvja4uMT9YXFpGV4ts3tElvb7zs0VGg==, tarball: file:../../../.campaign/tgz/antelopejs-dms-frontend-ee4e931.tgz}
+    version: 0.10.0
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -812,7 +813,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.9.1(@antelopejs/core@file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz)':
+  '@antelopejs/dms-frontend@file:../../../.campaign/tgz/antelopejs-dms-frontend-ee4e931.tgz(@antelopejs/core@file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz)':
     dependencies:
       '@antelopejs/core': file:../../../.campaign/tgz/antelopejs-core-d74e513.tgz
       '@intlify/message-compiler': 11.4.16
