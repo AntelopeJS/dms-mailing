@@ -57,6 +57,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { t, locale: uiLocale } = useI18n()
 const onDate = (date: string): string =>
 	t('dms_mailing.common.on_date', { date })
@@ -110,6 +111,7 @@ onMounted(async () => {
 		values.value = initialSendValues(fields.value, detail.value.testData)
 		locale.value = detail.value.fallbackLocale
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),
@@ -334,6 +336,7 @@ async function submit(): Promise<void> {
 		report(response.results, to)
 		close(true)
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),

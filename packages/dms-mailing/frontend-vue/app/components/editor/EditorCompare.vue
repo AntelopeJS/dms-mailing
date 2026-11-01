@@ -43,6 +43,8 @@ const INITIAL_FRAME_HEIGHT = 480
 
 const { t } = useI18n()
 const api = useMailingApi()
+const consumeRefusal = useReadOnlyRefusal()
+const isRefused = ref(false)
 
 const locale = ref(props.locale)
 const previews = ref<Record<SideId, PreviewResponse | null>>({
@@ -124,6 +126,7 @@ const sides = computed<ComparedSide[]>(() => {
 async function load(): Promise<void> {
 	const base = { locale: locale.value, data: props.data }
 	failed.value = false
+	isRefused.value = false
 	previews.value = { published: null, draft: null }
 	try {
 		const [published, draft] = await Promise.all([
@@ -131,7 +134,8 @@ async function load(): Promise<void> {
 			api.preview(props.templateId, { ...base, content: props.content }),
 		])
 		previews.value = { published, draft }
-	} catch {
+	} catch (error) {
+		isRefused.value = consumeRefusal(error)
 		failed.value = true
 	}
 }
@@ -165,12 +169,12 @@ watch(locale, load, { immediate: true })
 		</div>
 
 		<DmsEmptyState
-			v-if="failed"
+			v-if="failed && !isRefused"
 			variant="error"
 			size="sm"
 			:title="t(`${KEY}.error`)"
 		/>
-		<div v-else class="grid gap-4 md:grid-cols-2">
+		<div v-else-if="!isRefused" class="grid gap-4 md:grid-cols-2">
 			<section
 				v-for="side in sides"
 				:key="side.id"

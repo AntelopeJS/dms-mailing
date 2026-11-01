@@ -66,6 +66,7 @@ const props = withDefaults(defineProps<TemplatePreviewFrameProps>(), {
 const emit = defineEmits<{ resolved: [PreviewResponse] }>()
 
 const api = useMailingApi()
+const consumeRefusal = useReadOnlyRefusal()
 const { t, locale: uiLocale } = useI18n()
 
 const readStarterPreview = useStarterPreviewRead(
@@ -75,6 +76,7 @@ const readStarterPreview = useStarterPreviewRead(
 const fetchedHtml = ref('')
 /** The last read failed: the frame shows its fallback, not a skeleton for ever. */
 const hasFailed = ref(false)
+const isRefused = ref(false)
 const height = ref(FALLBACK_HEIGHT)
 const frame = ref<HTMLIFrameElement | null>(null)
 const box = ref<HTMLElement | null>(null)
@@ -134,8 +136,10 @@ async function load(): Promise<void> {
 			? fetchStarter()
 			: fetchTemplate(props.templateId as string))
 		hasFailed.value = false
-	} catch {
+		isRefused.value = false
+	} catch (error) {
 		fetchedHtml.value = ''
+		isRefused.value = consumeRefusal(error)
 		hasFailed.value = true
 	}
 }
@@ -214,7 +218,7 @@ const frameStyle = computed(() => ({
 		/>
 		<USkeleton v-else-if="isWaiting" class="absolute inset-0 size-full" />
 		<div
-			v-else-if="hasFailed"
+			v-else-if="hasFailed && !isRefused"
 			class="bg-elevated text-dimmed absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-[12px]"
 			data-preview-fallback
 		>

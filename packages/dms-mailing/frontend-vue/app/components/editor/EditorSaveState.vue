@@ -47,6 +47,7 @@ const hint = computed(() => {
 <template>
 	<div class="flex items-center gap-1">
 		<button
+			v-if="!session.state.isSaveRefused"
 			type="button"
 			class="text-muted flex items-center gap-1.5 rounded px-1.5 font-mono text-[11.5px]"
 			:class="{

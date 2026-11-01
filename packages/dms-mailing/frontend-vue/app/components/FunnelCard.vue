@@ -71,7 +71,11 @@ const {
 const steps = computed<FunnelStepReading[]>(() => data.value?.steps ?? [])
 const total = computed(() => steps.value[0]?.count ?? 0)
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
-const hasFailed = computed(() => !data.value && !!error.value)
+const consumeRefusal = useReadOnlyRefusal()
+const isRefused = computed(() => consumeRefusal(error.value))
+const hasFailed = computed(
+	() => !data.value && !!error.value && !isRefused.value,
+)
 
 const kindItems = computed(() =>
 	FUNNEL_KINDS.map((value) => ({
@@ -137,7 +141,7 @@ const deltaTitle = (step: FunnelStepReading): string | undefined =>
 			:title="t(`${KEY_PREFIX}error_title`)"
 			:actions="errorActions"
 		/>
-		<div v-else class="@container flex flex-col gap-3.5 p-5">
+		<div v-else-if="!isRefused" class="@container flex flex-col gap-3.5 p-5">
 			<template v-if="loading && !steps.length">
 				<USkeleton v-for="row in SKELETON_ROWS" :key="row" class="h-5 w-full" />
 			</template>

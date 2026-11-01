@@ -14,6 +14,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const { t } = useI18n()
+const consumeRefusal = useReadOnlyRefusal()
 const route = useDmsRoute()
 const setRecordLabel = useRecordLabel()
 
@@ -26,15 +27,18 @@ const locale = ref<string | null>(
 const loaded = ref<TemplateContentResponse | null>(null)
 const loading = ref(true)
 const failed = ref(false)
+const isRefused = ref(false)
 const generation = ref(0)
 
 async function load(): Promise<void> {
 	failed.value = false
+	isRefused.value = false
 	try {
 		loaded.value = await readContent()
 		setRecordLabel(loaded.value.template.name)
 		generation.value += 1
-	} catch {
+	} catch (error) {
+		isRefused.value = consumeRefusal(error)
 		failed.value = true
 	} finally {
 		loading.value = false
@@ -69,7 +73,7 @@ onMounted(load)
 		<MailingEditorLoading v-if="loading" />
 
 		<div
-			v-else-if="failed || !loaded"
+			v-else-if="(failed || !loaded) && !isRefused"
 			class="flex flex-1 items-center justify-center p-8"
 		>
 			<DmsEmptyState
@@ -86,7 +90,7 @@ onMounted(load)
 		</div>
 
 		<MailingEditorWorkspace
-			v-else
+			v-else-if="loaded && !isRefused"
 			:key="`${templateId}-${generation}`"
 			v-model:locale="locale"
 			:loaded="loaded"

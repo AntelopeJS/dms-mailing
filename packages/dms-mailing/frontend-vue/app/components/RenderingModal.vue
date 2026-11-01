@@ -45,6 +45,8 @@ const FRAME_WIDTHS: Record<RenderingView, string> = {
 }
 
 const { t, locale } = useI18n()
+const consumeRefusal = useReadOnlyRefusal()
+const isRefused = ref(false)
 
 const view = ref<RenderingView>('desktop')
 const rendering = ref<SendRendering | null>(null)
@@ -94,10 +96,13 @@ async function load(): Promise<void> {
 	if (!sendIdValue.value) return
 	loading.value = true
 	failed.value = false
+	isRefused.value = false
 	try {
 		const [html] = await Promise.all([readHtml(), loadSend()])
 		rendering.value = html
 	} catch (error) {
+		isRefused.value = consumeRefusal(error)
+		if (isRefused.value) return
 		failed.value = true
 		useApiError(error)
 	} finally {
@@ -130,13 +135,13 @@ onMounted(load)
 		/>
 
 		<DmsEmptyState
-			v-else-if="failed || !rendering"
+			v-else-if="(failed || !rendering) && !isRefused"
 			variant="error"
 			:title="key('error_title')"
 			:description="key('error_description')"
 		/>
 
-		<template v-else>
+		<template v-else-if="rendering && !isRefused">
 			<DmsBanner
 				v-if="rendering.approximate"
 				tone="warning"

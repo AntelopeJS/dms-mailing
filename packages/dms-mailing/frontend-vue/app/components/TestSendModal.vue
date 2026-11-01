@@ -49,6 +49,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { t, locale: uiLocale } = useI18n()
 const { processApiMessage } = useTranslation()
 const { user } = useCurrentUser()
@@ -70,6 +71,7 @@ onMounted(async () => {
 		detail.value = await readContent()
 		locale.value ||= detail.value.fallbackLocale
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),
@@ -217,6 +219,7 @@ async function submit(): Promise<void> {
 		warnOwnSuppression(response.ownAddressSuppressed)
 		close(true)
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),

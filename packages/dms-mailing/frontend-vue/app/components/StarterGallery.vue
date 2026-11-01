@@ -20,6 +20,7 @@ const emit = defineEmits<{ created: [] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { t } = useI18n()
 const { processApiMessage } = useTranslation()
 const overlays = useTemplateDrawer()
@@ -65,6 +66,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 		emit('created')
 		if (id) await navigateDms(editorRoute(id))
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		if (apiErrorStatus(error) === HTTP_CONFLICT) {
 			openNewTemplate(starter)
 			return

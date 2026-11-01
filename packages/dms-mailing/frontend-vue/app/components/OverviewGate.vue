@@ -13,7 +13,7 @@ import type { MailingComponentProps } from '../types/component'
 defineProps<MailingComponentProps>()
 defineOptions({ inheritAttrs: false })
 
-type GateState = 'loading' | 'error' | 'ready'
+type GateState = 'loading' | 'error' | 'ready' | 'refused'
 
 const NEW_TEMPLATE_MODAL = 'MailingNewTemplateModal'
 const NEW_TEMPLATE_MODAL_SIZE = 'lg'
@@ -34,6 +34,7 @@ const STEP_BUTTON_VARIANTS: Record<SetupStepState, 'solid' | 'outline'> = {
 
 const { t } = useI18n()
 const { open: openModal } = useModal()
+const consumeRefusal = useReadOnlyRefusal()
 
 const { data: facts, error, status, refresh } = useSetupFacts()
 const isResumed = ref(false)
@@ -41,6 +42,7 @@ const isResumed = ref(false)
 /** A failure shows once its retry is over; the facts read last stay meanwhile. */
 const state = computed<GateState>(() => {
 	if (facts.value) return 'ready'
+	if (consumeRefusal(error.value)) return 'refused'
 	return error.value && status.value !== 'pending' ? 'error' : 'loading'
 })
 
@@ -103,7 +105,7 @@ function createTemplate(): void {
 		/>
 	</DmsCard>
 
-	<div v-else class="flex flex-col gap-4">
+	<div v-else-if="state === 'ready'" class="flex flex-col gap-4">
 		<div v-if="canResume" class="flex justify-end">
 			<UButton
 				size="xs"

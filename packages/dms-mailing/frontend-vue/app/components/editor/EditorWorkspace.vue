@@ -24,6 +24,7 @@ const locale = defineModel<string | null>('locale', { default: null })
 const emit = defineEmits<{ renamed: [string] }>()
 
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { processApiMessage } = useTranslation()
 const { uniqueLocales } = useUniqueLocales()
 const api = useMailingApi()
@@ -44,6 +45,7 @@ const editor = createEditorState(
 )
 
 function reportFailure(error: unknown): void {
+	if (consumeRefusal(error)) return
 	toast.add({
 		color: 'error',
 		title: processApiMessage(apiErrorMessage(error)),

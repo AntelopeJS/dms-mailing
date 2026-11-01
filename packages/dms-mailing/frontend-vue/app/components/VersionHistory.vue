@@ -33,6 +33,7 @@ const props = withDefaults(defineProps<VersionHistoryProps>(), {
 
 const modal = useModal()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
 const { processApiMessage } = useTranslation()
@@ -47,6 +48,7 @@ async function load(): Promise<void> {
 	try {
 		versions.value = (await readVersions()).versions
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),

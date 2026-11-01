@@ -84,6 +84,7 @@ defineEmits<{ success: [changed?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
 const { processApiMessage } = useTranslation()
@@ -138,6 +139,7 @@ async function load(): Promise<void> {
 		performance.value = stats
 		locale.value ||= content.fallbackLocale
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),
@@ -311,6 +313,7 @@ async function saveDetails(changes: Partial<TemplateDetails>): Promise<void> {
 		})
 		reloadInPlace()
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),
@@ -372,6 +375,7 @@ async function runLifecycle(action: LifecycleAction): Promise<void> {
 		})
 		settle()
 	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({
 			color: 'error',
 			title: processApiMessage(apiErrorMessage(error)),
@@ -420,10 +424,11 @@ async function declareVariable(path: string): Promise<void> {
 		detail.value.variables = response.variables
 		detail.value.revision = response.revision
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		if (!consumeRefusal(error))
+			toast.add({
+				color: 'error',
+				title: processApiMessage(apiErrorMessage(error)),
+			})
 		reloadInPlace()
 	}
 }
@@ -447,10 +452,11 @@ async function restoreVersion(version: number): Promise<void> {
 			],
 		})
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		if (!consumeRefusal(error))
+			toast.add({
+				color: 'error',
+				title: processApiMessage(apiErrorMessage(error)),
+			})
 	}
 	reloadInPlace()
 }

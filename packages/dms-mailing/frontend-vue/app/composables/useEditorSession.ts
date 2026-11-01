@@ -59,6 +59,7 @@ export interface SessionState {
 	blockOnMissingVariables: boolean
 	performance: TemplatePerformance | null
 	saveStatus: SaveStatus
+	isSaveRefused: boolean
 	activeField: TokenFieldHandle | null
 }
 
@@ -87,6 +88,7 @@ function createState(loaded: TemplateContentResponse): SessionState {
 		blockOnMissingVariables: loaded.blockOnMissingVariables,
 		performance: null,
 		saveStatus: 'idle',
+		isSaveRefused: false,
 		activeField: null,
 	}) as SessionState
 }
@@ -115,12 +117,14 @@ function createViews(state: SessionState, editor: EditorState) {
 			statusKeyOf(state.template.status, state.version),
 		),
 		notice: computed(() =>
-			noticeFor({
-				status: state.template.status,
-				version: state.version,
-				changeCount: state.changes.length,
-				saveStatus: state.saveStatus,
-			}),
+			state.isSaveRefused
+				? null
+				: noticeFor({
+						status: state.template.status,
+						version: state.version,
+						changeCount: state.changes.length,
+						saveStatus: state.saveStatus,
+					}),
 		),
 	}
 }
@@ -145,6 +149,7 @@ export function retryDelay(failures: number): number {
 
 function createSaver(deps: SessionDeps, state: SessionState) {
 	const { editor, api, reads, templateId, onError } = deps
+	const consumeRefusal = useReadOnlyRefusal()
 	let timer: ReturnType<typeof setTimeout> | null = null
 	let inFlight: Promise<boolean> | null = null
 	let failures = 0
@@ -167,12 +172,14 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 		if (isDraftConflict(error)) return markConflict()
 		failures += 1
 		state.saveStatus = 'error'
-		if (failures === 1) onError(error)
+		state.isSaveRefused = consumeRefusal(error)
+		if (failures === 1 && !state.isSaveRefused) onError(error)
 		if (isTransient(error)) schedule(retryDelay(failures))
 	}
 	async function write(): Promise<boolean> {
 		const revision = editor.revision
 		state.saveStatus = 'saving'
+		state.isSaveRefused = false
 		try {
 			const response = await api.saveContent(templateId, {
 				content: deepClone(editor.content),

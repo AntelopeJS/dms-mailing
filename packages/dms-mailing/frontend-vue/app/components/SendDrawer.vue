@@ -82,6 +82,7 @@ const props = defineProps<SendDrawerProps>()
 
 const api = useMailingApi()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const reportReplay = useReplayToast()
 const { confirm } = useConfirm()
 const { open: openModal } = useModal()
@@ -264,7 +265,8 @@ async function loadTracking(): Promise<void> {
 async function showSend(id: string): Promise<void> {
 	try {
 		await props.showRow?.(id)
-	} catch {
+	} catch (error) {
+		if (consumeRefusal(error)) return
 		toast.add({ color: 'error', title: key('send_unavailable') })
 	}
 }

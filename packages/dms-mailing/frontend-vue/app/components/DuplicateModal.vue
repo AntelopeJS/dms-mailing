@@ -32,6 +32,7 @@ const emit = defineEmits<{ success: [created?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const consumeRefusal = useReadOnlyRefusal()
 const { t } = useI18n()
 const { processApiMessage } = useTranslation()
 
@@ -101,6 +102,7 @@ function close(created: boolean): void {
 }
 
 function reportFailure(error: unknown): void {
+	if (consumeRefusal(error)) return
 	if (apiErrorStatus(error) === HTTP_CONFLICT) {
 		takenSlugs.value = new Set([...takenSlugs.value, slug.value])
 		return
