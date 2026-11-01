@@ -1,5 +1,6 @@
 import type { Readable } from "node:stream";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { TenantExportArchive } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
 import { z } from "zod";
@@ -27,7 +28,7 @@ const slugRowsSchema = z.array(z.object({ slug: z.string() }));
 class CollectingArchive implements TenantExportArchive {
   readonly entries = new Map<string, string>();
 
-  addJson(path: string, data: unknown): Promise<void> {
+  addJson(path: string, data: JsonValue): Promise<void> {
     this.entries.set(path, JSON.stringify(data));
     return Promise.resolve();
   }

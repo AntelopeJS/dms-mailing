@@ -1,11 +1,11 @@
 import type { LocalizedText } from "@antelopejs/interface-dms-mailing";
 
 /** A template category as stored: its label written once per language. */
-export interface TemplateCategory {
+export type TemplateCategory = {
   id: string;
   label: LocalizedText;
   icon: string;
-}
+};
 
 /** A template category as one reader sees it: the label in their language. */
 export interface CategoryInLocale {
