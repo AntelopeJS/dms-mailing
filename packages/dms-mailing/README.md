@@ -67,7 +67,7 @@ await SendTemplate("order-confirmation", {
 | `@antelopejs/interface-database`            | `file:../../.campaign/tgz/antelopejs-interface-database-8261536.tgz`            | —           |
 | `@antelopejs/interface-database-decorators` | `file:../../.campaign/tgz/antelopejs-interface-database-decorators-fcb0a29.tgz` | —           |
 | `@antelopejs/interface-dms`                 | `file:../../.campaign/tgz/antelopejs-interface-dms-50e3adc.tgz`                 | —           |
-| `@antelopejs/interface-dms-automation`      | `>=0.2.1 <1.0.0`                                                                | —           |
+| `@antelopejs/interface-dms-automation`      | `file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz`      | —           |
 | `@antelopejs/interface-dms-mailing`         | `>=0.9.0 <0.10.0`                                                               | —           |
 | `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`                                                                | —           |
 
