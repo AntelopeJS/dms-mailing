@@ -78,7 +78,7 @@ await SendTemplate("order-confirmation", {
 | `@antelopejs/dms` | `>=0.11.0 <1.0.0` |
 | `@antelopejs/interface-dms` | `>=0.9.0 <1.0.0` |
 | `@antelopejs/dms-frontend` (renderer, playground range) | `>=0.9.1 <0.10.0` |
-| `@antelopejs/interface-dms-mailing` | `>=0.8.0 <0.9.0` |
+| `@antelopejs/interface-dms-mailing` | `>=0.9.0 <0.10.0` |
 | Database module | one that enforces unique indexes: `@antelopejs/mongodb` `>=1.5.1`, `@antelopejs/postgres` `>=0.2.2` |
 | E-mail provider | an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer` |
 
