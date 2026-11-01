@@ -45,12 +45,12 @@ const INPUT_SCHEMA: JsonSchema = {
   required: ["tenantId", "slug", "to"],
 };
 
-const RESULT_PROPERTIES: JsonSchema = {
+const RESULT_PROPERTIES = {
   sendId: { type: "string" },
   status: { type: "string", enum: SEND_STATUSES },
   messageId: { type: "string" },
   error: { type: "string" },
-};
+} satisfies { [name: string]: JsonSchema };
 
 const OUTPUT_SCHEMA: JsonSchema = {
   type: "object",
@@ -64,12 +64,21 @@ const OUTPUT_SCHEMA: JsonSchema = {
   },
 };
 
-const failedRecipients = (result: SendTemplateResult): SendTemplateResult[] =>
+/** What the action hands the graph: the send's result, as JSON. */
+type SendTemplateOutput = {
+  sendId: string;
+  status: SendTemplateResult["status"];
+  messageId?: string;
+  error?: string;
+  results?: SendTemplateOutput[];
+};
+
+const failedRecipients = (result: SendTemplateOutput): SendTemplateOutput[] =>
   (result.results ?? [result]).filter((entry) => entry.status === "failed");
 
 export const sendTemplateAction: ActionType<
   SendTemplateActionInput,
-  SendTemplateResult
+  SendTemplateOutput
 > = {
   id: SEND_TEMPLATE_ACTION_ID,
   name: "Send e-mail template",
@@ -81,13 +90,16 @@ export const sendTemplateAction: ActionType<
     const source =
       input.source ?? `${AUTOMATION_SOURCE_PREFIX}${ctx.procedureId}`;
     try {
-      const result = await sendUnlessSuppressed(input.slug, {
-        tenantId: input.tenantId,
-        to: input.to,
-        locale: input.locale,
-        variables: input.variables,
-        source,
-      });
+      const result: SendTemplateOutput = await sendUnlessSuppressed(
+        input.slug,
+        {
+          tenantId: input.tenantId,
+          to: input.to,
+          locale: input.locale,
+          variables: input.variables,
+          source,
+        },
+      );
       const failures = failedRecipients(result);
       if (failures.length > 0) {
         ctx.log(
@@ -98,7 +110,11 @@ export const sendTemplateAction: ActionType<
       }
       return result;
     } catch (error) {
-      ctx.log("error", `Template "${input.slug}" could not be sent`, error);
+      ctx.log(
+        "error",
+        `Template "${input.slug}" could not be sent`,
+        error instanceof Error ? error.message : String(error),
+      );
       throw error;
     }
   },
