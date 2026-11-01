@@ -7,7 +7,6 @@ import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateContentRead } from '../composables/useMailingReads'
 import type { SendResult } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
-import { apiErrorMessage } from '../utils/api-error'
 import { firstName, formatCardDate } from '../utils/gallery'
 import { localeChipClass, missingLocales } from '../utils/locales'
 import {
@@ -57,10 +56,10 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { t, locale: uiLocale } = useI18n()
 const onDate = (date: string): string =>
 	t('dms_mailing.common.on_date', { date })
-const { processApiMessage } = useTranslation()
 const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
 
@@ -110,10 +109,7 @@ onMounted(async () => {
 		values.value = initialSendValues(fields.value, detail.value.testData)
 		locale.value = detail.value.fallbackLocale
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		loading.value = false
 	}
@@ -296,15 +292,11 @@ function openSettings(): void {
 	void navigateDms({ path: SETTINGS_PATH })
 }
 
-function report(results: SendResult[], to: string[]): void {
+function report(results: SendResult[]): void {
 	results
 		.filter((result) => result.error)
 		.forEach((result) =>
-			toast.add({
-				color: 'error',
-				title: to[results.indexOf(result)] ?? result.sendId,
-				description: processApiMessage(result.error),
-			}),
+			presentError(result.error, { fallbackKey: 'error.500.description' }),
 		)
 	const sent = results.filter((result) => !result.error).length
 	if (!sent) return
@@ -331,13 +323,10 @@ async function submit(): Promise<void> {
 			locale: locale.value || undefined,
 			data: sendData.value,
 		})
-		report(response.results, to)
+		report(response.results)
 		close(true)
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}

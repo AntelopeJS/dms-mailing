@@ -51,7 +51,6 @@ beforeEach(() => {
 	stubNuxtGlobals()
 	stubRegionalFormat()
 	vi.stubGlobal('resolveComponent', (name: string) => slotStub(name))
-	vi.stubGlobal('useApiError', vi.fn())
 	api$ = stubApiData()
 	api.webhookTest.mockReset()
 	stubAuthFetch().respond(mailingWrites({ webhookTest: api.webhookTest }))
@@ -92,6 +91,30 @@ describe('ProviderPill', () => {
 })
 
 describe('WebhookStatus', () => {
+	it('shows one translated warning when a test event is refused', async () => {
+		const { toasts } = stubNuxtGlobals()
+		api$.respond(() => NEVER)
+		const data = { message: 'error.read_only_demo', severity: 'warning' }
+		api.webhookTest.mockRejectedValue({
+			response: new Response(JSON.stringify(data), { status: 403 }),
+			data,
+		})
+		const view = mount(
+			WebhookStatus,
+			{},
+			{ UButton: ButtonStub, USkeleton: slotStub('USkeleton') },
+		)
+		await flush()
+		view.host.querySelector('button')?.click()
+		await flush()
+		expect(toasts).toHaveLength(1)
+		expect(toasts[0]).toMatchObject({
+			title: 'Read-only demo, changes are not saved',
+			color: 'warning',
+		})
+		view.unmount()
+	})
+
 	it('shows the status read, then the one a test event answers', async () => {
 		api$.respond(() => NEVER)
 		api.webhookTest.mockResolvedValue({

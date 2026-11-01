@@ -1,4 +1,5 @@
 import { vi } from 'vitest'
+import { useApiErrorPresenter } from '../../../node_modules/@antelopejs/dms/frontend-vue/layers/dms-core/app/composables/useApiErrorPresenter'
 import {
 	computed,
 	createApp,
@@ -70,8 +71,23 @@ export function stubNuxtGlobals(email = 'camille@acme.com'): NuxtStubs {
 		processI18n: (message: string) => message,
 	}))
 	vi.stubGlobal('useToast', () => ({
-		add: (toast: Record<string, unknown>) => stubs.toasts.push(toast),
+		add: (toast: Record<string, unknown>) => {
+			stubs.toasts.push(toast)
+			return { id: stubs.toasts.length }
+		},
 	}))
+	vi.stubGlobal('getPluginI18n', () => ({
+		i18n: {
+			tm: (key: string) =>
+				key === 'error.read_only_demo'
+					? 'Read-only demo, changes are not saved'
+					: key,
+			rt: translate,
+		},
+	}))
+	const presented = ref(new WeakMap())
+	vi.stubGlobal('useDmsState', () => presented)
+	vi.stubGlobal('useApiErrorPresenter', useApiErrorPresenter)
 	vi.stubGlobal('useUniqueLocales', () => ({
 		uniqueLocales: ref([
 			{ code: 'en', name: 'English' },

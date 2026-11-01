@@ -26,6 +26,7 @@ const KEY_PREFIX = 'dms_mailing.sends.fix_address.'
 const api = useMailingApi()
 const reportReplay = useReplayToast()
 const { t } = useI18n()
+const { presentError } = useApiErrorPresenter()
 
 const previous = computed(() => props.rowData?.recipientEmail ?? '')
 const address = ref(previous.value)
@@ -66,7 +67,7 @@ async function submit(): Promise<void> {
 		reportReplay(result, email, key('sent', { email }))
 		emit('success', true)
 	} catch (error) {
-		useApiError(error)
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}

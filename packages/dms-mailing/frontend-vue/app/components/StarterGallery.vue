@@ -4,11 +4,7 @@ import { useLocalizedDefaults } from '../composables/useLocalizedDefaults'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useStarters } from '../composables/useMailingReads'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
-import {
-	HTTP_CONFLICT,
-	apiErrorMessage,
-	apiErrorStatus,
-} from '../utils/api-error'
+import { HTTP_CONFLICT, apiErrorStatus } from '../utils/api-error'
 import { editorRoute } from '../utils/editor-route'
 import type { StarterSummary } from '../types/mailing'
 
@@ -19,9 +15,8 @@ const SKELETON_STARTERS = 4
 const emit = defineEmits<{ created: [] }>()
 
 const api = useMailingApi()
-const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { t } = useI18n()
-const { processApiMessage } = useTranslation()
 const overlays = useTemplateDrawer()
 
 const localized = useLocalizedDefaults()
@@ -69,10 +64,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 			openNewTemplate(starter)
 			return
 		}
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		creatingId.value = null
 	}
