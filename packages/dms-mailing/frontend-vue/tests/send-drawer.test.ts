@@ -52,7 +52,6 @@ describe('send drawer layout', () => {
 	beforeEach(() => {
 		stubNuxtGlobals()
 		stubAuthFetch()
-		vi.stubGlobal('useApiError', () => undefined)
 		stubApiData().respond(
 			mailingReads({ send: () => ({ send: SEND, events: [] }) }),
 		)
