@@ -8,11 +8,7 @@ import {
   RawBody,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import {
-  assert,
-  assertValidation,
-  zodIssuesJson,
-} from "@antelopejs/interface-api-util";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetApiBaseUrl } from "@antelopejs/interface-dms/api-base-url";
 import { GetClientBaseUrl } from "@antelopejs/interface-dms/client-base-url";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -53,6 +49,7 @@ import {
 } from "../validation/settings.schema";
 import { retentionLimit } from "../crons/retention";
 import { isJsonObject } from "../validation/json";
+import { zodIssuesJson } from "./zod-json";
 
 const INVALID_SETTINGS = "$dms_mailing.errors.invalid_settings";
 const CATEGORIES_REASSIGNED = "$dms_mailing.settings.categories.reassigned";
