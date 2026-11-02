@@ -42,7 +42,7 @@ importers:
         specifier: file:../../.campaign/tgz/antelopejs-interface-dms-e0787e6.tgz
         version: file:../../.campaign/tgz/antelopejs-interface-dms-e0787e6.tgz(d7fd6f053689deb66e885d52eeeaf534)
       '@antelopejs/interface-dms-mailing':
-        specifier: '>=0.9.0 <0.10.0'
+        specifier: '>=0.10.0 <0.11.0'
         version: link:../interface-dms-mailing
       '@antelopejs/interface-email':
         specifier: '>=0.0.6 <1.0.0'
