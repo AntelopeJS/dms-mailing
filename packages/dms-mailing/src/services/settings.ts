@@ -30,6 +30,8 @@ function toValues(row: MailingSettings): MailingSettingsValues {
     senderEmail: row.senderEmail,
     replyTo: row.replyTo,
     webhookSecret: row.webhookSecret,
+    // SAFETY: json_categories is written only by toRow as the JSON.stringify of categories that categoriesSchema
+    // validated (settingsPatchSchema, applyCategory) or that the module defaults supplied.
     categories: JSON.parse(row.json_categories) as TemplateCategory[],
   };
 }

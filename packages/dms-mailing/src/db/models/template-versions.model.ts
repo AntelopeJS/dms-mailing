@@ -11,6 +11,8 @@ export function committedVersionOf(
   template: Pick<MailingTemplate, "json_published_version">,
 ): MailingTemplateVersion | undefined {
   if (!template.json_published_version) return undefined;
+  // SAFETY: json_published_version is written only by publishSnapshot and publishedAtCreation as the
+  // JSON.stringify of the version row they insert; its publishedAt reads back as a string, and the next line restores the Date.
   const row = JSON.parse(
     template.json_published_version,
   ) as MailingTemplateVersion;
