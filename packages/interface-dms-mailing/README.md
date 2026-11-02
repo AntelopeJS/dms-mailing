@@ -59,18 +59,14 @@ A recipient on the workspace's suppression list gets no e-mail, and its result h
 
 A `@antelopejs/dms-mailing` release implements one minor line of this interface. The `@antelopejs/interface-dms-mailing` row of the compatibility block in the [module README](../dms-mailing/README.md#compatibility) gives that range. Use a module release whose range covers the interface release your code imports. `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends` each take an explicit `tenantId`. The interface declares these dependencies:
 
-<!-- vale off -->
-
 <!-- antelopejs-docs-compat:start -->
 
-| Package                       | Supported                                                        | Tested with |
-| ----------------------------- | ---------------------------------------------------------------- | ----------- |
-| `@antelopejs/interface-core`  | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` | —           |
-| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0`                                                 | —           |
+| Package                       | Supported                                                        | Tested with                                                      |
+| ----------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `@antelopejs/interface-core`  | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0`                                                 | `0.0.6`                                                          |
 
 <!-- antelopejs-docs-compat:end -->
-
-<!-- vale on -->
 
 ## Documentation
 
