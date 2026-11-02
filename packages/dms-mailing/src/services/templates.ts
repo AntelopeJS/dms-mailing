@@ -74,6 +74,7 @@ export async function refuseTakenSlug<T>(write: Promise<T>): Promise<T> {
 
 /** The content customers receive: the last published version. */
 export function parseContent(template: MailingTemplate): TemplateContent {
+  // SAFETY: json_content is written only as JSON.stringify of a TemplateContent that saveContentSchema validated or the module built.
   return JSON.parse(template.json_content || EMPTY_CONTENT) as TemplateContent;
 }
 
@@ -84,6 +85,7 @@ export function hasDraft(template: MailingTemplate): boolean {
 /** The content the editor works on: the draft, or the published content. */
 export function workingContent(template: MailingTemplate): TemplateContent {
   if (!template.json_draft) return parseContent(template);
+  // SAFETY: json_draft is written only as JSON.stringify of a TemplateContent that saveContentSchema validated or the module built.
   return JSON.parse(template.json_draft) as TemplateContent;
 }
 
@@ -103,6 +105,7 @@ export function isPublished(template: MailingTemplate): boolean {
 export function parseVariables(
   template: MailingTemplate,
 ): VariableDefinition[] {
+  // SAFETY: json_variables is written only as JSON.stringify of a VariableDefinition[] that variableListSchema validated or the module built.
   return JSON.parse(template.json_variables) as VariableDefinition[];
 }
 
@@ -115,6 +118,7 @@ export function workingVariables(
 ): VariableDefinition[] {
   if (!hasDraft(template) || !template.json_variables_draft)
     return parseVariables(template);
+  // SAFETY: json_variables_draft is written only as JSON.stringify of a VariableDefinition[] that variableListSchema validated or the module built.
   return JSON.parse(template.json_variables_draft) as VariableDefinition[];
 }
 
@@ -171,6 +175,7 @@ export function pendingChanges(template: MailingTemplate): TemplateChange[] {
 }
 
 export function parseTestData(template: MailingTemplate): JsonObject {
+  // SAFETY: json_test_data is written only as JSON.stringify of an object that its route or declaration schema validated, or the module built.
   return JSON.parse(template.json_test_data) as JsonObject;
 }
 
@@ -292,6 +297,7 @@ export async function discardDraft(
 export function parseVersionChanges(
   row: MailingTemplateVersion,
 ): TemplateChange[] {
+  // SAFETY: json_changes is written only as JSON.stringify of the TemplateChange[] from diffContents.
   return JSON.parse(row.json_changes) as TemplateChange[];
 }
 
@@ -299,6 +305,7 @@ export function parseVersionChanges(
 export function parseVersionVariables(
   row: MailingTemplateVersion,
 ): VariableDefinition[] {
+  // SAFETY: a version row's json_variables is written only as JSON.stringify of a VariableDefinition[] that variableListSchema validated or the module built.
   return JSON.parse(row.json_variables) as VariableDefinition[];
 }
 
@@ -454,6 +461,7 @@ export async function contentOfVersion(
 export function parseVersionContent(
   row: MailingTemplateVersion,
 ): TemplateContent {
+  // SAFETY: a version row's json_content is written only as JSON.stringify of a TemplateContent that saveContentSchema validated.
   return JSON.parse(row.json_content) as TemplateContent;
 }
 

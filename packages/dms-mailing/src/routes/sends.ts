@@ -578,6 +578,8 @@ function requestedVersionOf(
 }
 
 function variablesOf(send: MailingSend): JsonObject {
+  // SAFETY: json_variables is written only as JSON.stringify(params.variables ?? {}) (services/send.ts) or
+  // JSON.stringify(send.variables) (services/send-import.ts), both a JsonObject.
   return JSON.parse(send.json_variables || "{}") as JsonObject;
 }
 

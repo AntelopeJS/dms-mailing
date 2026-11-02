@@ -148,6 +148,9 @@ async function refusalOf(
   response: Response,
 ): Promise<WebhookRefusal | undefined> {
   try {
+    // SAFETY: Response.json() answers any, and the URL under test is this module's own webhook route, which refuses
+    // with refusalBody(reason); another endpoint can answer any JSON, which is read the same way, and a non-object
+    // throws into the catch below.
     const body = (await response.json()) as Partial<WebhookRefusalBody>;
     return body.reason;
   } catch {
