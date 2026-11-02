@@ -297,7 +297,7 @@ export async function discardDraft(
 export function parseVersionChanges(
   row: MailingTemplateVersion,
 ): TemplateChange[] {
-  // SAFETY: json_changes is written only as JSON.stringify of the TemplateChange[] from diffContents.
+  // SAFETY: json_changes is written only as JSON.stringify of the TemplateChange[] from diffContents and diffVariables.
   return JSON.parse(row.json_changes) as TemplateChange[];
 }
 
