@@ -46,7 +46,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "pnpm --filter @antelopejs/interface-dms-mailing build && rimraf dist && tsc",
     "dev": "ajs project dev -w -p playground",
     "dev:frontend": "cd playground && pnpm frontend:dev",
     "frontend:dev": "cd playground && pnpm frontend:dev",
