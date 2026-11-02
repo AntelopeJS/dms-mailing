@@ -37,7 +37,7 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"@antelopejs/tooling-configs": "file:../../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz"
+			"@antelopejs/tooling-configs": "file:../../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz"
 		}
 	}
 }

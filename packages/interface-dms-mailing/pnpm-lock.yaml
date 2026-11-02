@@ -12,7 +12,7 @@ overrides:
   '@antelopejs/interface-data-api': file:../../.campaign/tgz/antelopejs-interface-data-api-d8a868f.tgz
   '@antelopejs/interface-dms': file:../../.campaign/tgz/antelopejs-interface-dms-e0787e6.tgz
   '@antelopejs/interface-core': file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz
-  '@antelopejs/tooling-configs': file:../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz
+  '@antelopejs/tooling-configs': file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz
 
 importers:
 
@@ -44,8 +44,8 @@ importers:
         specifier: file:../../.campaign/tgz/antelopejs-interface-dms-e0787e6.tgz
         version: file:../../.campaign/tgz/antelopejs-interface-dms-e0787e6.tgz(20f114bc91c95a694da66e4852486784)
       '@antelopejs/tooling-configs':
-        specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz
-        version: file:../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz
+        version: file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -129,8 +129,8 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@file:../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz':
-    resolution: {integrity: sha512-uBAbtjidi4iXgKDX8iaECQTpm5gafKjZ486RSUG6XuqXcbvxm15F6oIKn4vIvkKfvyb3lpY8E63EIAa2rxQcNA==, tarball: file:../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz}
+  '@antelopejs/tooling-configs@file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz':
+    resolution: {integrity: sha512-qw4AhQIL9HcyJkEQYmCrm1JWzJ65wa34Ih//q0E6Mgpx9cLEOyLQlzzIVpIVvGKX35Q6HtADDV12sLOzYcEl/g==, tarball: file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz}
     version: 0.2.17
     engines: {node: '>=22.18.0'}
     hasBin: true
@@ -1910,7 +1910,7 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz
 
-  '@antelopejs/tooling-configs@file:../../.campaign/tgz/antelopejs-tooling-configs-3bc77e0.tgz(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
+  '@antelopejs/tooling-configs@file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
