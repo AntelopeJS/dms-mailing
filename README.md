@@ -90,7 +90,7 @@ cd packages/dms-mailing
 pnpm --dir playground install --ignore-workspace
 pnpm dev            # backend on http://localhost:5010
 pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
-pnpm --dir ../.. run checks   # typecheck, lint, format, knip, layer tests, size, ratchet, sync
+pnpm --dir ../.. run checks   # typecheck, lint, format, knip, layer tests, size, suppressions, sync
 pnpm test           # backend (unit and integration), then the frontend layer
 ```
 
