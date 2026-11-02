@@ -51,3 +51,10 @@
 @antelopejs/interface-core	packages/interface-dms-mailing/package.json	pnpm.overrides	
 @antelopejs/dms-frontend	packages/dms-mailing/playground/package.json	devDependencies	>=0.9.1 <0.10.0
 @antelopejs/dms-frontend	packages/dms-mailing/playground/package.json	pnpm.overrides	
+@antelopejs/tooling-configs	package.json	devDependencies	^0.2.17
+@antelopejs/tooling-configs	packages/dms-mailing/package.json	devDependencies	^0.2.12
+@antelopejs/tooling-configs	packages/interface-dms-mailing/package.json	devDependencies	>=0.0.9 <1.0.0
+@antelopejs/tooling-configs	packages/dms-mailing/frontend-vue/package.json	pnpm.overrides	
+@antelopejs/tooling-configs	packages/dms-mailing/package.json	pnpm.overrides	
+@antelopejs/tooling-configs	packages/interface-dms-mailing/package.json	pnpm.overrides	
+@antelopejs/tooling-configs	package.json	pnpm.overrides	
