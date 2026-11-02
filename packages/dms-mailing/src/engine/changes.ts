@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type {
   Block,
   BlockType,
@@ -6,7 +7,6 @@ import type {
   VariableDefinition,
 } from "../types";
 import { walkBlocks } from "./walk";
-import { isObject } from "../validation/guards";
 
 export type TemplateChangeKind =
   | "locale_added"
@@ -41,36 +41,21 @@ export const CONTRACT_LOCALE = "";
 
 interface BlockSnapshot {
   type: BlockType;
-  signature: string;
+  fields: object;
 }
 
 const NESTED_KEYS = new Set(["children", "elseChildren"]);
 
-/**
- * A value with its object keys sorted at every depth, so two blocks equal but
- * for the order their fields were written in read the same.
- */
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (!isObject(value)) return value;
+function ownFields(block: Block): object {
   return Object.fromEntries(
-    Object.keys(value)
-      .sort()
-      .map((key) => [key, canonical(value[key])]),
+    Object.entries(block).filter(([key]) => !NESTED_KEYS.has(key)),
   );
-}
-
-function ownFields(block: Block): string {
-  const entries = Object.entries(block).filter(
-    ([key]) => !NESTED_KEYS.has(key),
-  );
-  return JSON.stringify(canonical(Object.fromEntries(entries)));
 }
 
 function snapshotBlocks(blocks: Block[]): Map<string, BlockSnapshot> {
   const snapshots = new Map<string, BlockSnapshot>();
   walkBlocks(blocks, (block) => {
-    snapshots.set(block.id, { type: block.type, signature: ownFields(block) });
+    snapshots.set(block.id, { type: block.type, fields: ownFields(block) });
   });
   return snapshots;
 }
@@ -94,7 +79,7 @@ function blockChanges(
   const touched = [...after].flatMap(([id, snapshot]) => {
     const previous = before.get(id);
     if (!previous) return [blockChange(locale, "block_added", id, snapshot)];
-    if (previous.signature === snapshot.signature) return [];
+    if (isDeepStrictEqual(previous.fields, snapshot.fields)) return [];
     return [blockChange(locale, "block_changed", id, snapshot)];
   });
   return [...touched, ...removed];
@@ -162,13 +147,8 @@ export function diffContents(
 
 function declarationsByPath(
   variables: VariableDefinition[],
-): Map<string, string> {
-  return new Map(
-    variables.map((variable) => [
-      variable.path,
-      JSON.stringify(canonical(variable)),
-    ]),
-  );
+): Map<string, VariableDefinition> {
+  return new Map(variables.map((variable) => [variable.path, variable]));
 }
 
 function variableChange(
@@ -194,6 +174,8 @@ export function diffVariables(
     const next = after.get(path);
     if (previous === undefined) return [variableChange("variable_added", path)];
     if (next === undefined) return [variableChange("variable_removed", path)];
-    return previous === next ? [] : [variableChange("variable_changed", path)];
+    return isDeepStrictEqual(previous, next)
+      ? []
+      : [variableChange("variable_changed", path)];
   });
 }

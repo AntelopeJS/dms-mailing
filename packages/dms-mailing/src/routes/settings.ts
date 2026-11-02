@@ -148,8 +148,7 @@ function formIssue(issue: z.ZodIssue): z.ZodIssue {
 }
 
 /** A refused write: the generic message, and each issue for its field. */
-function invalidSettings(error: unknown) {
-  if (!(error instanceof z.ZodError)) return INVALID_SETTINGS;
+function invalidSettings(error: z.ZodError) {
   return {
     message: INVALID_SETTINGS,
     issues: zodIssuesJson(error.issues.map(formIssue)),
@@ -245,7 +244,8 @@ export class MailingSettingsController extends Controller(
     return assertValidation(
       clearedToEmpty(body),
       (value) => settingsPatchSchema.parse(value),
-      invalidSettings,
+      (error) =>
+        error instanceof z.ZodError ? invalidSettings(error) : INVALID_SETTINGS,
     );
   }
 
@@ -299,7 +299,8 @@ export class MailingSettingsController extends Controller(
     return assertValidation(
       raw,
       (value) => retentionDaysSchema.parse(value),
-      invalidSettings,
+      (error) =>
+        error instanceof z.ZodError ? invalidSettings(error) : INVALID_SETTINGS,
     );
   }
 

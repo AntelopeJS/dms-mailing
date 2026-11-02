@@ -185,10 +185,10 @@ const sameAddress = (left: string, right: string): boolean =>
   normalizeAddress(left) === normalizeAddress(right);
 
 /** A bad address gets its own message; any other invalid field is the content's. */
-function sendInputError(error: unknown): string {
-  const isRecipient =
-    error instanceof ZodError &&
-    error.issues.some((issue) => issue.path[0] === RECIPIENT_FIELD);
+function sendInputError(error: ZodError): string {
+  const isRecipient = error.issues.some(
+    (issue) => issue.path[0] === RECIPIENT_FIELD,
+  );
   return isRecipient ? INVALID_RECIPIENT : INVALID_CONTENT;
 }
 
@@ -256,7 +256,8 @@ export class SendsController extends Controller(API_BASE_PATH) {
     const input = assertValidation(
       body,
       (value) => testSendSchema.parse(value),
-      sendInputError,
+      (error) =>
+        error instanceof ZodError ? sendInputError(error) : INVALID_CONTENT,
     );
     const template = await requireTemplate(this.templates, id);
     const ownAddressSuppressed = await this.ownSuppression(input.to);
@@ -302,7 +303,8 @@ export class SendsController extends Controller(API_BASE_PATH) {
     const input = assertValidation(
       body,
       (value) => realSendSchema.parse(value),
-      sendInputError,
+      (error) =>
+        error instanceof ZodError ? sendInputError(error) : INVALID_CONTENT,
     );
     const template = await requireTemplate(this.templates, id);
     const result = await this.send(
