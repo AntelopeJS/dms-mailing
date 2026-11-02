@@ -40,7 +40,12 @@ const result = await SendTemplate("order-confirmed", {
   locale: "fr",
   variables: {
     customer: { firstName: "Sofie" },
-    order: { number: "#10482", total: { value: 4800, currency: "EUR" } },
+    order: {
+      number: "#10482",
+      total: { value: 4800, currency: "EUR" },
+      lines: [{ name: "Linen shirt", total: { value: 4800, currency: "EUR" } }],
+      url: "https://example.com/orders/10482",
+    },
   },
   source: "checkout",
 });

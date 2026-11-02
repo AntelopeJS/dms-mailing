@@ -42,7 +42,7 @@ nodemailer: {
 },
 ```
 
-Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). Create a template from the **Order confirmation** starter and publish it. Its slug is `order-confirmed`. Any module can then send it through [`@antelopejs/interface-dms-mailing`](https://github.com/AntelopeJS/dms-mailing/tree/main/packages/interface-dms-mailing):
+Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). On a workspace with no templates, create the **Order confirmation** template from the starter gallery and publish it. Its slug is `order-confirmed`. The **New template** dialog derives the slug from the name instead, so it gives `order-confirmation`. Check the slug before you send. Any module can then send it through [`@antelopejs/interface-dms-mailing`](https://github.com/AntelopeJS/dms-mailing/tree/main/packages/interface-dms-mailing):
 
 ```ts fragment
 import { SendTemplate } from "@antelopejs/interface-dms-mailing";
@@ -52,7 +52,12 @@ await SendTemplate("order-confirmed", {
   to: "sofie@example.com",
   variables: {
     customer: { firstName: "Sofie" },
-    order: { number: "#10482", total: { value: 4800, currency: "EUR" } },
+    order: {
+      number: "#10482",
+      total: { value: 4800, currency: "EUR" },
+      lines: [{ name: "Linen shirt", total: { value: 4800, currency: "EUR" } }],
+      url: "https://example.com/orders/10482",
+    },
   },
 });
 ```
