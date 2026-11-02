@@ -9,11 +9,7 @@ import {
 	useStartersRead,
 	useTemplateListRead,
 } from '../composables/useMailingReads'
-import {
-	HTTP_CONFLICT,
-	apiErrorMessage,
-	apiErrorStatus,
-} from '../utils/api-error'
+import { HTTP_CONFLICT, apiErrorStatus } from '../utils/api-error'
 import { NO_CATEGORY, fromCategoryOption } from '../utils/categories'
 import { groupByCategory, matchesSearch } from '../utils/gallery'
 import { slugify, validateName, validateSlug } from '../utils/slug'
@@ -73,9 +69,8 @@ const props = defineProps<NewTemplateModalProps>()
 const emit = defineEmits<{ success: [created?: boolean] }>()
 
 const api = useMailingApi()
-const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { t } = useI18n()
-const { processApiMessage } = useTranslation()
 
 const name = ref(props.initialName ?? '')
 const slug = ref(slugify(name.value))
@@ -256,10 +251,7 @@ function reportFailure(error: unknown): void {
 		refusedSlugs.value = new Set([...refusedSlugs.value, slug.value])
 		return
 	}
-	toast.add({
-		color: 'error',
-		title: processApiMessage(apiErrorMessage(error)),
-	})
+	presentError(error, { fallbackKey: 'error.500.description' })
 }
 
 async function submit(): Promise<void> {

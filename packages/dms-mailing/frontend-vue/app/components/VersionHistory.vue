@@ -2,7 +2,6 @@
 import type { Component } from 'vue'
 import { useTemplateVersionsRead } from '../composables/useMailingReads'
 import type { TemplateStatus, TemplateVersionSummary } from '../types/mailing'
-import { apiErrorMessage } from '../utils/api-error'
 import {
 	changeSummary,
 	formatVersionDate,
@@ -32,10 +31,9 @@ const props = withDefaults(defineProps<VersionHistoryProps>(), {
 })
 
 const modal = useModal()
-const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
-const { processApiMessage } = useTranslation()
 const previewComponent = resolveComponent(PREVIEW_COMPONENT) as Component
 
 const readVersions = useTemplateVersionsRead(() => props.templateId)
@@ -47,10 +45,7 @@ async function load(): Promise<void> {
 	try {
 		versions.value = (await readVersions()).versions
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		loading.value = false
 	}

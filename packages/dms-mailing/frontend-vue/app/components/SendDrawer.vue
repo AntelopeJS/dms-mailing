@@ -82,6 +82,7 @@ const props = defineProps<SendDrawerProps>()
 
 const api = useMailingApi()
 const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const reportReplay = useReplayToast()
 const { confirm } = useConfirm()
 const { open: openModal } = useModal()
@@ -236,7 +237,7 @@ async function load(): Promise<void> {
 	try {
 		detail.value = await readSend()
 	} catch (error) {
-		useApiError(error)
+		presentError(error, { fallbackKey: `${KEY_PREFIX}send_unavailable` })
 	} finally {
 		loading.value = false
 	}
@@ -264,8 +265,8 @@ async function loadTracking(): Promise<void> {
 async function showSend(id: string): Promise<void> {
 	try {
 		await props.showRow?.(id)
-	} catch {
-		toast.add({ color: 'error', title: key('send_unavailable') })
+	} catch (error) {
+		presentError(error, { fallbackKey: `${KEY_PREFIX}send_unavailable` })
 	}
 }
 
@@ -363,7 +364,7 @@ async function replay(): Promise<void> {
 		)
 		settle()
 	} catch (error) {
-		useApiError(error)
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}

@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms-mailing",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "E-mail templates for the AntelopeJS DMS: a block editor with drafts and versions, a send log, delivery metrics and a suppression list.",
   "keywords": [
     "antelopejs",
@@ -76,6 +76,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": "file:../../.campaign/tgz/antelopejs-core-184eb90.tgz",
+    "@antelopejs/dms": ">=0.13.1 <1.0.0",
     "@antelopejs/mongodb": "file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz",
     "@antelopejs/tooling-configs": "^0.2.12",
     "@types/chai": "^4.3.20",

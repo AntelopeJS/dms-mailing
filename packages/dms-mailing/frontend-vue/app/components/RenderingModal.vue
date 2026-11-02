@@ -45,6 +45,7 @@ const FRAME_WIDTHS: Record<RenderingView, string> = {
 }
 
 const { t, locale } = useI18n()
+const { presentError } = useApiErrorPresenter()
 
 const view = ref<RenderingView>('desktop')
 const rendering = ref<SendRendering | null>(null)
@@ -99,7 +100,7 @@ async function load(): Promise<void> {
 		rendering.value = html
 	} catch (error) {
 		failed.value = true
-		useApiError(error)
+		presentError(error, { fallbackKey: `${KEY_PREFIX}error_description` })
 	} finally {
 		loading.value = false
 	}
