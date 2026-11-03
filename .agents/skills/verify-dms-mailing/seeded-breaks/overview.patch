@@ -1,0 +1,13 @@
+diff --git a/packages/dms-mailing/src/routes/metrics.ts b/packages/dms-mailing/src/routes/metrics.ts
+index 8cd5fc4..6f2f482 100644
+--- a/packages/dms-mailing/src/routes/metrics.ts
++++ b/packages/dms-mailing/src/routes/metrics.ts
+@@ -57,7 +57,7 @@ const TEMPLATES_PATH = "/modules/mailing/templates";
+ const MAX_TOP_TEMPLATES = 10;
+ const MAX_TOP_DOMAINS = 6;
+ /** Below this many deliveries a rate swings on a single e-mail: not ranked. */
+-export const MIN_RANKED_DELIVERIES = 5;
++export const MIN_RANKED_DELIVERIES = 6;
+ const DELIVERED_COUNT_KEY = "$dms_mailing.metrics.delivered_count";
+ const TEMPLATE_VOLUME_KEY = "$dms_mailing.metrics.template_volume";
+ const FIRST_ROW_OFFSET = 0;
