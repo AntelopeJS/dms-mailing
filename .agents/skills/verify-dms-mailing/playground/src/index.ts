@@ -2,6 +2,7 @@ import { Hook, RegisterHook } from "@antelopejs/interface-dms/hooks";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { provision } from "./calls";
+import "./export";
 import "./fixture";
 
 const STEPS = z.array(z.object({ fn: z.string(), args: z.array(z.unknown()) }));

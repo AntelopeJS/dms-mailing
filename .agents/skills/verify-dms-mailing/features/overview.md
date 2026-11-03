@@ -1,5 +1,7 @@
 ---
 covers:
+  - packages/dms-mailing/src/crons/attention.ts
+  - packages/dms-mailing/frontend-vue/app/utils/period.ts
   - packages/dms-mailing/src/routes/metrics.ts
   - packages/dms-mailing/src/routes/period.ts
   - packages/dms-mailing/src/services/metrics.ts
@@ -27,6 +29,21 @@ The module's landing page: six KPIs, the send volume chart, Needs attention, the
 - Best opened templates (10) and Open rate by domain (6), 5 deliveries minimum, change per row.
 - Toolbar: period, comparison menu, Live and Pause, the L key.
 - Setup checklist and Resume the setup.
+- `kpis-count-the-right-sends`: the six KPIs count real sends only, state exact figures and changes against the previous period.
+- `engagement-outlives-the-final-status`: a send opened or clicked and then unsubscribed or reported as spam still counts as opened and clicked.
+- `default-period-is-30-days-compared-with-the-previous-period`: without a window the KPIs read the last 30 days, compared by default; periods of 7 and 90 days select their own sends.
+- `previous-year-compares-the-same-dates-a-year-earlier`: vs previous year compares with the same dates a year earlier.
+- `delivery-figures-show-no-value-when-nothing-reports-deliveries`: deliverability, open rate and click rate show no value until something reports deliveries back.
+- `volume-chart-plots-sends-per-day-with-an-aligned-comparison`: the send volume chart plots sends per day, leaves out test and suppressed sends, and draws the compared period aligned day by day.
+- `best-opened-templates-rank-up-to-10-with-5-deliveries-or-more`: Best opened templates ranks up to 10 templates by open rate, only rows with 5 or more deliveries, and each row changes against the compared period.
+- `open-rate-by-domain-ranks-up-to-6-domains-with-5-deliveries-or-more`: Open rate by domain ranks up to 6 recipient domains with 5 or more deliveries, with a change per row.
+- `funnel-counts-sent-to-unsubscribed-by-template-kind`: the funnel counts sent, delivered, opened, clicked and unsubscribed for All, Transactional and Marketing templates, with the change per step.
+- `needs-attention-lists-what-to-act-on`: Needs attention lists sends with a problem, missing locales, a missing sender, unreported deliveries, opens and clicks, a test-only period and unused live templates, each with its verb.
+- `setup-facts-follow-the-workspace`: the setup checklist reads a connected provider, a sender, a live template and a test send.
+- `overview-page-shows-figures-and-follows-period-and-comparison`: the Overview shows the six KPIs in their groups, follows the 7D, 30D and 90D switch and the comparison menu.
+- `overview-funnel-rankings-and-attention-cards`: the lower cards: Needs attention with its verbs, the funnel switch and biggest drop, the two rankings with their empty state.
+- `overview-empty-ranking-and-setup-checklist`: the rankings state when there are not enough deliveries; a workspace without a live template shows the setup checklist.
+- `overview-live-mode-refreshes-figures-and-pause-freezes-them`: in Live mode the figures refresh as e-mails are sent, Pause freezes them and the L key switches the mode.
 
 ## How to get to it (user POV)
 

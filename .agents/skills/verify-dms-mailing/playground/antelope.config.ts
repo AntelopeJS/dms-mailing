@@ -17,7 +17,9 @@ function smtpPort(): number {
  */
 function mailingConfig(): { useHtmlRender?: boolean } {
   const html = process.env.VERIFY_MAILING_HTML_RENDER;
-  return html === undefined ? {} : { useHtmlRender: html === "1" };
+  return html === undefined
+    ? {}
+    : { useHtmlRender: html === "1" || html === "broken" };
 }
 
 /**
@@ -50,7 +52,10 @@ export default defineConfig({
         },
         htmlRender: {
           serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
-          renderEndpoint: dmsClientUrl && `${dmsClientUrl}/api/html/render`,
+          renderEndpoint:
+            process.env.VERIFY_MAILING_HTML_RENDER === "broken"
+              ? "http://127.0.0.1:9/api/html/render"
+              : dmsClientUrl && `${dmsClientUrl}/api/html/render`,
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
         clientBaseUrl: dmsClientUrl,

@@ -38,7 +38,7 @@ export const refusalJourneys = [
       const good = { messageId: "refusal-1", type: "delivered" };
 
       const none = await postEvent(ctx, "no secret", { body: good });
-      await ctx.verify("no header: 403 missing_secret", [...refused(none, 403, "missing_secret"), check("the status records it with the provider label", text(await status(), "reason") === "missing_secret" && text(await status(), "provider") === "postmark", await status())]);
+      await ctx.verify("no header: 403 missing_secret", [...refused(none, 403, "missing_secret"), check("the status records it with the provider label and the time", text(await status(), "reason") === "missing_secret" && text(await status(), "provider") === "postmark" && Math.abs(Date.now() - Date.parse(text(await status(), "at"))) < 120_000, await status())]);
       const wrong = await postEvent(ctx, "a wrong secret of the right length", { secret: secret.replace(/./, secret[0] === "a" ? "b" : "a"), body: good });
       await ctx.verify("a wrong secret: 403 bad_secret", [...refused(wrong, 403, "bad_secret"), check("the status records it", text(await status(), "reason") === "bad_secret", await status())]);
       const shorter = await postEvent(ctx, "a secret one character short", { provider: "mailgun", secret: secret.slice(1), body: good });

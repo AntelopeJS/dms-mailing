@@ -146,3 +146,11 @@ export async function metric(ctx, path) {
 export function figure(body) {
   return ["value", "previousValue", "delta"].map((key) => (isRow(body) && key in body ? body[key] : "absent"));
 }
+
+/**
+ * @param {number} minutes How many minutes back
+ * @returns {{ $date: string }} The date as the fixture revives it
+ */
+export function minutesAgo(minutes) {
+  return { $date: new Date(Date.now() - minutes * 60_000).toISOString() };
+}

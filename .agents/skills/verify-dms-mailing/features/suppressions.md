@@ -1,5 +1,7 @@
 ---
 covers:
+  - packages/dms-mailing/src/types/suppressions.ts
+  - packages/dms-mailing/frontend-vue/app/utils/suppression.ts
   - packages/dms-mailing/src/services/suppressions.ts
   - packages/dms-mailing/src/services/checked-send.ts
   - packages/dms-mailing/src/routes/suppressions.ts

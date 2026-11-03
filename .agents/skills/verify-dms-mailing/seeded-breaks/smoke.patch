@@ -1,0 +1,12 @@
+diff --git a/packages/dms-mailing/src/pages/index.ts b/packages/dms-mailing/src/pages/index.ts
+index 70b8104..6788a45 100644
+--- a/packages/dms-mailing/src/pages/index.ts
++++ b/packages/dms-mailing/src/pages/index.ts
+@@ -8,7 +8,6 @@ import "./module";
+ export * from "./module";
+ export * from "./overview";
+ export * from "./editor";
+-export * from "./sends";
+ export * from "./settings";
+ export * from "./suppressions";
+ export * from "./templates";

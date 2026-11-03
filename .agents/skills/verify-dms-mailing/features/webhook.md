@@ -1,5 +1,8 @@
 ---
 covers:
+  - packages/dms-mailing/src/db/tables/webhook-status.table.ts
+  - packages/dms-mailing/src/types/webhook.ts
+  - packages/dms-mailing/frontend-vue/app/utils/webhook-status.ts
   - packages/dms-mailing/src/routes/events.ts
   - packages/dms-mailing/src/services/events.ts
   - packages/dms-mailing/src/services/webhook-status.ts

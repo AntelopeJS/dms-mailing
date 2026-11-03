@@ -1,0 +1,13 @@
+diff --git a/packages/dms-mailing/src/services/send-stats.ts b/packages/dms-mailing/src/services/send-stats.ts
+index 28f940a..d2d469d 100644
+--- a/packages/dms-mailing/src/services/send-stats.ts
++++ b/packages/dms-mailing/src/services/send-stats.ts
+@@ -132,7 +132,7 @@ export function buildSendStats(
+ }
+ 
+ /** At most this many failures go again in one "send the failures again". */
+-export const MAX_BULK_REPLAY = 100;
++export const MAX_BULK_REPLAY = 101;
+ 
+ /** An error of the connection to the provider rather than of one recipient. */
+ const TRANSPORT_ERROR =

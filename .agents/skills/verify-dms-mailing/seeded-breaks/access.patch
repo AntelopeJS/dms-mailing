@@ -1,0 +1,12 @@
+diff --git a/packages/dms-mailing/src/hooks/tenant-export.ts b/packages/dms-mailing/src/hooks/tenant-export.ts
+--- a/packages/dms-mailing/src/hooks/tenant-export.ts
++++ b/packages/dms-mailing/src/hooks/tenant-export.ts
+@@ -40,7 +40,7 @@
+ const TEMPLATES_ENTRY = "templates.json";
+ const TEMPLATE_VERSIONS_ENTRY = "template-versions.json";
+ const SETTINGS_ENTRY = "settings.json";
+-const SUPPRESSIONS_ENTRY = "suppressions.json";
++const SUPPRESSIONS_ENTRY = "suppression-list.json";
+ 
+ const ARRAY_OPEN = "[";
+ const ARRAY_CLOSE = "]";
