@@ -1,17 +1,17 @@
 <div align="center">
 
-# @antelopejs/dms-mailing
+# `@antelopejs/dms-mailing`
 
-<a href="https://www.npmjs.com/package/@antelopejs/dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
-<a href="https://dms.antelopejs.com/docs/modules/mailing"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+<a href="https://www.npmjs.com/package/@antelopejs/dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms-mailing?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs/modules/mailing"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 E-mail templates, sends and delivery metrics for the [AntelopeJS DMS](https://github.com/AntelopeJS/dms).
 
 </div>
 
-![The Mailing overview: reach, engagement and list health for the last 30 days](./packages/dms-mailing/docs/images/overview.png)
+![The Mailing overview of the Helio demo: reach, engagement and list health for the last 30 days, the send volume chart and the items that need attention](./packages/dms-mailing/docs/images/captures/mailing-overview.webp)
 
 ## What it does
 
@@ -19,11 +19,11 @@ E-mail templates, sends and delivery metrics for the [AntelopeJS DMS](https://gi
 - Keeps edits in draft and publishes them as versions, in several locales.
 - Sends a template by its slug from your code, an automation or the dashboard, through any `@antelopejs/interface-email` provider.
 - Logs every send with the provider's timeline, and turns delivery, open and click events into an overview.
-- Protects your sender reputation with a suppression list fed by bounces, complaints and unsubscriptions.
+- Protects your sender reputation with a suppression list fed by hard bounces, spam complaints and unsubscriptions.
 
 ## Install
 
-Run the AntelopeJS CLI from the root of a project that already loads `@antelopejs/dms`, and add an e-mail provider if the project has none:
+Run the AntelopeJS CLI from the root of a project that already loads `@antelopejs/dms`. Add an e-mail provider if the project has none:
 
 ```bash
 ajs project modules add @antelopejs/dms-mailing
@@ -37,35 +37,46 @@ In development, send to a throwaway Ethereal inbox:
 ```ts fragment
 // antelope.config.ts
 nodemailer: {
-  source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.5 <1.0.0" },
+  source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.6 <1.0.0" },
   config: { ethereal: true },
 },
 ```
 
-Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). Create a template from a starter such as **Order confirmation**, publish it, then send it from any module through [`@antelopejs/interface-dms-mailing`](./packages/interface-dms-mailing):
+Restart the backend, then the frontend, and open **Modules › Mailing** (`/modules/mailing/overview`). On a workspace with no templates, create the **Order confirmation** template from the starter gallery and publish it. Its slug is `order-confirmed`. The **New template** dialog derives the slug from the name instead, so it gives `order-confirmation`. Check the slug before you send. Any module can then send it through [`@antelopejs/interface-dms-mailing`](./packages/interface-dms-mailing):
 
 ```ts fragment
 import { SendTemplate } from "@antelopejs/interface-dms-mailing";
 
-await SendTemplate("order-confirmation", {
+await SendTemplate("order-confirmed", {
   tenantId,
   to: "sofie@example.com",
-  variables: { order: { total: "48.00" } },
+  variables: {
+    customer: { firstName: "Sofie" },
+    order: {
+      number: "#10482",
+      total: { value: 4800, currency: "EUR" },
+      lines: [{ name: "Linen shirt", total: { value: 4800, currency: "EUR" } }],
+      url: "https://example.com/orders/10482",
+    },
+  },
 });
 ```
 
 ## Compatibility
 
-The module also needs a DMS backend in a release that implements the `@antelopejs/interface-dms` range in the [module README compatibility block](packages/dms-mailing/README.md#compatibility), and the `@antelopejs/dms-frontend` renderer in the range its frontend module declares in `engines["@antelopejs/dms-frontend"]` of `packages/dms-mailing/frontend-vue/package.json`; the `ajs dms` CLI refuses to build it with a renderer outside that range.
+The [module README compatibility block](packages/dms-mailing/README.md#compatibility) lists the `@antelopejs/*` ranges the module supports. The module also needs:
 
-- E-mail provider: an `@antelopejs/interface-email` implementation, such as `@antelopejs/nodemailer`.
+- A DMS backend in a release that implements the `@antelopejs/interface-dms` range of that block.
+- The `@antelopejs/dms-frontend` renderer in the range of `engines["@antelopejs/dms-frontend"]` in `packages/dms-mailing/frontend-vue/package.json`. The `ajs dms` CLI refuses to build the module with a renderer outside that range.
+- A database module that enforces unique indexes, such as `@antelopejs/mongodb` or `@antelopejs/postgres`.
+- An e-mail provider, which is an `@antelopejs/interface-email` implementation such as `@antelopejs/nodemailer`.
 
 ## Packages
 
 | Package | Directory | Role |
 | --- | --- | --- |
 | [`@antelopejs/dms-mailing`](https://www.npmjs.com/package/@antelopejs/dms-mailing) | [`packages/dms-mailing`](./packages/dms-mailing) | The module: template library, block editor, send log and delivery metrics. |
-| [`@antelopejs/interface-dms-mailing`](https://www.npmjs.com/package/@antelopejs/interface-dms-mailing) | [`packages/interface-dms-mailing`](./packages/interface-dms-mailing) | The interface other modules call: `SendTemplate`, `RecordEmailEvent`, `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends`. |
+| [`@antelopejs/interface-dms-mailing`](https://www.npmjs.com/package/@antelopejs/interface-dms-mailing) | [`packages/interface-dms-mailing`](./packages/interface-dms-mailing) | The interface other modules call: `SendTemplate`, `RecordEmailEvent`, `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends`. |
 
 ## Documentation
 
@@ -81,7 +92,7 @@ The guide's sources live in [`packages/dms-mailing/docs`](./packages/dms-mailing
 
 ## Contributing
 
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. Start at the repository root: one install covers the shared tooling, backend, interface and Vue development dependencies, retaining each project's lockfile. The playground remains independent. It uses MongoDB at `mongodb://localhost:27017` (set `MONGO_URL` to change it) and sends to Ethereal, or to a local SMTP server when `SMTP_PORT` is set.
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request. Start at the repository root. One `pnpm install` there installs the shared tooling and the backend, interface and Vue layer dependencies, and each package keeps its own lockfile. The playground installs on its own. It uses MongoDB at `mongodb://localhost:27017` (set `MONGO_URL` to change it) and sends to Ethereal, or to a local SMTP server when `SMTP_PORT` is set.
 
 ```bash
 pnpm install
@@ -97,10 +108,10 @@ pnpm test           # backend (unit and integration), then the frontend layer
 <details>
 <summary>Repository notes</summary>
 
-- Every backend-declared text uses the `$key` convention: a string starting with `$` is resolved against the i18n catalogs by the frontend. Add keys to `frontend-vue/i18n/locales/mailing-en-GB.json` and its French counterpart.
-- Every read goes through the DMS's `useApiData`: what a page renders is read by the server render and handed to the browser; what a drawer, a dialog, a preview frame or the editor shows is read when it opens (`immediate: false`, `useMailingReads`). Writes stay on `useMailingApi`.
-- The module implements the interface, so it caps its range below the next minor (see the `@antelopejs/interface-dms-mailing` row of the [module README compatibility block](packages/dms-mailing/README.md#compatibility)); inside the workspace that range resolves to the sibling package. Release the interface first (**Release DMS mailing interface**), then the module (**Release DMS mailing module**), which refuses to run until the interface version its range is floored at resolves on npm.
-- `docs/design/design-v2-grill-me.md` records the decisions behind the v2 redesign.
+- Every text the backend declares uses the `$key` convention. The frontend resolves a string that starts with `$` against the i18n catalogs. Add keys to `frontend-vue/i18n/locales/mailing-en-GB.json` and to `mailing-fr-FR.json`.
+- Every read goes through the DMS `useApiData`. The server render reads what a page shows and hands it to the browser. A drawer, a dialog, a preview frame or the editor reads its data when it opens, through the on-demand reads of `useMailingReads` (`immediate: false`). Writes go through `useMailingApi`.
+- The module implements the interface, so it caps its interface range below the next minor. The `@antelopejs/interface-dms-mailing` row of the [module README compatibility block](packages/dms-mailing/README.md#compatibility) shows that range. Inside the workspace, the range resolves to the sibling package. Release the interface first (**Release DMS mailing interface**), then the module (**Release DMS mailing module**). The module workflow refuses to run until the interface version at the floor of its range resolves on npm.
+- `packages/dms-mailing/docs/design/design-v2-grill-me.md` and its second part, `design-v2-grill-me-2.md`, record the decisions behind the v2 redesign. The DMS site does not publish them.
 
 </details>
 

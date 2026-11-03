@@ -1,0 +1,18 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "rootDir": "../../../..",
+    "paths": {
+      "#dms/frontend-module": ["../node_modules/@antelopejs/dms-frontend/templates/vue/frontend-module.ts"]
+    }
+  },
+  "include": ["./dms.frontend.ts"]
+}

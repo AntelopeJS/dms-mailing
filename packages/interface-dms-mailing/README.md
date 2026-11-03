@@ -1,11 +1,11 @@
 <div align="center">
 
-# @antelopejs/interface-dms-mailing
+# `@antelopejs/interface-dms-mailing`
 
-<a href="https://www.npmjs.com/package/@antelopejs/interface-dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms-mailing?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
-<a href="https://dms.antelopejs.com/docs/modules/mailing/extending"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+<a href="https://www.npmjs.com/package/@antelopejs/interface-dms-mailing"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms-mailing?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms-mailing?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs/modules/mailing/extending"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 The AntelopeJS interface to send DMS mailing templates and report e-mail events from any module.
 
@@ -15,7 +15,8 @@ The AntelopeJS interface to send DMS mailing templates and report e-mail events 
 
 - Sends a published template by its slug, to one recipient or many, in a given locale and with its variables (`SendTemplate`).
 - Reports a provider event (delivered, opened, clicked, bounced…) against the send it belongs to (`RecordEmailEvent`).
-- Ships templates and template categories as code, published and idempotent, without overwriting what a user changed since (`DeclareTemplate`, `DeclareTemplateCategory`), and writes the workspace sender when a workspace is provisioned (`DeclareSender`).
+- Ships templates and template categories as code when a workspace is provisioned (`DeclareTemplate`, `DeclareTemplateCategory`). A declaration writes once: a template is created already published, and a slug or category id the workspace already has is left as it is.
+- Writes the workspace sender when a workspace is provisioned (`DeclareSender`).
 - Imports past sends and their events with their own dates, for a demo data set or a move from another provider (`ImportSends`).
 - Exports the template and send types (`Block`, `TemplateContent`, `VariableDefinition`, `SendStatus`, `EmailEvent`…) for code that builds or inspects templates.
 - Keeps your module independent of the implementation, [`@antelopejs/dms-mailing`](https://www.npmjs.com/package/@antelopejs/dms-mailing).
@@ -33,11 +34,19 @@ pnpm add @antelopejs/interface-dms-mailing
 ```ts fragment
 import { RecordEmailEvent, SendTemplate } from "@antelopejs/interface-dms-mailing";
 
-const result = await SendTemplate("order-confirmation", {
+const result = await SendTemplate("order-confirmed", {
   tenantId,
   to: [{ email: "sofie@example.com", name: "Sofie" }],
   locale: "fr",
-  variables: { order: { total: "48.00" } },
+  variables: {
+    customer: { firstName: "Sofie" },
+    order: {
+      number: "#10482",
+      total: { value: 4800, currency: "EUR" },
+      lines: [{ name: "Linen shirt", total: { value: 4800, currency: "EUR" } }],
+      url: "https://example.com/orders/10482",
+    },
+  },
   source: "checkout",
 });
 
@@ -49,18 +58,18 @@ await RecordEmailEvent(tenantId, {
 });
 ```
 
-A recipient on the workspace's suppression list gets no e-mail: its result has the status `suppressed`. A template whose footer links to an unsubscribe or a preferences page expects `unsubscribeUrl` / `preferencesUrl` in `variables`.
+A recipient on the workspace's suppression list gets no e-mail, and its result has the status `suppressed`. A template whose footer links to an unsubscribe page or a preferences page reads their URLs from `unsubscribeUrl` and `preferencesUrl` in `variables`.
 
 ## Compatibility
 
-Interface 0.8 needs a `@antelopejs/dms-mailing` release that implements it; the compatibility block of the [module README](../dms-mailing/README.md#compatibility) lists the interface range that module release supports. This includes `DeclareTemplate`, `DeclareTemplateCategory` and `ImportSends`, all requiring an explicit `tenantId`. Mailing 0.5 remains on interface 0.7. `DeclareSender` needs interface 0.9 and the first release implementing it (`>=0.9.0 <0.10.0`). The interface declares these dependencies:
+A `@antelopejs/dms-mailing` release implements one minor line of this interface. The `@antelopejs/interface-dms-mailing` row of the compatibility block in the [module README](../dms-mailing/README.md#compatibility) gives that range. Use a module release whose range covers the interface release your code imports. `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends` each take an explicit `tenantId`. The interface declares these dependencies:
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                       | Supported                                                        | Tested with |
-| ----------------------------- | ---------------------------------------------------------------- | ----------- |
-| `@antelopejs/interface-core`  | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` | —           |
-| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0`                                                 | —           |
+| Package                       | Supported                                                        | Tested with                                                      |
+| ----------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `@antelopejs/interface-core`  | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0`                                                 | `0.0.6`                                                          |
 
 <!-- antelopejs-docs-compat:end -->
 

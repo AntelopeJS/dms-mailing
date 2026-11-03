@@ -26,6 +26,7 @@ jobs:
     with:
       docs-files: |
         README.md
+        docs
         packages/dms-mailing/README.md
         packages/dms-mailing/docs
         packages/interface-dms-mailing/README.md
