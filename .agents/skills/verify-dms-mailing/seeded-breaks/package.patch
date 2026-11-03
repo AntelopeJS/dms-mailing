@@ -1,0 +1,14 @@
+diff --git a/packages/dms-mailing/package.json b/packages/dms-mailing/package.json
+index feab402..7b79ed7 100644
+--- a/packages/dms-mailing/package.json
++++ b/packages/dms-mailing/package.json
+@@ -28,8 +28,7 @@
+     "!dist/test",
+     "frontend-vue",
+     "skills",
+-    "src",
+-    "!src/test"
++    "src"
+   ],
+   "main": "dist/index.js",
+   "types": "dist/index.d.ts",
