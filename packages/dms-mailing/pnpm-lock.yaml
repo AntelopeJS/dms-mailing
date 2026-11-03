@@ -16,6 +16,8 @@ overrides:
   '@antelopejs/core': file:../../.campaign/tgz/antelopejs-core-184eb90.tgz
   '@antelopejs/interface-core': file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz
   '@antelopejs/tooling-configs': file:../../.campaign/tgz/antelopejs-tooling-configs-dab0aea.tgz
+  '@antelopejs/dms': file:../../.campaign/tgz/antelopejs-dms-4358eef.tgz
+  '@antelopejs/dms>@antelopejs/interface-email': 0.0.6
 
 importers:
 
@@ -59,8 +61,8 @@ importers:
         specifier: file:../../.campaign/tgz/antelopejs-core-184eb90.tgz
         version: file:../../.campaign/tgz/antelopejs-core-184eb90.tgz
       '@antelopejs/dms':
-        specifier: '>=0.13.1 <1.0.0'
-        version: 0.15.0(@antelopejs/core@file:../../.campaign/tgz/antelopejs-core-184eb90.tgz)
+        specifier: file:../../.campaign/tgz/antelopejs-dms-4358eef.tgz
+        version: file:../../.campaign/tgz/antelopejs-dms-4358eef.tgz(@antelopejs/core@file:../../.campaign/tgz/antelopejs-core-184eb90.tgz)
       '@antelopejs/mongodb':
         specifier: file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz
         version: file:../../.campaign/tgz/antelopejs-mongodb-db4b449.tgz(socks@2.8.10)
@@ -119,8 +121,8 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms@0.15.0':
-    resolution: {integrity: sha512-+OMlCOcvCaRi/rNDtoLPHw3QOh9h7RwD3VmP+6fU9UBFOZ9JRUR0SgAcef4+Y7gS77ZJ123TkftfjEUn5BZWTQ==}
+  '@antelopejs/dms@file:../../.campaign/tgz/antelopejs-dms-4358eef.tgz':
+    resolution: {integrity: sha512-+F7pmg8jRc0v2KteDXyc0OFxkWkGQwPA0cL5xUGLZ3WCP/j08426GGdXCG8hIoRojpM+logtsfmDbAel1NB2xw==, tarball: file:../../.campaign/tgz/antelopejs-dms-4358eef.tgz}
     version: 0.15.0
     hasBin: true
     peerDependencies:
@@ -2907,7 +2909,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms@0.15.0(@antelopejs/core@file:../../.campaign/tgz/antelopejs-core-184eb90.tgz)':
+  '@antelopejs/dms@file:../../.campaign/tgz/antelopejs-dms-4358eef.tgz(@antelopejs/core@file:../../.campaign/tgz/antelopejs-core-184eb90.tgz)':
     dependencies:
       2fa: 0.1.2
       '@antelopejs/interface-api': file:../../.campaign/tgz/antelopejs-interface-api-f2a99b5.tgz(@antelopejs/interface-core@file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz)
