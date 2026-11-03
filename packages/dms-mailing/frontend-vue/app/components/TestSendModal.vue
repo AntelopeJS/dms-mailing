@@ -4,7 +4,6 @@ import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useTemplateContentRead } from '../composables/useMailingReads'
 import type { SendResult, TestSendInput } from '../composables/useMailingApi'
-import { apiErrorMessage } from '../utils/api-error'
 import { sendLogRoute } from '../utils/send-link'
 import { reasonKey, type SuppressionSummary } from '../utils/suppression'
 import {
@@ -49,8 +48,8 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { t, locale: uiLocale } = useI18n()
-const { processApiMessage } = useTranslation()
 const { user } = useCurrentUser()
 const { uniqueLocales } = useUniqueLocales()
 
@@ -70,10 +69,7 @@ onMounted(async () => {
 		detail.value = await readContent()
 		locale.value ||= detail.value.fallbackLocale
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	}
 })
 
@@ -154,14 +150,10 @@ function contentOverride(): Pick<TestSendInput, 'content' | 'version'> {
 	return {}
 }
 
-function reportFailures(results: SendResult[], to: string[]): void {
-	results.forEach((result, index) => {
+function reportFailures(results: SendResult[]): void {
+	results.forEach((result) => {
 		if (!result.error) return
-		toast.add({
-			color: 'error',
-			title: to[index] ?? result.sendId,
-			description: processApiMessage(result.error),
-		})
+		presentError(result.error, { fallbackKey: 'error.500.description' })
 	})
 	const sent = results.filter((result) => !result.error).length
 	if (sent) {
@@ -213,14 +205,11 @@ async function submit(): Promise<void> {
 			...contentOverride(),
 			data: DATA_SETS[dataChoice.value](),
 		})
-		reportFailures(response.results, to)
+		reportFailures(response.results)
 		warnOwnSuppression(response.ownAddressSuppressed)
 		close(true)
 	} catch (error) {
-		toast.add({
-			color: 'error',
-			title: processApiMessage(apiErrorMessage(error)),
-		})
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}

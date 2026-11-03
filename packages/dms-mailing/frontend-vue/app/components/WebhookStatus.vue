@@ -35,6 +35,7 @@ const api = useMailingApi()
 const toast = useToast()
 const { t, locale } = useI18n()
 const { dateTimeFormat } = useRegionalFormat()
+const { presentError } = useApiErrorPresenter()
 
 const read = useWebhookStatus()
 /** The status read, `null` when the read failed. */
@@ -84,7 +85,7 @@ async function sendTest(): Promise<void> {
 				: undefined,
 		})
 	} catch (error) {
-		useApiError(error)
+		presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		isTesting.value = false
 	}

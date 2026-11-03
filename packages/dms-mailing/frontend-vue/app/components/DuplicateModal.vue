@@ -6,11 +6,7 @@ import {
 	useTemplateContentRead,
 	useTemplateListRead,
 } from '../composables/useMailingReads'
-import {
-	HTTP_CONFLICT,
-	apiErrorMessage,
-	apiErrorStatus,
-} from '../utils/api-error'
+import { HTTP_CONFLICT, apiErrorStatus } from '../utils/api-error'
 import {
 	fitName,
 	freeSlug,
@@ -31,9 +27,8 @@ const props = defineProps<DuplicateModalProps>()
 const emit = defineEmits<{ success: [created?: boolean] }>()
 
 const api = useMailingApi()
-const toast = useToast()
+const { presentError } = useApiErrorPresenter()
 const { t } = useI18n()
-const { processApiMessage } = useTranslation()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
 const readTemplates = useTemplateListRead()
@@ -105,10 +100,7 @@ function reportFailure(error: unknown): void {
 		takenSlugs.value = new Set([...takenSlugs.value, slug.value])
 		return
 	}
-	toast.add({
-		color: 'error',
-		title: processApiMessage(apiErrorMessage(error)),
-	})
+	presentError(error, { fallbackKey: 'error.500.description' })
 }
 
 async function submit(): Promise<void> {
