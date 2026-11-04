@@ -18,23 +18,23 @@ export const SHARED_MODULE_SOURCES = {
   dms: {
     type: "package",
     package: "@antelopejs/dms",
-    version: ">=0.11.0 <0.16.0",
+    version: ">=0.16.1 <1.0.0",
   },
   mongodb: { type: "local", path: "node_modules/@antelopejs/mongodb" },
   "auth-jwt": {
     type: "package",
     package: "@antelopejs/auth-jwt",
-    version: "^1.0.3",
+    version: "^1.1.0",
   },
   api: {
     type: "package",
     package: "@antelopejs/api",
-    version: "^1.5.0",
+    version: "^1.7.0",
   },
   "file-storage-local": {
     type: "package",
     package: "@antelopejs/file-storage-local",
-    version: ">=0.1.13 <1.0.0",
+    version: ">=0.2.0 <1.0.0",
   },
   nodemailer: {
     type: "package",
