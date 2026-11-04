@@ -66,10 +66,10 @@ A `@antelopejs/dms-mailing` release implements one minor line of this interface.
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                       | Supported                                                        | Tested with                                                      |
-| ----------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `@antelopejs/interface-core`  | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz` |
-| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0`                                                 | `0.0.6`                                                          |
+| Package                       | Supported        | Tested with |
+| ----------------------------- | ---------------- | ----------- |
+| `@antelopejs/interface-core`  | `>=0.4.0 <1.0.0` | `0.4.0`     |
+| `@antelopejs/interface-email` | `>=0.0.6 <1.0.0` | `0.0.6`     |
 
 <!-- antelopejs-docs-compat:end -->
 
