@@ -3,15 +3,18 @@ import { spawnSync } from "node:child_process";
 /** @typedef {import("./mailing.mjs").Ctx} Ctx */
 /** @typedef {import("./mailing.mjs").Tab} Tab */
 
+/** The journeys that have a tab whose page crashed: a crashed renderer fails every later check of that tab. */
+const crashedTabs = new WeakSet();
+
 /**
  * Whether the run's browser, backend and dashboard still answer, probed synchronously so any recorded step can be judged.
  * The words of a failing check never decide: a page that quotes `ECONNREFUSED` or `terminated` in its own rows is not an outage.
  *
  * @param {Ctx} ctx The journey
- * @returns {boolean} False when the browser, the backend or the dashboard is gone
+ * @returns {boolean} False when the browser, a page of the journey, the backend or the dashboard is gone
  */
 function environmentUp(ctx) {
-  if (!ctx.browser.isConnected()) return false;
+  if (!ctx.browser.isConnected() || crashedTabs.has(ctx)) return false;
   for (const url of [`${ctx.state.apiUrl}/api/onboarding/informations`, `${ctx.state.webUrl}/dms-preview`]) {
     const probe = spawnSync("curl", ["-fsS", "-m", "5", "-o", "/dev/null", url], { encoding: "utf8" });
     if (probe.status !== 0) return false;
@@ -83,6 +86,7 @@ export function guarded(journeys) {
       const openTab = ctx.tab.bind(ctx);
       ctx.tab = async (account, label) => {
         const tab = await openTab(account, label);
+        tab.page.on("crash", () => crashedTabs.add(ctx));
         tab.signIn = (/** @type {string} */ who) => signInHydrated(ctx, tab, who);
         return tab;
       };

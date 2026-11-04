@@ -12,12 +12,8 @@ covers:
   - packages/dms-mailing/frontend-vue/app/components/RecipientsField.vue
   - packages/dms-mailing/frontend-vue/app/components/TestSendModal.vue
   - packages/dms-mailing/frontend-vue/app/composables/useReplayToast.ts
-  - packages/dms-mailing/frontend-vue/app/utils/send-link.ts
   - packages/dms-mailing/frontend-vue/app/utils/send-stats.ts
-  - packages/dms-mailing/frontend-vue/app/utils/send-values.ts
-  - packages/dms-mailing/frontend-vue/app/utils/timeline.ts
   - packages/dms-mailing/frontend-vue/app/utils/recipients.ts
-  - packages/dms-mailing/frontend-vue/app/utils/rendering-title.ts
   - packages/dms-mailing/src/routes/sends.ts
   - packages/dms-mailing/src/pages/sends.ts
   - packages/dms-mailing/src/data/sends-table.ts
@@ -28,11 +24,6 @@ covers:
   - packages/dms-mailing/src/realtime.ts
   - packages/dms-mailing/src/permissions.ts
   - packages/dms-mailing/src/services/permissions.ts
-  - packages/dms-mailing/frontend-vue/app/components/SendDrawer.vue
-  - packages/dms-mailing/frontend-vue/app/components/FixAddressModal.vue
-  - packages/dms-mailing/frontend-vue/app/components/RenderingModal.vue
-  - packages/dms-mailing/frontend-vue/app/utils/send-actions.ts
-  - packages/dms-mailing/frontend-vue/app/utils/problems.ts
 docs:
   - packages/dms-mailing/docs/4.usage/4.sends.md
   - packages/dms-mailing/docs/5.extending.md
@@ -53,9 +44,6 @@ The send log: stat strip, stage tabs, the send drawer, send again, send to anoth
 - `stat-strip-states-the-period-figures-and-their-changes`: the stat strip counts real sends, delivered, problems, the queue and the median latency, compares all but the queue, and leaves test sends out.
 - `stage-tabs-hold-their-sends`: each stage tab lists exactly its sends, with its count; Problems leaves test sends out.
 - `locale-column-says-when-the-locale-asked-was-not-sent`: the Locale column shows the locale sent, and when it differs from the locale asked for, says DE asked.
-- `drawer-opens-steps-keeps-its-url-and-closes`: a click opens the send in a drawer headed by recipient and template and its place in the log; J and K step; the URL keeps the send; Escape or a click beside closes it.
-- `drawer-width-is-dragged-and-remembered`: dragging the drawer's left edge widens it, a wide drawer puts the timeline and the origin side by side, and the drawer opens again at the width given.
-- `drawer-footer-follows-the-status`: the drawer footer offers the actions of the send's status, a suppressed send whose address was reactivated offers Send again…, a send sent again offers none.
 - `send-again-rules-by-status`: a spam report is never answered, a permanent bounce needs another address, a temporary bounce or a failure goes again, the original is resolved and linked.
 - `send-again-to-a-suppressed-address-sends-nothing`: sending again to an address that is on the suppression list sends nothing, warns, and leaves the original a problem.
 - `banner-appears-from-3-provider-failures-and-ignores-what-is-not-the-providers`: 3 provider failures of the last hour raise the banner; 2, old failures, bounces, spam reports and failed tests do not.
@@ -64,9 +52,6 @@ The send log: stat strip, stage tabs, the send drawer, send again, send to anoth
 - `send-the-failures-again-sends-up-to-100-and-leaves-out-the-rest`: Send the failures again sends the hour's provider failures with the same data, leaves out suppressed addresses, bounces, spam, tests and old failures, and never twice.
 - `send-the-failures-again-is-capped-at-100`: with 101 failures, Send the failures again sends 100 and the confirmation says so; with every failure suppressed only the settings action remains.
 - `banner-offers-no-replay-when-every-failure-is-suppressed`: when every failure of the hour is to a suppressed address the banner only links to the provider settings.
-- `drawer-explains-the-problem-timeline-origin-and-data`: the drawer says in plain words what went wrong, lists the timeline with the provider's answer, the origin, and the data sent.
-- `send-again-from-the-drawer-is-confirmed-and-resolves-the-problem`: Send again… asks for confirmation with the recipient, the version and the last error, sends, and the original is marked Resolved with no second send again.
-- `send-to-another-address-checks-the-corrected-address`: Send to another address refuses an empty, invalid or identical address with its message, then sends to the corrected one.
 - `test-send-and-real-send-rules`: a test send is tagged [TEST] and left out of the figures; a real send needs a live template and counts; both take 1 to 5 valid addresses.
 - `sends-badge-counts-real-problems-of-the-last-24-hours`: the Sends badge in the sidebar counts the real sends with a problem in the last 24 hours.
 

@@ -24,6 +24,8 @@ docs:
 - `import-sends-writes-past-sends-with-their-dates-and-events-and-skips-known-ones`, `import-sends-refuses-bad-payloads-before-writing-anything`, `an-import-raises-no-bell-notification`.
 - `declarations-made-when-the-workspace-is-provisioned-run-once`: the hook, through `VERIFY_MAILING_DECLARE`.
 - `declared-names-and-labels-are-read-in-the-language-of-the-reader`.
+- `a-declared-template-keeps-every-field-it-was-given`: a declared template reads back its names, category, locales with subject, preheader and blocks, variables and test data, a test send renders the declared test data, and a declaration without category, variables or test data has none.
+- `imported-sends-record-every-field-and-the-published-version`: an imported send reads back its recipient and name, locale, variables, provider, provider message id, source and test flag, and records the template's published version, not its draft or the first.
 
 ## How to get to it (user POV)
 
