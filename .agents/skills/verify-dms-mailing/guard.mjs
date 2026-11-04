@@ -3,15 +3,15 @@ import { spawnSync } from "node:child_process";
 /** @typedef {import("./mailing.mjs").Ctx} Ctx */
 /** @typedef {import("./mailing.mjs").Tab} Tab */
 
-const GONE = /signs in and leaves \/auth|ECONNREFUSED|ECONNRESET|fetch failed|socket hang up|Target closed|has been closed|browser has disconnected|terminated|UND_ERR/i;
-
 /**
- * Whether the run's backend and dashboard still answer, probed synchronously so any recorded step can be judged.
+ * Whether the run's browser, backend and dashboard still answer, probed synchronously so any recorded step can be judged.
+ * The words of a failing check never decide: a page that quotes `ECONNREFUSED` or `terminated` in its own rows is not an outage.
  *
  * @param {Ctx} ctx The journey
- * @returns {boolean} False when either is gone
+ * @returns {boolean} False when the browser, the backend or the dashboard is gone
  */
 function environmentUp(ctx) {
+  if (!ctx.browser.isConnected()) return false;
   for (const url of [`${ctx.state.apiUrl}/api/onboarding/informations`, `${ctx.state.webUrl}/dms-preview`]) {
     const probe = spawnSync("curl", ["-fsS", "-m", "5", "-o", "/dev/null", url], { encoding: "utf8" });
     if (probe.status !== 0) return false;
@@ -89,7 +89,7 @@ export function guarded(journeys) {
       const record = ctx.record.bind(ctx);
       ctx.record = (folder, checks, options) => {
         const failing = checks.filter((check) => !check.pass);
-        if (failing.length > 0 && (failing.some((check) => GONE.test(`${check.name} ${check.detail}`)) || !environmentUp(ctx))) {
+        if (failing.length > 0 && !environmentUp(ctx)) {
           throw new Error(`NOT VERIFIED: the environment went away (${failing[0]?.detail.slice(0, 200)})`);
         }
         return record(folder, checks, options);

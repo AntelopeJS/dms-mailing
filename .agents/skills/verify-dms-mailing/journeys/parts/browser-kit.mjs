@@ -128,3 +128,29 @@ export async function rowCount(tab, name) {
 export async function clickBesideDrawer(tab) {
   await tab.page.mouse.click(120, 400);
 }
+
+/**
+ * @param {Tab} tab The tab
+ * @param {RegExp} name The accessible name of the radios
+ * @returns {Promise<string[]>} The accessible names of the radios on the page that match, in page order
+ */
+export async function radioNames(tab, name) {
+  const count = Number(await tab.page.getByRole("radio", { name }).count());
+  const names = [];
+  for (let index = 0; index < count; index += 1) {
+    const label = asText(await tab.page.getByRole("radio", { name }).nth(index).getAttribute("aria-label"));
+    names.push((label === "" ? asText(await tab.page.getByRole("radio", { name }).nth(index).innerText()) : label).trim());
+  }
+  return names;
+}
+
+/**
+ * @param {Tab} tab The tab
+ * @param {import("../../../../../packages/dms-mailing/node_modules/@antelopejs/dms/bin/control/browser.mjs").Target} target The element
+ * @param {string} name The attribute
+ * @returns {Promise<string>} The attribute, `absent` when no element matches, empty when the attribute is missing
+ */
+export async function attributeOrAbsent(tab, target, name) {
+  if (Number(await tab.locator(target).count()) === 0) return "absent";
+  return asText(await tab.locator(target).first().getAttribute(name));
+}

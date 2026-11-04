@@ -14,7 +14,12 @@
     "composite": false,
     "noEmit": true,
     "incremental": false,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "paths": {
+      "@antelopejs/interface-dms-mailing": ["../../../packages/interface-dms-mailing/src/index.ts"],
+      "@antelopejs/interface-dms/*": ["../../../packages/dms-mailing/node_modules/@antelopejs/interface-dms/dist/*"],
+      "*": ["../../../packages/dms-mailing/node_modules/*"]
+    }
   },
   "include": ["**/*.mjs", "**/*.ts", "**/*.js"],
   "exclude": ["node_modules", "playground/node_modules", "playground/dist"]

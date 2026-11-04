@@ -50,6 +50,15 @@ export const journeys = [
       await tab.press("Control+Shift+z");
       await tab.press("Control+s");
       await ctx.verify("Ctrl+Shift+Z redoes it", [check("two headings", JSON.stringify(await savedTypes()) === '["heading","heading"]', await savedTypes())]);
+      await tab.press("Control+z");
+      await tab.press("Control+y");
+      await tab.press("Control+s");
+      await ctx.verify("Ctrl+Z undoes and Ctrl+Y redoes the duplicate", [check("two headings again", JSON.stringify(await savedTypes()) === '["heading","heading"]', await savedTypes())]);
+      await tab.press("Control+z");
+      await tab.press("Control+s");
+      await ctx.verify("Ctrl+Z alone leaves one heading", [check("one heading", JSON.stringify(await savedTypes()) === '["heading"]', await savedTypes())]);
+      await tab.press("Control+Shift+z");
+      await tab.press("Control+s");
       await tab.click({ role: "button", name: "Paragraph", exact: true });
       await tab.press("Delete");
       await tab.press("Control+s");
@@ -58,6 +67,23 @@ export const journeys = [
       await tab.press("Backspace");
       await tab.press("Control+s");
       await ctx.verify("Backspace removes the selected block", [check("the two headings remain", JSON.stringify(await savedTypes()) === '["heading","heading"]', await savedTypes())]);
+      await tab.press("Control+Enter");
+      await ctx.verify("Ctrl+Enter opens the publish review with its checks and its choices", [
+        tab.visible({ role: "dialog", name: "Publish Editor page?" }),
+        tab.visible({ role: "button", name: "Publish v1" }),
+        tab.visible({ role: "button", name: "Keep editing" }),
+        tab.visible({ role: "button", name: "Test first" }),
+      ]);
+      await tab.click({ role: "button", name: "Keep editing" });
+      await tab.press("/");
+      await tab.page.keyboard.type("div");
+      await ctx.verify("/ searches the blocks", [
+        tab.visible({ role: "button", name: "Divider", exact: true }),
+        tab.count({ role: "button", name: "Paragraph", exact: true }, 0),
+        tab.count({ role: "button", name: "Heading", exact: true }, 0),
+      ]);
+      await tab.page.keyboard.press("Escape");
+      await tab.click({ role: "tab", name: "Test data" });
       await tab.press("t");
       await ctx.verify("T opens the test dialog", [tab.visible({ role: "dialog" })]);
       await tab.press("Escape");

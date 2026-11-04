@@ -11,6 +11,7 @@ One file per feature. `covers:` lists the source globs it owns, `docs:` the page
 | [package](package.md) | What a project installs from the registry: the module with its build, dashboard layer and skill, the interface with its contract, and the ranges the compatibility table names. |
 | [rendering](rendering.md) | What a recipient receives: the multipart message, the HTML and plain-text parts, the viewport tag, the footer links, the logo rule and the `useHtmlRender` option with its fallback. |
 | [send-from-code](send-from-code.md) | `SendTemplate` of `@antelopejs/interface-dms-mailing`: its result and aggregation, the refusals, tests and content overrides, how amounts and dates are written, and what the log shows of the language. |
+| [sends-controls](sends-controls.md) | The controls of the Sends page: the period, the Template and Test sends filters, the live hold and Pause, J and K across pages. |
 | [sends](sends.md) | The send log: stat strip, stage tabs, the send drawer, send again, send to another address, the provider banner with Send the failures again, the sidebar badge, and the test and real send routes. |
 | [settings](settings.md) | Configure › Settings: the sender, the delivery guards, the provider and webhook (secret, rotation, status, test event), the log retention with its preview, and the template categories. |
 | [smoke](smoke.md) | The fixed journey every verdict runs, whatever the diff touches: the introduction's "A first test send". |

@@ -61,6 +61,7 @@ The gallery, the New template dialog, the drawer and the lifecycle of a template
 - `needs-attention-lists-live-templates-without-a-real-send`: the Needs attention tab holds the live templates with no real send in the last 30 days, and a real send takes a template off it.
 - `the-new-template-dialog-derives-the-slug-and-creates-with-the-keyboard`: New template and the N key open a dialog that derives the slug from the name, offers the starters, and Ctrl+Enter creates the template and opens the editor.
 - `the-details-drawer-opens-with-its-tabs-and-footer`: the info icon of a card opens the details drawer with the Preview, Variables, Performance and History tabs and the Test, Duplicate and Open the editor buttons.
+- `the-table-display-lists-the-same-templates-as-rows`: the Table view lists the templates of the gallery as rows with their name, slug, category and status, and the tabs filter it the same way.
 
 ## How to get to it (user POV)
 
