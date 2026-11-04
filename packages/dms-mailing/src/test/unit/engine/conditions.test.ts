@@ -32,4 +32,25 @@ describe("[unit] engine/conditions", () => {
       evaluateCondition(condition("lt", "10"), { order: { total: "abc" } }),
     ).to.equal(false);
   });
+  it("writes a boolean, a null and a list the way String() does for eq", () => {
+    expect(
+      evaluateCondition(condition("eq", "true"), { order: { total: true } }),
+    ).to.equal(true);
+    expect(
+      evaluateCondition(condition("eq", "null"), { order: { total: null } }),
+    ).to.equal(true);
+    expect(
+      evaluateCondition(condition("eq", "a,b"), {
+        order: { total: ["a", "b"] },
+      }),
+    ).to.equal(true);
+    expect(evaluateCondition(condition("eq", "undefined"), {})).to.equal(true);
+  });
+  it("compares a Date as its time for gt/lt", () => {
+    expect(
+      evaluateCondition(condition("gt", "5"), {
+        order: { total: new Date(10) },
+      }),
+    ).to.equal(true);
+  });
 });

@@ -8,6 +8,7 @@ import {
   templateContentSchema,
   variableListSchema,
 } from "./templates.schema";
+import { jsonObjectSchema } from "./json.schema";
 
 const MAX_AUTHOR_LENGTH = MAX_NAME_LENGTH;
 const MAX_IMPORT_ID_LENGTH = 200;
@@ -36,7 +37,7 @@ export const templateDeclarationSchema = z.object({
   category: z.string().trim().default(""),
   content: templateContentSchema,
   variables: variableListSchema.default([]),
-  testData: z.record(z.unknown()).default({}),
+  testData: jsonObjectSchema.default({}),
   author: z.string().trim().min(1).max(MAX_AUTHOR_LENGTH).optional(),
 });
 
@@ -78,7 +79,7 @@ const recipientSchema = z.union([
 const importedEventSchema = z.object({
   type: sendEventTypeSchema,
   at: z.coerce.date(),
-  details: z.record(z.unknown()).optional(),
+  details: jsonObjectSchema.optional(),
 });
 
 const importedSendSchema = z.object({
@@ -87,7 +88,7 @@ const importedSendSchema = z.object({
   to: recipientSchema,
   sentAt: z.coerce.date(),
   locale: z.string().trim().min(1).optional(),
-  variables: z.record(z.unknown()).default({}),
+  variables: jsonObjectSchema.default({}),
   provider: z.string().optional(),
   providerMessageId: z.string().optional(),
   source: z.string().optional(),

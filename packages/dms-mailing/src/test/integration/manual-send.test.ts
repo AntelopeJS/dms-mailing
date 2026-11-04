@@ -23,7 +23,7 @@ describe("[integration] manual real sends", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     await client.post(`/api/mailing/templates/${id}/content`, {
       content: {
         locales: {

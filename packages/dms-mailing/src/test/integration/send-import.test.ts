@@ -150,7 +150,7 @@ describe("[integration] send import", () => {
           sentAt,
         },
       ],
-    }).catch((reason: { code?: string }) => reason);
+    }).catch((reason: unknown) => reason);
     expect(error).to.have.property("code", "template_not_found");
   });
 
@@ -166,7 +166,7 @@ describe("[integration] send import", () => {
           sentAt,
         },
       ],
-    }).catch((reason: { code?: string; message: string }) => reason);
+    }).catch((reason: unknown) => reason);
     expect(error).to.include({ code: "invalid_import" });
     expect(error)
       .to.have.property("message")

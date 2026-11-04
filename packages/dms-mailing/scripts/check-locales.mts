@@ -103,7 +103,10 @@ function messagesOf(tree: Messages, prefix = ""): [string, string][] {
 function resolve(tree: Messages, key: string): string | Messages | undefined {
   let node: string | Messages | undefined = tree;
   for (const part of key.split(".")) {
-    node = node === undefined || isText(node) ? undefined : node[part];
+    node =
+      node === undefined || isText(node) || !Object.hasOwn(node, part)
+        ? undefined
+        : node[part];
   }
   return node;
 }

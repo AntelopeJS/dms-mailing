@@ -20,12 +20,13 @@ concurrency:
 # The checks run as parallel jobs: a pull request waits for the slowest one,
 # not for their sum.
 jobs:
-  # Typecheck, lint, format, knip, the Vue layer tests, size, ratchet and sync.
+  # Typecheck, lint, format, knip, the Vue layer tests, size, suppressions and sync.
   ci:
-    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1-campaign
     with:
       docs-files: |
         README.md
+        docs
         packages/dms-mailing/README.md
         packages/dms-mailing/docs
         packages/interface-dms-mailing/README.md

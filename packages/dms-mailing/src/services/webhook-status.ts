@@ -7,6 +7,7 @@ import type {
   WebhookRefusal,
   WebhookStatus,
 } from "../types";
+import { isObject, isText } from "../validation/guards";
 import { webhookSecretMatches } from "./events";
 import { WEBHOOK_SECRET_HEADER } from "../constants";
 
@@ -28,11 +29,11 @@ export const WEBHOOK_REFUSAL_MESSAGES: Record<WebhookRefusal, string> = {
 };
 
 /** The body of a refused webhook call. */
-export interface WebhookRefusalBody {
+export type WebhookRefusalBody = {
   error: "webhook_refused";
   reason: WebhookRefusal;
   message: string;
-}
+};
 
 /** What "Send a test event" found when it called the webhook URL. */
 export interface WebhookTestOutcome {
@@ -143,15 +144,13 @@ export async function readWebhookStatus(
   );
 }
 
-const describeError = (error: unknown): string =>
-  error instanceof Error
-    ? String((error.cause as Error | undefined)?.message ?? error.message)
-    : String(error);
-
 async function refusalOf(
   response: Response,
 ): Promise<WebhookRefusal | undefined> {
   try {
+    // SAFETY: Response.json() answers any, and the URL under test is this module's own webhook route, which refuses
+    // with refusalBody(reason); another endpoint can answer any JSON, which is read the same way, and a non-object
+    // reads as no refusal (only null throws, into the catch below).
     const body = (await response.json()) as Partial<WebhookRefusalBody>;
     return body.reason;
   } catch {
@@ -192,11 +191,17 @@ export async function sendWebhookTest(
       refusal: response.ok ? undefined : await refusalOf(response),
     };
   } catch (error) {
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeMessage =
+      isObject(cause) && isText(cause.message) ? cause.message : undefined;
     return {
       isReceived: false,
       url,
       durationMs: elapsed(),
-      networkError: describeError(error),
+      networkError:
+        error instanceof Error
+          ? (causeMessage ?? error.message)
+          : String(error),
     };
   }
 }

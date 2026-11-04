@@ -1,16 +1,10 @@
+import type {
+  MoneyValue,
+  TemplateVariableValue,
+} from "@antelopejs/interface-dms-mailing";
 import type { VariableDefinition } from "../types";
-import { isObject, isText } from "../validation/guards";
-
-/**
- * An amount in the minor unit of its currency (cents for `EUR`), like the
- * DMS's composed-text `money` parameter: `{ value: 987420, currency: "EUR" }`
- * reads "€9,874.20" in English, "9 874,20 €" in French.
- */
-export interface MoneyValue {
-  value: number;
-  /** ISO 4217 code. An unknown code writes the amount as a plain number. */
-  currency: string;
-}
+import { isText } from "../validation/guards";
+import { isPresent, isRecord } from "./paths";
 
 /** How a send writes its typed values: its locale, and the paths typed `date`. */
 export interface ValueFormat {
@@ -55,8 +49,10 @@ export function valueFormatOf(
   };
 }
 
-export function isMoneyValue(value: unknown): value is MoneyValue {
-  if (!isObject(value)) return false;
+export function isMoneyValue(
+  value: TemplateVariableValue | undefined,
+): value is MoneyValue {
+  if (!isRecord(value)) return false;
   return (
     typeof value.value === "number" &&
     Number.isFinite(value.value) &&
@@ -101,6 +97,24 @@ function formatIsoDate(value: string, locale: string): string | null {
     : formatDate(date, options, locale);
 }
 
+/** What `String()` writes for a record, which has no text of its own. */
+const RECORD_TEXT = "[object Object]";
+
+/**
+ * `String(value)` spelled out for each kind a variable can be: a list joins
+ * its items with commas, a missing item writing nothing, and a record writes
+ * {@link RECORD_TEXT}.
+ */
+export function plainText(value: TemplateVariableValue | undefined): string {
+  if (Array.isArray(value))
+    return value
+      .map((item) => (isPresent(item) ? plainText(item) : ""))
+      .join(",");
+  if (value instanceof Date) return value.toString();
+  if (isRecord(value)) return RECORD_TEXT;
+  return String(value);
+}
+
 /**
  * A value as a recipient reads it. A money value and a `Date` format
  * themselves in the send's locale wherever they appear; an ISO string is
@@ -108,7 +122,7 @@ function formatIsoDate(value: string, locale: string): string | null {
  * else, a string already formatted by the caller among them, as given.
  */
 export function formatValue(
-  value: unknown,
+  value: TemplateVariableValue | undefined,
   path = "",
   format?: ValueFormat,
 ): string {
@@ -116,9 +130,9 @@ export function formatValue(
   if (isMoneyValue(value)) return formatMoney(value, locale);
   if (value instanceof Date)
     return Number.isNaN(value.getTime())
-      ? String(value)
+      ? value.toString()
       : formatDate(value, DATE_STYLE, locale);
   if (isText(value) && format?.datePaths.has(path))
     return formatIsoDate(value, locale) ?? value;
-  return String(value);
+  return plainText(value);
 }

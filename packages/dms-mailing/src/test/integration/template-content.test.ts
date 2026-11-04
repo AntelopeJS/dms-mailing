@@ -1,7 +1,12 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText, checkedNumber } from "../helpers/checked";
+import { z } from "zod";
+import { checkedNumber, checkedText, parsedBody } from "../helpers/checked";
+
+const localesBodySchema = z.object({
+  content: z.object({ locales: z.record(z.string(), z.unknown()) }),
+});
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -23,7 +28,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return checkedText(created.data._id);
+  return checkedText.parse(created.data._id);
 }
 
 function withSubject(subject: string, revision?: number) {
@@ -37,12 +42,12 @@ function withSubject(subject: string, revision?: number) {
 
 async function revisionOf(api: Client, id: string): Promise<number> {
   const content = await api.get(`${TEMPLATES}/${id}/content`);
-  return checkedNumber(content.data.revision);
+  return checkedNumber.parse(content.data.revision);
 }
 
 async function versionCount(api: Client, id: string): Promise<number> {
   const history = await api.get(`${TEMPLATES}/${id}/versions`);
-  return checkedNumber(history.data.versions.length);
+  return checkedNumber.parse(history.data.versions.length);
 }
 
 describe("[integration] template draft revisions", () => {
@@ -77,7 +82,7 @@ describe("[integration] template draft revisions", () => {
     const changes = await api.get(`${TEMPLATES}/${id}/changes`);
     expect(changes.data.revision).to.equal(first.data.revision);
     const published = await api.post(`${TEMPLATES}/${id}/publish`, {
-      revision: first.data.revision,
+      revision: checkedNumber.parse(first.data.revision),
     });
     expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
   });
@@ -134,7 +139,9 @@ describe("[integration] template publish guards", () => {
     expect(refused.status).to.equal(HTTP_CONFLICT);
     expect(JSON.stringify(refused.data)).to.contain("nothing_to_discard");
     const content = await api.get(`${TEMPLATES}/${id}/content`);
-    expect(Object.keys(content.data.content.locales)).to.deep.equal(["en"]);
+    expect(
+      Object.keys(parsedBody(content, localesBodySchema).content.locales),
+    ).to.deep.equal(["en"]);
   });
 
   it("refuses to publish a locale without a subject", async () => {

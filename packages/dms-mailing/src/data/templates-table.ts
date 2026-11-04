@@ -4,13 +4,17 @@ import {
   Parameter,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assertValidation } from "@antelopejs/interface-api-util";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { z } from "zod";
 import {
   DataController,
   type DataControllerCallback,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
-import type { Validation } from "@antelopejs/interface-data-api/components";
+import type {
+  Parameters,
+  Validation,
+} from "@antelopejs/interface-data-api/components";
 import {
   Access,
   AccessMode,
@@ -79,19 +83,23 @@ import {
   refuseTakenSlug,
 } from "../services/templates";
 import type { TemplateCategory } from "../types";
+import type { JsonObject } from "../types/json";
 
 import {
   createTemplateSchema,
-  templateDetailsSchema,
+  type TemplateDetails,
 } from "../validation/templates.schema";
 import { isObject, isText } from "../validation/guards";
+import { isJsonObject } from "../validation/json";
 import { parseBody } from "./body";
 import { CategoryDisplay, LocaleChipsDisplay } from "./displays";
 
 const SLUG_IMMUTABLE = "$dms_mailing.errors.slug_immutable";
 const SOURCE_NOT_FOUND = "$dms_mailing.errors.template_not_found";
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
-const INVALID_TEMPLATE = "$dms_mailing.errors.invalid_template";
+export type { TemplateDetails };
+
+export const INVALID_TEMPLATE = "$dms_mailing.errors.invalid_template";
 const UNKNOWN_CATEGORY = "$dms_mailing.errors.unknown_category";
 const TEMPLATE_IN_USE = "$dms_mailing.errors.template_in_use";
 const TEMPLATE_WAS_SENT = "$dms_mailing.errors.template_was_sent";
@@ -147,25 +155,23 @@ async function seedFields(
   return starterFields(starter, fallbackLocale);
 }
 
-const isBlank = (value: unknown) =>
-  value === undefined || value === null || value === "";
-
 /** A category is left empty or picked among the ones the settings declare. */
 function assertKnownCategory(
   categories: TemplateCategory[],
-  category: unknown,
+  category: string | undefined,
 ): void {
-  if (isBlank(category)) return;
-  if (isText(category) && findCategory(categories, category)) {
-    return;
-  }
+  if (!category || findCategory(categories, category)) return;
   throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
 }
 
-/** The row `new` answers since interface-data-api 0.3: its key and fields. */
-interface CreatedRow {
-  _id: string;
-  [field: string]: unknown;
+/** The key of the row `new` answers since interface-data-api 0.3. */
+const createdRowSchema = z.object({ _id: z.string() });
+
+/** The JSON object a creation sends; 400 for any other JSON. */
+function parseCreationBody(body: Buffer): JsonObject {
+  const parsed = parseBody(body);
+  assert(isJsonObject(parsed), HTTP_BAD_REQUEST, INVALID_TEMPLATE);
+  return parsed;
 }
 
 /**
@@ -176,7 +182,7 @@ interface CreatedRow {
  * object: interface-data-api 0.3 refuses a JSON string.
  */
 function parseCreation(body: Validation.WrittenBody, locale: string) {
-  const raw = Buffer.isBuffer(body) ? parseBody(body) : body;
+  const raw = Buffer.isBuffer(body) ? parseCreationBody(body) : body;
   const seed = assertValidation(
     raw,
     (value) => createTemplateSchema.parse(value),
@@ -189,11 +195,6 @@ function parseCreation(body: Validation.WrittenBody, locale: string) {
     name: withTextIn(undefined, locale, seed.name),
   };
   return { seed, normalized };
-}
-
-/** What the data API locks a localized field with: the controller's key. */
-interface LocalizedController {
-  language: string;
 }
 
 /** The key that writes every language of a localized field at once. */
@@ -209,9 +210,9 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
   return {
     ...base,
     func: async function (
-      this: unknown,
+      this: TemplatesTableAPI,
       ctx: RequestContext,
-      params: unknown,
+      params: Parameters.NewParameters,
       body: Validation.WrittenBody,
       ...rest: unknown[]
     ) {
@@ -220,11 +221,11 @@ function withSeeding(base: DataControllerCallback): DataControllerCallback {
       const settings = await getSettings(tenantId);
       assertKnownCategory(settings.categories, seed.category);
       const fields = await seedFields(tenantId, seed, settings.fallbackLocale);
-      (this as LocalizedController).language = ALL_LANGUAGES;
-      const created = (await refuseTakenSlug(
-        base.func.call(this, ctx, params, normalized, ...rest),
-      )) as CreatedRow;
-      const templateId = created._id;
+      this.language = ALL_LANGUAGES;
+      const created: unknown = await refuseTakenSlug(
+        Promise.resolve(base.func.call(this, ctx, params, normalized, ...rest)),
+      );
+      const templateId = createdRowSchema.parse(created)._id;
       const user = await authenticateTenantRequest(ctx);
       await initializeTemplate(tenantId, templateId, displayName(user), fields);
       return created;
@@ -301,10 +302,17 @@ export async function assertEditable(
 ): Promise<void> {
   if (body.slug !== undefined && body.slug !== current.slug)
     throw new HTTPResult(HTTP_CONFLICT, SLUG_IMMUTABLE);
-  if (body.name !== undefined && isBlankName(body.name))
-    throw new HTTPResult(HTTP_BAD_REQUEST, BLANK_NAME);
+  if (body.name !== undefined) {
+    const texts = isObject(body.name) ? Object.values(body.name) : [body.name];
+    if (!texts.some((text) => isText(text) && text.trim()))
+      throw new HTTPResult(HTTP_BAD_REQUEST, BLANK_NAME);
+  }
   const { categories } = await getSettings(tenantId);
-  assertKnownCategory(categories, body.category);
+  const { category } = body;
+  if (category === undefined || category === null || category === "") return;
+  if (!isText(category))
+    throw new HTTPResult(HTTP_UNPROCESSABLE, UNKNOWN_CATEGORY);
+  assertKnownCategory(categories, category);
 }
 
 /**
@@ -314,14 +322,9 @@ export async function assertEditable(
 export async function saveDetails(
   ctx: RequestContext,
   template: MailingTemplate,
-  body: unknown,
+  details: TemplateDetails,
   author: string,
 ): Promise<void> {
-  const details = assertValidation(
-    body,
-    (value) => templateDetailsSchema.parse(value),
-    () => INVALID_TEMPLATE,
-  );
   const tenantId = getRequestTenantId(ctx);
   await assertEditable(tenantId, details, template);
   const names = TemplateModel.namesOf(template);
@@ -332,15 +335,6 @@ export async function saveDetails(
     }),
     updatedBy: author,
   });
-}
-
-/**
- * Whether an edited name holds no text: the text of the reader's language,
- * or, from a form editing every language, all of them.
- */
-function isBlankName(name: unknown): boolean {
-  const texts = isObject(name) ? Object.values(name) : [name];
-  return !texts.some((text) => isText(text) && text.trim());
 }
 
 /** The names trimmed, blank ones left out, the fallback language filled. */
@@ -362,10 +356,8 @@ function tidyNames(names: LocalizedText, locale: string): LocalizedText {
 export function afterEdit(
   model: TemplateModel,
   id: string,
-  name: unknown,
   locale: string,
-): AfterWrite | undefined {
-  if (name === undefined) return undefined;
+): AfterWrite {
   return async () => {
     const template = await model.get(id);
     if (!template) return;
@@ -377,8 +369,10 @@ export function afterEdit(
 }
 
 /** The templates the attention refresh flagged. */
-const isFlagged: FilterFunction<Record<string, unknown>> = (_context, proxy) =>
-  proxy.default(false).eq(true);
+const isFlagged: FilterFunction<TemplatesTableAPI, TemplatesTableAPI> = (
+  _context,
+  proxy,
+) => proxy.default(false).eq(true);
 
 const templateRoutes = {
   ...TableViewRoutes.All,

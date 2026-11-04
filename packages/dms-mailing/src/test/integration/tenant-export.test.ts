@@ -1,7 +1,9 @@
 import type { Readable } from "node:stream";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { TenantExportArchive } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   contributeTenantExport,
   exportedCollections,
@@ -21,14 +23,12 @@ const EXPORTED_SLUG = "exported-template";
 const SINGLE_ROW_PAGE = 1;
 const LIST_ALL = 100;
 
-interface TemplateRow {
-  slug: string;
-}
+const slugRowsSchema = z.array(z.object({ slug: z.string() }));
 
 class CollectingArchive implements TenantExportArchive {
   readonly entries = new Map<string, string>();
 
-  addJson(path: string, data: unknown): Promise<void> {
+  addJson(path: string, data: JsonValue): Promise<void> {
     this.entries.set(path, JSON.stringify(data));
     return Promise.resolve();
   }
@@ -44,8 +44,8 @@ class CollectingArchive implements TenantExportArchive {
   }
 }
 
-function parsed<T>(archive: CollectingArchive, entry: string): T {
-  return JSON.parse(checkedText(archive.entries.get(entry))) as T;
+function slugsOf(json: string): string[] {
+  return slugRowsSchema.parse(JSON.parse(json)).map((row) => row.slug);
 }
 
 describe("[integration] tenant export", () => {
@@ -73,10 +73,9 @@ describe("[integration] tenant export", () => {
       SUPPRESSIONS_ENTRY,
       SETTINGS_ENTRY,
     ]);
-    const templates = parsed<TemplateRow[]>(archive, TEMPLATES_ENTRY);
-    expect(templates.map((template) => template.slug)).to.include(
-      EXPORTED_SLUG,
-    );
+    expect(
+      slugsOf(checkedText.parse(archive.entries.get(TEMPLATES_ENTRY))),
+    ).to.include(EXPORTED_SLUG);
     expect(archive.entries.get(SETTINGS_ENTRY)).to.not.contain("webhookSecret");
   });
 
@@ -109,9 +108,9 @@ describe("[integration] tenant export", () => {
      */
     const list = await client.get(`${TABLE}/list?limit=${LIST_ALL}`);
     expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-    const slugs = (list.data.results as TemplateRow[]).map(
-      (template) => template.slug,
-    );
+    const slugs = slugRowsSchema
+      .parse(list.data.results)
+      .map((template) => template.slug);
     const [templates] = exportedCollections(DEFAULT_TENANT_ID);
 
     let text = "";
@@ -123,9 +122,7 @@ describe("[integration] tenant export", () => {
       text += chunk;
     }
 
-    const paged = (JSON.parse(text) as TemplateRow[]).map(
-      (template) => template.slug,
-    );
+    const paged = slugsOf(text);
     expect(paged).to.have.members(slugs);
     expect(new Set(paged).size).to.equal(paged.length);
   });

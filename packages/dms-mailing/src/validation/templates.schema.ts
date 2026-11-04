@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_NAME_LENGTH, MAX_SLUG_LENGTH, SLUG_PATTERN } from "../constants";
 import type { Block } from "../types";
+import { jsonObjectSchema } from "./json.schema";
 
 const MIN_HEADING_SIZE = 12;
 const MAX_HEADING_SIZE = 48;
@@ -149,7 +150,7 @@ export const saveContentSchema = z.object({
   revision: draftRevisionSchema,
 });
 
-export const testDataSchema = z.object({ data: z.record(z.unknown()) });
+export const testDataSchema = z.object({ data: jsonObjectSchema });
 
 /**
  * Which content a preview renders when it carries none: the working draft
@@ -166,7 +167,7 @@ export const previewSchema = z.object({
   locale: z.string().min(1).optional(),
   version: previewVersionSchema.optional(),
   content: templateContentSchema.optional(),
-  data: z.record(z.unknown()).optional(),
+  data: jsonObjectSchema.optional(),
 });
 
 /**
@@ -176,7 +177,7 @@ export const previewSchema = z.object({
 export const realSendSchema = z.object({
   to: z.array(z.string().email()).min(1).max(MAX_TEST_RECIPIENT_COUNT),
   locale: z.string().min(1).optional(),
-  data: z.record(z.unknown()).optional(),
+  data: jsonObjectSchema.optional(),
 });
 
 export const testSendSchema = previewSchema.extend({
@@ -192,6 +193,9 @@ export const templateDetailsSchema = z.object({
   slug: z.string().optional(),
   category: z.string().nullable().optional(),
 });
+
+/** The details a template's drawer or the editor saves, validated. */
+export type TemplateDetails = z.infer<typeof templateDetailsSchema>;
 
 export const duplicateSchema = z.object({
   slug: slugSchema,

@@ -19,7 +19,7 @@ import { TEMPLATE_CATEGORY_TYPE_ID } from "../constants";
  */
 @RegisterDataType(TEMPLATE_CATEGORY_TYPE_ID)
 export class TemplateCategoryType extends DataType {
-  constructor(public readonly options: Record<string, unknown> = {}) {
+  constructor() {
     super(
       [
         DefaultDataCompareTypes.Is,
@@ -28,7 +28,7 @@ export class TemplateCategoryType extends DataType {
         DefaultDataCompareTypes.IsNotEmpty,
       ],
       DefaultDataCompareTypes.Is,
-      options,
+      {},
     );
   }
 

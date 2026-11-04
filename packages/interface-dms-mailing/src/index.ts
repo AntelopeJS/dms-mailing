@@ -1,6 +1,48 @@
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { EmailAddress } from "@antelopejs/interface-email";
 
+/** A value as JSON carries it. */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | JsonObject;
+
+/** A JSON object: string keys, JSON values. */
+export type JsonObject = { [key: string]: JsonValue };
+
+/**
+ * An amount in the minor unit of its currency (cents for `EUR`), like the
+ * DMS's composed-text `money` parameter: `{ value: 987420, currency: "EUR" }`
+ * reads "€9,874.20" in English, "9 874,20 €" in French.
+ */
+export type MoneyValue = {
+  value: number;
+  /** ISO 4217 code. An unknown code writes the amount as a plain number. */
+  currency: string;
+};
+
+/**
+ * One value a template reads: a string, a number, a boolean, `null`, a `Date`
+ * or a {@link MoneyValue} (both written in the send's locale), and lists and
+ * records of the same. Anything else, a class instance or a function among
+ * them, is not a template variable.
+ */
+export type TemplateVariableValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Date
+  | MoneyValue
+  | TemplateVariableValue[]
+  | TemplateVariables;
+
+/** The variables of a send, by name; a template reads them by path. */
+export type TemplateVariables = { [name: string]: TemplateVariableValue };
+
 export type ConditionOperator = "truthy" | "falsy" | "eq" | "ne" | "gt" | "lt";
 
 export interface Condition {
@@ -134,7 +176,7 @@ export interface SendTemplateParams {
   tenantId: string;
   to: EmailAddress | EmailAddress[];
   locale?: string;
-  variables?: Record<string, unknown>;
+  variables?: TemplateVariables;
   content?: TemplateContent;
   source?: string;
   isTest?: boolean;
@@ -170,7 +212,7 @@ export interface EmailEvent {
   messageId: string;
   type: SendEventType;
   at?: Date;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }
 
 export type SendEventType =
@@ -235,7 +277,7 @@ export interface TemplateDeclaration {
   /** The variables callers send, checked like the editor's declarations. */
   variables?: VariableDefinition[];
   /** The data set the editor's preview and test send use. */
-  testData?: Record<string, unknown>;
+  testData?: JsonObject;
   /** Shown as the author of what the declaration writes; `system` when absent. */
   author?: string;
 }
@@ -296,7 +338,7 @@ export interface SenderDeclaration {
 export interface ImportedSendEvent {
   type: SendEventType;
   at: Date;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }
 
 /**
@@ -314,7 +356,7 @@ export interface ImportedSend {
   sentAt: Date;
   /** Locale it was sent in; the workspace fallback locale when absent. */
   locale?: string;
-  variables?: Record<string, unknown>;
+  variables?: JsonObject;
   provider?: string;
   providerMessageId?: string;
   /** Labels the send log; `import` when absent. */

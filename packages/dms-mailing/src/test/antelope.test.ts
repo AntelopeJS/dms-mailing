@@ -6,6 +6,7 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 import { SHARED_MODULE_SOURCES } from "./antelope-modules";
 import { isText } from "../validation/guards";
+import { SETUP_TOKEN } from "./helpers/setup-token";
 
 const API_PORT = 5019;
 const JWT_SECRET = "test-jwt-secret";
@@ -175,6 +176,7 @@ export default defineConfig({
       process.env.TEST_MONGO_URL = mongoUrl;
       process.env.TEST_API_BASE_URL = `http://127.0.0.1:${API_PORT}`;
       process.env.TEST_JWT_SECRET = JWT_SECRET;
+      process.env.DMS_SETUP_TOKEN = SETUP_TOKEN;
 
       return {
         modules: {

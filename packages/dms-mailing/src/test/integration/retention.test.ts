@@ -79,12 +79,15 @@ function sweep(f: Fixture): Promise<number> {
 }
 
 async function loseAcknowledgement(
-  action: () => Promise<unknown>,
+  action: () => Promise<void>,
 ): Promise<number> {
-  const original: AtomicMutationQuery["run"] = Object.getOwnPropertyDescriptor(
+  const original: unknown = Object.getOwnPropertyDescriptor(
     AtomicMutationQuery.prototype,
     "run",
   )?.value;
+  if (!(original instanceof Function)) {
+    throw new TypeError("AtomicMutationQuery has no run method");
+  }
   let calls = 0;
   const run = mock.method(AtomicMutationQuery.prototype, "run");
   run.mock.mockImplementation(async function (this: AtomicMutationQuery) {
@@ -97,8 +100,10 @@ async function loseAcknowledgement(
       () => {
         throw new Error("expected unknown outcome failure");
       },
-      (error: Error) =>
-        expect(error.message).to.include("outcome is unknown; not retrying"),
+      (error: unknown) =>
+        expect(error)
+          .to.have.property("message")
+          .that.includes("outcome is unknown; not retrying"),
     );
   } finally {
     run.mock.restore();
@@ -219,13 +224,13 @@ describe("[integration] replay-safe Mongo retention", () => {
     const f = fixture();
     const id = await seed(f);
     const send = await f.sends.get(id);
-    const calls = await loseAcknowledgement(() =>
-      recordEmailEvent(f.tenantId, {
+    const calls = await loseAcknowledgement(async () => {
+      await recordEmailEvent(f.tenantId, {
         messageId: send!.providerMessageId!,
         provider: "fixture",
         type: "opened",
-      }),
-    );
+      });
+    });
     expect(calls).to.equal(1);
     expect((await f.sends.get(id))?.opens).to.equal(1);
     expect(await f.events.getBySend(id)).to.have.length(1);
@@ -235,12 +240,16 @@ describe("[integration] replay-safe Mongo retention", () => {
     const f = fixture();
     const id = await seed(f);
     expect(
-      await loseAcknowledgement(() => purgeSend(f.tenantId, id, CUTOFF)),
+      await loseAcknowledgement(async () => {
+        await purgeSend(f.tenantId, id, CUTOFF);
+      }),
     ).to.equal(1);
     expect((await f.sends.get(id))?.isRetiring).to.equal(true);
     expect(await f.events.getBySend(id)).to.have.length(1);
     expect(
-      await loseAcknowledgement(() => purgeSend(f.tenantId, id, CUTOFF)),
+      await loseAcknowledgement(async () => {
+        await purgeSend(f.tenantId, id, CUTOFF);
+      }),
     ).to.equal(1);
     expect(await f.sends.get(id)).to.equal(undefined);
     expect(await f.events.getBySend(id)).to.deep.equal([]);
@@ -295,7 +304,8 @@ describe("[integration] replay-safe Mongo retention", () => {
         () => {
           throw new Error("expected cleanup failure");
         },
-        (error: Error) => expect(error.message).to.equal("cleanup unavailable"),
+        (error: unknown) =>
+          expect(error).to.have.property("message", "cleanup unavailable"),
       );
     } finally {
       deletion.mock.restore();
@@ -321,7 +331,8 @@ describe("[integration] replay-safe Mongo retention", () => {
         () => {
           throw new Error("expected delete failure");
         },
-        (error: Error) => expect(error.message).to.equal("delete unavailable"),
+        (error: unknown) =>
+          expect(error).to.have.property("message", "delete unavailable"),
       );
     } finally {
       deletion.mock.restore();

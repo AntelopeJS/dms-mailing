@@ -5,13 +5,13 @@ import type {
 } from "@antelopejs/interface-dms-automation";
 import { SEND_EVENT_TYPES, type SendEventType } from "../types";
 
-export interface EmailEventPayload {
+export type EmailEventPayload = {
   tenantId: string;
   sendId: string;
   templateSlug: string;
   type: SendEventType;
   recipientEmail: string;
-}
+};
 
 export interface EmailEventTriggerConfig {
   types?: SendEventType[];

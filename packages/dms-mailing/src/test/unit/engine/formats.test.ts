@@ -59,6 +59,12 @@ describe("[unit] engine/formats", () => {
     expect(formatValue(12345, "order.number", format)).to.equal("12345");
   });
 
+  it("writes a boolean, a list and a record the way String() does", () => {
+    expect(formatValue(true)).to.equal("true");
+    expect(formatValue(["a", 2, null, ["b"]])).to.equal("a,2,,b");
+    expect(formatValue({ a: 1 })).to.equal("[object Object]");
+  });
+
   it("falls back to English for a locale the runtime cannot format", () => {
     expect(valueFormatOf("not a locale").locale).to.equal("en");
   });

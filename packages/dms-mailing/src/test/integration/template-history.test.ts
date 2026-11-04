@@ -43,7 +43,7 @@ async function createTemplate(api: Client, slug: string): Promise<string> {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  return checkedText(created.data._id);
+  return checkedText.parse(created.data._id);
 }
 
 interface DraftBody {
@@ -63,7 +63,7 @@ function draft(subject: string, variables?: Declaration[]): DraftBody {
 async function publish(api: Client, id: string): Promise<number> {
   const published = await api.post(`${TEMPLATES}/${id}/publish`, {});
   expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
-  return checkedNumber(published.data.version);
+  return checkedNumber.parse(published.data.version);
 }
 
 describe("[integration] template history and restore", () => {
@@ -80,10 +80,12 @@ describe("[integration] template history and restore", () => {
 
     const before = await api.get(`${TEMPLATES}/${id}/content`);
     const restored = await api.post(`${TEMPLATES}/${id}/versions/1/restore`, {
-      revision: before.data.revision,
+      revision: checkedNumber.parse(before.data.revision),
     });
     expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);
-    expect(restored.data).to.deep.equal({ revision: before.data.revision + 1 });
+    expect(restored.data).to.deep.equal({
+      revision: checkedNumber.parse(before.data.revision) + 1,
+    });
     const changes = await api.get(`${TEMPLATES}/${id}/changes`);
     expect(
       changes.data.changes.map((change: ChangeRow) => change.kind),

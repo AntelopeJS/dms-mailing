@@ -1,7 +1,9 @@
 import { expect } from "chai";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText } from "../helpers/checked";
+import { z } from "zod";
+import { checkedRow, checkedText, parsedBody } from "../helpers/checked";
+import { listedTemplates } from "../helpers/listed";
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -10,16 +12,22 @@ const HTTP_CONFLICT = 409;
 const TABLE = "/api/mailing/tables/templates";
 const DETAILS = "/api/mailing/templates";
 
-interface TemplateRow {
-  _id: string;
-  slug: string;
-  status: string;
-  locales: string;
-}
-
-interface BlockRow {
-  type: string;
-}
+const blankContentSchema = z.object({
+  content: z.object({
+    locales: z.object({
+      en: z.object({
+        subject: z.string(),
+        blocks: z.array(
+          z.object({
+            type: z.string(),
+            unsubscribeLabel: z.string(),
+            preferencesLabel: z.string(),
+          }),
+        ),
+      }),
+    }),
+  }),
+});
 
 describe("[integration] templates table", () => {
   it("creates a blank template with only a footer and lists it", async () => {
@@ -34,9 +42,9 @@ describe("[integration] templates table", () => {
 
     const list = await client.get(`${TABLE}/list?limit=100`);
     expect(list.status).to.equal(HTTP_OK);
-    const row = list.data.results.find(
-      (item: TemplateRow) => item.slug === "order-confirmed",
-    ) as TemplateRow;
+    const row = checkedRow(
+      listedTemplates(list).find((item) => item.slug === "order-confirmed"),
+    );
     expect(row.status).to.equal("draft");
     expect(row.locales).to.equal("en");
 
@@ -44,15 +52,12 @@ describe("[integration] templates table", () => {
       `/api/mailing/templates/${row._id}/content`,
     );
     expect(content.status).to.equal(HTTP_OK);
-    expect(
-      content.data.content.locales.en.blocks.map(
-        (block: BlockRow) => block.type,
-      ),
-    ).to.deep.equal(["footer"]);
-    const [footer] = content.data.content.locales.en.blocks;
-    expect(footer.unsubscribeLabel, "transactional footer").to.equal("");
-    expect(footer.preferencesLabel, "transactional footer").to.equal("");
-    expect(content.data.content.locales.en.subject).to.equal("");
+    const blank = parsedBody(content, blankContentSchema).content.locales.en;
+    expect(blank.blocks.map((block) => block.type)).to.deep.equal(["footer"]);
+    const [footer] = blank.blocks;
+    expect(footer?.unsubscribeLabel, "transactional footer").to.equal("");
+    expect(footer?.preferencesLabel, "transactional footer").to.equal("");
+    expect(blank.subject).to.equal("");
     expect(content.data.variables).to.deep.equal([]);
   });
 
@@ -85,7 +90,7 @@ describe("[integration] templates table", () => {
       name: "Copy source",
       category: "orders",
     });
-    const sourceId = checkedText(source.data._id);
+    const sourceId = checkedText.parse(source.data._id);
     await client.post(`/api/mailing/templates/${sourceId}/content`, {
       content: {
         locales: {
@@ -110,7 +115,7 @@ describe("[integration] templates table", () => {
     });
     expect(copy.status, JSON.stringify(copy.data)).to.equal(HTTP_OK);
     const content = await client.get(
-      `/api/mailing/templates/${checkedText(copy.data._id)}/content`,
+      `/api/mailing/templates/${checkedText.parse(copy.data._id)}/content`,
     );
     expect(content.data.content.locales.en.subject).to.equal(
       "Hello {{customer.firstName}}",
@@ -128,7 +133,7 @@ describe("[integration] templates table", () => {
       name: "Keeps slug",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     const edited = await client.put(`${DETAILS}/${id}/details`, {
       slug: "keeps-slug",
       name: "Renamed",
@@ -153,7 +158,7 @@ describe("[integration] templates table", () => {
       name: "Clears category",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
 
     const edited = await client.put(`${DETAILS}/${id}/details`, {
       slug: "clears-category",
@@ -178,7 +183,7 @@ describe("[integration] templates table", () => {
       name: "Fixed slug",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
 
     const moved = await client.put(`${DETAILS}/${id}/details`, {
       slug: "order-confirmed",
@@ -229,101 +234,6 @@ describe("[integration] templates table", () => {
   });
 });
 
-describe("[integration] template content and status", () => {
-  async function createTemplate(
-    client: ReturnType<typeof authorizedClient>,
-    slug: string,
-  ): Promise<string> {
-    const created = await client.post(`${TABLE}/new`, {
-      slug,
-      name: slug,
-      category: "orders",
-    });
-    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return checkedText(created.data._id);
-  }
-
-  it("replaces the content, publishes and duplicates", async () => {
-    const session = await ensureOwnerSession();
-    const client = authorizedClient(session.accessToken);
-    const id = await createTemplate(client, "welcome");
-    const before = await client.get(`/api/mailing/templates/${id}/content`);
-    const content = before.data.content;
-    content.locales.en.subject = "Welcome {{customer.firstName}}";
-    const saved = await client.post(`/api/mailing/templates/${id}/content`, {
-      content,
-    });
-    expect(saved.status, JSON.stringify(saved.data)).to.equal(HTTP_OK);
-    expect(saved.data.saved).to.equal(true);
-
-    const publish = await client.post(
-      `/api/mailing/templates/${id}/publish`,
-      {},
-    );
-    expect(publish.status).to.equal(HTTP_OK);
-    const after = await client.get(`/api/mailing/templates/${id}/content`);
-    expect(after.data.template.status).to.equal("live");
-    expect(after.data.content.locales.en.subject).to.equal(
-      "Welcome {{customer.firstName}}",
-    );
-
-    const variables = await client.post(
-      `/api/mailing/templates/${id}/variables`,
-      {
-        variables: [
-          { path: "customer.firstName", type: "string", required: false },
-        ],
-      },
-    );
-    expect(variables.status).to.equal(HTTP_OK);
-    const testData = await client.post(
-      `/api/mailing/templates/${id}/test-data`,
-      { data: { customer: { firstName: "Sofie" } } },
-    );
-    expect(testData.status).to.equal(HTTP_OK);
-
-    const duplicate = await client.post(
-      `/api/mailing/templates/${id}/duplicate`,
-      { slug: "welcome-copy", name: "Welcome copy" },
-    );
-    expect(duplicate.status, JSON.stringify(duplicate.data)).to.equal(HTTP_OK);
-    const copy = await client.get(
-      `/api/mailing/templates/${duplicate.data.id}/content`,
-    );
-    expect(copy.data.template.status).to.equal("draft");
-    expect(copy.data.content.locales.en.subject).to.equal(
-      "Welcome {{customer.firstName}}",
-    );
-    expect(copy.data.variables).to.have.length(1);
-  });
-
-  it("previews the current content with test data and reports missing variables", async () => {
-    const session = await ensureOwnerSession();
-    const client = authorizedClient(session.accessToken);
-    /**
-     * Looked up by slug rather than on the table's first page, which other
-     * tests fill with their own templates.
-     */
-    const { GetModel } =
-      await import("@antelopejs/interface-database-decorators");
-    const { DEFAULT_TENANT_ID } =
-      await import("@antelopejs/interface-dms/constants");
-    const { TemplateModel } = await import("../../db");
-    const welcome = await GetModel(TemplateModel, DEFAULT_TENANT_ID).getBySlug(
-      "welcome",
-    );
-    const id = checkedText(welcome?._id);
-    const preview = await client.post(`/api/mailing/templates/${id}/preview`, {
-      locale: "en",
-      data: {},
-    });
-    expect(preview.status, JSON.stringify(preview.data)).to.equal(HTTP_OK);
-    expect(preview.data.html).to.include("<!DOCTYPE html>");
-    expect(preview.data.missing).to.include("customer.firstName");
-    expect(preview.data.subject).to.equal("Welcome {{customer.firstName}}");
-  });
-});
-
 describe("[integration] templates table guards", () => {
   const HTTP_UNPROCESSABLE = 422;
   const RACERS = 3;
@@ -354,7 +264,7 @@ describe("[integration] templates table guards", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return checkedText(created.data._id);
+    return checkedText.parse(created.data._id);
   }
 
   async function publish(api: Client, id: string): Promise<void> {
@@ -377,8 +287,7 @@ describe("[integration] templates table guards", () => {
   ): Promise<boolean | undefined> {
     const list = await api.get(`${TABLE}/list?limit=20&search=${slug}`);
     expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-    const rows = list.data.results as { _id: string; hasSends?: boolean }[];
-    return rows.find((row) => row._id === id)?.hasSends;
+    return listedTemplates(list).find((row) => row._id === id)?.hasSends;
   }
 
   it("refuses to delete a live template, and a sent archived one", async () => {
@@ -449,7 +358,7 @@ describe("[integration] templates table guards", () => {
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
     const row = await api.get(
-      `${TABLE}/get?id=${checkedText(created.data._id)}`,
+      `${TABLE}/get?id=${checkedText.parse(created.data._id)}`,
     );
     expect(row.data.slug).to.equal("fix-l2-trim");
     expect(row.data.name).to.equal("Trimmed");

@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import {
   categoriesIn,
   categoryMoves,
@@ -8,6 +9,7 @@ import {
 import { mailingSettingsForm } from "../../pages/settings/form";
 import { categoriesSchema } from "../../validation/settings.schema";
 import type { MailingTemplate } from "../../db";
+import { templateRow } from "../helpers/rows";
 import type { TemplateCategory } from "../../types";
 
 const CATEGORIES: TemplateCategory[] = [
@@ -23,15 +25,28 @@ const CATEGORIES: TemplateCategory[] = [
 const LABEL_REQUIRED = "$dms_mailing.settings.categories.label_required";
 const LABEL_DUPLICATE = "$dms_mailing.settings.categories.label_duplicate";
 
-interface JsonSchema {
-  properties: Record<string, JsonSchema>;
-  items: JsonSchema;
-  anyOf: JsonSchema[];
-  additionalProperties?: Record<string, unknown>;
-}
+const categoriesFormSchema = z.object({
+  properties: z.object({
+    categories: z.object({
+      anyOf: z.array(
+        z.object({
+          items: z
+            .object({
+              properties: z.object({
+                label: z.object({
+                  additionalProperties: z.record(z.unknown()).optional(),
+                }),
+              }),
+            })
+            .optional(),
+        }),
+      ),
+    }),
+  }),
+});
 
 const template = (id: string, category?: string): MailingTemplate =>
-  ({ _id: id, category }) as MailingTemplate;
+  templateRow({ _id: id, category });
 
 describe("[unit] services/categories reassignRemovedCategories", () => {
   it("leaves the templates of a removed category uncategorised", () => {
@@ -89,7 +104,8 @@ describe("[unit] services/categories labels per language", () => {
 });
 
 describe("[unit] validation categoriesSchema", () => {
-  const parse = (value: unknown) => categoriesSchema.safeParse(value).success;
+  const parse = (value: string | z.input<typeof categoriesSchema>) =>
+    categoriesSchema.safeParse(value).success;
   const category = (patch: Partial<TemplateCategory>) => ({
     ...CATEGORIES[0],
     ...patch,
@@ -148,10 +164,11 @@ describe("[unit] validation categoriesSchema", () => {
   });
 
   it("leaves the label's minimum out of the form's own check", () => {
-    const schema = mailingSettingsForm.serializeSync().options
-      ?.schema as JsonSchema;
+    const schema = categoriesFormSchema.parse(
+      mailingSettingsForm.serializeSync().options?.schema,
+    );
     const [list] = schema.properties.categories.anyOf;
-    const label = list?.items.properties.label;
+    const label = list?.items?.properties.label;
     expect(label?.additionalProperties).to.have.property("maxLength");
     expect(label?.additionalProperties).to.not.have.property("minLength");
   });

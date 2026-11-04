@@ -13,14 +13,12 @@ const FOOTER_TYPE = "footer";
  * Languages whose typography spaces a colon off its label, with a no-break
  * space so the colon never starts a line ("Total : 64,00 €").
  */
-const LABEL_SEPARATORS: Record<string, string> = {
-  fr: " : ",
-};
+const LABEL_SEPARATORS = new Map([["fr", " : "]]);
 
 /** What goes between a label and its value in the e-mail's language. */
 export function labelSeparatorOf(locale = ""): string {
   const language = locale.toLowerCase().split(LOCALE_PARTS)[0] ?? "";
-  return LABEL_SEPARATORS[language] ?? DEFAULT_LABEL_SEPARATOR;
+  return LABEL_SEPARATORS.get(language) ?? DEFAULT_LABEL_SEPARATOR;
 }
 
 const linked = (label: string, href: string, separator: string): string =>

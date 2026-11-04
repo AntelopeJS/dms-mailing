@@ -1,3 +1,4 @@
+import type { TemplateVariables } from "@antelopejs/interface-dms-mailing";
 import { formatValue, type ValueFormat } from "./formats";
 import { getPath, isPresent } from "./paths";
 
@@ -31,7 +32,7 @@ export function extractTokens(text: string): string[] {
  */
 export function interpolate(
   text: string,
-  data: Record<string, unknown>,
+  data: TemplateVariables,
   mode: InterpolationMode = "preview",
   format?: ValueFormat,
 ): InterpolationResult {

@@ -1,7 +1,19 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText } from "../helpers/checked";
+import { checkedRow, checkedText, parsedBody } from "../helpers/checked";
+import type { JsonObject } from "../../types/json";
+
+const sendListSchema = z.object({
+  results: z.array(
+    z.object({
+      _id: z.string(),
+      localeLabel: z.string(),
+      localeFallback: z.unknown(),
+    }),
+  ),
+});
 
 const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
@@ -25,7 +37,7 @@ async function liveTemplate(api: Client, slug: string): Promise<string> {
     name: slug,
     category: "orders",
   });
-  const id = checkedText(created.data._id);
+  const id = checkedText.parse(created.data._id);
   await api.post(`${TEMPLATES}/${id}/content`, {
     content: {
       locales: { en: { subject: "Published", preheader: "", blocks: [] } },
@@ -39,14 +51,24 @@ async function markEvent(
   api: Client,
   sendId: string,
   type: string,
-  details: Record<string, unknown> = {},
+  details: JsonObject = {},
 ): Promise<void> {
   const settings = await api.get("/api/mailing/settings");
   const detail = await api.get(`${SENDS}/${sendId}`);
   const hook = await api.post(
     eventsPath("manual"),
-    { messageId: detail.data.send.providerMessageId, type, details },
-    { headers: { "x-mailing-webhook-secret": settings.data.webhookSecret } },
+    {
+      messageId: checkedText.parse(detail.data.send.providerMessageId),
+      type,
+      details,
+    },
+    {
+      headers: {
+        "x-mailing-webhook-secret": checkedText.parse(
+          settings.data.webhookSecret,
+        ),
+      },
+    },
   );
   expect(hook.status, JSON.stringify(hook.data)).to.equal(HTTP_OK);
 }
@@ -54,25 +76,27 @@ async function markEvent(
 async function sendOnce(api: Client, id: string, to: string): Promise<string> {
   const sent = await api.post(`${TEMPLATES}/${id}/send`, { to: [to] });
   expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-  return checkedText(sent.data.results[0].sendId);
+  return checkedText.parse(sent.data.results[0].sendId);
 }
 
 async function sendsTo(api: Client, recipient: string): Promise<number> {
   const list = await api.get(
     `/api/mailing/tables/sends/list?limit=50&search=${encodeURIComponent(recipient)}`,
   );
-  return (list.data.results as { recipientEmail: string }[]).filter(
-    (row) => row.recipientEmail === recipient,
-  ).length;
+  return z
+    .array(z.object({ recipientEmail: z.string() }))
+    .parse(list.data.results)
+    .filter((row) => row.recipientEmail === recipient).length;
 }
 
 async function liftSuppression(api: Client, email: string): Promise<void> {
   const list = await api.get(
     `${SUPPRESSIONS_TABLE}/list?limit=50&search=${encodeURIComponent(email)}`,
   );
-  const entry = (list.data.results as { _id: string; email: string }[]).find(
-    (row) => row.email === email,
-  );
+  const entry = z
+    .array(z.object({ _id: z.string(), email: z.string() }))
+    .parse(list.data.results)
+    .find((row) => row.email === email);
   if (entry) await api.delete(`${SUPPRESSIONS}/${entry._id}`);
 }
 
@@ -100,8 +124,11 @@ describe("[integration] send lifecycle", () => {
     });
 
     const list = await api.get("/api/mailing/tables/sends/list?limit=100");
-    const row = list.data.results.find(
-      (item: { _id: string }) => item._id === sent.data.results[0].sendId,
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
+    const row = checkedRow(
+      parsedBody(list, sendListSchema).results.find(
+        (item) => item._id === sendId,
+      ),
     );
     expect(row.localeLabel).to.equal("EN");
     expect(row.localeFallback).to.deep.equal({
@@ -120,7 +147,7 @@ describe("[integration] send lifecycle", () => {
       name: "Draft only",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     const test = await api.post(`${TEMPLATES}/${id}/test-send`, {
       to: ["draft@example.test"],
       locale: "en",
@@ -159,7 +186,7 @@ describe("[integration] send lifecycle", () => {
     const sent = await api.post(`${TEMPLATES}/${id}/send`, {
       to: ["wrong@example.test"],
     });
-    const sendId = checkedText(sent.data.results[0].sendId);
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
     await markEvent(api, sendId, "bounced");
     const bounced = await api.get(`${SENDS}/${sendId}`);
     expect(bounced.data.send.stage).to.equal("problem");
@@ -186,7 +213,7 @@ describe("[integration] send lifecycle", () => {
     const sent = await api.post(`${TEMPLATES}/${id}/send`, {
       to: ["spam@example.test"],
     });
-    const sendId = checkedText(sent.data.results[0].sendId);
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
     await markEvent(api, sendId, "spam");
     const refused = await api.post(`${SENDS}/${sendId}/replay`, {
       to: "other@example.test",
@@ -220,7 +247,7 @@ describe("[integration] send lifecycle", () => {
     expect(replay.status, JSON.stringify(replay.data)).to.equal(HTTP_OK);
     const original = await api.get(`${SENDS}/${sendId}`);
     expect(original.data.send).to.deep.include({
-      replayedBy: replay.data.sendId,
+      replayedBy: checkedText.parse(replay.data.sendId),
       stage: "resolved",
     });
     expect(original.data.send.resolvedAt).to.be.a("string");
@@ -237,7 +264,7 @@ describe("[integration] send lifecycle", () => {
 
     const first = await api.post(`${SENDS}/replay-failed`, {});
     expect(first.status, JSON.stringify(first.data)).to.equal(HTTP_OK);
-    const replayedBy = checkedText(
+    const replayedBy = checkedText.parse(
       (await api.get(`${SENDS}/${sendId}`)).data.send.replayedBy,
     );
     expect(replayedBy).to.be.a("string");
@@ -348,7 +375,7 @@ describe("[integration] send lifecycle", () => {
       name: "Draft rendering",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     await api.post(`${TEMPLATES}/${id}/content`, {
       content: {
         locales: { en: { subject: "Draft", preheader: "", blocks: [] } },

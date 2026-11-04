@@ -9,7 +9,9 @@ import {
   WEBHOOK_SECRET_HEADER,
   WEBHOOK_TEST_MESSAGE_ID,
   type WebhookFetch,
+  type WebhookRefusalBody,
 } from "../../services/webhook-status";
+import type { WebhookResponse } from "../../routes/events";
 import { checkedText } from "../helpers/checked";
 
 const SECRET = "s".repeat(48);
@@ -18,7 +20,11 @@ const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
 
 const answering =
-  (status: number, body: unknown, calls: RequestInit[] = []): WebhookFetch =>
+  (
+    status: number,
+    body: WebhookResponse | WebhookRefusalBody,
+    calls: RequestInit[] = [],
+  ): WebhookFetch =>
   async (_url, init) => {
     calls.push(init);
     return new Response(JSON.stringify(body), { status });
@@ -85,7 +91,7 @@ describe("[unit] services/webhook-status", () => {
       httpStatus: HTTP_OK,
     });
     expect(calls[0]?.headers).to.have.property(WEBHOOK_SECRET_HEADER, SECRET);
-    expect(JSON.parse(checkedText(calls[0]?.body)).messageId).to.equal(
+    expect(JSON.parse(checkedText.parse(calls[0]?.body)).messageId).to.equal(
       WEBHOOK_TEST_MESSAGE_ID,
     );
   });

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { SHARED_MODULE_SOURCES } from "../src/test/antelope-modules";
 

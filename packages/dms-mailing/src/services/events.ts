@@ -16,7 +16,8 @@ import { publishSendUpdated } from "../realtime";
 import type { SendEventType, SendStatus } from "../types";
 import { notifyProblems } from "./notify";
 import { suppressAddress, suppressionReasonOf } from "./suppressions";
-import { isObject, isText } from "../validation/guards";
+import { isText } from "../validation/guards";
+import { isJsonObject } from "../validation/json";
 
 export interface SendCounters {
   status: SendStatus;
@@ -169,7 +170,8 @@ export function isSameEvent(
   if (eventId) {
     const storedDetails: unknown = JSON.parse(stored.json_details || "{}");
     return (
-      eventIdOf(isObject(storedDetails) ? storedDetails : undefined) === eventId
+      eventIdOf(isJsonObject(storedDetails) ? storedDetails : undefined) ===
+      eventId
     );
   }
   if (!event.at || stored.type !== event.type) return false;

@@ -1,3 +1,4 @@
+import type { ExecutionCtx } from "@antelopejs/interface-dms-automation";
 import { expect } from "chai";
 import { unregisterAutomationNodes } from "../../automation";
 import {
@@ -41,6 +42,31 @@ describe("[unit] automation nodes", () => {
     expect(schema)
       .to.have.nested.property("properties.to.items")
       .that.deep.equals({ type: "string" });
+  });
+
+  it("logs the message of a send that fails, as text", async () => {
+    const logged: { level: string; value: unknown }[] = [];
+    const ctx: ExecutionCtx = {
+      procedureId: "p",
+      runId: "r",
+      nodeId: "n",
+      log: (level, _message, value) => {
+        logged.push({ level, value });
+      },
+    };
+    const failure = await sendTemplateAction
+      .execute({ tenantId: "t", slug: "no-such-template", to: "a@b.c" }, ctx)
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+    expect(failure).to.be.instanceOf(Error);
+    expect(logged).to.deep.equal([
+      {
+        level: "error",
+        value: failure instanceof Error ? failure.message : undefined,
+      },
+    ]);
   });
 
   it("fans e-mail events out to active trigger subscriptions filtered by type", async () => {

@@ -26,7 +26,7 @@ function describeIssues(error: ZodError): string {
 /** `input` parsed by `schema`, or a `DeclarationError` under `code`. */
 export function parseDeclared<Output, Input>(
   schema: ZodType<Output, ZodTypeDef, Input>,
-  input: unknown,
+  input: Input,
   code: string,
   subject: string,
 ): Output {

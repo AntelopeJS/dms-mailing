@@ -1,17 +1,21 @@
-import { isNumber, isText } from "../../validation/guards";
+import { z } from "zod";
 
-/** `value`, which the test needs to be a string: an API answer's id, say. */
-export function checkedText(value: unknown): string {
-  if (!isText(value)) {
-    throw new TypeError(`expected a string, got ${JSON.stringify(value)}`);
-  }
-  return value;
+/** A string, which the test needs an API answer's id, say, to be. */
+export const checkedText = z.string();
+
+/** A number, which the test needs a revision or a version to be. */
+export const checkedNumber = z.number();
+
+/** The part of an API answer a test reads, checked against its schema. */
+export function parsedBody<Parsed>(
+  response: { data: unknown },
+  schema: z.ZodType<Parsed, z.ZodTypeDef, unknown>,
+): Parsed {
+  return schema.parse(response.data);
 }
 
-/** `value`, which the test needs to be a number: a revision, a version. */
-export function checkedNumber(value: unknown): number {
-  if (!isNumber(value)) {
-    throw new TypeError(`expected a number, got ${JSON.stringify(value)}`);
-  }
+/** `value`, which the test needs to exist: a row a list must hold. */
+export function checkedRow<Row>(value: Row | undefined): Row {
+  if (value === undefined) throw new TypeError("expected a row, got none");
   return value;
 }

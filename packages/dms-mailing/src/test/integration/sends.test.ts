@@ -1,7 +1,9 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { checkedText } from "../helpers/checked";
+import { checkedRow, checkedText } from "../helpers/checked";
+import { listedTemplates } from "../helpers/listed";
 
 const HTTP_OK = 200;
 const HTTP_UNPROCESSABLE = 422;
@@ -9,14 +11,7 @@ const HTTP_NOT_FOUND = 404;
 const DAY_MS = 86_400_000;
 const TABLE = "/api/mailing/tables/templates";
 
-interface TemplateRow {
-  _id: string;
-  slug: string;
-}
-
-interface SendResult {
-  sendId: string;
-}
+const sendResultSchema = z.object({ sendId: z.string() });
 
 describe("[integration] sends", () => {
   it("sends a test e-mail through the SMTP fixture and logs it", async () => {
@@ -28,7 +23,7 @@ describe("[integration] sends", () => {
       category: "orders",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     const sent = await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -63,7 +58,7 @@ describe("[integration] sends", () => {
       { to: ["metrics@example.test"], locale: "en", data: { any: "value" } },
     );
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
-    const sendId = checkedText(sent.data.results[0].sendId);
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
 
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");
@@ -89,7 +84,7 @@ describe("[integration] sends", () => {
       name: "Real draft",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     const sent = await client.post(`/api/mailing/templates/${id}/send`, {
       to: ["sofie@example.test"],
       locale: "en",
@@ -106,7 +101,7 @@ describe("[integration] sends", () => {
       name: "Real send",
       category: "orders",
     });
-    const id = checkedText(created.data._id);
+    const id = checkedText.parse(created.data._id);
     await client.post(`/api/mailing/templates/${id}/content`, {
       content: {
         locales: { en: { subject: "Real send", preheader: "", blocks: [] } },
@@ -134,11 +129,9 @@ describe("[integration] sends", () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
     const list = await client.get(`${TABLE}/list?limit=100`);
-    const id = (
-      list.data.results.find(
-        (item: TemplateRow) => item.slug === "test-send",
-      ) as TemplateRow
-    )._id;
+    const { _id: id } = checkedRow(
+      listedTemplates(list).find((item) => item.slug === "test-send"),
+    );
     const sent = await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["first@example.test", "second@example.test"],
       locale: "en",
@@ -146,9 +139,10 @@ describe("[integration] sends", () => {
     });
     expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
     expect(sent.data.results).to.have.length(2);
-    const sendIds = sent.data.results.map(
-      (result: SendResult) => result.sendId,
-    );
+    const sendIds = z
+      .array(sendResultSchema)
+      .parse(sent.data.results)
+      .map((result) => result.sendId);
     expect(new Set(sendIds).size).to.equal(2);
   });
 
@@ -159,11 +153,9 @@ describe("[integration] sends", () => {
       blockOnMissingVariables: true,
     });
     const list = await client.get(`${TABLE}/list?limit=100`);
-    const id = (
-      list.data.results.find(
-        (item: TemplateRow) => item.slug === "test-send",
-      ) as TemplateRow
-    )._id;
+    const { _id: id } = checkedRow(
+      listedTemplates(list).find((item) => item.slug === "test-send"),
+    );
     /** Blank content references nothing, so give it a token to miss. */
     await client.post(`/api/mailing/templates/${id}/content`, {
       content: {
@@ -196,7 +188,9 @@ describe("[integration] sends", () => {
     const client = authorizedClient(session.accessToken);
     const list = await client.get("/api/mailing/tables/sends/list");
     expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-    const original = list.data.results[0] as TemplateRow;
+    const [original] = z
+      .array(z.object({ _id: z.string() }))
+      .parse(list.data.results);
     const replay = await client.post(
       `/api/mailing/sends/${original._id}/replay`,
       {},

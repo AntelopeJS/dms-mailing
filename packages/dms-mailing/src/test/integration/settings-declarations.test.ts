@@ -86,7 +86,7 @@ describe("[integration] template category declarations", () => {
       id: "invoices",
       label: { en: "Billing" },
       icon: "i-ph-receipt",
-    }).catch((reason: { code?: string }) => reason);
+    }).catch((reason: unknown) => reason);
     expect(error).to.have.property("code", "invalid_category");
   });
 });
@@ -146,7 +146,7 @@ describe("[integration] sender declarations", () => {
     ];
     for (const [index, input] of refusals.entries()) {
       const error = await DeclareSender(input).catch(
-        (reason: { code?: string; message: string }) => reason,
+        (reason: unknown) => reason,
       );
       expect(error).to.include({ code: "invalid_sender" });
       expect(error)

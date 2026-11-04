@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { SendSummary } from "../../db";
+import { summaryRow } from "../helpers/rows";
 import {
   fallbacksOf,
   performanceOf,
@@ -11,14 +12,14 @@ const send = (
   status: SendStatus,
   extra: Partial<SendSummary> = {},
 ): SendSummary =>
-  ({
+  summaryRow({
     status,
     isTest: false,
     locale: "en",
     requestedLocale: "en",
     createdAt: new Date("2026-10-01T10:00:00Z"),
     ...extra,
-  }) as SendSummary;
+  });
 
 describe("[unit] services/template-stats", () => {
   it("sums sends, open rate, problems and the last send", () => {

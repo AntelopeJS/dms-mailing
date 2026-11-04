@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { PageMetadata } from "@antelopejs/interface-dms/page";
@@ -19,14 +20,21 @@ type Toolbar = ReturnType<typeof OverviewPageController.header.serializeSync>;
 const childOf = (toolbar: Toolbar, id: string) =>
   toolbar.children?.find((child) => child.id === id)?.component;
 
-const optionsOf = (block: ComponentInfoSerialized): Record<string, unknown> =>
-  (block.options ?? {}) as Record<string, unknown>;
+const optionsSchema = z
+  .object({
+    periodScope: z.string().optional(),
+    realtimeTopic: z.string().optional(),
+  })
+  .optional();
+
+const optionsOf = (block: ComponentInfoSerialized) =>
+  optionsSchema.parse(block.options);
 
 /** The blocks under `block` that read a period of figures. */
 function periodBlocks(
   block: ComponentInfoSerialized,
 ): ComponentInfoSerialized[] {
-  const own = optionsOf(block).periodScope ? [block] : [];
+  const own = optionsOf(block)?.periodScope ? [block] : [];
   return [
     ...own,
     ...(block.children ?? []).flatMap((child) => periodBlocks(child.component)),
@@ -93,7 +101,7 @@ describe("[unit] pages page toolbar", () => {
     ];
     expect(blocks).to.have.length.greaterThan(0);
     for (const block of blocks) {
-      expect(optionsOf(block).realtimeTopic, block.componentName).to.equal(
+      expect(optionsOf(block)?.realtimeTopic, block.componentName).to.equal(
         MAILING_SENDS_TOPIC,
       );
     }
@@ -105,7 +113,7 @@ describe("[unit] pages page toolbar", () => {
     ).filter((block) => block.componentName === "dms-kpi-card");
     expect(kpiCards).to.have.length(OVERVIEW_KPI_COUNT);
     for (const card of kpiCards) {
-      expect(optionsOf(card).realtimeTopic).to.equal(MAILING_SENDS_TOPIC);
+      expect(optionsOf(card)?.realtimeTopic).to.equal(MAILING_SENDS_TOPIC);
     }
   });
 

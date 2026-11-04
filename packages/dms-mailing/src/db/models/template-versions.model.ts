@@ -11,6 +11,8 @@ export function committedVersionOf(
   template: Pick<MailingTemplate, "json_published_version">,
 ): MailingTemplateVersion | undefined {
   if (!template.json_published_version) return undefined;
+  // SAFETY: json_published_version is written only by publishSnapshot and publishedAtCreation as the
+  // JSON.stringify of the version row they insert; its publishedAt reads back as a string, and the next line restores the Date.
   const row = JSON.parse(
     template.json_published_version,
   ) as MailingTemplateVersion;
@@ -33,12 +35,12 @@ export class TemplateVersionModel extends BasicDataModel(
       await this.insert(version);
     } catch (error) {
       const stored = await this.get(version._id);
+      if (!stored) throw error;
+      const storedFields = new Map(Object.entries(stored));
       if (
-        !stored ||
         Object.entries(version).some(
           ([key, value]) =>
-            JSON.stringify(stored[key as keyof MailingTemplateVersion]) !==
-            JSON.stringify(value),
+            JSON.stringify(storedFields.get(key)) !== JSON.stringify(value),
         )
       )
         throw error;

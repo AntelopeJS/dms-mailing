@@ -18,10 +18,32 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/**
+ * @param {unknown} value
+ * @returns {value is { name: string, version: string }}
+ */
+function isManifest(value) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    Object.hasOwn(value, "name") &&
+    typeof value.name === "string" &&
+    "version" in value &&
+    Object.hasOwn(value, "version") &&
+    typeof value.version === "string"
+  );
+}
+
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const { name, version } = JSON.parse(
+/** @type {unknown} */
+const manifest = JSON.parse(
   readFileSync(join(packageRoot, "package.json"), "utf8"),
 );
+if (!isManifest(manifest)) {
+  throw new Error("package.json: no name and version");
+}
+const { name, version } = manifest;
 
 const prerelease = version.split("-").slice(1).join("-");
 const identifier = prerelease.split(".")[0];

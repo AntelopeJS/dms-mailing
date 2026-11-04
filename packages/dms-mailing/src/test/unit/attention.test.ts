@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import type { MailingSend, MailingTemplate } from "../../db";
+import { sendRow, templateRow } from "../helpers/rows";
 import {
   type AttentionItem,
   type AttentionWindow,
@@ -13,7 +14,7 @@ const sendWith = (
   opens = 0,
   clicks = 0,
 ): MailingSend =>
-  ({ status, templateSlug: "welcome", isTest, opens, clicks }) as MailingSend;
+  sendRow({ status, templateSlug: "welcome", isTest, opens, clicks });
 
 const send = (isTest: boolean): MailingSend => sendWith("sent", isTest);
 
@@ -187,14 +188,14 @@ const liveTemplate = (
   slug: string,
   publishedAt = new Date("2026-09-01T00:00:00.000Z"),
 ): MailingTemplate =>
-  ({
+  templateRow({
     slug,
     name: `Template ${slug}`,
     status: "live",
     locales: "en",
     publishedAt,
     updatedAt: publishedAt,
-  }) as MailingTemplate;
+  });
 
 describe("[unit] services/attention live templates without a send", () => {
   it("counts live templates the window did not use", () => {
@@ -320,14 +321,14 @@ describe("[unit] services/attention problem sends", () => {
     status: MailingSend["status"],
     stage: MailingSend["stage"],
   ): MailingSend =>
-    ({
+    sendRow({
       status,
       stage,
       templateSlug: "welcome",
       isTest: false,
       opens: 0,
       clicks: 0,
-    }) as MailingSend;
+    });
 
   it("leaves out the problems a send again resolved, like the Problems tab", () => {
     const items = buildAttentionItems(

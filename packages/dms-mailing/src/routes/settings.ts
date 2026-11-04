@@ -48,7 +48,8 @@ import {
   settingsPatchSchema,
 } from "../validation/settings.schema";
 import { retentionLimit } from "../crons/retention";
-import { isJsonObject } from "../validation/guards";
+import { isJsonObject } from "../validation/json";
+import { zodIssuesJson } from "./zod-json";
 
 const INVALID_SETTINGS = "$dms_mailing.errors.invalid_settings";
 const CATEGORIES_REASSIGNED = "$dms_mailing.settings.categories.reassigned";
@@ -90,7 +91,7 @@ export interface MailingSettingsResponse extends MailingSettingsValues {
 export interface SettingsNotice {
   title: string;
   color?: string;
-  params?: Record<string, unknown>;
+  params?: Record<string, number | string>;
 }
 
 export interface SettingsWriteResponse extends MailingSettingsValues {
@@ -147,9 +148,11 @@ function formIssue(issue: z.ZodIssue): z.ZodIssue {
 }
 
 /** A refused write: the generic message, and each issue for its field. */
-function invalidSettings(error: unknown) {
-  if (!(error instanceof z.ZodError)) return INVALID_SETTINGS;
-  return { message: INVALID_SETTINGS, issues: error.issues.map(formIssue) };
+function invalidSettings(error: z.ZodError) {
+  return {
+    message: INVALID_SETTINGS,
+    issues: zodIssuesJson(error.issues.map(formIssue)),
+  };
 }
 
 function senderNotice(values: MailingSettingsValues): SettingsNotice[] {
@@ -241,7 +244,8 @@ export class MailingSettingsController extends Controller(
     return assertValidation(
       clearedToEmpty(body),
       (value) => settingsPatchSchema.parse(value),
-      invalidSettings,
+      (error) =>
+        error instanceof z.ZodError ? invalidSettings(error) : INVALID_SETTINGS,
     );
   }
 
@@ -295,7 +299,8 @@ export class MailingSettingsController extends Controller(
     return assertValidation(
       raw,
       (value) => retentionDaysSchema.parse(value),
-      invalidSettings,
+      (error) =>
+        error instanceof z.ZodError ? invalidSettings(error) : INVALID_SETTINGS,
     );
   }
 
@@ -306,12 +311,12 @@ export class MailingSettingsController extends Controller(
   @Get("/category-usage")
   async categoryUsage(): Promise<{ counts: Record<string, number> }> {
     const templates = await this.templates.getAll();
-    const counts: Record<string, number> = {};
+    const counts = new Map<string, number>();
     for (const template of templates) {
       if (!template.category || template.status === ARCHIVED_STATUS) continue;
-      counts[template.category] = (counts[template.category] ?? 0) + 1;
+      counts.set(template.category, (counts.get(template.category) ?? 0) + 1);
     }
-    return { counts };
+    return { counts: Object.fromEntries(counts) };
   }
 
   /**
