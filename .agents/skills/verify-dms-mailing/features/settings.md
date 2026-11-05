@@ -37,6 +37,8 @@ Configure › Settings: the sender, the delivery guards, the provider and webhoo
 - `the-fallback-locale-picks-the-version-for-a-language-the-template-lacks`: nine locale cases against the mail sink and the send log.
 - `rotating-the-webhook-secret-stops-the-old-one-at-once`: rotate, paste 31, 32, 120 and 121 characters.
 - `the-test-event-reaches-the-webhook-and-touches-no-send`: the test event, the status, the test message id.
+- `the-webhook-url-names-the-provider-in-lower-case-with-hyphens`: the URL's provider segment under a verification provider named `~Acme  Mail (EU)_v2!`, named `""`, and unable to answer.
+- `the-webhook-url-origin-falls-back-from-the-dashboard-to-the-api-to-the-server`: the URL's origin with both base URLs, with only the API one (trailing slash dropped), with neither.
 - `the-log-retention-is-bounded-and-previews-what-the-next-run-deletes`: 1 and 3650 days and one past, the preview counts and the 03:15 time.
 - `categories-are-added-renamed-reordered-and-validated`, `removing-a-category-moves-its-templates-and-the-usage-counts-live-ones`: the categories API.
 - Page journeys: `the-settings-page-has-five-sections-and-the-save-bar-saves-the-changes`, `the-webhook-section-shows-the-secret-rotates-it-and-tests-the-url`, `the-retention-control-previews-the-next-run-and-confirms-a-deletion`, `the-categories-editor-adds-renames-reorders-and-asks-where-templates-go`.
@@ -57,4 +59,5 @@ dms-control journey "$RUN" settings
 - A custom retention only reaches the form after Tab leaves the number field.
 - The preview writes 1 year as 365 days.
 - The webhook URL starts with the dashboard origin because the playground sets `clientBaseUrl`.
+- `VERIFY_MAILING_PROVIDER=fake` replaces the e-mail provider with `playground/src/provider.ts`, whose capabilities carry `VERIFY_MAILING_PROVIDER_NAME` (none while it is unset); `VERIFY_MAILING_CLIENT_BASE_URL` and `VERIFY_MAILING_API_BASE_URL` replace the DMS answers for the two base URLs (`unset` answers nothing). The installed DMS always has a `clientBaseUrl`, so only this replacement reaches the fallbacks. Every restart takes about ten seconds, which is why each journey groups its cases.
 - A new member also holds a DMS welcome notification in the bell.

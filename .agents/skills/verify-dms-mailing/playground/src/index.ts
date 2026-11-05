@@ -4,6 +4,8 @@ import { z } from "zod";
 import { provision } from "./calls";
 import "./export";
 import "./fixture";
+import { implementOrigins } from "./origins";
+import { implementFakeProvider } from "./provider";
 
 const STEPS = z.array(z.object({ fn: z.string(), args: z.array(z.unknown()) }));
 
@@ -20,4 +22,11 @@ export function construct(): void {
     provision(STEPS.parse(JSON.parse(readFileSync(file, "utf8").replaceAll("$tenant", tenantId)))),);
 }
 
-export function start(): void {}
+/**
+ * Swaps in the switched fixtures once every module is constructed, so they
+ * replace the implementations the nodemailer and DMS modules attached.
+ */
+export async function start(): Promise<void> {
+  await implementFakeProvider();
+  await implementOrigins();
+}
