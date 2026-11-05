@@ -32,5 +32,5 @@ Sources: docs/4.usage/2.templates.md, README Slugs, 5.extending (ship templates)
 | Needs attention: drafts never published and untouched over a week | Not driven | a draft cannot be aged: updatedAt is written by the server |
 | Needs attention: live templates missing a locale that another live template has | Not driven | needs a second live locale set; left to the gallery chips |
 | Thumbnail renders as the card scrolls into view, "Preview unavailable" when it cannot | Not driven | the thumbnail is an iframe the harness does not read |
-| Table display lists the same templates | Not driven | the radio is driven by nobody; no check reads the table view |
+| Table display lists the same templates | the-table-display-lists-the-same-templates-as-rows | Gallery first (cards, no rows); Table view swaps them for exactly two rows `tbl-live tbl-live Copy Orders Live` and `Tbl draft tbl-draft Copy Billing Draft` with no archived row and no cards; the Live, Drafts and Archived tabs each leave one row; Gallery brings the cards back |
 | Ctrl+Enter / Cmd+Enter in the dialog on macOS | Not driven | the harness runs Chromium on Linux (Control) |
