@@ -110,7 +110,7 @@ const config: VerifyConfig = {
       ],
       files: [`${FORMAL}/**`],
       command: ["node", `${FORMAL}/check.mjs`],
-      violation: /^(?:finding|BROKEN|CHANGED) (\w+)/gm,
+      violation: /^(?:BROKEN|CHANGED|HOLDS) +(\w+)/gm,
       passing: /(?<=^(?:holds +(?:\w+, )*|HOLDS +))(\w+)/gm,
     },
   ],

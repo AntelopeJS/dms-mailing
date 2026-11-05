@@ -12,7 +12,7 @@ description: "Model-check with TLA+ how dms-mailing folds provider webhook event
 The `webhook-events` entry of [`verify.config.ts`](../verify-dms-mailing/verify.config.ts) lists the covered files (`covers`). See what changed since the model last matched the code:
 
 ```bash
-git diff 0c390355a9bb6e1ad86e0e753965890bcf17c4ec..HEAD -- packages/dms-mailing/src/services/events.ts packages/dms-mailing/src/types/sends.ts packages/dms-mailing/src/db/models/sends.model.ts packages/dms-mailing/src/db/models/send-events.model.ts packages/dms-mailing/src/crons/retention.ts
+git diff 37b4ff69fdaadd710f5b2ce5080674d6ee9cc1c7..HEAD -- packages/dms-mailing/src/services/events.ts packages/dms-mailing/src/types/sends.ts packages/dms-mailing/src/db/models/sends.model.ts packages/dms-mailing/src/db/models/send-events.model.ts packages/dms-mailing/src/crons/retention.ts
 ```
 
 Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A change to the event types, `RANK`, `DEFERRABLE_STATUSES`, `COUNTERS` or `MAX_ACTIVITY_ATTEMPTS` needs no model edit, because `check.mjs` reads them on every run.
@@ -124,4 +124,4 @@ Left out:
 | `ActivityAges` | time passing beyond `logRetentionDays` between runs |
 | `MailingTables.tla` | `services/events.ts` `RANK`, `DEFERRABLE_STATUSES`, `COUNTERS`, `MAX_ACTIVITY_ATTEMPTS`; `types/sends.ts` `SEND_EVENT_TYPES`, read by `check.mjs` |
 
-Sync commit: `0c390355a9bb6e1ad86e0e753965890bcf17c4ec` (2026-11-05). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.
+Sync commit: `37b4ff69fdaadd710f5b2ce5080674d6ee9cc1c7` (2026-11-01). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.
