@@ -30,6 +30,9 @@ backend suite runs in its own CI job, so run it when your change touches
   CI after its single build) both skip the build and test the existing `dist/`.
   Set it only after building the current sources; otherwise tests use stale
   output.
+- A change to the webhook event handling or the send retention also runs the
+  TLA+ check in
+  [`.agents/skills/formal-dms-mailing/SKILL.md`](.agents/skills/formal-dms-mailing/SKILL.md).
 
 `pnpm --dir packages/dms-mailing knip:all` also reports unused files and
 exports. Confirm each finding before you remove it.
