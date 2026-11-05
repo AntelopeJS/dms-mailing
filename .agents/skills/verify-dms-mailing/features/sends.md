@@ -42,6 +42,7 @@ The send log: stat strip, stage tabs, the send drawer, send again, send to anoth
 - Provider banner thresholds and Send the failures again (100 cap).
 - Sidebar badge (real problems of 24 h), test send and real send routes.
 - `stat-strip-states-the-period-figures-and-their-changes`: the stat strip counts real sends, delivered, problems, the queue and the median latency, compares all but the queue, and leaves test sends out.
+- `the-median-latency-is-the-middle-api-call-of-the-period`: five sends the verification provider answers after 900, 100, 1500, 300 and 150 ms (the delay is the `delay-<ms>@...` recipient) give a median latency of about 300 ms in the stats and the strip.
 - `stage-tabs-hold-their-sends`: each stage tab lists exactly its sends, with its count; Problems leaves test sends out.
 - `locale-column-says-when-the-locale-asked-was-not-sent`: the Locale column shows the locale sent, and when it differs from the locale asked for, says DE asked.
 - `send-again-rules-by-status`: a spam report is never answered, a permanent bounce needs another address, a temporary bounce or a failure goes again, the original is resolved and linked.
