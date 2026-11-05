@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 /**
@@ -7,13 +7,15 @@ import { join, relative } from "node:path";
  * at the next minor, so `^0.6.0` installs 0.6.1 and never 0.7. Every example of
  * this module in the README and the docs must name a caret range that admits
  * the version of this package. Prints the violations only; exits 1 when there
- * are any.
+ * are any. With `--write` it rewrites each violation to `^major.minor.0` of this
+ * package instead, which the release runs right after the version bump.
  */
 
 const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const SCANNED = ["README.md", "docs", "skills"];
 const SOURCE =
   /package:\s*"@antelopejs\/dms-mailing",\s*version:\s*"(?<spec>[^"]*)"/g;
+const WRITE = process.argv.includes("--write");
 const CARET = /^\^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$/;
 
 /** A `major.minor.patch` triple of non-negative integers. */
@@ -79,22 +81,39 @@ if (current === undefined || rest.length > 0) {
   throw new Error(`package.json: ${manifest.version} is not major.minor.patch`);
 }
 
+const wanted = `^${current[0]}.${current[1]}.0`;
+
+const admitted = (spec: string): boolean => {
+  const caret = CARET.exec(spec)?.groups;
+  const floor =
+    caret === undefined
+      ? undefined
+      : parseTriple(caret.major ?? "", caret.minor ?? "", caret.patch ?? "");
+  return floor !== undefined && caretAdmits(floor, current);
+};
+
 const errors: string[] = [];
 for (const file of SCANNED.flatMap((name) =>
   markdownFiles(join(PACKAGE_ROOT, name)),
 )) {
   const text = readFileSync(file, "utf8");
+  if (WRITE) {
+    const fixed = text.replace(SOURCE, (whole, spec: string) =>
+      admitted(spec)
+        ? whole
+        : `${whole.slice(0, whole.length - spec.length - 1)}${wanted}"`,
+    );
+    if (fixed !== text) {
+      writeFileSync(file, fixed);
+    }
+    continue;
+  }
   for (const match of text.matchAll(SOURCE)) {
     const spec = match.groups?.spec ?? "";
-    const caret = CARET.exec(spec)?.groups;
-    const floor =
-      caret === undefined
-        ? undefined
-        : parseTriple(caret.major ?? "", caret.minor ?? "", caret.patch ?? "");
-    if (floor === undefined || !caretAdmits(floor, current)) {
+    if (!admitted(spec)) {
       const line = text.slice(0, match.index).split("\n").length;
       errors.push(
-        `${relative(PACKAGE_ROOT, file)}:${line}: version "${spec}" is not a caret range that selects ${manifest.version}; write one such as "^${current[0]}.${current[1]}.0"`,
+        `${relative(PACKAGE_ROOT, file)}:${line}: version "${spec}" is not a caret range that selects ${manifest.version}; write one such as "${wanted}"`,
       );
     }
   }
