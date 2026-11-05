@@ -1,6 +1,6 @@
 ---
 name: verify-dms-mailing
-description: "Drive the AntelopeJS dms-mailing module (e-mail templates and their gallery, the block editor with drafts and versions, the send log, the Overview figures, the settings with the provider webhook, the suppression list, the interface other modules send and declare through) the way the platform owner does, inside a DMS with free ports, its own MongoDB database and an SMTP sink, and post a verdict with evidence. Use to prove a change to AntelopeJS/dms-mailing works before merge, to verify a PR, or to check that a seeded break or a seeded one-way door is caught."
+description: "Drive the AntelopeJS dms-mailing module (e-mail templates and their gallery, the block editor with drafts and versions, the send log, the Overview figures, the settings with the provider webhook, the suppression list, the interface other modules send and declare through) the way the platform owner does, inside a DMS with free ports, its own MongoDB database and an SMTP sink, and post a verdict with evidence. Use to prove a change to AntelopeJS/dms-mailing works before merge, or to verify a PR."
 ---
 
 # Verify dms-mailing
@@ -14,7 +14,7 @@ C="pnpm --dir packages/dms-mailing exec dms-control"
 $C                       # lists every command
 ```
 
-Give `seeded`, `doors` and `--skill` absolute paths: the command runs in `packages/dms-mailing`.
+Give `doors` and `--skill` absolute paths: the command runs in `packages/dms-mailing`.
 
 ## Launch
 
@@ -69,7 +69,7 @@ $C down "$RUN"
 2. **Unmapped surface fails the verdict.** User-facing code is `packages/dms-mailing/src/**`, `frontend-vue/**`, `skills/**`, `package.json`, and `packages/interface-dms-mailing/src/**` and `package.json`, tests and tool configs excluded (`verify.config.ts`). `map` checks the whole tree.
 3. **Every registered journey of a feature in `run` must have run and passed.** Known findings stay as failing journeys (see Gotchas): they fail a verdict only when the diff touches their feature.
 4. **Docs.** Judge every `docs:` page of each touched feature against what the journeys showed.
-5. **One-way doors.** The section comes right after the result line and is mandatory. `$C doors` prints the `One-way-door:` line for the diff. The Data door is contained only by its containment journeys passing in this run, the Outbound door by `suppressions/a-suppressed-address-gets-no-mail-from-any-send-path` and `sends/a-real-send-asks-for-an-acknowledgement`; no journey contains the other kinds, so those rows say so.
+5. **One-way doors.** The section comes right after the result line and is mandatory. `$C doors` prints the `One-way-door:` line for the diff.
 6. **Formal check.** `$C formal "$RUN"` runs each `formal` check of `verify.config.ts` whose covered files or own folder the diff touches. `webhook-events` is the TLA+ model of the webhook events and the retention; read its result with [formal-dms-mailing](../formal-dms-mailing/SKILL.md). A touched check that did not run fails the verdict, and so does one whose output no longer matches its record (`BROKEN`, `CHANGED`, `HOLDS`). A recorded finding that still reproduces as recorded does not fail it: list it under `attention`.
 7. **Result.** FAIL if any of rules 1 to 6 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
 
@@ -77,22 +77,13 @@ Write `$RUN/evidence/judgement.json` (`doors`, `docs`, `notVerified`, `attention
 
 ## Trust
 
-The skill is not Trusted yet. It becomes Trusted when it catches every seeded break and flags every seeded door, passes a shadow run of 10 consecutive agent PRs, and its last maintain pass is newer than the last change to the repository or its `@antelopejs` dependencies and at most 30 days old.
-
-## Seeded breaks and doors
-
-```bash
-$C seeded smoke sends suppressions
-$C doors "$PWD/.agents/skills/verify-dms-mailing/seeded-doors/data.patch"
-```
-
-`seeded-breaks/<feature>.patch` is one minimal product bug per feature; `seeded` builds a control and a patched worktree, runs the feature's journeys in each, and prints `CAUGHT` with the journeys that caught it, or `MISSED`. A break counts only when a journey that passes in the control fails one of its checks with the patch. `seeded-doors/<kind>.patch` holds one change per door kind.
+The skill is not Trusted yet. It becomes Trusted when it passes a shadow run of 10 consecutive agent PRs, and its last maintain pass is newer than the last change to the repository or its `@antelopejs` dependencies and at most 30 days old.
 
 ## Gotchas
 
 - The playground resolves its packages from `deps/` (its own lockfile), not from the module, so the fixture module declares no dependency of its own: a dependency in `playground/package.json` would make the project load the unreleased `@antelopejs/interface-dms` tarball for the whole DMS, and the sign-in answers 500 (`testHashAsync is not a function`).
 - Every dashboard page renders on the server and hydrates after `load`; a click that lands first does nothing. The journeys click again until what the click opens shows, and `tab.signIn` waits for the sign-in form to hydrate.
-- A step whose check fails because the backend or the dashboard stopped answering ends the journey with a `NOT VERIFIED` error and no failing check (`guard.mjs`), so `seeded` never counts an outage as a catch.
+- A step whose check fails because the backend or the dashboard stopped answering ends the journey with a `NOT VERIFIED` error and no failing check (`guard.mjs`).
 - `mongod` comes from `DMS_CONTROL_MONGOD`, `PATH`, or the mongodb-memory-server cache (`~/.cache/mongodb-binaries`).
 - Known findings at the integration head are failing journeys, each with an issue draft; the list is in the pull request's Attention section.
 

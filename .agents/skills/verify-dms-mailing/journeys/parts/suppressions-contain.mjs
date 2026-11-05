@@ -7,7 +7,7 @@ const SUPPRESSED = "suppressed";
 const MANUAL_ERROR = "$dms_mailing.errors.suppressed.manual";
 
 /**
- * The containment journey: one address on the list, every path that sends.
+ * One address on the list, every path that sends.
  *
  * @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }}
  */
