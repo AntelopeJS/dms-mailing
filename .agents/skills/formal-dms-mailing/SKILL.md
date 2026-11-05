@@ -15,7 +15,7 @@ The `webhook-events` entry of [`verify.config.ts`](../verify-dms-mailing/verify.
 git diff 0c390355a9bb6e1ad86e0e753965890bcf17c4ec..HEAD -- packages/dms-mailing/src/services/events.ts packages/dms-mailing/src/types/sends.ts packages/dms-mailing/src/db/models/sends.model.ts packages/dms-mailing/src/db/models/send-events.model.ts packages/dms-mailing/src/crons/retention.ts
 ```
 
-A change to a function in the [coverage record](#coverage-record) needs the model updated (see [Update the model](#update-the-model)) before its result means anything. A change to the event types, `RANK`, `DEFERRABLE_STATUSES`, `COUNTERS` or `MAX_ACTIVITY_ATTEMPTS` needs no edit, because `check.mjs` reads them.
+Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A change to the event types, `RANK`, `DEFERRABLE_STATUSES`, `COUNTERS` or `MAX_ACTIVITY_ATTEMPTS` needs no model edit, because `check.mjs` reads them on every run.
 
 ## Run
 
@@ -26,7 +26,7 @@ node .agents/skills/formal-dms-mailing/check.mjs race   # one configuration: fol
 
 Run it from the repository root after `pnpm install`. It uses `checkSpec` of `@antelopejs/tooling-configs/formal`. That is TLC 1.7.4, downloaded once into `~/.cache/antelopejs-formal` and checked against its SHA-256, run by `$JAVA`, a `java` on `PATH`, or the `eclipse-temurin:21-jre` Docker image. In a verify run, `dms-control formal "$RUN"` runs it whenever the diff touches a covered file or this folder (see verify-dms-mailing's [SKILL.md](../verify-dms-mailing/SKILL.md)).
 
-Each configuration prints one line per rule:
+`check.mjs` first prints `ModelInSync`, then each configuration prints one line per rule:
 
 - `holds A, B (N states)`. Every listed rule holds on every reachable state.
 - `finding R: N states (recorded N)`. A recorded finding still breaks, with the same shortest counterexample length.
@@ -45,6 +45,7 @@ Exit 0 means every rule matches the record in `FINDINGS` of `check.mjs`. Exit 2 
 | `RetentionSparesActiveSends` | race | Retention marks a send for deletion only if the webhook accepted no event for it since retention read it as inactive, and the webhook accepts no event into a send marked for deletion. | Retention deletes a send and its history while its recipient is engaging with it. | Holds |
 | `NoOrphanEvents` | race | Once a retention run that started with no webhook request in flight finishes, no history row of a deleted send is left. | Event details (links clicked, user agents, bounce reasons) outlive the retention period the tenant set. | Holds |
 | `TypeOK` | both | Every variable keeps its type. | A break is a modeling error, not a product bug. | Holds |
+| `ModelInSync` | none | Every covered file still has the SHA-256 that `covered.json` recorded when the model was last read against the code. | The other rules describe code that is no longer there, so a passing run proves nothing about the change. | Holds |
 
 ## Findings
 
@@ -69,7 +70,7 @@ Tell a product bug from a modeling error by replaying the path against the code.
 1. List what changed in the covered files since the sync commit (command in [Does the change touch it](#does-the-change-touch-it)).
 2. For each changed function in the coverage record, make its action do what the code now does, with one action per database call. A new call is a new action and a new `pc` value. Add its row to the coverage record.
 3. Run the check. A fix of a finding prints `HOLDS`. Remove the rule from `FINDINGS` in `check.mjs` and from [Findings](#findings). A rule that breaks after an intended change becomes a finding only once you have replayed its path against the code. Add it to `FINDINGS` with TLC's state count and describe it in Findings.
-4. Move the sync commit below forward only once you have read every covered function at the new commit against its action.
+4. Only once you have read every covered function against its action, run `node .agents/skills/formal-dms-mailing/check.mjs --sync` to record the covered files' digests in `covered.json`. Commit the code change first, then set the sync commit below to the last commit that changed a covered file (`git log -1 --format=%H --` with the covered paths), and commit `covered.json`, the model and this file together.
 
 ## Model
 
@@ -123,4 +124,4 @@ Left out:
 | `ActivityAges` | time passing beyond `logRetentionDays` between runs |
 | `MailingTables.tla` | `services/events.ts` `RANK`, `DEFERRABLE_STATUSES`, `COUNTERS`, `MAX_ACTIVITY_ATTEMPTS`; `types/sends.ts` `SEND_EVENT_TYPES`, read by `check.mjs` |
 
-Sync commit: `0c390355a9bb6e1ad86e0e753965890bcf17c4ec` (2026-11-05). At that commit, every function above was read against its action.
+Sync commit: `0c390355a9bb6e1ad86e0e753965890bcf17c4ec` (2026-11-05). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.

@@ -1,14 +1,18 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSpec, EXIT } from "@antelopejs/tooling-configs/formal";
+import verifyConfig from "../verify-dms-mailing/verify.config.ts";
 
 const SCRIPT = fileURLToPath(import.meta.url);
 const SKILL = dirname(SCRIPT);
 const REPO = resolve(SKILL, "../../..");
 const SPEC = "MailingEvents";
+const CHECK_NAME = "webhook-events";
+const COVERED_RECORD = join(SKILL, "covered.json");
 const EVENTS_SOURCE = "packages/dms-mailing/src/services/events.ts";
 const TYPES_SOURCE = "packages/dms-mailing/src/types/sends.ts";
 
@@ -118,12 +122,57 @@ async function checkConfig(config) {
 }
 
 /**
- * Checks every configuration, each in its own process because a changed rule exits it.
+ * The SHA-256 of each file the `webhook-events` check of verify.config.ts covers, as the code stands now.
+ *
+ * @returns {Record<string, string>} Each covered path and its digest
+ */
+function coveredDigests() {
+  const check = verifyConfig.formal.find((entry) => entry.name === CHECK_NAME);
+  if (!check) throw new Error(`verify.config.ts has no formal check named ${CHECK_NAME}`);
+  return Object.fromEntries(
+    check.covers.map((file) => [file, createHash("sha256").update(readFileSync(join(REPO, file))).digest("hex")]),
+  );
+}
+
+/**
+ * @param {unknown} value A parsed JSON value
+ * @returns {value is Record<string, unknown>} Whether it is a JSON object
+ */
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Prints the `ModelInSync` rule: every covered file still has the digest `covered.json` recorded when the model was
+ * last read against the code.
+ *
+ * @returns {boolean} Whether it holds
+ */
+function checkModelInSync() {
+  /** @type {unknown} */
+  const recorded = JSON.parse(readFileSync(COVERED_RECORD, "utf8"));
+  const current = coveredDigests();
+  const stale = Object.keys(current).filter(
+    (file) => !isRecord(recorded) || !Object.hasOwn(recorded, file) || recorded[file] !== current[file],
+  );
+  if (stale.length === 0) {
+    console.log(`holds  ModelInSync (${Object.keys(current).length} covered files)`);
+    return true;
+  }
+  console.log(
+    `BROKEN ModelInSync: ${stale.join(", ")} changed since covered.json; update the model to the code, then run check.mjs --sync`,
+  );
+  return false;
+}
+
+/**
+ * Checks that the model was synced with the covered code, then every configuration, each in its own process because
+ * a changed rule exits it.
  *
  * @returns {number} The worst exit code
  */
 function checkAll() {
-  let worst = EXIT.ok;
+  let worst = checkModelInSync() ? EXIT.ok : EXIT.changed;
   for (const config of Object.keys(FINDINGS)) {
     const run = spawnSync(process.execPath, [SCRIPT, config], { stdio: "inherit" });
     worst = Math.max(worst, run.status ?? EXIT.tool);
@@ -132,8 +181,8 @@ function checkAll() {
 }
 
 /**
- * `check.mjs` checks every configuration, `check.mjs <config>` one, `check.mjs --model <dir>` writes the model
- * TLC reads without running it.
+ * `check.mjs` checks every rule, `check.mjs <config>` one configuration, `check.mjs --model <dir>` writes the model
+ * TLC reads without running it, and `check.mjs --sync` records the covered files' digests in `covered.json`.
  *
  * @param {string[]} args The command line
  * @returns {Promise<number>} The exit code
@@ -141,6 +190,10 @@ function checkAll() {
 async function main(args) {
   const [first, second] = args;
   if (first === undefined) return checkAll();
+  if (first === "--sync") {
+    writeFileSync(COVERED_RECORD, `${JSON.stringify(coveredDigests(), null, 2)}\n`);
+    return EXIT.ok;
+  }
   if (first === "--model" && second) {
     writeModel(resolve(second));
     return EXIT.ok;
