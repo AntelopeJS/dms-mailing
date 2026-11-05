@@ -59,7 +59,8 @@ Drafts, published versions, revisions, the history and how the blocks render.
 - `visibility-rules-compare-a-variable-with-a-value`: a block shows only if a variable is filled, empty, equal, different, greater or lower, and a condition block shows its if branch or its else branch.
 - `amounts-and-dates-are-written-in-the-locale-of-the-send`: a money value, a Date and a declared date are written for the locale of the send, while other values, numbers and formatted strings go out as given.
 - `footer-links-need-a-label-and-a-url-and-tokens-report-what-is-missing`: a footer link shows only with its label and its URL, an empty label removes it, and the preview names the variables the data does not carry.
-- `the-editor-page-has-its-panes-toolbar-and-keyboard-shortcuts`: the editor at /modules/mailing/templates/<id> shows the blocks, outline and variables tabs, the block, test data and template tabs and the toolbar, saves with Ctrl+S, opens the test dialog with T and goes back to Templates with Escape.
+- `the-editor-page-has-its-panes-toolbar-and-keyboard-shortcuts`: the editor at /modules/mailing/templates/<id> shows the blocks, outline and variables tabs, the block, test data and template tabs and the toolbar, saves with Ctrl+S, redoes with Ctrl+Y, searches the blocks with `/`, opens the publish review with Ctrl+Enter, opens the test dialog with T and goes back to Templates with Escape.
+- `ctrl-enter-opens-the-publish-review-and-publishing-from-it-goes-live`: Ctrl+Enter opens the review and publishes nothing, Keep editing publishes nothing, Publish v1 makes the template live as version 1 and a send carries that subject, and a later change publishes as v2 the same way.
 
 ## How to get to it (user POV)
 
