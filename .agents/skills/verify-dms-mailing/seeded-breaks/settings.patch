@@ -1,0 +1,13 @@
+diff --git a/packages/dms-mailing/src/types/settings.ts b/packages/dms-mailing/src/types/settings.ts
+index 1e0ba73..21e18f9 100644
+--- a/packages/dms-mailing/src/types/settings.ts
++++ b/packages/dms-mailing/src/types/settings.ts
+@@ -68,7 +68,7 @@ export const MODULE_DEFAULT_SETTINGS: Pick<
+   | "categories"
+ > = {
+   fallbackLocale: DEFAULT_FALLBACK_LOCALE,
+-  logRetentionDays: 90,
++  logRetentionDays: 60,
+   blockOnMissingVariables: false,
+   categories: DEFAULT_CATEGORIES,
+ };

@@ -1,0 +1,13 @@
+diff --git a/packages/dms-mailing/src/pages/sends.ts b/packages/dms-mailing/src/pages/sends.ts
+index 9d90fd8..5ee0d9f 100644
+--- a/packages/dms-mailing/src/pages/sends.ts
++++ b/packages/dms-mailing/src/pages/sends.ts
+@@ -195,7 +195,7 @@ export class SendsPageController extends PageController(
+   static header = mailingToolbar({
+     scope: SENDS_PERIOD_SCOPE,
+     presets: ["last-24h", "last-7-days", "last-30-days"],
+-    defaultPreset: "last-24h",
++    defaultPreset: "last-7-days",
+   });
+ 
+   static health = Banner({

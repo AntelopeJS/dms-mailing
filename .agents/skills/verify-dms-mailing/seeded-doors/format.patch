@@ -1,0 +1,9 @@
+diff --git a/packages/dms-mailing/src/db/tables/sends.table.ts b/packages/dms-mailing/src/db/tables/sends.table.ts
+index aef29f5..4c195e8 100644
+--- a/packages/dms-mailing/src/db/tables/sends.table.ts
++++ b/packages/dms-mailing/src/db/tables/sends.table.ts
+@@ -117,3 +117,4 @@ export class MailingSend extends Table {
+   @Field("string")
+   declare resolvedBy?: string;
+ }
++// seeded door: format

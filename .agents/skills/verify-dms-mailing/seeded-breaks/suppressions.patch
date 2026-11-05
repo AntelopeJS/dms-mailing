@@ -1,0 +1,13 @@
+diff --git a/packages/dms-mailing/src/services/suppressions.ts b/packages/dms-mailing/src/services/suppressions.ts
+index 8315a75..8c65aa6 100644
+--- a/packages/dms-mailing/src/services/suppressions.ts
++++ b/packages/dms-mailing/src/services/suppressions.ts
+@@ -50,7 +50,7 @@ export function suppressionReasonOf(
+   const reason = REASON_BY_EVENT[event.type];
+   if (!reason) return null;
+   if (event.type === "bounced" && event.isSoftBounce) return null;
+-  if (event.isTest && !REASONS_FROM_TESTS.has(reason)) return null;
++  if (event.isTest && !REASONS_FROM_TESTS.has(reason) && reason !== "complaint") return null;
+   return reason;
+ }
+ 

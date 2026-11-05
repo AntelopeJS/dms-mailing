@@ -1,0 +1,9 @@
+diff --git a/packages/dms-mailing/src/services/checked-send.ts b/packages/dms-mailing/src/services/checked-send.ts
+index dff6bef..210808e 100644
+--- a/packages/dms-mailing/src/services/checked-send.ts
++++ b/packages/dms-mailing/src/services/checked-send.ts
+@@ -119,3 +119,4 @@ export async function sendUnlessSuppressed(
+     ),
+   );
+ }
++// seeded door: outbound

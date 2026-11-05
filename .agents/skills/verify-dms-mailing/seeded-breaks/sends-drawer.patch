@@ -1,0 +1,13 @@
+diff --git a/packages/dms-mailing/frontend-vue/app/utils/timeline.ts b/packages/dms-mailing/frontend-vue/app/utils/timeline.ts
+index d266185..c1419ed 100644
+--- a/packages/dms-mailing/frontend-vue/app/utils/timeline.ts
++++ b/packages/dms-mailing/frontend-vue/app/utils/timeline.ts
+@@ -76,7 +76,7 @@ const SOFT_SMTP_ANSWER = /^\s*4\d\d\b|\b4\.\d{1,3}\.\d{1,3}\b/
+ const TITLE_KEY_PREFIX = 'dms_mailing.sends.timeline.'
+ 
+ /** Detail keys read off an event, in order; the first present one is shown. */
+-const DETAIL_KEYS = ['reason', 'smtp', 'code', 'url', 'userAgent', 'client']
++const DETAIL_KEYS = ['reason', 'smtp', 'code', 'client']
+ const MONO_DETAIL_KEYS = new Set(['reason', 'smtp', 'code', 'url'])
+ 
+ type EventDetails = Record<string, unknown>

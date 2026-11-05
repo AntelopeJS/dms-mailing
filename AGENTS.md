@@ -30,6 +30,9 @@ backend suite runs in its own CI job, so run it when your change touches
   CI after its single build) both skip the build and test the existing `dist/`.
   Set it only after building the current sources; otherwise tests use stale
   output.
+- A change to the webhook event handling or the send retention also runs the
+  TLA+ check in
+  [`.agents/skills/formal-dms-mailing/SKILL.md`](.agents/skills/formal-dms-mailing/SKILL.md).
 
 `pnpm --dir packages/dms-mailing knip:all` also reports unused files and
 exports. Confirm each finding before you remove it.
@@ -63,6 +66,8 @@ Finish every change with `pnpm run checks`. It runs typecheck, lint, format, kni
 - `pnpm run typecheck` after you change types or signatures.
 - `pnpm exec oxlint <files>` and `pnpm exec oxfmt <files>` on the files you changed.
 - Run one test file instead of the whole suite. In a module that tests with `ajs module test`, run `pnpm run build`, then `pnpm exec ajs module test . -f dist/<path>.test.js`. Repeat `-f` for more files.
+
+Prove a change works with the verification skill in [`.agents/skills/verify-dms-mailing/SKILL.md`](.agents/skills/verify-dms-mailing/SKILL.md) before you call it done.
 
 The tools enforce most rules, listed in the table at the end. The sections below hold the rules no tool checks.
 
