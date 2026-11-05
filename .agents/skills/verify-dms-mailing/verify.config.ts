@@ -9,6 +9,19 @@ export interface DoorRule {
   why: string;
 }
 
+/**
+ * A check `dms-control formal` runs from the repository root when the diff touches one of its `covers` paths or its
+ * own `files`. `violation` and `passing` each capture one rule name per match of what `command` prints.
+ */
+export interface FormalCheck {
+  name: string;
+  covers: string[];
+  files?: string[];
+  command: string[];
+  violation: RegExp | null;
+  passing: RegExp | null;
+}
+
 /** The repo-owned layer of the verification skill, read by `dms-control`. */
 export interface VerifyConfig {
   playground: string;
@@ -18,10 +31,11 @@ export interface VerifyConfig {
   smoke: string;
   smokeJourney: string;
   doors: Record<DoorKind, DoorRule | null>;
-  formal: never[];
+  formal: FormalCheck[];
 }
 
 const SKILL = ".agents/skills/verify-dms-mailing";
+const FORMAL = ".agents/skills/formal-dms-mailing";
 const MODULE = "packages/dms-mailing";
 const INTERFACE = "packages/interface-dms-mailing";
 
@@ -84,7 +98,22 @@ const config: VerifyConfig = {
       why: "the package names, their files and the release workflows claim @antelopejs/dms-mailing and @antelopejs/interface-dms-mailing in the npm registry",
     },
   },
-  formal: [],
+  formal: [
+    {
+      name: "webhook-events",
+      covers: [
+        `${MODULE}/src/services/events.ts`,
+        `${MODULE}/src/types/sends.ts`,
+        `${MODULE}/src/db/models/sends.model.ts`,
+        `${MODULE}/src/db/models/send-events.model.ts`,
+        `${MODULE}/src/crons/retention.ts`,
+      ],
+      files: [`${FORMAL}/**`],
+      command: ["node", `${FORMAL}/check.mjs`],
+      violation: /^(?:finding|BROKEN|CHANGED) (\w+)/gm,
+      passing: /(?<=^(?:holds +(?:\w+, )*|HOLDS +))(\w+)/gm,
+    },
+  ],
 };
 
 export default config;

@@ -70,7 +70,8 @@ $C down "$RUN"
 3. **Every registered journey of a feature in `run` must have run and passed.** Known findings stay as failing journeys (see Gotchas): they fail a verdict only when the diff touches their feature.
 4. **Docs.** Judge every `docs:` page of each touched feature against what the journeys showed.
 5. **One-way doors.** The section comes right after the result line and is mandatory. `$C doors` prints the `One-way-door:` line for the diff. The Data door is contained only by its containment journeys passing in this run, the Outbound door by `suppressions/a-suppressed-address-gets-no-mail-from-any-send-path` and `sends/a-real-send-asks-for-an-acknowledgement`; no journey contains the other kinds, so those rows say so.
-6. **Result.** FAIL if any of rules 1 to 5 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
+6. **Formal check.** `$C formal "$RUN"` runs each `formal` check of `verify.config.ts` whose covered files or own folder the diff touches. `webhook-events` is the TLA+ model of the webhook events and the retention; read its result with [formal-dms-mailing](../formal-dms-mailing/SKILL.md). A touched check that did not run fails the verdict, and so do its recorded findings when the diff changes what the covered code does.
+7. **Result.** FAIL if any of rules 1 to 6 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
 
 Write `$RUN/evidence/judgement.json` (`doors`, `docs`, `notVerified`, `attention`, `verifier`), then `$C verdict "$RUN" --pr <n>` and, from a thread that did not write the change, `$C publish "$RUN" --pr <n>`.
 
