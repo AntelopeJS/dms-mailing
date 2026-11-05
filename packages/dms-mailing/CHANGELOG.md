@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v0.9.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.8.0...v0.9.0)
+
+### 📖 Documentation
+
+- **github:** Send questions and ideas to Discord ([#121](https://github.com/AntelopeJS/dms-mailing/pull/121))
+
+### 🏡 Chore
+
+- Land the cleanup campaign on main ([#139](https://github.com/AntelopeJS/dms-mailing/pull/139))
+- **release:** @antelopejs/interface-dms-mailing v0.10.0 ([5c3effb](https://github.com/AntelopeJS/dms-mailing/commit/5c3effb))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.8.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.7.1...v0.8.0)
