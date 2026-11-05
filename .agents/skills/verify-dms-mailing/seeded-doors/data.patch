@@ -1,9 +1,0 @@
-diff --git a/packages/dms-mailing/src/db/models/send-events.model.ts b/packages/dms-mailing/src/db/models/send-events.model.ts
-index 870a41d..2ad7378 100644
---- a/packages/dms-mailing/src/db/models/send-events.model.ts
-+++ b/packages/dms-mailing/src/db/models/send-events.model.ts
-@@ -57,3 +57,4 @@ export class SendEventModel extends BasicDataModel(
-       .run();
-   }
- }
-+// seeded door: data

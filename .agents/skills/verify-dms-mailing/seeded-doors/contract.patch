@@ -1,9 +1,0 @@
-diff --git a/packages/dms-mailing/src/routes/templates.ts b/packages/dms-mailing/src/routes/templates.ts
-index 3979348..cbc3311 100644
---- a/packages/dms-mailing/src/routes/templates.ts
-+++ b/packages/dms-mailing/src/routes/templates.ts
-@@ -553,3 +553,4 @@ export class TemplatesController extends Controller(
-     return { id: copyId };
-   }
- }
-+// seeded door: contract

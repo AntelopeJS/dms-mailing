@@ -19,7 +19,7 @@ The suppression list: which provider events and hand entries put an address on i
 
 ## Sub-features
 
-- `a-suppressed-address-gets-no-mail-from-any-send-path`: the containment journey. SendTemplate, the real send, the test send, Send again and Send to another address each log a `suppressed` send and reach no inbox; the editor's own address still gets a test; a reactivated address is reached again.
+- `a-suppressed-address-gets-no-mail-from-any-send-path`: SendTemplate, the real send, the test send, Send again and Send to another address each log a `suppressed` send and reach no inbox; the editor's own address still gets a test; a reactivated address is reached again.
 - `provider-events-put-an-address-on-the-list-only-when-nothing-more-must-reach-it`: 22 event cases (every bounce type, the 4xx and 4.x.x answers, spam, unsubscription, the other events, and the test-send variants) and the first reason kept.
 - `an-address-is-added-by-hand-and-lifted-over-http`: POST and DELETE `/api/mailing/suppressions`, the 500 character note, 400, 409 and 404.
 - `the-tabs-filter-the-list-by-reason`: the five tabs with their counts and rows, and the search.

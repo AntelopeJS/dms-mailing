@@ -33,6 +33,7 @@ jobs:
         packages/interface-dms-mailing/docs
       docs-typescript-project: packages/interface-dms-mailing/docs/tsconfig.json
       renovate-sync: false
+      test-job: true
     permissions:
       contents: read
 

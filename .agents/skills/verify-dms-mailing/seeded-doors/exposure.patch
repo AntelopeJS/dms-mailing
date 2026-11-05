@@ -1,9 +1,0 @@
-diff --git a/packages/dms-mailing/src/routes/events.ts b/packages/dms-mailing/src/routes/events.ts
-index c58ea99..370d3a3 100644
---- a/packages/dms-mailing/src/routes/events.ts
-+++ b/packages/dms-mailing/src/routes/events.ts
-@@ -132,3 +132,4 @@ export class MailingEventsController extends Controller(
-     return isTest ? { recorded, test: true } : { recorded };
-   }
- }
-+// seeded door: exposure
