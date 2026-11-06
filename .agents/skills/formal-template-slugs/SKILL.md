@@ -15,7 +15,7 @@ The `template-slugs` entry of [`verify.config.ts`](../verify-dms-mailing/verify.
 git diff 7be1f0884d0f9c160f45d1c1bc99a28687173be1..HEAD -- packages/dms-mailing/src/db/tables/templates.table.ts packages/dms-mailing/src/services/templates.ts packages/dms-mailing/src/data/templates-table.ts packages/dms-mailing/src/routes/templates.ts packages/dms-mailing/src/services/declarations.ts packages/dms-mailing/src/db/models/templates.model.ts
 ```
 
-Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A new code path that inserts a template is a new kind of racer and needs a new action.
+Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A new code path that inserts a template is a new kind of racer and needs a new action, and its file goes into `covers`. `dms-control formal` runs this check only when the diff touches `covers` or this folder, so a creation path added in another file goes unchecked until then.
 
 ## Run
 
@@ -49,11 +49,14 @@ A guard that the code no longer has is not an error. `check.mjs` reads it as `FA
 
 ## Findings
 
-None. Every rule holds at the sync commit. The check is built to fail when the fix is reverted, and each of these scratch changes was seen to break it:
+None. Every rule holds at the sync commit. The check is built to fail when the fix is reverted, and each of these scratch changes was seen to break it, also after `--sync`:
 
 - `@Index({ unique: true })` becomes `@Index()` on `slug`. `OneTemplatePerSlug` breaks: a template already holds the slug, a creation inserts a second one.
 - The `duplicate` route inserts without `refuseTakenSlug`. `LosersFailCleanly` breaks: the duplicate-key error is not mapped, so the loser gets a 500.
 - `createDeclared` rethrows a duplicate-key error instead of returning `undefined`. `LosersFailCleanly` breaks: the declaration that loses the race throws.
+- `refuseTakenSlug` returns the write without `await`. `LosersFailCleanly` breaks: the rejection skips the catch, so a losing `new` or `duplicate` gets a 500.
+- `createDeclared` inserts before its `try`, which then holds only the read. `LosersFailCleanly` breaks: the duplicate-key error escapes.
+- The slug's unique index gets a `group` shared with another column. `OneTemplatePerSlug` breaks: the slug is then unique only within that group.
 
 ## Read a result
 
@@ -95,7 +98,7 @@ Assumptions, each a fact of the code at the sync commit:
 Left out:
 
 - Deleting a template. It needs the template archived first, which is a user action, and it only frees the slug.
-- Databases that do not enforce unique indexes. The module needs `@antelopejs/mongodb` 1.5 or later, or `@antelopejs/postgres` 0.3 or later, and RethinkDB refuses the schema. The check models a database that does enforce them (`UniqueSlug`).
+- Databases that do not enforce unique indexes. The module needs a database module that enforces unique indexes, such as `@antelopejs/mongodb` or `@antelopejs/postgres`, and RethinkDB refuses the schema. The check models a database that does enforce them (`UniqueSlug`).
 - The reads of other tables: the settings, the starter or the source template that seeds a creation, the user lookup, and the attention refresh after a creation.
 - The validation of the body, the category and the permissions.
 - Several tenants. The index is per tenant.
@@ -105,13 +108,13 @@ Left out:
 | Action in `TemplateSlugs.tla` | Code |
 | --- | --- |
 | `DeclareReadsSlug` | `services/declarations.ts` `declareTemplate`: `getBySlug`, answers `kept` when a template holds the slug |
-| `DeclareInserts` | `declarations.ts` `createDeclared`: `insertFields`, and `IsDuplicateKeyError` returns `undefined` (`DeclareKeepsWinner`); `db/models/templates.model.ts` `insertFields` |
+| `DeclareInserts` | `declarations.ts` `createDeclared`: `insertFields` inside the `try`, whose `IsDuplicateKeyError` catch returns `undefined` (`DeclareKeepsWinner`); `db/models/templates.model.ts` `insertFields` |
 | `DeclareRereadsWinner` | `declareTemplate`: `getBySlug` after `createDeclared`, answers `kept` or throws "disappeared"; `templates.model.ts` `getBySlug` |
 | `NewInserts` | `data/templates-table.ts` `withSeeding`: `refuseTakenSlug(base.func.call(...))` (`NewRefusesTaken`) |
 | `NewInitializes` | `withSeeding`: `initializeTemplate`, `services/templates.ts` `initializeTemplate`: `updateFields` |
 | `DuplicateInserts` | `routes/templates.ts` `duplicate`: `refuseTakenSlug(this.templates.insertFields(...))` (`DuplicateRefusesTaken`) |
-| `RefusesTakenSlug` in `SlugGuards.tla` | `services/templates.ts` `refuseTakenSlug`: `IsDuplicateKeyError` on the `slug` field becomes `HTTPResult(HTTP_CONFLICT, ...)` |
-| `UniqueSlug` in `SlugGuards.tla` | `db/tables/templates.table.ts`: `@Index({ unique: true })` on `declare slug` |
+| `RefusesTakenSlug` in `SlugGuards.tla` | `services/templates.ts` `refuseTakenSlug`: the `try` returns `await write`, and `IsDuplicateKeyError` on the `slug` field becomes `HTTPResult(HTTP_CONFLICT, ...)` |
+| `UniqueSlug` in `SlugGuards.tla` | `db/tables/templates.table.ts`: `@Index({ unique: true })` on `declare slug`, with no `group` |
 
 `check.mjs` reads the five guards of `SlugGuards.tla` out of the code with patterns. It reads a missing guard as `FALSE`, and exits 2 only when a covered file cannot be read.
 

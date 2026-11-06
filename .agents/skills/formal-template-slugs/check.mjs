@@ -51,21 +51,25 @@ function section(text, start) {
 /**
  * Whether the unique index decorates the slug column.
  *
- * @returns {boolean} Whether `@Index({ unique: true })` sits on `declare slug`
+ * @returns {boolean} Whether `@Index({ unique: true })` sits on `declare slug`, with no `group` that would make the
+ *   slug unique only together with another column
  */
 function uniqueSlug() {
   const decorators = /((?:@\w+\([^)]*\)\s*)*)declare slug\b/.exec(source(TABLE_SOURCE))?.[1] ?? "";
-  return /@Index\(\{[^}]*\bunique:\s*true\b[^}]*\}\)/.test(decorators);
+  const options = /@Index\(\{([^}]*)\}\)/.exec(decorators)?.[1] ?? "";
+  return /\bunique:\s*true\b/.test(options) && !/\bgroup\s*:/.test(options);
 }
 
 /**
  * Whether `refuseTakenSlug` answers 409 for a duplicate key on the slug field.
  *
- * @returns {boolean} Whether the catch maps `IsDuplicateKeyError` on the slug to `HTTP_CONFLICT`
+ * @returns {boolean} Whether the `try` awaits the write, so its rejection reaches the catch, and the catch maps
+ *   `IsDuplicateKeyError` on the slug to `HTTP_CONFLICT`
  */
 function refusesTakenSlug() {
   const text = source(SERVICE_SOURCE);
   const body = section(text, "function refuseTakenSlug");
+  if (!/try\s*\{\s*return await \w+;\s*\}/.test(body)) return false;
   const field = /IsDuplicateKeyError\(\w+\)\s*&&\s*\w+\.fields\.includes\((\w+|"[^"]*")\)\)\s*throw new HTTPResult\(HTTP_CONFLICT\b/.exec(body)?.[1];
   if (field === undefined) return false;
   const constant = new RegExp(String.raw`\bconst ${field}\s*=\s*"([^"]*)"`).exec(text)?.[1];
@@ -97,13 +101,16 @@ function duplicateRefusesTaken() {
 /**
  * Whether a declaration that loses the race answers with the winner.
  *
- * @returns {boolean} Whether `createDeclared` returns undefined on a duplicate key and `declareTemplate` re-reads the slug after it
+ * @returns {boolean} Whether `createDeclared`'s `try` holds the insert and its catch returns undefined on a duplicate
+ *   key, and `declareTemplate` re-reads the slug after it
  */
 function declareKeepsWinner() {
   const text = source(DECLARATION_SOURCE);
   const create = section(text, "async function createDeclared(");
   const declare = section(text, "export async function declareTemplate(");
-  const returnsUndefined = /catch\s*\(\w+\)\s*\{\s*if\s*\(IsDuplicateKeyError\(\w+\)\)\s*return undefined;\s*throw \w+;\s*\}/.test(create);
+  const guarded =
+    /try\s*\{([\s\S]*?)\}\s*catch\s*\((\w+)\)\s*\{\s*if\s*\(IsDuplicateKeyError\(\2\)\)\s*return undefined;\s*throw \2;\s*\}/.exec(create);
+  const returnsUndefined = guarded !== null && /await \w+\.insertFields\(/.test(guarded[1]);
   const after = declare.slice(declare.indexOf("await createDeclared(") + 1);
   const rereads = declare.includes("await createDeclared(") && /getBySlug\(/.test(after) && /"kept"/.test(after);
   return returnsUndefined && rereads;
