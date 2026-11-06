@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "typeRoots": ["../../../packages/dms-mailing/node_modules/@types"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
+  },
+  "include": ["*.mjs"]
+}

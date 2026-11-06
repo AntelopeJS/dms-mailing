@@ -1,0 +1,8 @@
+{
+  "packages/dms-mailing/src/db/tables/templates.table.ts": "e68405e0f5c4576c475b883fc8b916bf07f170c268c2401de82bbaa9a405a6f5",
+  "packages/dms-mailing/src/services/templates.ts": "48dad3f73a67ab3c2a9191ecdda499c284b83f2980e4c377d88cec01ae95607f",
+  "packages/dms-mailing/src/data/templates-table.ts": "836175d34530d418f3deeefeaae9290b00d21788fc7657456b987ac8e4a9362c",
+  "packages/dms-mailing/src/routes/templates.ts": "acd6158522745b85af2faa594ede9e138e965c6c6476a58c08b56b7a09c50bdc",
+  "packages/dms-mailing/src/services/declarations.ts": "ff0eddeaf33504f15cfbfa294d3e7bebad5db748bde171f19b1e1f5a5d2cabc0",
+  "packages/dms-mailing/src/db/models/templates.model.ts": "db702c89b8daa8ef56b54bd53be2ef60f57ab260e15fc33a22237be6aeb2bd1b"
+}
