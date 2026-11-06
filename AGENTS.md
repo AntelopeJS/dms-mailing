@@ -33,6 +33,9 @@ backend suite runs in its own CI job, so run it when your change touches
 - A change to the webhook event handling or the send retention also runs the
   TLA+ check in
   [`.agents/skills/formal-dms-mailing/SKILL.md`](.agents/skills/formal-dms-mailing/SKILL.md).
+- A change to how a template is created, to the slug's unique index or to
+  `refuseTakenSlug` also runs the TLA+ check in
+  [`.agents/skills/formal-template-slugs/SKILL.md`](.agents/skills/formal-template-slugs/SKILL.md).
 
 `pnpm --dir packages/dms-mailing knip:all` also reports unused files and
 exports. Confirm each finding before you remove it.
