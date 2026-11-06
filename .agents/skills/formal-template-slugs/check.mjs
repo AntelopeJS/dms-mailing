@@ -51,13 +51,15 @@ function section(text, start) {
 /**
  * Whether the unique index decorates the slug column.
  *
- * @returns {boolean} Whether `@Index({ unique: true })` sits on `declare slug`, with no `group` that would make the
- *   slug unique only together with another column
+ * @returns {boolean} Whether `@Index({ unique: true })` sits on `declare slug` with no `group`, and no other column
+ *   joins the `slug` group, either of which would make the slug unique only together with another column
  */
 function uniqueSlug() {
-  const decorators = /((?:@\w+\([^)]*\)\s*)*)declare slug\b/.exec(source(TABLE_SOURCE))?.[1] ?? "";
+  const text = source(TABLE_SOURCE);
+  const decorators = /((?:@\w+\([^)]*\)\s*)*)declare slug\b/.exec(text)?.[1] ?? "";
   const options = /@Index\(\{([^}]*)\}\)/.exec(decorators)?.[1] ?? "";
-  return /\bunique:\s*true\b/.test(options) && !/\bgroup\s*:/.test(options);
+  const joined = /\bgroup\s*:\s*["'`]slug["'`]/.test(text);
+  return /\bunique:\s*true\b/.test(options) && !/\bgroup\s*:/.test(options) && !joined;
 }
 
 /**
@@ -101,8 +103,8 @@ function duplicateRefusesTaken() {
 /**
  * Whether a declaration that loses the race answers with the winner.
  *
- * @returns {boolean} Whether `createDeclared`'s `try` holds the insert and its catch returns undefined on a duplicate
- *   key, and `declareTemplate` re-reads the slug after it
+ * @returns {boolean} Whether `createDeclared`'s `try` holds the insert with no inner catch and its catch returns
+ *   undefined on a duplicate key, and `declareTemplate` re-reads the slug after it
  */
 function declareKeepsWinner() {
   const text = source(DECLARATION_SOURCE);
@@ -110,7 +112,8 @@ function declareKeepsWinner() {
   const declare = section(text, "export async function declareTemplate(");
   const guarded =
     /try\s*\{([\s\S]*?)\}\s*catch\s*\((\w+)\)\s*\{\s*if\s*\(IsDuplicateKeyError\(\2\)\)\s*return undefined;\s*throw \2;\s*\}/.exec(create);
-  const returnsUndefined = guarded !== null && /await \w+\.insertFields\(/.test(guarded[1]);
+  const returnsUndefined =
+    guarded !== null && /await \w+\.insertFields\(/.test(guarded[1]) && !/\bcatch\b/.test(guarded[1]);
   const after = declare.slice(declare.indexOf("await createDeclared(") + 1);
   const rereads = declare.includes("await createDeclared(") && /getBySlug\(/.test(after) && /"kept"/.test(after);
   return returnsUndefined && rereads;

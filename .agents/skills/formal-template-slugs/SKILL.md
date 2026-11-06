@@ -56,7 +56,8 @@ None. Every rule holds at the sync commit. The check is built to fail when the f
 - `createDeclared` rethrows a duplicate-key error instead of returning `undefined`. `LosersFailCleanly` breaks: the declaration that loses the race throws.
 - `refuseTakenSlug` returns the write without `await`. `LosersFailCleanly` breaks: the rejection skips the catch, so a losing `new` or `duplicate` gets a 500.
 - `createDeclared` inserts before its `try`, which then holds only the read. `LosersFailCleanly` breaks: the duplicate-key error escapes.
-- The slug's unique index gets a `group` shared with another column. `OneTemplatePerSlug` breaks: the slug is then unique only within that group.
+- The slug's unique index gets a `group` shared with another column, or another column joins the `slug` group. `OneTemplatePerSlug` breaks: the slug is then unique only together with that column.
+- `createDeclared` wraps the insert in an inner `try` whose catch rethrows a new error. `LosersFailCleanly` breaks: the outer catch no longer sees a duplicate-key error.
 
 ## Read a result
 
@@ -114,7 +115,7 @@ Left out:
 | `NewInitializes` | `withSeeding`: `initializeTemplate`, `services/templates.ts` `initializeTemplate`: `updateFields` |
 | `DuplicateInserts` | `routes/templates.ts` `duplicate`: `refuseTakenSlug(this.templates.insertFields(...))` (`DuplicateRefusesTaken`) |
 | `RefusesTakenSlug` in `SlugGuards.tla` | `services/templates.ts` `refuseTakenSlug`: the `try` returns `await write`, and `IsDuplicateKeyError` on the `slug` field becomes `HTTPResult(HTTP_CONFLICT, ...)` |
-| `UniqueSlug` in `SlugGuards.tla` | `db/tables/templates.table.ts`: `@Index({ unique: true })` on `declare slug`, with no `group` |
+| `UniqueSlug` in `SlugGuards.tla` | `db/tables/templates.table.ts`: `@Index({ unique: true })` on `declare slug`, with no `group`, and no other column in the `slug` group |
 
 `check.mjs` reads the five guards of `SlugGuards.tla` out of the code with patterns. It reads a missing guard as `FALSE`, and exits 2 only when a covered file cannot be read.
 
