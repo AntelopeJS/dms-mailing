@@ -1,38 +1,38 @@
 {
-	"name": "@antelopejs/dms-mailing-frontend-vue",
-	"version": "0.0.1",
-	"private": true,
-	"type": "module",
-	"license": "Apache-2.0",
-	"packageManager": "pnpm@10.2.0",
-	"engines": {
-		"@antelopejs/dms-frontend": ">=0.10.0 <0.11.0"
-	},
-	"scripts": {
-		"format": "prettier --write .",
-		"lint": "eslint . && node --input-type=module -e \"import { assertApiErrorPresentation } from '@antelopejs/dms/checks/api-error-presentation'; assertApiErrorPresentation(['app']);\"",
-		"lint:fix": "eslint . --fix",
-		"test": "vitest run"
-	},
-	"dependencies": {
-		"@vueuse/core": "^14.3.0",
-		"@vueuse/integrations": "^14.3.0",
-		"sortablejs": "^1.14.0",
-		"vue": "^3.5.18"
-	},
-	"devDependencies": {
-		"@antelopejs/tooling-configs": "^0.3.1",
-		"@nuxt/ui": "4.10.0",
-		"@vitejs/plugin-vue": "^6.0.0",
-		"@vitest/runner": "^4.1.5",
-		"eslint": "^9.0.0",
-		"eslint-plugin-vue": "^10.0.0",
-		"typescript-eslint": "^8.0.0",
-		"vite": "^8.2.2",
-		"jsdom": "^26",
-		"prettier": "^3.5.3",
-		"prettier-plugin-tailwindcss": "^0.6.11",
-		"typescript": "^5.9.3",
-		"vitest": "^4.1.5"
-	}
+  "name": "@antelopejs/dms-mailing-frontend-vue",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.2.0",
+  "engines": {
+    "@antelopejs/dms-frontend": ">=0.10.0 <0.11.0"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint . && node --input-type=module -e \"import { assertApiErrorPresentation } from '@antelopejs/dms/checks/api-error-presentation'; assertApiErrorPresentation(['app']);\"",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.3.0",
+    "@vueuse/integrations": "^14.3.0",
+    "sortablejs": "^1.14.0",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@antelopejs/tooling-configs": "^0.3.3",
+    "@nuxt/ui": "4.10.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitest/runner": "^4.1.5",
+    "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^10.0.0",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^8.2.2",
+    "jsdom": "^26",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
+  }
 }
