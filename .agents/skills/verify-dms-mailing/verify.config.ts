@@ -35,6 +35,7 @@ export interface VerifyConfig {
 
 const SKILL = ".agents/skills/verify-dms-mailing";
 const FORMAL = ".agents/skills/formal-dms-mailing";
+const SLUGS = ".agents/skills/formal-template-slugs";
 const MODULE = "packages/dms-mailing";
 const INTERFACE = "packages/interface-dms-mailing";
 
@@ -103,6 +104,21 @@ const config: VerifyConfig = {
       ],
       files: [`${FORMAL}/**`],
       command: ["node", `${FORMAL}/check.mjs`],
+      violation: /^(?:BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      passing: /(?<=^(?:holds +(?:\w+, )*|HOLDS +))(\w+)/gm,
+    },
+    {
+      name: "template-slugs",
+      covers: [
+        `${MODULE}/src/db/tables/templates.table.ts`,
+        `${MODULE}/src/services/templates.ts`,
+        `${MODULE}/src/data/templates-table.ts`,
+        `${MODULE}/src/routes/templates.ts`,
+        `${MODULE}/src/services/declarations.ts`,
+        `${MODULE}/src/db/models/templates.model.ts`,
+      ],
+      files: [`${SLUGS}/**`],
+      command: ["node", `${SLUGS}/check.mjs`],
       violation: /^(?:BROKEN|CHANGED|HOLDS) +(\w+)/gm,
       passing: /(?<=^(?:holds +(?:\w+, )*|HOLDS +))(\w+)/gm,
     },
