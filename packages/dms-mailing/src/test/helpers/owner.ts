@@ -13,7 +13,15 @@ export interface OwnerSession {
   email: string;
 }
 
-export async function ensureOwnerSession(): Promise<OwnerSession> {
+let ownerSession: Promise<OwnerSession> | undefined;
+
+/** Onboards the owner and signs it in once per test run; later calls reuse that session. */
+export function ensureOwnerSession(): Promise<OwnerSession> {
+  ownerSession ??= openOwnerSession();
+  return ownerSession;
+}
+
+async function openOwnerSession(): Promise<OwnerSession> {
   const client = createClient();
   const registration = await client.post("/api/onboarding/register", {
     firstName: OWNER_FIRST_NAME,
