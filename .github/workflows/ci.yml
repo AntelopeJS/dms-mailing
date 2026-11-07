@@ -65,6 +65,17 @@ jobs:
       - run: pnpm --dir packages/dms-mailing test:backend
         env:
           DMS_PREBUILT: "1"
+      # The harness installs a module version from its lock in antelope-lock/
+      # and records one when there is none, as after a Renovate bump. A
+      # recorded lock means this run resolved the module's dependencies fresh.
+      - name: Module locks are committed
+        run: |
+          changes=$(git status --porcelain -- packages/dms-mailing/antelope-lock)
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            echo "::error::The backend tests recorded module locks that are not committed: run pnpm --dir packages/dms-mailing test:backend and commit packages/dms-mailing/antelope-lock/."
+            exit 1
+          fi
 
   # Branch protection requires the check of the single job this workflow used
   # to have: it now stands for all of them, and fails if any did not pass.
