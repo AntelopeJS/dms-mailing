@@ -7,13 +7,7 @@ covers:
   - packages/dms-mailing/src/types/sends.ts
   - packages/dms-mailing/src/routes/provider.ts
   - packages/dms-mailing/src/services/provider.ts
-  - packages/dms-mailing/frontend-vue/app/components/ProviderPill.vue
-  - packages/dms-mailing/frontend-vue/app/components/RealSendModal.vue
-  - packages/dms-mailing/frontend-vue/app/components/RecipientsField.vue
-  - packages/dms-mailing/frontend-vue/app/components/TestSendModal.vue
-  - packages/dms-mailing/frontend-vue/app/composables/useReplayToast.ts
   - packages/dms-mailing/frontend-vue/app/utils/send-stats.ts
-  - packages/dms-mailing/frontend-vue/app/utils/recipients.ts
   - packages/dms-mailing/src/routes/sends.ts
   - packages/dms-mailing/src/pages/sends.ts
   - packages/dms-mailing/src/data/sends-table.ts
@@ -24,6 +18,7 @@ covers:
   - packages/dms-mailing/src/realtime.ts
   - packages/dms-mailing/src/permissions.ts
   - packages/dms-mailing/src/services/permissions.ts
+  - packages/dms-mailing/src/validation/templates.schema.ts
 docs:
   - packages/dms-mailing/docs/4.usage/4.sends.md
   - packages/dms-mailing/docs/5.extending.md

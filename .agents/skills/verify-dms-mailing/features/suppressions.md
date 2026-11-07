@@ -9,6 +9,10 @@ covers:
   - packages/dms-mailing/src/pages/suppressions.ts
   - packages/dms-mailing/src/db/models/suppressions.model.ts
   - packages/dms-mailing/src/db/tables/suppressions.table.ts
+  - packages/dms-mailing/src/routes/sends.ts
+  - packages/dms-mailing/src/services/send.ts
+  - packages/dms-mailing/src/routes/events.ts
+  - packages/dms-mailing/src/services/events.ts
 docs:
   - packages/dms-mailing/docs/4.usage/6.suppression-list.md
 ---

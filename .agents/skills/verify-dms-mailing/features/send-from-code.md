@@ -9,6 +9,8 @@ covers:
   - packages/dms-mailing/src/data/locale-fallback.ts
   - packages/dms-mailing/src/automation/send-template-action.ts
   - packages/interface-dms-mailing/src/index.ts
+  - packages/dms-mailing/src/services/checked-send.ts
+  - packages/dms-mailing/src/services/suppressions.ts
 docs:
   - packages/dms-mailing/docs/5.extending.md
   - packages/dms-mailing/docs/6.faq.md

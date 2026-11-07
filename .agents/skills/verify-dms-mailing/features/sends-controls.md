@@ -3,6 +3,8 @@ covers:
   - packages/dms-mailing/src/pages/sends.ts
   - packages/dms-mailing/src/pages/toolbar.ts
   - packages/dms-mailing/src/routes/period.ts
+  - packages/dms-mailing/src/pages/overview.ts
+  - packages/dms-mailing/frontend-vue/app/components/ProviderPill.vue
 docs:
   - packages/dms-mailing/docs/4.usage/4.sends.md
 ---

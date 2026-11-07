@@ -19,6 +19,8 @@ covers:
   - packages/dms-mailing/frontend-vue/app/components/LocaleSelect.vue
   - packages/dms-mailing/frontend-vue/app/components/RetentionInput.vue
   - packages/dms-mailing/frontend-vue/app/components/WebhookStatus.vue
+  - packages/dms-mailing/src/routes/sends.ts
+  - packages/dms-mailing/src/services/send.ts
 docs:
   - packages/dms-mailing/docs/4.usage/5.settings.md
   - packages/dms-mailing/docs/3.configuration.md
