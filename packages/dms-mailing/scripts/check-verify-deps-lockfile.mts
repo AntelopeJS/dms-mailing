@@ -1,0 +1,38 @@
+import { spawnSync } from "node:child_process";
+import { join, relative } from "node:path";
+
+/**
+ * The verify skill installs its playground packages from `deps/` with a frozen
+ * lockfile, so a `deps/package.json` bump without a regenerated lockfile breaks
+ * `dms-control up --prepare` on every run. Checks the lockfile against the
+ * manifest without installing anything. Prints the failure only; exits 1 on it.
+ */
+
+const REPOSITORY_ROOT = join(import.meta.dirname, "..", "..", "..");
+const DEPS = join(REPOSITORY_ROOT, ".agents/skills/verify-dms-mailing/deps");
+const OUTDATED_LOCKFILE = "ERR_PNPM_OUTDATED_LOCKFILE";
+
+const result = spawnSync(
+  "pnpm",
+  [
+    "install",
+    "--dir",
+    DEPS,
+    "--ignore-workspace",
+    "--frozen-lockfile",
+    "--lockfile-only",
+    "--ignore-scripts",
+  ],
+  { encoding: "utf8" },
+);
+
+if (result.status !== 0) {
+  const output = `${result.stdout}${result.stderr}`;
+  const deps = relative(REPOSITORY_ROOT, DEPS);
+  process.stderr.write(
+    output.includes(OUTDATED_LOCKFILE)
+      ? `${deps}/pnpm-lock.yaml does not match ${deps}/package.json: run \`pnpm install --dir ${deps} --ignore-workspace --lockfile-only\`.\n`
+      : `${deps}: pnpm could not check the lockfile: ${result.error?.message ?? output.trim()}\n`,
+  );
+  process.exitCode = 1;
+}
