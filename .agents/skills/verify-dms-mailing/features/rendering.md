@@ -8,6 +8,7 @@ covers:
   - packages/dms-mailing/src/engine/system-variables.ts
   - packages/dms-mailing/src/config.ts
   - packages/dms-mailing/frontend-vue/app/emails/**
+  - packages/dms-mailing/src/routes/sends.ts
 docs:
   - packages/dms-mailing/docs/5.extending.md
   - packages/dms-mailing/docs/3.configuration.md

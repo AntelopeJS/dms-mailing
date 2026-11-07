@@ -9,6 +9,8 @@ covers:
   - packages/dms-mailing/frontend-vue/app/utils/send-values.ts
   - packages/dms-mailing/frontend-vue/app/utils/send-link.ts
   - packages/dms-mailing/frontend-vue/app/utils/rendering-title.ts
+  - packages/dms-mailing/src/routes/sends.ts
+  - packages/dms-mailing/frontend-vue/app/composables/useReplayToast.ts
 docs:
   - packages/dms-mailing/docs/4.usage/4.sends.md
   - packages/dms-mailing/docs/5.extending.md

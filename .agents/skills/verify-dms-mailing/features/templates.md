@@ -43,6 +43,13 @@ covers:
   - packages/dms-mailing/frontend-vue/app/utils/starters.ts
   - packages/dms-mailing/frontend-vue/app/utils/template-attention.ts
   - packages/dms-mailing/frontend-vue/app/utils/slug.ts
+  - packages/dms-mailing/src/services/send.ts
+  - packages/dms-mailing/src/routes/sends.ts
+  - packages/dms-mailing/src/services/checked-send.ts
+  - packages/dms-mailing/frontend-vue/app/components/RealSendModal.vue
+  - packages/dms-mailing/frontend-vue/app/components/TestSendModal.vue
+  - packages/dms-mailing/frontend-vue/app/components/RecipientsField.vue
+  - packages/dms-mailing/frontend-vue/app/utils/recipients.ts
 docs:
   - packages/dms-mailing/docs/4.usage/2.templates.md
   - packages/dms-mailing/README.md

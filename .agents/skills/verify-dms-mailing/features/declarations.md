@@ -6,6 +6,7 @@ covers:
   - packages/dms-mailing/src/services/send-import.ts
   - packages/dms-mailing/src/services/localized-text.ts
   - packages/dms-mailing/src/validation/declarations.schema.ts
+  - packages/dms-mailing/src/services/events.ts
 docs:
   - packages/dms-mailing/docs/5.extending.md
   - packages/dms-mailing/docs/6.faq.md

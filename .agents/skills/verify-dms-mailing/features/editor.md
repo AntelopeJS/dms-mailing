@@ -43,6 +43,10 @@ covers:
   - packages/dms-mailing/frontend-vue/app/utils/variable-types.ts
   - packages/dms-mailing/frontend-vue/app/utils/variables.ts
   - packages/dms-mailing/frontend-vue/app/utils/version-history.ts
+  - packages/dms-mailing/src/services/templates.ts
+  - packages/dms-mailing/src/routes/templates.ts
+  - packages/dms-mailing/src/validation/templates.schema.ts
+  - packages/dms-mailing/src/services/render.ts
 docs:
   - packages/dms-mailing/docs/4.usage/3.editor.md
   - packages/dms-mailing/docs/5.extending.md
