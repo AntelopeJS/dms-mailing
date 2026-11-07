@@ -1,4 +1,32 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>AntelopeJS/.github:renovate.json5"]
+  "extends": ["github>AntelopeJS/.github:renovate.json5"],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/tests/**",
+    "**/__fixtures__/**"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The exact DMS stack versions the backend tests and the playground run",
+      "managerFilePatterns": [
+        "/^packages/dms-mailing/src/test/antelope-modules\\.ts$/"
+      ],
+      "matchStrings": [
+        "package:\\s*\"(?<depName>@antelopejs/[^\"]+)\",\\s*version:\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "npm"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": ["packages/dms-mailing/src/test/antelope-modules.ts"],
+      "groupName": "DMS test stack"
+    }
+  ]
 }

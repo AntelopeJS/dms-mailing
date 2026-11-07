@@ -13,32 +13,35 @@
  *
  * Modules only one stack needs — the local
  * checkouts — stay in their own config.
+ *
+ * Each package version is exact, so a release of one of these modules changes
+ * what CI tests only through a Renovate pull request (`renovate.json`).
  */
 export const SHARED_MODULE_SOURCES = {
   dms: {
     type: "package",
     package: "@antelopejs/dms",
-    version: ">=0.16.1 <1.0.0",
+    version: "0.18.0",
   },
   mongodb: { type: "local", path: "node_modules/@antelopejs/mongodb" },
   "auth-jwt": {
     type: "package",
     package: "@antelopejs/auth-jwt",
-    version: "^1.1.0",
+    version: "1.1.0",
   },
   api: {
     type: "package",
     package: "@antelopejs/api",
-    version: "^1.7.0",
+    version: "1.7.1",
   },
   "file-storage-local": {
     type: "package",
     package: "@antelopejs/file-storage-local",
-    version: ">=0.2.0 <1.0.0",
+    version: "0.2.0",
   },
   nodemailer: {
     type: "package",
     package: "@antelopejs/nodemailer",
-    version: ">=0.0.6 <1.0.0",
+    version: "0.0.8",
   },
 } as const;
