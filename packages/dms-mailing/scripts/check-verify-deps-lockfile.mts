@@ -5,7 +5,8 @@ import { join, relative } from "node:path";
  * The verify skill installs its playground packages from `deps/` with a frozen
  * lockfile, so a `deps/package.json` bump without a regenerated lockfile breaks
  * `dms-control up --prepare` on every run. Checks the lockfile against the
- * manifest without installing anything. Prints the failure only; exits 1 on it.
+ * manifest without installing anything, whatever release-age policy the host's
+ * pnpm applies to new installs. Prints the failure only; exits 1 on it.
  */
 
 const REPOSITORY_ROOT = join(import.meta.dirname, "..", "..", "..");
@@ -22,6 +23,7 @@ const result = spawnSync(
     "--frozen-lockfile",
     "--lockfile-only",
     "--ignore-scripts",
+    "--config.minimum-release-age=0",
   ],
   { encoding: "utf8" },
 );
