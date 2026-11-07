@@ -46,11 +46,13 @@ jobs:
       # The harness resolves the DMS stack's npm modules into this folder
       # (`cacheFolder` in src/test/antelope.test.ts). It checks the registry
       # for newer versions on every run, so a stale cache only costs a
-      # download, never an old module.
+      # download, never an old module. Each run restores the newest cache and
+      # saves its own, so it downloads only what was published since.
       - uses: actions/cache@v4
         with:
           path: packages/dms-mailing/.antelope/cache
-          key: antelope-${{ runner.os }}-${{ hashFiles('packages/dms-mailing/src/test/antelope-modules.ts', 'packages/*/pnpm-lock.yaml') }}
+          key: antelope-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: antelope-${{ runner.os }}-
       # mongodb-memory-server downloads mongod on first use; keyed on the
       # version the test config pins.
       - id: mongo
