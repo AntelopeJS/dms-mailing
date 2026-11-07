@@ -18,6 +18,7 @@ covers:
   - packages/dms-mailing/src/realtime.ts
   - packages/dms-mailing/src/permissions.ts
   - packages/dms-mailing/src/services/permissions.ts
+  - packages/dms-mailing/src/validation/templates.schema.ts
 docs:
   - packages/dms-mailing/docs/4.usage/4.sends.md
   - packages/dms-mailing/docs/5.extending.md
