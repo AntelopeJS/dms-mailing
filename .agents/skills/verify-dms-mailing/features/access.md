@@ -4,6 +4,7 @@ covers:
   - packages/dms-mailing/src/permissions.ts
   - packages/dms-mailing/src/realtime.ts
   - packages/dms-mailing/src/hooks/**
+  - packages/dms-mailing/src/index.ts
   - packages/dms-mailing/src/constants.ts
 docs:
   - packages/dms-mailing/docs/5.extending.md
