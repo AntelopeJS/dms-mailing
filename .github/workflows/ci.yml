@@ -69,11 +69,12 @@ jobs:
       # and records one when there is none, as after a Renovate bump. A
       # recorded lock means this run resolved the module's dependencies fresh.
       - name: Module locks are committed
+        if: ${{ !cancelled() }}
         run: |
           changes=$(git status --porcelain -- packages/dms-mailing/antelope-lock)
           if [ -n "$changes" ]; then
             echo "$changes"
-            echo "::error::The backend tests recorded module locks that are not committed: run pnpm --dir packages/dms-mailing test:backend and commit packages/dms-mailing/antelope-lock/."
+            echo "::error::The backend tests recorded module locks that are not committed: run pnpm --dir packages/dms-mailing test:backend and commit packages/dms-mailing/antelope-lock/, deleting the lock of any version it replaces."
             exit 1
           fi
 
