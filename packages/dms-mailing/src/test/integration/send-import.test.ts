@@ -1,5 +1,8 @@
+import { mock } from "node:test";
 import { expect } from "chai";
 import type { ImportedSend } from "@antelopejs/interface-dms-mailing";
+import { purgeOrphanEvents } from "../../crons/retention";
+import { SendEventModel, SendModel } from "../../db";
 
 const DAY_MS = 86_400_000;
 const SLUG = "imported-receipt";
@@ -130,6 +133,56 @@ describe("[integration] send import", () => {
       new Date(),
     );
     expect(window).to.have.length(3);
+  });
+
+  it("keeps an import's timeline when the orphan-event pass runs between its writes", async () => {
+    const { ImportSends } = await mailing();
+    const { sends, events } = await models();
+    const sweep = () => purgeOrphanEvents(tenantId);
+    const sendInsert = mock.method(
+      sends,
+      "insertImported",
+      async (row: Parameters<SendModel["insertImported"]>[0]) => {
+        await sweep();
+        return SendModel.prototype.insertImported.call(sends, row);
+      },
+    );
+    const eventInsert = mock.method(
+      events,
+      "insertImported",
+      async (row: Parameters<SendEventModel["insertImported"]>[0]) => {
+        await sweep();
+        return SendEventModel.prototype.insertImported.call(events, row);
+      },
+    );
+    const result = await ImportSends({
+      tenantId,
+      sends: [
+        {
+          importId: "swept-1",
+          templateSlug: SLUG,
+          to: "swept@example.test",
+          sentAt,
+          events: [
+            { type: "delivered", at: new Date(sentAt.getTime() + 60_000) },
+            { type: "opened", at: new Date(sentAt.getTime() + 120_000) },
+          ],
+        },
+      ],
+    }).finally(() => {
+      sendInsert.mock.restore();
+      eventInsert.mock.restore();
+    });
+    expect(result).to.include({ imported: 1 });
+    expect(sendInsert.mock.callCount()).to.be.at.least(1);
+    expect(eventInsert.mock.callCount()).to.be.at.least(1);
+    const [id] = result.sendIds;
+    expect(await sends.get(id)).to.include({ status: "opened" });
+    const timeline = await events.getBySend(id);
+    expect(timeline.map((event) => event.type).sort()).to.deep.equal([
+      "delivered",
+      "opened",
+    ]);
   });
 
   it("leaves imported bounces off the suppression list", async () => {
