@@ -144,15 +144,19 @@ export async function readWebhookStatus(
   );
 }
 
+function isWebhookRefusal(value: unknown): value is WebhookRefusal {
+  return isText(value) && Object.hasOwn(WEBHOOK_REFUSAL_MESSAGES, value);
+}
+
+/** The webhook's own refusal reason in a response, not one another endpoint gives. */
 async function refusalOf(
   response: Response,
 ): Promise<WebhookRefusal | undefined> {
   try {
-    // SAFETY: Response.json() answers any, and the URL under test is this module's own webhook route, which refuses
-    // with refusalBody(reason); another endpoint can answer any JSON, which is read the same way, and a non-object
-    // reads as no refusal (only null throws, into the catch below).
-    const body = (await response.json()) as Partial<WebhookRefusalBody>;
-    return body.reason;
+    const body: unknown = await response.json();
+    return isObject(body) && isWebhookRefusal(body.reason)
+      ? body.reason
+      : undefined;
   } catch {
     return undefined;
   }

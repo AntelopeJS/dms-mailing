@@ -114,4 +114,20 @@ describe("[unit] services/webhook-status", () => {
     expect(unreachable.networkError).to.contain("ECONNREFUSED");
     expect(unreachable.httpStatus).to.equal(undefined);
   });
+
+  it("reads a reason the webhook never gives as no refusal", async () => {
+    for (const body of [{ reason: "Forbidden" }, { reason: 403 }, "denied"]) {
+      const outcome = await sendWebhookTest(
+        URL,
+        SECRET,
+        async () =>
+          new Response(JSON.stringify(body), { status: HTTP_FORBIDDEN }),
+      );
+      expect(outcome).to.deep.include({
+        isReceived: false,
+        httpStatus: HTTP_FORBIDDEN,
+        refusal: undefined,
+      });
+    }
+  });
 });
