@@ -225,8 +225,9 @@ export class SendsPageController extends PageController(
     pageSize: 50,
     rowClick: "single",
     /**
-     * New sends wait in a "N new sends" strip while the user reads a send,
-     * scrolls down the log or searches it, so the rows do not move under them.
+     * New sends wait behind a "N new sends" pill while the log is on screen,
+     * so the rows do not move under the user. A send open in the drawer, a
+     * scroll down the log or a search also names the hold above the rows.
      */
     liveHold: {
       whileRowOpen: true,

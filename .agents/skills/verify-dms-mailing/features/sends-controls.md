@@ -18,7 +18,7 @@ The controls of the Sends page: the period (24H by default, 7D, 30D), the Templa
 - `the-sends-period-is-24h-by-default-and-offers-exactly-24h-7d-and-30d`: the period options and the sends each period counts.
 - `the-template-and-test-sends-filters-narrow-the-log`: the Template and Test sends filters, alone and together.
 - `a-search-and-pause-hold-the-rows-behind-a-new-sends-strip`: a search or Pause holds the rows, Show adds the waiting sends, and the Overview shares Pause.
-- `in-live-mode-a-new-send-appears-without-a-strip`: with nothing open, scrolled or searched, a new send appears by itself. It fails at the head (finding, `~/.cache/campaign/issues/dms-mailing-sends-live-holds-new-sends.md`).
+- `in-live-mode-a-new-send-waits-behind-a-pill-while-the-log-is-on-screen`: with nothing open, scrolled or searched, a new send waits behind a "1 new send" pill that names no reason while the log is on screen, and Show adds it.
 - `j-and-k-step-across-the-pages-of-the-log`: with 51 sends, J on the 50th opens the 51st.
 
 ## How to get to it (user POV)
