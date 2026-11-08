@@ -73,14 +73,71 @@ jobs:
       # and records one when there is none, as after a Renovate bump. A
       # recorded lock means this run resolved the module's dependencies fresh.
       - name: Module locks are committed
+        id: locks
         if: ${{ !cancelled() }}
         run: |
           changes=$(git status --porcelain -- packages/dms-mailing/antelope-lock)
           if [ -n "$changes" ]; then
+            echo "recorded=true" >> "$GITHUB_OUTPUT"
             echo "$changes"
-            echo "::error::The backend tests recorded module locks that are not committed: run pnpm --dir packages/dms-mailing test:backend and commit packages/dms-mailing/antelope-lock/, deleting the lock of any version it replaces."
+            echo "::error::The backend tests recorded module locks that are not committed: run pnpm --dir packages/dms-mailing test:backend and commit packages/dms-mailing/antelope-lock/, deleting the lock of any version it replaces. On a Renovate pull request the module-locks job commits them."
             exit 1
           fi
+      - if: ${{ !cancelled() && steps.locks.outputs.recorded == 'true' && startsWith(github.head_ref, 'renovate/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: antelope-lock
+          path: packages/dms-mailing/antelope-lock
+          include-hidden-files: true
+          overwrite: true
+          retention-days: 1
+    outputs:
+      locks-recorded: ${{ steps.locks.outputs.recorded }}
+
+  # A Renovate bump of the DMS test stack records the new versions' locks in
+  # the backend-tests run above. This job commits them to the Renovate branch,
+  # deletes the locks of the versions they replace, and runs ci again on the
+  # new commit, since a push with the workflow token starts no workflow.
+  module-locks:
+    if: >-
+      !cancelled() && needs.backend-tests.outputs.locks-recorded == 'true' && github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
+    needs: [backend-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: module-locks-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      GH_REPO: ${{ github.repository }}
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: antelope-lock
+          path: packages/dms-mailing/antelope-lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node packages/dms-mailing/scripts/check-module-locks.mts --prune
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- packages/dms-mailing/antelope-lock
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit --no-verify -q -m "build(test): record the module locks of the bumped DMS test stack"
+          git push --no-verify -q "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "HEAD:refs/heads/${HEAD_REF}"
+          gh workflow run ci.yml --ref "$HEAD_REF" > /dev/null
 
   # Branch protection requires the check of the single job this workflow used
   # to have: it now stands for all of them, and fails if any did not pass.
