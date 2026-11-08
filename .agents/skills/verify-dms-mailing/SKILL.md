@@ -1,6 +1,6 @@
 ---
 name: verify-dms-mailing
-description: "Drive the AntelopeJS dms-mailing module (e-mail templates and their gallery, the block editor with drafts and versions, the send log, the Overview figures, the settings with the provider webhook, the suppression list, the interface other modules send and declare through) the way the platform owner does, inside a DMS with free ports, its own MongoDB database and an SMTP sink, and post a verdict with evidence. Use to prove a change to AntelopeJS/dms-mailing works before merge, or to verify a PR."
+description: "Drive the AntelopeJS dms-mailing module (e-mail templates and their gallery, the block editor with drafts and versions, the send log, the Overview figures, the settings with the provider webhook, the suppression list, the interface other modules send and declare through) the way the platform owner does, inside a DMS with free ports, its own MongoDB database and an SMTP sink, and report a verdict with evidence. Use to prove a change to AntelopeJS/dms-mailing works before merge, or to verify a PR."
 ---
 
 # Verify dms-mailing
@@ -73,11 +73,7 @@ $C down "$RUN"
 6. **Formal check.** `$C formal "$RUN"` runs each `formal` check of `verify.config.ts` whose covered files or own folder the diff touches. `webhook-events` is the TLA+ model of the webhook events and the retention; read its result with [formal-dms-mailing](../formal-dms-mailing/SKILL.md). `template-slugs` is the TLA+ model of racing template creations on one slug; read its result with [formal-template-slugs](../formal-template-slugs/SKILL.md). A touched check that did not run fails the verdict, and so does one whose output no longer matches its record (`BROKEN`, `CHANGED`, `HOLDS`). A recorded finding that still reproduces as recorded does not fail it: list it under `attention`.
 7. **Result.** FAIL if any of rules 1 to 6 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
 
-Write `$RUN/evidence/judgement.json` (`doors`, `docs`, `notVerified`, `attention`, `verifier`), then `$C verdict "$RUN" --pr <n>` and, from a thread that did not write the change, `$C publish "$RUN" --pr <n>`.
-
-## Trust
-
-The skill is not Trusted yet. It becomes Trusted when it passes a shadow run of 10 consecutive agent PRs, and its last maintain pass is newer than the last change to the repository or its `@antelopejs` dependencies and at most 30 days old.
+Write `$RUN/evidence/judgement.json` (`doors`, `docs`, `notVerified`, `attention`, `verifier`), then `$C verdict "$RUN" --pr <n>`, which writes `$RUN/evidence/verdict.md`. Report the verdict and what you saw in your own reply.
 
 ## Gotchas
 

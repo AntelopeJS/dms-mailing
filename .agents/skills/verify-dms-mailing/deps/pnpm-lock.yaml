@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@antelopejs/dms':
         specifier: '>=0.16.1 <1.0.0'
-        version: 0.16.1(@antelopejs/core@1.21.0)(supports-color@8.1.1)
+        version: 0.18.2(@antelopejs/core@1.21.0)
       '@antelopejs/interface-api':
         specifier: '>=0.3.0 <1.0.0'
         version: 0.3.0(@antelopejs/interface-core@0.4.0)
@@ -72,11 +72,11 @@ packages:
     peerDependencies:
       '@antelopejs/core': '>=1.16.0 <2'
 
-  '@antelopejs/dms@0.16.1':
-    resolution: {integrity: sha512-iwnM390H/boqGNckjQFZom1Apa8TZY1DERr/09mNZrJIFRO5bFoFiO9XFIOcXaHybDLQ9T+XwAHkzBAIQXtdCQ==}
+  '@antelopejs/dms@0.18.2':
+    resolution: {integrity: sha512-u6DFok+n0rkpMjq0GFd7g7Bb1dAw+L1ypwJg6qMH12tiMqyoqIrSKUso7DFB+CGOA05FaFTd1pyEqZY+fCL8eQ==}
     hasBin: true
     peerDependencies:
-      '@antelopejs/core': '>=1.17.0 <2'
+      '@antelopejs/core': '>=1.21.0 <2'
     peerDependenciesMeta:
       '@antelopejs/core':
         optional: true
@@ -1004,7 +1004,7 @@ snapshots:
       '@oxc-parser/binding-linux-x64-gnu': 0.95.0
       '@oxc-parser/binding-win32-x64-msvc': 0.95.0
 
-  '@antelopejs/dms@0.16.1(@antelopejs/core@1.21.0)(supports-color@8.1.1)':
+  '@antelopejs/dms@0.18.2(@antelopejs/core@1.21.0)':
     dependencies:
       2fa: 0.1.2
       '@antelopejs/interface-api': 0.3.0(@antelopejs/interface-core@0.4.0)
@@ -1030,7 +1030,7 @@ snapshots:
     optionalDependencies:
       '@antelopejs/core': 1.21.0
       '@antelopejs/interface-dms-automation': 0.6.0(@antelopejs/interface-core@0.4.0)
-      '@antelopejs/interface-redis': 0.0.9(@antelopejs/interface-core@0.4.0)(supports-color@8.1.1)
+      '@antelopejs/interface-redis': 0.0.9(@antelopejs/interface-core@0.4.0)
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -1096,10 +1096,10 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.4.0
 
-  '@antelopejs/interface-redis@0.0.9(@antelopejs/interface-core@0.4.0)(supports-color@8.1.1)':
+  '@antelopejs/interface-redis@0.0.9(@antelopejs/interface-core@0.4.0)':
     dependencies:
       '@antelopejs/interface-core': 0.4.0
-      ioredis: 5.11.1(supports-color@8.1.1)
+      ioredis: 5.11.1
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -1482,7 +1482,7 @@ snapshots:
       unbzip2-stream: 1.4.3
       yargs-parser: 21.1.1
 
-  ioredis@5.11.1(supports-color@8.1.1):
+  ioredis@5.11.1:
     dependencies:
       '@ioredis/commands': 1.10.0
       cluster-key-slot: 1.1.1
