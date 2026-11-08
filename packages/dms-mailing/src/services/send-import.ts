@@ -172,10 +172,12 @@ interface EntryOutcome {
 }
 
 /**
- * Writes one send: its events first, under ids derived from the send's, then
- * the send itself. A run stopped half-way leaves events no send shows yet,
- * which the next run completes; each write skips the row an earlier run
- * wrote, and a send present means it was fully imported.
+ * Writes one send: the send itself first, then its events under ids derived
+ * from the send's. An event is written only after its send, so the
+ * retention's orphan-event pass never finds an import's events before their
+ * send. A run stopped half-way leaves a send with part of its history, which
+ * the next run completes: each write skips the row an earlier run wrote, and
+ * the events are written whether or not the send was already there.
  */
 async function importOne(
   tenantId: string,
@@ -184,8 +186,10 @@ async function importOne(
   fallbackLocale: string,
 ): Promise<EntryOutcome> {
   const id = importedSendIdOf(tenantId, send.importId);
-  const sends = GetModel(SendModel, tenantId);
   const timeline = timelineOf(send);
+  const locale = send.locale ?? fallbackLocale;
+  const row = sendRow(id, send, template, locale, foldEvents(send, timeline));
+  const isImported = await GetModel(SendModel, tenantId).insertImported(row);
   const events = GetModel(SendEventModel, tenantId);
   for (const [index, entry] of timeline.entries()) {
     await events.insertImported({
@@ -196,9 +200,7 @@ async function importOne(
       json_details: JSON.stringify(entry.details ?? {}),
     });
   }
-  const locale = send.locale ?? fallbackLocale;
-  const row = sendRow(id, send, template, locale, foldEvents(send, timeline));
-  return { id, isImported: await sends.insertImported(row) };
+  return { id, isImported };
 }
 
 /**
