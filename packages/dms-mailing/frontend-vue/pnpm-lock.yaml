@@ -27,6 +27,9 @@ importers:
       '@nuxt/ui':
         specifier: 4.10.0
         version: 4.10.0(9bdbb06d8a0b4accef61070adc217622)
+      '@types/sortablejs':
+        specifier: ^1.15.9
+        version: 1.15.9
       '@vitejs/plugin-vue':
         specifier: ^6.0.0
         version: 6.0.9(vite@8.2.2(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))(vue@3.5.42(typescript@5.9.3))
@@ -1424,6 +1427,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/sortablejs@1.15.9':
+    resolution: {integrity: sha512-7HP+rZGE2p886PKV9c9OJzLBI6BBJu1O7lJGYnPyG3fS4/duUCcngkNCjsLwIMV+WMqANe3tt4irrXHSIe68OQ==}
 
   '@types/web-bluetooth@0.0.20':
     resolution: {integrity: sha512-g9gZnnXVq7gM7v3tJCWV/qw7w+KeOlSHAhgF9RytFyifW6AF61hdT2ucrYhPq9hLs5JIryeupHV3qGk95dH9ow==}
@@ -4563,6 +4569,8 @@ snapshots:
   '@types/estree@1.0.9': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/sortablejs@1.15.9': {}
 
   '@types/web-bluetooth@0.0.20': {}
 
