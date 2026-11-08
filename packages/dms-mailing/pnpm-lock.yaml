@@ -4,6 +4,17 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@antelopejs/dms': file:../../.tgz-deps/antelopejs-dms-df000f9.tgz
+  '@antelopejs/dms>@antelopejs/interface-api': 0.3.0
+  '@antelopejs/dms>@antelopejs/interface-api-util': 0.3.0
+  '@antelopejs/dms>@antelopejs/interface-core': 0.4.0
+  '@antelopejs/dms>@antelopejs/interface-data-api': 0.6.1
+  '@antelopejs/dms>@antelopejs/interface-database': 0.3.0
+  '@antelopejs/dms>@antelopejs/interface-database-decorators': 0.2.0
+  '@antelopejs/dms>@antelopejs/interface-dms': 0.12.0
+  '@antelopejs/dms>@antelopejs/interface-email': 0.0.6
+
 importers:
 
   .:
@@ -46,8 +57,8 @@ importers:
         specifier: ^1.21.0
         version: 1.21.0
       '@antelopejs/dms':
-        specifier: '>=0.17.0 <1.0.0'
-        version: 0.18.2(@antelopejs/core@1.21.0)
+        specifier: file:../../.tgz-deps/antelopejs-dms-df000f9.tgz
+        version: file:../../.tgz-deps/antelopejs-dms-df000f9.tgz(@antelopejs/core@1.21.0)
       '@antelopejs/mongodb':
         specifier: ^1.6.2
         version: 1.6.2(socks@2.8.10)
@@ -105,8 +116,9 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms@0.18.2':
-    resolution: {integrity: sha512-u6DFok+n0rkpMjq0GFd7g7Bb1dAw+L1ypwJg6qMH12tiMqyoqIrSKUso7DFB+CGOA05FaFTd1pyEqZY+fCL8eQ==}
+  '@antelopejs/dms@file:../../.tgz-deps/antelopejs-dms-df000f9.tgz':
+    resolution: {integrity: sha512-pQgGRgNLMjeRC7nifYT9RuNYORPcpUzkdvTA3ALU9PoKj+aBav/8eL2Poqw8giGjTJKEs/lfnfZfnyKYfTZ5zQ==, tarball: file:../../.tgz-deps/antelopejs-dms-df000f9.tgz}
+    version: 0.18.1
     hasBin: true
     peerDependencies:
       '@antelopejs/core': '>=1.21.0 <2'
@@ -2815,7 +2827,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms@0.18.2(@antelopejs/core@1.21.0)':
+  '@antelopejs/dms@file:../../.tgz-deps/antelopejs-dms-df000f9.tgz(@antelopejs/core@1.21.0)':
     dependencies:
       2fa: 0.1.2
       '@antelopejs/interface-api': 0.3.0(@antelopejs/interface-core@0.4.0)

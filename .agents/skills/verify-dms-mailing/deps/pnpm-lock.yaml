@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@antelopejs/dms':
-        specifier: '>=0.16.1 <1.0.0'
-        version: 0.18.2(@antelopejs/core@1.21.0)
+        specifier: file:../../../../.tgz-deps/antelopejs-dms-df000f9.tgz
+        version: file:../../../../.tgz-deps/antelopejs-dms-df000f9.tgz(@antelopejs/core@1.21.0)
       '@antelopejs/interface-api':
         specifier: '>=0.3.0 <1.0.0'
         version: 0.3.0(@antelopejs/interface-core@0.4.0)
@@ -72,8 +72,9 @@ packages:
     peerDependencies:
       '@antelopejs/core': '>=1.16.0 <2'
 
-  '@antelopejs/dms@0.18.2':
-    resolution: {integrity: sha512-u6DFok+n0rkpMjq0GFd7g7Bb1dAw+L1ypwJg6qMH12tiMqyoqIrSKUso7DFB+CGOA05FaFTd1pyEqZY+fCL8eQ==}
+  '@antelopejs/dms@file:../../../../.tgz-deps/antelopejs-dms-df000f9.tgz':
+    resolution: {integrity: sha512-pQgGRgNLMjeRC7nifYT9RuNYORPcpUzkdvTA3ALU9PoKj+aBav/8eL2Poqw8giGjTJKEs/lfnfZfnyKYfTZ5zQ==, tarball: file:../../../../.tgz-deps/antelopejs-dms-df000f9.tgz}
+    version: 0.18.1
     hasBin: true
     peerDependencies:
       '@antelopejs/core': '>=1.21.0 <2'
@@ -1004,7 +1005,7 @@ snapshots:
       '@oxc-parser/binding-linux-x64-gnu': 0.95.0
       '@oxc-parser/binding-win32-x64-msvc': 0.95.0
 
-  '@antelopejs/dms@0.18.2(@antelopejs/core@1.21.0)':
+  '@antelopejs/dms@file:../../../../.tgz-deps/antelopejs-dms-df000f9.tgz(@antelopejs/core@1.21.0)':
     dependencies:
       2fa: 0.1.2
       '@antelopejs/interface-api': 0.3.0(@antelopejs/interface-core@0.4.0)
