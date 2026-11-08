@@ -1,5 +1,5 @@
 import { useSortable } from '@vueuse/integrations/useSortable'
-import { toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
+import { toRef, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
 
 /** What a drop did to a list, as vuedraggable's `change` event said it. */
 export interface SortableListChange<Item> {
@@ -95,7 +95,7 @@ export function useSortableList<Item>(
 		if (origin) origin.parent.insertBefore(item, origin.next)
 	}
 
-	const { option } = useSortable(root, list, {
+	const { option } = useSortable(root, toRef(list), {
 		...defined({
 			group: options.group,
 			handle: options.handle,
