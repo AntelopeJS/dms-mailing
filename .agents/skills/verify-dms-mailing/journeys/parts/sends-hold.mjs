@@ -70,19 +70,30 @@ export const journeys = [
     },
   },
   {
-    id: "in-live-mode-a-new-send-appears-without-a-strip",
-    title: "with nothing open, scrolled or searched, a new send appears in the log by itself in Live mode",
+    id: "in-live-mode-a-new-send-waits-behind-a-pill-while-the-log-is-on-screen",
+    title: "with nothing open, scrolled or searched, a new send waits behind a 'N new sends' pill in Live mode while the log is on screen, and Show adds it to the log and its count",
     entryPoint: "/modules/mailing/sends",
     async run(/** @type {Ctx} */ ctx) {
+      const listed = ["hold1@h.test", "live1@h.test"];
       await declareTemplates(ctx, [{ slug: "order", category: "orders" }]);
       await importSends(ctx, "one send", [sendOf("l0", "order", "hold1@h.test", ago(0, 1), [{ type: "delivered" }])]);
       const tab = await openSends(ctx);
+      await waitForText(tab, /Send log 1 /);
       await calling(ctx, "send while live", "send", ["order", { tenantId: TENANT, to: "live1@h.test" }]);
-      await wait(tab, LIVE_REFRESH_MS);
-      const text = await waitForText(tab, /live1@h\.test/);
-      await ctx.verify("a new send appears in Live mode", [
-        check("the row is in the log", text.includes("live1@h.test"), (await listedAmong(tab, ["hold1@h.test", "live1@h.test"])).join()),
-        check("no strip waits", !/\d+ new sends?/.test(text), text.slice(0, 200)),
+      const held = await waitForText(tab, /1 new send(?!s)/);
+      await ctx.verify("the log on screen holds the new send", [
+        check("live1 is not in the log yet", !held.includes("live1@h.test"), (await listedAmong(tab, listed)).join()),
+        check("the pill counts 1 new send", /1 new send(?!s)/.test(held), held.slice(0, 200)),
+        check("no reason is given, nothing being open, scrolled or searched", !/Table on hold/.test(held), held.slice(0, 200)),
+        check("the log's count stays 1", /Send log 1 /.test(held), held.slice(0, 200)),
+      ]);
+      await tab.click({ role: "button", name: "Show", exact: true });
+      await waitForText(tab, /live1@h\.test/);
+      const shown = await waitForText(tab, /Send log 2 /);
+      await ctx.verify("Show adds the waiting send", [
+        check("live1 is in the log", shown.includes("live1@h.test"), (await listedAmong(tab, listed)).join()),
+        check("the log's count says 2", /Send log 2 /.test(shown), shown.slice(0, 200)),
+        check("the pill is gone", !/\d+ new sends?/.test(shown), shown.slice(0, 200)),
       ]);
     },
   },
