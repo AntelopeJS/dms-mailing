@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": "^1.21.0",
-    "@antelopejs/dms": ">=0.17.0 <1.0.0",
+    "@antelopejs/dms": ">=0.19.0 <1.0.0",
     "@antelopejs/mongodb": "^1.6.2",
     "@antelopejs/tooling-configs": "^0.3.3",
     "@types/chai": "^4.3.20",
