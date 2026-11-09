@@ -68,6 +68,13 @@ export const senderDeclarationSchema = z.object({
 
 export type ParsedSenderDeclaration = z.infer<typeof senderDeclarationSchema>;
 
+/** A webhook secret declared from code: the settings form's rule. */
+export const webhookSecretDeclarationSchema = z.object({
+  tenantId: tenantIdSchema,
+  secret: settingsSchema.shape.webhookSecret,
+  replaceRotated: z.boolean().default(false),
+});
+
 const recipientSchema = z.union([
   z.string().trim().email(),
   z.object({

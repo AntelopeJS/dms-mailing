@@ -332,6 +332,34 @@ export interface SenderDeclaration {
 }
 
 /**
+ * The webhook secret a project ships as code: what the provider sends with
+ * each event so the module accepts it.
+ */
+export interface WebhookSecretDeclaration {
+  /** Explicit, non-blank workspace id. The caller authorizes and provisions it. */
+  tenantId: string;
+  /** At least 32 and at most 120 characters, as in the settings form. */
+  secret: string;
+  /**
+   * Replaces a secret the workspace owner set or rotated in the settings.
+   * Without it, such a secret is kept.
+   */
+  replaceRotated?: boolean;
+}
+
+/**
+ * What a webhook secret declaration did: `set` stored it, `unchanged` found
+ * it already stored, `kept` left the secret the workspace owner set or
+ * rotated in place.
+ */
+export type WebhookSecretOutcome = "set" | "unchanged" | "kept";
+
+/** The outcome only: the secret is never returned. */
+export interface DeclareWebhookSecretResult {
+  outcome: WebhookSecretOutcome;
+}
+
+/**
  * A provider event of an imported send. Its `at` is kept as given: the
  * timeline and the metrics read it.
  */
@@ -420,6 +448,22 @@ export const DeclareTemplateCategory =
  */
 export const DeclareSender =
   InterfaceFunction<(declaration: SenderDeclaration) => Promise<void>>();
+
+/**
+ * Sets the workspace's webhook secret from code, for a project that needs a
+ * known secret (a demo, a fixed provider configuration): call it from
+ * `Hook.TENANT_BEING_PROVISIONED`. Idempotent: the same secret again is
+ * `unchanged`. A secret the workspace owner set or rotated in the settings is
+ * `kept` unless `replaceRotated` is true. A refused secret throws a
+ * `DeclarationError` (`invalid_webhook_secret`) that names the rule, never
+ * the value.
+ */
+export const DeclareWebhookSecret =
+  InterfaceFunction<
+    (
+      declaration: WebhookSecretDeclaration,
+    ) => Promise<DeclareWebhookSecretResult>
+  >();
 
 /**
  * Writes past sends and their events into the send log with their own dates:
