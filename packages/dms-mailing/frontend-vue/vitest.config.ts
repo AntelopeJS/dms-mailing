@@ -9,5 +9,10 @@ export default defineConfig({
 		// `// @vitest-environment jsdom` header.
 		environment: 'node',
 		include: ['tests/**/*.test.ts'],
+		typecheck: {
+			enabled: true,
+			include: ['tests/**/*.test-d.ts'],
+			tsconfig: 'tsconfig.typecheck.json',
+		},
 	},
 })
