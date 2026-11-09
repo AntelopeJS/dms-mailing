@@ -83,6 +83,8 @@ export async function declareMailingContent(tenantId: string) {
   i18n keys; each user reads, searches and sorts them in their language (`x-content-language`).
 - `DeclareSender({ tenantId, email, name?, replyTo? })` writes the settings' sender (resolves `void`); call it once
   from `Hook.TENANT_BEING_PROVISIONED`, not on every boot, since it replaces what a user set. Refusals use `invalid_sender`.
+- `DeclareWebhookSecret({ tenantId, secret, replaceRotated? })` resolves `{ outcome: "set" | "unchanged" | "kept" }`, never
+  the secret; idempotent, and keeps a secret the owner set or rotated unless `replaceRotated`. Refusals use `invalid_webhook_secret`.
 - Refusals reject with `error.code`: `invalid_template`, `unknown_category`, `empty_subject`,
   `nothing_to_publish`, `invalid_category`; invalid tenant input rejects before writes. Storage errors can occur after publication.
 - `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own

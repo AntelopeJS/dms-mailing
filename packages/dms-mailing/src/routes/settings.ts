@@ -33,6 +33,7 @@ import {
   mergeSettingsPatch,
   missingVariablesPolicy,
   saveSettings,
+  saveWebhookSecret,
   WEBHOOK_SECRET_BYTES,
 } from "../services/settings";
 import {
@@ -78,7 +79,15 @@ const retentionDaysSchema = z.coerce
  * The DMS form reads and writes localized values whole
  * (`x-content-language: *`): category labels travel with every language.
  */
-export interface MailingSettingsResponse extends MailingSettingsValues {
+/** The settings as the form reads and writes them: who set the secret stays inside the module. */
+type FormSettings = Omit<MailingSettingsValues, "webhookSecretSource">;
+
+function formSettings(values: MailingSettingsValues): FormSettings {
+  const { webhookSecretSource: _source, ...form } = values;
+  return form;
+}
+
+export interface MailingSettingsResponse extends FormSettings {
   /** Where the provider posts its events; read-only. */
   webhookUrl: string;
   /** The configured provider, as the read-only provider row shows it. */
@@ -94,7 +103,7 @@ export interface SettingsNotice {
   params?: Record<string, number | string>;
 }
 
-export interface SettingsWriteResponse extends MailingSettingsValues {
+export interface SettingsWriteResponse extends FormSettings {
   notice?: SettingsNotice;
 }
 
@@ -211,7 +220,7 @@ export class MailingSettingsController extends Controller(
       readCapabilities(),
     ]);
     return {
-      ...values,
+      ...formSettings(values),
       webhookUrl: await this.providerWebhookUrl(capabilities?.name),
       provider: capabilities?.name ?? "",
       missingVariables: missingVariablesPolicy(values),
@@ -234,7 +243,7 @@ export class MailingSettingsController extends Controller(
       ? await this.reassignCategories(categories, categoryMoves(entries))
       : 0;
     const [notice] = [...reassignedNotice(reassigned), ...senderNotice(saved)];
-    return { ...saved, ...(notice && { notice }) };
+    return { ...formSettings(saved), ...(notice && { notice }) };
   }
 
   /** The body as a checked patch; 400 for anything else. */
@@ -249,12 +258,15 @@ export class MailingSettingsController extends Controller(
     );
   }
 
-  /** Issues a new webhook secret; the old one stops working at once. */
+  /**
+   * Issues a new webhook secret, the workspace owner's from now on; the old
+   * one stops working at once.
+   */
   @Post("/webhook-secret/rotate")
   async rotateSecret(): Promise<{ value: string }> {
-    const current = await getSettings(this.tenantId);
+    await getSettings(this.tenantId);
     const value = randomBytes(WEBHOOK_SECRET_BYTES).toString("hex");
-    await saveSettings(this.tenantId, { ...current, webhookSecret: value });
+    await saveWebhookSecret(this.tenantId, value, "operator");
     return { value };
   }
 

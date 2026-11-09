@@ -46,4 +46,8 @@ export class MailingSettings extends Table {
 
   @Field("string")
   declare webhookSecret: string;
+
+  /** Who set `webhookSecret`; absent on rows written before it was kept. */
+  @Field("string")
+  declare webhookSecretSource?: string;
 }

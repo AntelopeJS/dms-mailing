@@ -44,6 +44,7 @@ const SETTINGS: MailingSettingsValues = {
   senderEmail: "sender@test.local",
   replyTo: "",
   webhookSecret: "secret",
+  webhookSecretSource: "generated",
   categories: DEFAULT_CATEGORIES,
 };
 

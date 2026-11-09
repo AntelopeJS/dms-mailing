@@ -5,11 +5,16 @@ import {
   MODULE_DEFAULT_SETTINGS,
   type MailingSettingsValues,
   type TemplateCategory,
+  WEBHOOK_SECRET_SOURCES,
+  type WebhookSecretSource,
 } from "../types";
 import type { JsonObject } from "../types/json";
 import type { SettingsPatch } from "../validation/settings.schema";
 
 export const WEBHOOK_SECRET_BYTES = 24;
+
+const GENERATED_SECRET: WebhookSecretSource = "generated";
+const OPERATOR_SECRET: WebhookSecretSource = "operator";
 
 function defaults(): MailingSettingsValues {
   return {
@@ -18,7 +23,19 @@ function defaults(): MailingSettingsValues {
     senderEmail: "",
     replyTo: "",
     webhookSecret: randomBytes(WEBHOOK_SECRET_BYTES).toString("hex"),
+    webhookSecretSource: GENERATED_SECRET,
   };
+}
+
+/**
+ * The stored source, or `operator` for a row written before the source was
+ * kept: a secret of unknown origin is the workspace's until proven otherwise.
+ */
+function storedSecretSource(stored: string | undefined): WebhookSecretSource {
+  return (
+    WEBHOOK_SECRET_SOURCES.find((source) => source === stored) ??
+    OPERATOR_SECRET
+  );
 }
 
 function toValues(row: MailingSettings): MailingSettingsValues {
@@ -30,6 +47,7 @@ function toValues(row: MailingSettings): MailingSettingsValues {
     senderEmail: row.senderEmail,
     replyTo: row.replyTo,
     webhookSecret: row.webhookSecret,
+    webhookSecretSource: storedSecretSource(row.webhookSecretSource),
     // SAFETY: json_categories is written only by toRow as the JSON.stringify of categories that categoriesSchema
     // validated (settingsPatchSchema, applyCategory) or that the module defaults supplied.
     categories: JSON.parse(row.json_categories) as TemplateCategory[],
@@ -94,6 +112,22 @@ export async function saveSettings(
   return values;
 }
 
+/**
+ * Writes the webhook secret and its source alone, so a concurrent writer of
+ * the other settings keeps its fields. The tenant's row must exist: read it
+ * with `getSettings` first.
+ */
+export async function saveWebhookSecret(
+  tenantId: string,
+  webhookSecret: string,
+  webhookSecretSource: WebhookSecretSource,
+): Promise<void> {
+  await GetModel(SettingsModel, tenantId).update(tenantId, {
+    webhookSecret,
+    webhookSecretSource,
+  });
+}
+
 export function findCategory(
   categories: TemplateCategory[],
   id: string,
@@ -125,7 +159,8 @@ export function clearedToEmpty(patch: JsonObject): JsonObject {
 /**
  * The settings once `patch` (the fields a form changed, cleared ones already
  * stored as empty) is laid over the stored ones, the missing-variables choice
- * folded back into its boolean.
+ * folded back into its boolean. A secret the patch changes becomes the
+ * workspace owner's.
  */
 export function mergeSettingsPatch(
   current: MailingSettingsValues,
@@ -137,5 +172,8 @@ export function mergeSettingsPatch(
     isChoice && !("blockOnMissingVariables" in patch)
       ? { blockOnMissingVariables: policy === REFUSE_POLICY }
       : {};
-  return { ...current, ...written, ...guard };
+  const merged = { ...current, ...written, ...guard };
+  return merged.webhookSecret === current.webhookSecret
+    ? merged
+    : { ...merged, webhookSecretSource: OPERATOR_SECRET };
 }

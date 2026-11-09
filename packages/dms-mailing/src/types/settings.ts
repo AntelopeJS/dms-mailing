@@ -14,6 +14,19 @@ export interface CategoryInLocale {
   icon: string;
 }
 
+/**
+ * Who set the webhook secret: the module drew it (`generated`), a project
+ * declared it (`declared`), or the workspace owner set or rotated it in the
+ * settings (`operator`). A declaration replaces only the first two.
+ */
+export const WEBHOOK_SECRET_SOURCES = [
+  "generated",
+  "declared",
+  "operator",
+] as const;
+
+export type WebhookSecretSource = (typeof WEBHOOK_SECRET_SOURCES)[number];
+
 export interface MailingSettingsValues {
   fallbackLocale: string;
   logRetentionDays: number;
@@ -22,6 +35,7 @@ export interface MailingSettingsValues {
   senderEmail: string;
   replyTo: string;
   webhookSecret: string;
+  webhookSecretSource: WebhookSecretSource;
   categories: TemplateCategory[];
 }
 

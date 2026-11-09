@@ -76,7 +76,7 @@ The [module README compatibility block](packages/dms-mailing/README.md#compatibi
 | Package | Directory | Role |
 | --- | --- | --- |
 | [`@antelopejs/dms-mailing`](https://www.npmjs.com/package/@antelopejs/dms-mailing) | [`packages/dms-mailing`](./packages/dms-mailing) | The module: template library, block editor, send log and delivery metrics. |
-| [`@antelopejs/interface-dms-mailing`](https://www.npmjs.com/package/@antelopejs/interface-dms-mailing) | [`packages/interface-dms-mailing`](./packages/interface-dms-mailing) | The interface other modules call: `SendTemplate`, `RecordEmailEvent`, `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends`. |
+| [`@antelopejs/interface-dms-mailing`](https://www.npmjs.com/package/@antelopejs/interface-dms-mailing) | [`packages/interface-dms-mailing`](./packages/interface-dms-mailing) | The interface other modules call: `SendTemplate`, `RecordEmailEvent`, `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender`, `DeclareWebhookSecret` and `ImportSends`. |
 
 ## Documentation
 

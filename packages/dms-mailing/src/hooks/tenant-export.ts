@@ -18,7 +18,10 @@ import {
 import { findSettings } from "../services/settings";
 import type { MailingSettingsValues } from "../types";
 
-export type ExportedSettings = Omit<MailingSettingsValues, "webhookSecret">;
+export type ExportedSettings = Omit<
+  MailingSettingsValues,
+  "webhookSecret" | "webhookSecretSource"
+>;
 
 export type ExportPageLoader<T> = (
   offset: number,

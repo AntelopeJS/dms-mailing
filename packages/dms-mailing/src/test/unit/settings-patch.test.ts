@@ -17,6 +17,7 @@ const CURRENT: MailingSettingsValues = {
   senderEmail: "hello@acme.test",
   replyTo: "",
   webhookSecret: "s".repeat(48),
+  webhookSecretSource: "generated",
   categories: DEFAULT_CATEGORIES,
 };
 
@@ -74,10 +75,12 @@ describe("[unit] validation settingsPatchSchema", () => {
 
   it("accepts a partial patch, and no read-only field", () => {
     expect(accepts({ senderName: "Acme" })).to.equal(true);
-    expect(accepts(parseJsonObject(JSON.stringify(CURRENT)))).to.equal(true);
+    const { webhookSecretSource: _source, ...form } = CURRENT;
+    expect(accepts(parseJsonObject(JSON.stringify(form)))).to.equal(true);
     expect(accepts({ replyTo: null })).to.equal(true);
     expect(accepts({ webhookUrl: "x" })).to.equal(false);
     expect(accepts({ provider: "y" })).to.equal(false);
+    expect(accepts({ webhookSecretSource: "declared" })).to.equal(false);
   });
 
   it("refuses an unknown field or an unknown missing-variables choice", () => {
@@ -110,5 +113,22 @@ describe("[unit] validation settingsPatchSchema", () => {
     expect(accepts({ fallbackLocale: "pt-br" })).to.equal(true);
     expect(accepts({ fallbackLocale: "zh-Hant" })).to.equal(true);
     expect(accepts({ fallbackLocale: "not a locale" })).to.equal(false);
+  });
+});
+
+describe("[unit] services/settings webhook secret source", () => {
+  it("makes a secret the form changes the workspace owner's", () => {
+    const merged = mergeSettingsPatch(CURRENT, {
+      webhookSecret: "t".repeat(48),
+    });
+    expect(merged.webhookSecretSource).to.equal("operator");
+  });
+
+  it("keeps the source when the form leaves the secret as it was", () => {
+    const resent = mergeSettingsPatch(CURRENT, {
+      webhookSecret: CURRENT.webhookSecret,
+      senderName: "Acme Supplies",
+    });
+    expect(resent.webhookSecretSource).to.equal("generated");
   });
 });

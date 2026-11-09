@@ -17,6 +17,7 @@ The AntelopeJS interface to send DMS mailing templates and report e-mail events 
 - Reports a provider event (delivered, opened, clicked, bounced…) against the send it belongs to (`RecordEmailEvent`).
 - Ships templates and template categories as code when a workspace is provisioned (`DeclareTemplate`, `DeclareTemplateCategory`). A declaration writes once: a template is created already published, and a slug or category id the workspace already has is left as it is.
 - Writes the workspace sender when a workspace is provisioned (`DeclareSender`).
+- Sets the workspace webhook secret from code, keeping one the workspace owner set or rotated (`DeclareWebhookSecret`).
 - Imports past sends and their events with their own dates, for a demo data set or a move from another provider (`ImportSends`).
 - Exports the template and send types (`Block`, `TemplateContent`, `VariableDefinition`, `SendStatus`, `EmailEvent`…) for code that builds or inspects templates.
 - Keeps your module independent of the implementation, [`@antelopejs/dms-mailing`](https://www.npmjs.com/package/@antelopejs/dms-mailing).
@@ -62,7 +63,7 @@ A recipient on the workspace's suppression list gets no e-mail, and its result h
 
 ## Compatibility
 
-A `@antelopejs/dms-mailing` release implements one minor line of this interface. The `@antelopejs/interface-dms-mailing` row of the compatibility block in the [module README](../dms-mailing/README.md#compatibility) gives that range. Use a module release whose range covers the interface release your code imports. `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender` and `ImportSends` each take an explicit `tenantId`. The interface declares these dependencies:
+A `@antelopejs/dms-mailing` release implements one minor line of this interface. The `@antelopejs/interface-dms-mailing` row of the compatibility block in the [module README](../dms-mailing/README.md#compatibility) gives that range. Use a module release whose range covers the interface release your code imports. `DeclareTemplate`, `DeclareTemplateCategory`, `DeclareSender`, `DeclareWebhookSecret` and `ImportSends` each take an explicit `tenantId`. The interface declares these dependencies:
 
 <!-- antelopejs-docs-compat:start -->
 
