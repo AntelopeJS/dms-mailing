@@ -1,6 +1,61 @@
 # Changelog
 
 
+## v0.9.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.9.0...v0.9.1)
+
+### 🚀 Enhancements
+
+- **skills:** Add the verify-dms-mailing and formal-dms-mailing verification skills ([#129](https://github.com/AntelopeJS/dms-mailing/pull/129))
+- **skills:** Add a formal check of template slug creation races ([#143](https://github.com/AntelopeJS/dms-mailing/pull/143))
+- **interface-dms-mailing:** Declare the webhook secret of a workspace ([#164](https://github.com/AntelopeJS/dms-mailing/pull/164))
+
+### 🩹 Fixes
+
+- **verify:** Regenerate the deps lockfile for @antelopejs/core 1.21 ([#147](https://github.com/AntelopeJS/dms-mailing/pull/147))
+- **verify:** Match feature covers to the files their journeys exercise ([#148](https://github.com/AntelopeJS/dms-mailing/pull/148))
+- **webhook:** Read only the webhook's own refusal reasons from a test answer ([#157](https://github.com/AntelopeJS/dms-mailing/pull/157))
+- **layer:** Pass useSortable the list as a ref, not a getter ([#156](https://github.com/AntelopeJS/dms-mailing/pull/156))
+- **editor:** Show branding.logo.email in the canvas header, as the sent e-mail does ([#158](https://github.com/AntelopeJS/dms-mailing/pull/158))
+- **import:** Write an imported send before its events ([#159](https://github.com/AntelopeJS/dms-mailing/pull/159))
+- **templates:** Open the template details drawer again ([#160](https://github.com/AntelopeJS/dms-mailing/pull/160))
+
+### 📖 Documentation
+
+- Name the released module version ([#140](https://github.com/AntelopeJS/dms-mailing/pull/140))
+- **permissions:** Say that mailing.send is owner-only like every module permission ([#153](https://github.com/AntelopeJS/dms-mailing/pull/153))
+- **sends:** Say the log on screen holds new sends behind a pill ([#161](https://github.com/AntelopeJS/dms-mailing/pull/161))
+- **readme:** Open with the AntelopeJS DMS module kit ([#163](https://github.com/AntelopeJS/dms-mailing/pull/163))
+
+### 📦 Build
+
+- **deps:** Bump @antelopejs packages to the 2026-11-06 releases ([#146](https://github.com/AntelopeJS/dms-mailing/pull/146))
+- **test:** Pin the DMS stack modules the backend tests run, bumped by Renovate ([#152](https://github.com/AntelopeJS/dms-mailing/pull/152))
+- **deps:** Bump @antelopejs/dms to 0.18.2 and drop verify publish ([#162](https://github.com/AntelopeJS/dms-mailing/pull/162))
+
+### 🏡 Chore
+
+- Remove the .amp directory ([#141](https://github.com/AntelopeJS/dms-mailing/pull/141))
+- **verify:** Remove seeded runs from the verification skill ([#142](https://github.com/AntelopeJS/dms-mailing/pull/142))
+- **ci:** Remove the weekly mutation caller ([#144](https://github.com/AntelopeJS/dms-mailing/pull/144))
+- **release:** @antelopejs/interface-dms-mailing v0.10.1 ([978418f](https://github.com/AntelopeJS/dms-mailing/commit/978418f))
+
+### ✅ Tests
+
+- **backend:** Sign the owner in once per run instead of once per test ([#149](https://github.com/AntelopeJS/dms-mailing/pull/149))
+
+### 🤖 CI
+
+- Call ci-node.yml@v1 ([#145](https://github.com/AntelopeJS/dms-mailing/pull/145))
+- Save the antelope module cache on every run ([#150](https://github.com/AntelopeJS/dms-mailing/pull/150))
+- **lint:** Check the verify deps lockfile against its manifest ([#151](https://github.com/AntelopeJS/dms-mailing/pull/151))
+- **test:** Commit the module locks of a Renovate bump and prune the replaced ones ([#155](https://github.com/AntelopeJS/dms-mailing/pull/155))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.9.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.8.0...v0.9.0)
