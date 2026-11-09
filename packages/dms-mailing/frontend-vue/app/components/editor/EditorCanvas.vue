@@ -20,7 +20,9 @@ const SCROLL_OPTIONS: ScrollIntoViewOptions = {
 
 /** The DMS app config the e-mail logo is read from. */
 interface EmailBrandingConfig {
-	branding?: { logo?: { default?: { light?: string } } }
+	branding?: {
+		logo?: { default?: { light?: string }; email?: { light?: string } }
+	}
 }
 
 const { t } = useI18n()
@@ -28,11 +30,13 @@ const { editor, session } = useEditorContext()
 useEditorAnnouncements(editor)
 
 /**
- * The logo header the sent e-mail carries, when it can carry one: the check
- * `EmailLayout` runs with `publicLogoOnly`.
+ * The logo header the sent e-mail carries, when it can carry one: the choice
+ * and the check `EmailLayout` runs with `publicLogoOnly`. The paper is white,
+ * so the dark-mode logo never applies.
  */
+const logo = (useDmsAppConfig() as EmailBrandingConfig).branding?.logo
 const logoUrl = emailLogoUrl(
-	(useDmsAppConfig() as EmailBrandingConfig).branding?.logo?.default?.light,
+	logo?.email?.light || logo?.default?.light,
 	useDmsRuntimeConfig().public.dms?.clientBaseUrl ?? '',
 )
 
