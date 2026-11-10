@@ -276,7 +276,9 @@ export function groupBy<T>(
   const groups = new Map<string, T[]>();
   for (const item of items) {
     const id = key(item);
-    groups.set(id, [...(groups.get(id) ?? []), item]);
+    const group = groups.get(id);
+    if (group) group.push(item);
+    else groups.set(id, [item]);
   }
   return groups;
 }
