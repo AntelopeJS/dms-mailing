@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { check, list, mailing, parseJson, text, texts } from "../../mailing.mjs";
+import { check, list, mailing, parseJson, pick, text, texts } from "../../mailing.mjs";
 import { declareLive, secretOf } from "./api-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */

@@ -56,7 +56,8 @@ export const journeys = guarded([
       const shifted = await metric(ctx, `/volume${query}`);
       const body = await metric(ctx, `/volume${windowQuery(7)}`);
       const points = list(pick(body, "series", "0") ? { series: pick(body, "series") } : body, "series");
-      const data = list(points.at(0)?.data);
+      const first = points.at(0);
+      const data = list(first?.data);
       const compared = list(body, "comparisonSeries");
       const comparedData = list(compared.at(0)?.data);
       const labels = data.map((point) => point.x);
