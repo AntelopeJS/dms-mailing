@@ -24,8 +24,28 @@ export type ImportedSendRow = Omit<
 
 const MAX_MUTATION_ATTEMPTS = 5;
 
-/** A send as the metrics read it: everything but the rendered variables. */
-export type SendSummary = Omit<MailingSend, "json_variables">;
+const SEND_SUMMARY_FIELDS = [
+  "_id",
+  "createdAt",
+  "templateSlug",
+  "recipientEmail",
+  "status",
+  "stage",
+  "latencyMs",
+  "opens",
+  "clicks",
+  "isTest",
+  "error",
+  "source",
+  "locale",
+  "requestedLocale",
+] as const;
+
+/** A send as the figures read it: only the fields they count. */
+export type SendSummary = Pick<
+  MailingSend,
+  (typeof SEND_SUMMARY_FIELDS)[number]
+>;
 
 type SendActivity = Pick<
   MailingSend,
@@ -122,7 +142,7 @@ export class SendModel extends BasicDataModel(
     return this.table
       .filter((row) => row.key("createdAt").ge(from))
       .filter((row) => row.key("createdAt").lt(to))
-      .without("json_variables")
+      .pluck(...SEND_SUMMARY_FIELDS)
       .run();
   }
 
@@ -259,7 +279,7 @@ export class SendModel extends BasicDataModel(
     return this.table
       .getAll(templateSlug, "templateSlug")
       .filter((row) => row.key("createdAt").ge(from))
-      .without("json_variables")
+      .pluck(...SEND_SUMMARY_FIELDS)
       .run();
   }
 
