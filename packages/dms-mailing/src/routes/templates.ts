@@ -32,7 +32,7 @@ import {
 } from "../db";
 import { INVALID_TEMPLATE, saveDetails } from "../data/templates-table";
 import { TemplatesPageController } from "../pages/templates";
-import { forAudience, statsWindowStart } from "../services/metrics";
+import { forAudience, groupBy, statsWindowStart } from "../services/metrics";
 import { refreshTemplateAttention } from "../services/template-attention";
 import { renderEmailHtml } from "../services/render";
 import { categoriesIn } from "../services/categories";
@@ -234,14 +234,13 @@ export class TemplatesController extends Controller(
       this.templates.getAll(),
       this.sends.listBetween(statsWindowStart(), new Date()),
     ]);
-    const sends = forAudience(rows, BUSINESS_AUDIENCE);
+    const bySlug = groupBy(
+      forAudience(rows, BUSINESS_AUDIENCE),
+      (send) => send.templateSlug,
+    );
     return {
       items: templates.map((template) =>
-        statsOf(
-          template._id,
-          template.slug,
-          sends.filter((send) => send.templateSlug === template.slug),
-        ),
+        statsOf(template._id, template.slug, bySlug.get(template.slug) ?? []),
       ),
     };
   }
