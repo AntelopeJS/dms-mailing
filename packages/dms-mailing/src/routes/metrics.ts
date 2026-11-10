@@ -324,11 +324,10 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
       findSettings(this.tenantId),
     ]);
     const sends = forAudience(rows, this.audience);
-    const excluded = rows.filter((row) => !sends.includes(row));
     const items = buildAttentionItems({
       templates,
       sends,
-      excluded,
+      excludedCount: rows.length - sends.length,
       windowEnd: range.to,
       tracking,
       isSenderSet: Boolean(settings?.senderEmail),

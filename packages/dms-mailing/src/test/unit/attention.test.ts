@@ -24,7 +24,7 @@ const WINDOW_END = new Date("2026-09-30T00:00:00.000Z");
 const windowWith = (overrides: Partial<AttentionWindow>): AttentionWindow => ({
   templates: NO_TEMPLATES,
   sends: [],
-  excluded: [],
+  excludedCount: 0,
   windowEnd: WINDOW_END,
   tracking: null,
   isSenderSet: true,
@@ -39,9 +39,7 @@ const findExcluded = (items: AttentionItem[]) =>
 
 describe("[unit] services/attention test-only window", () => {
   it("explains the empty figures when every send in the window is a test", () => {
-    const items = buildAttentionItems(
-      windowWith({ excluded: [send(true), send(true)] }),
-    );
+    const items = buildAttentionItems(windowWith({ excludedCount: 2 }));
     const item = findExcluded(items);
     expect(item).to.not.equal(undefined);
     expect(item).to.deep.include({
@@ -54,7 +52,7 @@ describe("[unit] services/attention test-only window", () => {
 
   it("stays quiet when the window holds real sends too", () => {
     const items = buildAttentionItems(
-      windowWith({ sends: [send(false)], excluded: [send(true)] }),
+      windowWith({ sends: [send(false)], excludedCount: 1 }),
     );
     expect(findExcluded(items)).to.equal(undefined);
   });
