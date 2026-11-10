@@ -290,4 +290,14 @@ export class SendModel extends BasicDataModel(
       .count()
       .run();
   }
+
+  /** The slugs of the real sends made from `from` until `to`. */
+  listSentSlugs(from: Date, to: Date): Promise<string[]> {
+    return this.table
+      .filter((row) => row.key("createdAt").ge(from))
+      .filter((row) => row.key("createdAt").lt(to))
+      .filter((row) => row.key("isTest").ne(true))
+      .distinct("templateSlug")
+      .run();
+  }
 }
