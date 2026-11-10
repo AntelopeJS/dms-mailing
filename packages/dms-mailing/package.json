@@ -53,7 +53,7 @@
     "typecheck": "tsc --noEmit",
     "knip": "knip --dependencies",
     "knip:all": "knip",
-    "release": "pnpm --filter @antelopejs/interface-dms-mailing build && pnpm --dir ../.. install --frozen-lockfile && release-it",
+    "release": "pnpm --dir ../.. run typecheck && pnpm --filter @antelopejs/interface-dms-mailing build && pnpm --dir ../.. install --frozen-lockfile && release-it",
     "prepack": "pnpm run build",
     "test": "pnpm run test:backend && pnpm run test:layer",
     "test:backend": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && ajs module test .",
