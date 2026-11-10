@@ -5,13 +5,13 @@ import {
   type TemplateAttentionFields,
   TemplateModel,
 } from "../db";
-import { BUSINESS_AUDIENCE, type TemplateAttentionReason } from "../types";
+import type { TemplateAttentionReason } from "../types";
 import {
   knownLocalesOf,
   type TemplateAttentionContext,
   templateAttentionReasons,
 } from "./attention";
-import { forAudience, statsWindowStart } from "./metrics";
+import { statsWindowStart } from "./metrics";
 
 /** How the stored `attention` field separates its reasons. */
 const REASON_SEPARATOR = ",";
@@ -31,14 +31,13 @@ async function attentionContext(
   templates: MailingTemplate[],
 ): Promise<TemplateAttentionContext> {
   const now = Date.now();
-  const sends = await GetModel(SendModel, tenantId).listBetween(
+  const slugs = await GetModel(SendModel, tenantId).listSentSlugs(
     statsWindowStart(now),
     new Date(now),
   );
-  const real = forAudience(sends, BUSINESS_AUDIENCE);
   return {
     now,
-    sentSlugs: new Set(real.map((send) => send.templateSlug)),
+    sentSlugs: new Set(slugs),
     knownLocales: knownLocalesOf(templates),
   };
 }
