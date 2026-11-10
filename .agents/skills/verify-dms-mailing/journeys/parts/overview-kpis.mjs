@@ -1,5 +1,5 @@
 import { guarded } from "../../guard.mjs";
-import { calling, check, mailing, pick, TENANT } from "../../mailing.mjs";
+import { calling, check, isRow, list, mailing, pick, TENANT } from "../../mailing.mjs";
 import { DAY_MS, ago, declareTemplates, figure, importSends, metric, sendOf, testOf, windowQuery } from "./ui-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
@@ -142,7 +142,7 @@ export const journeys = guarded([
       const period = figure(await metric(ctx, `/kpi/sends${windowQuery(30)}`));
       const volume = await metric(ctx, `/volume${windowQuery(30, "previous-year")}`);
       const volumePeriod = await metric(ctx, `/volume${windowQuery(30)}`);
-      const series = (/** @type {unknown} */ body) => (Array.isArray(pick(body, "comparisonSeries")) ? /** @type {Record<string, unknown>[]} */ (pick(body, "comparisonSeries")) : []);
+      const series = (/** @type {unknown} */ body) => list(body, "comparisonSeries");
       await ctx.verify("the comparison window follows the menu", [
         check("previous year: 3 sends a year earlier, 2 now, -33.3%", JSON.stringify(year) === JSON.stringify([2, 3, -33.3]), year),
         check("previous period: only the 40 days old send, so 2 against 1, +100%", JSON.stringify(period) === JSON.stringify([2, 1, 100]), period),
@@ -166,14 +166,14 @@ export const journeys = guarded([
       const read = async (/** @type {string} */ id) => await metric(ctx, `/kpi/${id}${query}`);
       const [sends, deliverability, openRate, clickRate, bounces] = await Promise.all(["sends", "deliverability", "open-rate", "click-rate", "bounces"].map(read));
       const funnel = await metric(ctx, `/funnel${query}`);
-      const steps = Array.isArray(pick(funnel, "steps")) ? /** @type {Record<string, unknown>[]} */ (pick(funnel, "steps")) : [];
+      const steps = list(funnel, "steps");
       const attention = await metric(ctx, `/attention${query}`);
-      const ids = (Array.isArray(pick(attention, "items")) ? /** @type {Record<string, unknown>[]} */ (pick(attention, "items")) : []).map((item) => item.id);
+      const ids = list(attention, "items").map((item) => item.id);
       await ctx.verify("unmeasured figures state nothing", [
         check("Sends still counts 3", pick(sends, "value") === 3, sends),
-        check("Deliverability has no value", pick(deliverability, "value") === undefined && Object.keys(/** @type {object} */ (deliverability)).length === 0, deliverability),
-        check("Open rate has no value", Object.keys(/** @type {object} */ (openRate)).length === 0, openRate),
-        check("Click rate has no value", Object.keys(/** @type {object} */ (clickRate)).length === 0, clickRate),
+        check("Deliverability has no value", pick(deliverability, "value") === undefined && isRow(deliverability) && Object.keys(deliverability).length === 0, deliverability),
+        check("Open rate has no value", isRow(openRate) && Object.keys(openRate).length === 0, openRate),
+        check("Click rate has no value", isRow(clickRate) && Object.keys(clickRate).length === 0, clickRate),
         check("Bounces still states 0", pick(bounces, "value") === 0, bounces),
         check("the funnel marks delivered, opened and clicked as not measured, sent and unsubscribed as measured", JSON.stringify(steps.map((step) => step.isMeasured)) === JSON.stringify([true, false, false, false, true]), steps.map((step) => [step.id, step.isMeasured])),
         check("Needs attention explains it: delivery is not measured", ids.includes("untracked-delivery") && !ids.includes("untracked-rates"), ids),

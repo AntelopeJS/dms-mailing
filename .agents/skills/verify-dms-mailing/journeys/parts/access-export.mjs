@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { check, list, mailing, parseJson, pick, text } from "../../mailing.mjs";
+import { check, list, mailing, parseJson, pick, text, texts } from "../../mailing.mjs";
 import { declareLive, secretOf } from "./api-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
@@ -61,7 +61,7 @@ export const exportJourney = {
     const { names, read, prefix } = archive;
     const manifest = parseJson(read("manifest.json"));
     const mine = list(manifest, "modules").find((entry) => text(entry, "moduleId").includes("mailing"));
-    const entries = Array.isArray(pick(mine, "entries")) ? /** @type {unknown[]} */ (pick(mine, "entries")).map(String) : [];
+    const entries = texts(mine, "entries");
     await ctx.verify("the four entries are under the module's folder and the manifest lists them", [
       check("the four entries", ENTRIES.every((entry) => names.includes(`${prefix}${entry}`)), names),
       check("the manifest has the module, not failed", mine !== undefined && pick(mine, "failed") === false, mine),

@@ -20,6 +20,14 @@ const FUNCTIONS = new Map([
 ]);
 
 /**
+ * @param {unknown} value A value from a journey's JSON
+ * @returns {value is object} Whether it is an object or an array
+ */
+function isObject(value) {
+  return typeof value === "object" && value !== null;
+}
+
+/**
  * Turns the tagged values a journey sends over JSON into the values the
  * interface takes: `{ "$date": "<ISO string>" }` becomes a `Date`.
  *
@@ -28,7 +36,7 @@ const FUNCTIONS = new Map([
  */
 function revive(value) {
   if (Array.isArray(value)) return value.map(revive);
-  if (!(value instanceof Object)) return value;
+  if (!isObject(value)) return value;
   const entries = Object.entries(value);
   const [first] = entries;
   if (entries.length === 1 && first[0] === "$date") return new Date(String(first[1]));

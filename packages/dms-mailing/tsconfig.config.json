@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "rootDir": ".",
+    "outDir": "../../node_modules/.cache/dms-mailing-config",
+    "tsBuildInfoFile": "../../node_modules/.cache/dms-mailing-config/.tsbuildinfo",
+    "paths": {}
+  },
+  "include": ["./knip.config.ts"]
+}

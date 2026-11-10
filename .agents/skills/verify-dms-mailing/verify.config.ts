@@ -56,6 +56,7 @@ const config: VerifyConfig = {
     `${MODULE}/frontend-vue/.*`,
     `${MODULE}/frontend-vue/eslint.config.mjs`,
     `${MODULE}/frontend-vue/vitest.config.ts`,
+    `${MODULE}/frontend-vue/tsconfig.typecheck.json`,
     `${MODULE}/frontend-vue/pnpm-lock.yaml`,
   ],
   smoke: "smoke",

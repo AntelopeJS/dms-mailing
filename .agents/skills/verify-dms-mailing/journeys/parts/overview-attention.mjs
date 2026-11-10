@@ -1,5 +1,5 @@
 import { guarded } from "../../guard.mjs";
-import { calling, check, mailing, pick, TENANT, text } from "../../mailing.mjs";
+import { asRow, calling, check, list, mailing, pick, TENANT, text } from "../../mailing.mjs";
 import { DAY_MS, HOUR_MS, ago, declareTemplates, importSends, metric, sendOf, testOf, windowQuery } from "./ui-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
@@ -14,8 +14,7 @@ const O = { type: "opened" };
  * @returns {Promise<Row[]>} The entries of Needs attention
  */
 async function attention(ctx, query = windowQuery(30)) {
-  const items = pick(await metric(ctx, `/attention${query}`), "items");
-  return Array.isArray(items) ? /** @type {Row[]} */ (items) : [];
+  return list(await metric(ctx, `/attention${query}`), "items");
 }
 
 const idsOf = (/** @type {Row[]} */ items) => items.map((item) => item.id);
@@ -154,7 +153,7 @@ export const journeys = guarded([
     title: "the setup checklist reads a connected provider, a sender, a live template and a test send",
     entryPoint: "GET /api/mailing/metrics/setup, /modules/mailing",
     async run(/** @type {Ctx} */ ctx) {
-      const facts = async () => /** @type {Row} */ (await metric(ctx, "/setup"));
+      const facts = async () => asRow(await metric(ctx, "/setup"));
       const empty = await facts();
       await ctx.verify("a new workspace has a provider and nothing else", [
         check("provider connected, no sender, no live template, no test send", JSON.stringify([empty.isProviderConnected, empty.isSenderSet, empty.liveTemplateCount, empty.hasTestSend]) === JSON.stringify([true, false, 0, false]), empty),

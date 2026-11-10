@@ -1,5 +1,5 @@
 import { guarded } from "../../guard.mjs";
-import { calling, check, mailing, pick, TENANT } from "../../mailing.mjs";
+import { calling, check, list, mailing, pick, TENANT } from "../../mailing.mjs";
 import { DAY_MS, HOUR_MS, ago, declareCategories, declareTemplates, importSends, metric, sendOf, testOf, windowQuery } from "./ui-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
@@ -8,16 +8,6 @@ import { DAY_MS, HOUR_MS, ago, declareCategories, declareTemplates, importSends,
 const D = { type: "delivered" };
 const O = { type: "opened" };
 const C = { type: "clicked" };
-
-/**
- * @param {unknown} value A body
- * @param {string} field The array field
- * @returns {Row[]} Its objects
- */
-function rows(value, field) {
-  const found = pick(value, field);
-  return Array.isArray(found) ? /** @type {Row[]} */ (found) : [];
-}
 
 /**
  * @param {number} actual A figure
@@ -65,11 +55,11 @@ export const journeys = guarded([
       const query = `?from=${encodeURIComponent(new Date(end.getTime() - 7 * DAY_MS).toISOString())}&to=${encodeURIComponent(new Date(end.getTime() + HOUR_MS).toISOString())}&comparison=previous-period`;
       const shifted = await metric(ctx, `/volume${query}`);
       const body = await metric(ctx, `/volume${windowQuery(7)}`);
-      const points = rows(pick(body, "series", "0") ? { series: pick(body, "series") } : body, "series");
-      const first = /** @type {Row | undefined} */ (points[0]);
-      const data = Array.isArray(first?.data) ? /** @type {Row[]} */ (first.data) : [];
-      const compared = rows(body, "comparisonSeries");
-      const comparedData = Array.isArray(compared[0]?.data) ? /** @type {Row[]} */ (compared[0].data) : [];
+      const points = list(pick(body, "series", "0") ? { series: pick(body, "series") } : body, "series");
+      const first = points.at(0);
+      const data = list(first?.data);
+      const compared = list(body, "comparisonSeries");
+      const comparedData = list(compared.at(0)?.data);
       const labels = data.map((point) => point.x);
       const expectedDays = Array.from({ length: 7 }, (_, index) => new Date(end.getTime() - 7 * DAY_MS + index * DAY_MS + DAY_MS / 2).toISOString().slice(0, 10));
       await ctx.verify("the chart counts the real sends of each day", [
@@ -81,11 +71,11 @@ export const journeys = guarded([
         check("the compared period is one dashed series named Previous period", compared.length === 1 && compared[0]?.name === "$dms_mailing.metrics.previous", compared),
         check("the compared series is aligned day by day on the axis of the selected period", JSON.stringify(comparedData.map((point) => point.x)) === JSON.stringify(expectedDays), comparedData.map((point) => point.x)),
         check("compared sends per day: 4,0,0,0,0,0,1 (day 1 on day 1)", JSON.stringify(comparedData.map((point) => point.y)) === JSON.stringify([4, 0, 0, 0, 0, 0, 1]), comparedData.map((point) => point.y)),
-        check("a window that ends an hour later still counts the last day (no day is dropped)", rows(shifted, "series").length === 1 && pick(shifted, "value") === 6, pick(shifted, "value")),
+        check("a window that ends an hour later still counts the last day (no day is dropped)", list(shifted, "series").length === 1 && pick(shifted, "value") === 6, pick(shifted, "value")),
       ]);
       const none = await metric(ctx, `/volume${windowQuery(7, "none")}`);
       await ctx.verify("No comparison draws no dashed series", [
-        check("no compared series and no previous figure", rows(none, "comparisonSeries").length === 0 && pick(none, "previousValue") === undefined && pick(none, "delta") === undefined, none),
+        check("no compared series and no previous figure", list(none, "comparisonSeries").length === 0 && pick(none, "previousValue") === undefined && pick(none, "delta") === undefined, none),
       ]);
     },
   },
@@ -108,7 +98,7 @@ export const journeys = guarded([
       sends.push(...batch({ prefix: "prev-t09", slug: "t09", delivered: 5, opened: 5, when: ago(40), to: to("old.test") }));
       await importSends(ctx, "templates", sends);
       const body = await metric(ctx, `/top-templates${windowQuery(30)}`);
-      const items = rows(body, "items");
+      const items = list(body, "items");
       const byId = new Map(items.map((item) => [item.id, item]));
       const expectedOrder = ["five", "t11", "t10", "t09", "t08", "t07", "t06", "t05", "t04", "t03"];
       await ctx.verify("the ranking lists the 10 best opened, best first", [
@@ -121,11 +111,11 @@ export const journeys = guarded([
       ]);
       await ctx.verify("each row changes against the compared period", [
         check("t11: 91.7% against 50%, +83.3", near(Number(byId.get("t11")?.delta), 83.3), byId.get("t11")),
-        check("t10: the compared period had 4 deliveries, so no change is stated", byId.has("t10") && !("delta" in /** @type {Row} */ (byId.get("t10"))), byId.get("t10")),
+        check("t10: the compared period had 4 deliveries, so no change is stated", byId.has("t10") && !Object.hasOwn(byId.get("t10") ?? {}, "delta"), byId.get("t10")),
         check("t09: exactly 5 deliveries in the compared period, 75% against 100%, -25", near(Number(byId.get("t09")?.delta), -25), byId.get("t09")),
-        check("t08: nothing in the compared period, no change", !("delta" in /** @type {Row} */ (byId.get("t08"))), byId.get("t08")),
+        check("t08: nothing in the compared period, no change", byId.has("t08") && !Object.hasOwn(byId.get("t08") ?? {}, "delta"), byId.get("t08")),
       ]);
-      const plain = rows(await metric(ctx, `/top-templates${windowQuery(30, "none")}`), "items");
+      const plain = list(await metric(ctx, `/top-templates${windowQuery(30, "none")}`), "items");
       await ctx.verify("No comparison removes every change", [check("no row has a delta", plain.length === 10 && plain.every((item) => !("delta" in item)), plain.map((item) => item.delta))]);
     },
   },
@@ -144,7 +134,7 @@ export const journeys = guarded([
       sends.push(...batch({ prefix: "prev-d6", slug: "order", delivered: 10, opened: 3, when: ago(40), to: (index) => `u${index}@d6.test` }));
       sends.push(...batch({ prefix: "prev-d5", slug: "order", delivered: 4, opened: 4, when: ago(40), to: (index) => `u${index}@d5.test` }));
       await importSends(ctx, "domains", sends);
-      const items = rows(await metric(ctx, `/domains${windowQuery(30)}`), "items");
+      const items = list(await metric(ctx, `/domains${windowQuery(30)}`), "items");
       const byId = new Map(items.map((item) => [item.id, item]));
       await ctx.verify("the domains are ranked on open rate", [
         check("6 rows: five.test (100%), then d6 down to d2; the 7th, d1, d0 and few.test are out", JSON.stringify(items.map((item) => item.id)) === JSON.stringify(["five.test", "d6.test", "d5.test", "d4.test", "d3.test", "d2.test"]), items.map((item) => item.id)),
@@ -152,10 +142,10 @@ export const journeys = guarded([
         check("domains are lower-cased and test sends do not count", !byId.has("d0.test") && byId.has("d6.test"), [...byId.keys()]),
         check("values are the open rates, descriptions the delivered counts", near(Number(byId.get("d6.test")?.value), 60) && near(Number(byId.get("d2.test")?.value), 20) && pick(byId.get("d6.test"), "description", "params", "count", "value") === 10, items.map((item) => item.value)),
         check("d6: 60% against 30%, +100", near(Number(byId.get("d6.test")?.delta), 100), byId.get("d6.test")),
-        check("d5: the compared period had 4 deliveries, no change stated", byId.has("d5.test") && !("delta" in /** @type {Row} */ (byId.get("d5.test"))), byId.get("d5.test")),
-        check("d4: nothing in the compared period, no change", !("delta" in /** @type {Row} */ (byId.get("d4.test"))), byId.get("d4.test")),
+        check("d5: the compared period had 4 deliveries, no change stated", byId.has("d5.test") && !Object.hasOwn(byId.get("d5.test") ?? {}, "delta"), byId.get("d5.test")),
+        check("d4: nothing in the compared period, no change", byId.has("d4.test") && !Object.hasOwn(byId.get("d4.test") ?? {}, "delta"), byId.get("d4.test")),
       ]);
-      const plain = rows(await metric(ctx, `/domains${windowQuery(30, "none")}`), "items");
+      const plain = list(await metric(ctx, `/domains${windowQuery(30, "none")}`), "items");
       await ctx.verify("No comparison removes every change", [check("no row has a delta", plain.length === 6 && plain.every((item) => !("delta" in item)), plain.map((item) => item.delta))]);
     },
   },
@@ -188,7 +178,7 @@ export const journeys = guarded([
         sendOf("q3", "promo", "c@two.test", ago(37), [D]),
         sendOf("q4", "promo", "d@two.test", ago(38), [D, O, C]),
       ]);
-      const stepsOf = async (/** @type {string} */ query) => rows(await metric(ctx, `/funnel${query}`), "steps");
+      const stepsOf = async (/** @type {string} */ query) => list(await metric(ctx, `/funnel${query}`), "steps");
       const summary = (/** @type {Row[]} */ steps) => steps.map((step) => [step.id, step.count, step.rate === null ? null : Math.round(Number(step.rate) * 10) / 10]);
       const all = await stepsOf(`${windowQuery(30)}&kind=all`);
       const transactional = await stepsOf(`${windowQuery(30)}&kind=transactional`);

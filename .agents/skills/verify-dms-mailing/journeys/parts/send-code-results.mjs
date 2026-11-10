@@ -22,7 +22,7 @@ export const resultJourneys = [
         check("a sendId and a provider message id", text(result, "sendId") !== "" && text(result, "messageId").startsWith("<"), result),
         check("results holds one entry with the same sendId, status and message id", single.results.length === 1 && text(single.results[0], "sendId") === text(result, "sendId") && text(single.results[0], "messageId") === text(result, "messageId") && text(single.results[0], "status") === "sent", single.results),
         check("the per-recipient entry carries no results of its own", single.results[0] !== undefined && !("results" in single.results[0]), single.results[0]),
-        check("no error", !("error" in /** @type {object} */ (result)) || pick(result, "error") === undefined, result),
+        check("no error", pick(result, "error") === undefined, result),
         check("the log keeps the source and the version used", text(detail.send, "source") === "checkout" && detail.send?.templateVersion === 1, detail.send),
       ]);
 

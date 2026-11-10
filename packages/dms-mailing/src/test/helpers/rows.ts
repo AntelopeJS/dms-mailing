@@ -53,5 +53,5 @@ export function templateRow(
     attention: "",
     needsAttention: false,
     ...fields,
-  });
+  } satisfies Partial<MailingTemplate>);
 }

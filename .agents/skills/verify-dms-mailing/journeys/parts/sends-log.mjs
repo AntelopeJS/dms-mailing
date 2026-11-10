@@ -1,5 +1,5 @@
 import { guarded } from "../../guard.mjs";
-import { calling, check, mailing, pick, TENANT, text } from "../../mailing.mjs";
+import { calling, check, list, mailing, pick, TENANT, text } from "../../mailing.mjs";
 import { attributeOf, pageText, wait } from "./browser-kit.mjs";
 import { D, listedAmong, openSends, seedLog, waitForText, WHO } from "./sends-kit.mjs";
 import { DAY_MS, declareTemplates, importSends, ago, sendOf } from "./ui-kit.mjs";
@@ -39,7 +39,7 @@ export const journeys = guarded([
         check("Problems: 4 = 2 bounces + 1 failure + 1 spam, tests left out", JSON.stringify([pick(body, "problems"), pick(body, "bounced"), pick(body, "failed"), pick(body, "spam")]) === JSON.stringify([4, 2, 1, 1]), body),
         check("Queued: 1, with the time of the oldest", pick(body, "queued") === 1 && text(body, "oldestQueuedAt") !== "", pick(body, "oldestQueuedAt")),
         check("the compared period: 6 sends, 50% delivered, 1 problem; sends +83.3%", JSON.stringify([pick(compared, "sends"), pick(compared, "deliverability"), pick(compared, "problems"), pick(body, "sendsDelta")]) === JSON.stringify([6, 50, 1, 83.3]), compared),
-        check("the strip has five cells, Queued without any comparison", JSON.stringify(Array.isArray(pick(body, "items")) ? /** @type {Row[]} */ (pick(body, "items")).map((item) => item.id) : []) === JSON.stringify(["sends", "delivered", "problems", "queued", "latency"]), pick(body, "items")),
+        check("the strip has five cells, Queued without any comparison", JSON.stringify(list(body, "items").map((item) => item.id)) === JSON.stringify(["sends", "delivered", "problems", "queued", "latency"]), pick(body, "items")),
       ]);
       const plain = await mailing(ctx, "stat strip without comparison", "GET", `/sends/stats${query.replace("previous-period", "none")}`);
       await ctx.verify("No comparison removes the compared figures", [check("no compared block and no delta", pick(plain.body, "compared") === null && pick(plain.body, "sendsDelta") === null, [pick(plain.body, "compared"), pick(plain.body, "sendsDelta")])]);

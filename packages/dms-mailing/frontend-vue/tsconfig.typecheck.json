@@ -5,8 +5,7 @@
 		"moduleResolution": "bundler",
 		"lib": ["esnext", "dom"],
 		"strict": true,
-		"noEmit": true,
-		"skipLibCheck": true
+		"noEmit": true
 	},
 	"include": ["tests/**/*.test-d.ts"]
 }

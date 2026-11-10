@@ -20,7 +20,7 @@ function refused(answer, status, reason) {
     check(`HTTP ${status}`, answer.status === status, answer.status),
     check("error is webhook_refused", pick(answer.json, "error") === "webhook_refused", answer.text),
     check(`reason is ${reason}`, pick(answer.json, "reason") === reason, answer.text),
-    check("the message is the readable one", reason === "bad_secret" ? text(answer.json, "message").startsWith(BAD_SECRET_START) : text(answer.json, "message") === MESSAGES[/** @type {"missing_secret" | "invalid_event"} */ (reason)], text(answer.json, "message")),
+    check("the message is the readable one", reason === "bad_secret" ? text(answer.json, "message").startsWith(BAD_SECRET_START) : text(answer.json, "message") === text(MESSAGES, reason), text(answer.json, "message")),
   ];
 }
 

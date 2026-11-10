@@ -1,4 +1,4 @@
-import { check, text } from "../../mailing.mjs";
+import { check, pick, text } from "../../mailing.mjs";
 import { declareLive, entryOf, importSends, postEvent, secretOf, suppressionRows } from "./api-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
@@ -55,7 +55,7 @@ export const reasons = {
       const rows = await suppressionRows(ctx);
       const found = entryOf(rows, email);
       await ctx.verify(`${entry.name}: ${entry.reason ?? "the address stays off the list"}`, [
-        check("the webhook records the event", posted.status === 200 && /** @type {{ recorded?: unknown }} */ (posted.json).recorded === true, posted.text),
+        check("the webhook records the event", posted.status === 200 && pick(posted.json, "recorded") === true, posted.text),
         check(entry.reason ? `the entry has the reason ${entry.reason}` : "no entry for the address", entry.reason ? text(found, "reason") === entry.reason : found === undefined, found ?? "no entry"),
         ...(entry.reason ? [check("the entry points at the send", text(found, "sendId") === imported.ids[index], found?.sendId)] : []),
         ...(entry.reason && entry.details?.reason ? [check("the entry keeps the provider's words as its detail", text(found, "detail") === entry.details.reason, found?.detail)] : []),
