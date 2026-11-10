@@ -1,4 +1,4 @@
-import { calling, check, mailing, pick, text } from "../../mailing.mjs";
+import { calling, check, mailing, pick, text, texts } from "../../mailing.mjs";
 import { sendDetail } from "./api-kit.mjs";
 import { table } from "./templates-kit.mjs";
 
@@ -128,7 +128,7 @@ export const journeys = [
           ],
         },
       ]);
-      const ids = Array.isArray(pick(done.result, "sendIds")) ? /** @type {string[]} */ (pick(done.result, "sendIds")) : [];
+      const ids = texts(done.result, "sendIds");
       await ctx.verify("the import is accepted", [check("3 imported", done.ok && pick(done.result, "imported") === 3, done.result ?? done.error), check("v2 is published, v3 only a draft", published.status === 200 && pick(published.body, "version") === 2, published.body)], { critical: true });
       await importedFields(ctx, ids);
     },

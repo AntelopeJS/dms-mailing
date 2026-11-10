@@ -19,7 +19,7 @@ async function importedData(ctx, sends, done) {
   const row = (/** @type {number} */ index) => rows.find((entry) => text(entry, "_id") === done.ids[index]);
   const detail = (/** @type {number} */ index) => sendDetail(ctx, done.ids[index]);
   await ctx.verify("a send keeps its own date, with no event it is sent, and the defaults apply", [
-    check("the log date is the date given", Date.parse(text(row(0), "createdAt")) === Date.parse(/** @type {{ $date: string }} */ (sends[0].sentAt).$date), row(0)?.createdAt),
+    check("the log date is the date given", Date.parse(text(row(0), "createdAt")) === Date.parse(text(sends[0], "sentAt", "$date")), row(0)?.createdAt),
     check("no event: status sent, one sent event", text(row(0), "status") === "sent" && (await detail(0)).events.length === 1, row(0)),
     check("source defaults to import, locale to the workspace fallback", text(row(0), "source") === "import" && text(row(0), "locale") === "fr" && (text(row(0), "requestedLocale") || "") === "", row(0)),
     check("the published version is recorded", row(0)?.templateVersion === 1, row(0)?.templateVersion),

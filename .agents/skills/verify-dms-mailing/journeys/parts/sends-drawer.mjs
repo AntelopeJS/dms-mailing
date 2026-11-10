@@ -1,5 +1,5 @@
 import { guarded } from "../../guard.mjs";
-import { check, mailing, text } from "../../mailing.mjs";
+import { check, list, mailing, text } from "../../mailing.mjs";
 import { boxOfText, clickBesideDrawer, dialogButtons, dialogText, dragDrawerEdge, pageText, urlOf, wait } from "./browser-kit.mjs";
 import { openSends, seedLog, waitForText, WHO } from "./sends-kit.mjs";
 
@@ -149,8 +149,7 @@ export const journeys = guarded([
         await tab.press("Escape");
         await wait(tab, 500);
       }
-      const list = await mailing(ctx, "the suppression list", "GET", "/tables/suppressions/list?limit=50");
-      const rows = Array.isArray(list.body && /** @type {Record<string, unknown>} */ (list.body).results) ? /** @type {Record<string, unknown>[]} */ (/** @type {Record<string, unknown>} */ (list.body).results) : [];
+      const rows = list((await mailing(ctx, "the suppression list", "GET", "/tables/suppressions/list?limit=50")).body, "results");
       const entry = rows.find((row) => row.email === WHO.suppressed);
       const removed = await mailing(ctx, "reactivate the address", "DELETE", `/suppressions/${text(entry, "_id")}`);
       await tab.reload();

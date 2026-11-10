@@ -31,10 +31,7 @@ function many(prefix, count, minutes, event, domain) {
   return Array.from({ length: count }, (_, index) => sendOf(`${prefix}-${index}`, "order", `${prefix}${index}@${domain}`, minutesAgo(minutes + index * 0.1), [event]));
 }
 
-const replayAction = (/** @type {unknown} */ body) => {
-  const actions = pick(body, "actions");
-  return Array.isArray(actions) ? /** @type {Row[]} */ (actions)[1] : undefined;
-};
+const replayAction = (/** @type {unknown} */ body) => list(body, "actions").at(1);
 
 /**
  * @param {Ctx} ctx The journey

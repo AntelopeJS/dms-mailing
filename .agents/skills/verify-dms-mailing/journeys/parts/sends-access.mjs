@@ -1,5 +1,5 @@
 import { guarded } from "../../guard.mjs";
-import { calling, check, mailing, pick, text, TENANT } from "../../mailing.mjs";
+import { calling, check, list, mailing, pick, text, TENANT } from "../../mailing.mjs";
 import { wait } from "./browser-kit.mjs";
 import { openSends, WHO } from "./sends-kit.mjs";
 import { ago, declareTemplates, importSends, metric, sendOf, testOf, windowQuery } from "./ui-kit.mjs";
@@ -41,7 +41,7 @@ export const journeys = guarded([
       const bad = await send("test-send", draft, ["not-an-address"]);
       const tagged = await ctx.mail((message) => message.to.some((address) => address.includes("r4+")));
       await ctx.verify("a test send takes 1 to 5 valid addresses", [
-        check("5 addresses: 200, one result each", five.status === 200 && Array.isArray(pick(five.body, "results")) && /** @type {unknown[]} */ (pick(five.body, "results")).length === 5, five.body),
+        check("5 addresses: 200, one result each", five.status === 200 && list(five.body, "results").length === 5, five.body),
         check("6 addresses: refused with the invalid recipient message", six.status >= 400 && six.status < 500 && JSON.stringify(six.body).includes("invalid_recipient"), [six.status, six.body]),
         check("no address: refused", none.status >= 400 && none.status < 500, [none.status, none.body]),
         check("an invalid address: refused with the invalid recipient message", bad.status >= 400 && bad.status < 500 && JSON.stringify(bad.body).includes("invalid_recipient"), [bad.status, bad.body]),

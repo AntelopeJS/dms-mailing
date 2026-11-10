@@ -21,6 +21,7 @@ async function openRow(tab, address) {
   return found;
 }
 
+/** @type {Array<[string, string, RegExp]>} */
 const CONTENT = [
   ["a permanent bounce", WHO.hard, /Bounced .*This address doesn’t exist The server of one\.test refused it\. Future sends to it will bounce too\. TIMELINE Queued [\d:]+ Permanent bounce 550 5\.1\.1 Mailbox does not exist [\d:]+ ORIGIN order · v1 import source DATA SENT Copy JSON \{\}/],
   ["a temporary bounce", WHO.soft, /Bounced .*The mailbox is full one\.test knows the address but has no room left for it\. A later send may get through\. TIMELINE Queued [\d:]+ Temporary bounce 452 4\.2\.2 mailbox full/],
@@ -43,7 +44,7 @@ export const journeys = guarded([
       const tab = await openSends(ctx);
       for (const [label, address, pattern] of CONTENT) {
         const text = await openRow(tab, String(address));
-        await ctx.verify(`the drawer of ${String(label)}`, [check(`${String(label)}: ${String(pattern).slice(0, 90)}…`, /** @type {RegExp} */ (pattern).test(text), text)]);
+        await ctx.verify(`the drawer of ${String(label)}`, [check(`${String(label)}: ${String(pattern).slice(0, 90)}…`, pattern.test(text), text)]);
         await tab.press("Escape");
         await wait(tab, 500);
       }

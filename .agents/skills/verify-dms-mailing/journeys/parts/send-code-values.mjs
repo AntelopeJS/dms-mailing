@@ -72,7 +72,7 @@ export const values = {
       await ctx.verify(`${locale}: the subject and every value as the e-mail writes it`, [
         check("the call is sent", text(sent.result, "status") === "sent", sent.result),
         check("the subject writes the amount and the date", normal(message ? subjectOfHead(partsOf(message).head) : "") === normal(`${locale === "fr" ? "Devis" : "Quote"} ${expected.money} ${locale === "fr" ? "jusqu'au" : "until"} ${expected.isoday}`), message?.subject),
-        ...LABELS.filter((label) => Object.hasOwn(expected, label)).map((label) => check(`${label} reads ${JSON.stringify(expected[/** @type {keyof typeof expected} */ (label)])}`, normal(plain).includes(normal(`${label}=${expected[/** @type {keyof typeof expected} */ (label)]}`)), plain)),
+        ...LABELS.filter((label) => Object.hasOwn(expected, label)).map((label) => check(`${label} reads ${JSON.stringify(text(expected, label))}`, normal(plain).includes(normal(`${label}=${text(expected, label)}`)), plain)),
         check("the list rows write their amounts", normal(plain).includes(normal(`Pro plan${locale === "fr" ? " : " : ": "}${money(locale, 2500, "EUR")}`)) && normal(plain).includes(normal(`Support${locale === "fr" ? " : " : ": "}${money(locale, 100, "EUR")}`)), plain),
         check("the total block writes the amount", normal(plain).includes(normal(`Total${locale === "fr" ? " : " : ": "}${expected.money}`)), plain),
         check("the HTML part writes the amount and the dates too", normal(html).includes(normal(expected.money)) && normal(html).includes(normal(expected.date)), html.length),

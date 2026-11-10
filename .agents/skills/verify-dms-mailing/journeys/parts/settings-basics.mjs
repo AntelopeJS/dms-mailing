@@ -16,7 +16,7 @@ const DEFAULT_CATEGORIES = [
 /**
  * @param {Ctx} ctx The journey
  * @param {string} label What the call does
- * @param {Record<string, unknown>} body The patch
+ * @param {unknown} body The patch
  */
 export const putSettings = (ctx, label, body) => mailing(ctx, label, "PUT", "/settings", { body });
 
@@ -59,7 +59,7 @@ export const basicsJourneys = [
     entryPoint: "PUT /api/mailing/settings",
     async run(ctx) {
       await mailing(ctx, "open the settings", "GET", "/settings");
-      const refused = async (/** @type {string} */ name, /** @type {Record<string, unknown>} */ patch) => {
+      const refused = async (/** @type {string} */ name, /** @type {unknown} */ patch) => {
         const answer = await putSettings(ctx, `refuse ${name}`, patch);
         return check(`${name}: 400 with the generic message`, answer.status === 400 && (text(answer.body, "message") === INVALID || answer.body === INVALID), [answer.status, answer.body]);
       };
@@ -67,7 +67,7 @@ export const basicsJourneys = [
         await refused("an unknown field", { nothing: 1 }),
         await refused("webhookUrl", { webhookUrl: "https://x.example" }),
         await refused("provider", { provider: "other" }),
-        await refused("a body that is not an object", /** @type {never} */ ([1])),
+        await refused("a body that is not an object", [1]),
       ]);
       await ctx.verify("field rules", [
         await refused("a locale that is not well formed", { fallbackLocale: "not a locale!" }),

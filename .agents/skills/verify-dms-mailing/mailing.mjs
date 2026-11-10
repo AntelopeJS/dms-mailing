@@ -75,6 +75,26 @@ export function list(value, ...path) {
 }
 
 /**
+ * @param {unknown} value Anything a JSON answer holds
+ * @returns {Row} The value when it is an object, else an empty object
+ */
+export function asRow(value) {
+  return isRow(value) ? value : {};
+}
+
+/**
+ * The strings of an array field of a JSON answer.
+ *
+ * @param {unknown} value The answer
+ * @param {...string} path The field names, outermost first
+ * @returns {string[]} The array's strings, empty when the field is not an array
+ */
+export function texts(value, ...path) {
+  const found = pick(value, ...path);
+  return Array.isArray(found) ? found.filter(isText) : [];
+}
+
+/**
  * @param {unknown} value The answer
  * @param {...string} path The field names
  * @returns {string[]} The `name` of each object of the array field

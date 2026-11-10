@@ -1,3 +1,6 @@
 import { antelopeKnipConfig } from "@antelopejs/tooling-configs/knip";
+import type { KnipConfig } from "knip";
 
-export default antelopeKnipConfig({ ignoreDependencies: ["@types/mocha"] });
+const config: KnipConfig = antelopeKnipConfig();
+
+export default config;

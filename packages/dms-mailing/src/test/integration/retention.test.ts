@@ -78,6 +78,11 @@ function sweep(f: Fixture): Promise<number> {
   );
 }
 
+/** Whether `value` is callable, as the `run` method read off the prototype is. */
+function isRun(value: unknown): value is AtomicMutationQuery["run"] {
+  return typeof value === "function";
+}
+
 async function loseAcknowledgement(
   action: () => Promise<void>,
 ): Promise<number> {
@@ -85,7 +90,7 @@ async function loseAcknowledgement(
     AtomicMutationQuery.prototype,
     "run",
   )?.value;
-  if (!(original instanceof Function)) {
+  if (!isRun(original)) {
     throw new TypeError("AtomicMutationQuery has no run method");
   }
   let calls = 0;
