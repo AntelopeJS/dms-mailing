@@ -124,13 +124,13 @@ function unusedLiveItem(window: AttentionWindow): AttentionItem[] {
 
 /**
  * Every send the Overview window holds, split the way the business view counts
- * them: `sends` are the ones behind the figures, `excluded` the test sends the
- * business audience drops.
+ * them: `sends` are the ones behind the figures, `excludedCount` the test sends
+ * the business audience drops.
  */
 export interface AttentionWindow {
   templates: MailingTemplate[];
   sends: SendSummary[];
-  excluded: SendSummary[];
+  excludedCount: number;
   /** When the window closes. */
   windowEnd: Date;
   /** What the configured provider can report; `null` when it is unreachable. */
@@ -140,7 +140,7 @@ export interface AttentionWindow {
 }
 
 function testOnlyWindowItem(window: AttentionWindow): AttentionItem[] {
-  if (window.sends.length || !window.excluded.length) return [];
+  if (window.sends.length || !window.excludedCount) return [];
   return [
     {
       id: "test-only-window",
@@ -150,8 +150,8 @@ function testOnlyWindowItem(window: AttentionWindow): AttentionItem[] {
       description: "$dms_mailing.attention.test_only_window.description",
       action: "$dms_mailing.attention.test_only_window.action",
       to: SENDS_PAGE,
-      count: window.excluded.length,
-      params: { count: window.excluded.length },
+      count: window.excludedCount,
+      params: { count: window.excludedCount },
     },
   ];
 }
