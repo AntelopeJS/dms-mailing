@@ -40,7 +40,7 @@ const DYNAMIC_KEY_SUFFIX = ".";
 
 /** The sources of the editor whose literal keys are checked. */
 const EDITOR_SOURCES = [
-  join(APP, "components", "Editor.vue"),
+  join(APP, "components", "TemplateEditor.vue"),
   join(APP, "composables", "useEditorActions.ts"),
   join(APP, "composables", "useEditorShortcuts.ts"),
   ...readdirSync(join(APP, "components", "editor"))
