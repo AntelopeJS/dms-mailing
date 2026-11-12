@@ -13,6 +13,7 @@ covers:
   - packages/dms-mailing/src/engine/system-variables.ts
   - packages/dms-mailing/src/engine/tokens.ts
   - packages/dms-mailing/src/engine/walk.ts
+  - packages/dms-mailing/src/validation/stored.schema.ts
   - packages/dms-mailing/frontend-vue/app/components/TemplateEditor.vue
   - packages/dms-mailing/frontend-vue/app/components/editor/**
   - packages/dms-mailing/frontend-vue/app/components/blocks/**
