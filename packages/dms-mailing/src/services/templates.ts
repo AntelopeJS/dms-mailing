@@ -28,6 +28,13 @@ import type {
 } from "../types";
 import { DEFAULT_FALLBACK_LOCALE } from "../types";
 import type { JsonObject } from "../types/json";
+import { parseJsonObject } from "../validation/json";
+import {
+  parseStored,
+  storedChangesSchema,
+  storedContentSchema,
+  storedVariablesSchema,
+} from "../validation/stored.schema";
 
 export interface TemplateAuthor {
   name?: string;
@@ -74,8 +81,11 @@ export async function refuseTakenSlug<T>(write: Promise<T>): Promise<T> {
 
 /** The content customers receive: the last published version. */
 export function parseContent(template: MailingTemplate): TemplateContent {
-  // SAFETY: json_content is written only as JSON.stringify of a TemplateContent that saveContentSchema validated or the module built.
-  return JSON.parse(template.json_content || EMPTY_CONTENT) as TemplateContent;
+  return parseStored(
+    template.json_content || EMPTY_CONTENT,
+    storedContentSchema,
+    "template content",
+  );
 }
 
 export function hasDraft(template: MailingTemplate): boolean {
@@ -85,8 +95,11 @@ export function hasDraft(template: MailingTemplate): boolean {
 /** The content the editor works on: the draft, or the published content. */
 export function workingContent(template: MailingTemplate): TemplateContent {
   if (!template.json_draft) return parseContent(template);
-  // SAFETY: json_draft is written only as JSON.stringify of a TemplateContent that saveContentSchema validated or the module built.
-  return JSON.parse(template.json_draft) as TemplateContent;
+  return parseStored(
+    template.json_draft,
+    storedContentSchema,
+    "template content",
+  );
 }
 
 /** The version customers receive; 0 for a template never published. */
@@ -105,8 +118,11 @@ export function isPublished(template: MailingTemplate): boolean {
 export function parseVariables(
   template: MailingTemplate,
 ): VariableDefinition[] {
-  // SAFETY: json_variables is written only as JSON.stringify of a VariableDefinition[] that variableListSchema validated or the module built.
-  return JSON.parse(template.json_variables) as VariableDefinition[];
+  return parseStored(
+    template.json_variables,
+    storedVariablesSchema,
+    "variable declarations",
+  );
 }
 
 /**
@@ -118,8 +134,11 @@ export function workingVariables(
 ): VariableDefinition[] {
   if (!hasDraft(template) || !template.json_variables_draft)
     return parseVariables(template);
-  // SAFETY: json_variables_draft is written only as JSON.stringify of a VariableDefinition[] that variableListSchema validated or the module built.
-  return JSON.parse(template.json_variables_draft) as VariableDefinition[];
+  return parseStored(
+    template.json_variables_draft,
+    storedVariablesSchema,
+    "variable declarations",
+  );
 }
 
 /** A template's working state: what a publish would ship. */
@@ -175,8 +194,7 @@ export function pendingChanges(template: MailingTemplate): TemplateChange[] {
 }
 
 export function parseTestData(template: MailingTemplate): JsonObject {
-  // SAFETY: json_test_data is written only as JSON.stringify of an object that its route or declaration schema validated, or the module built.
-  return JSON.parse(template.json_test_data) as JsonObject;
+  return parseJsonObject(template.json_test_data);
 }
 
 interface FooterLabels {
@@ -297,16 +315,18 @@ export async function discardDraft(
 export function parseVersionChanges(
   row: MailingTemplateVersion,
 ): TemplateChange[] {
-  // SAFETY: json_changes is written only as JSON.stringify of the TemplateChange[] from diffContents and diffVariables.
-  return JSON.parse(row.json_changes) as TemplateChange[];
+  return parseStored(row.json_changes, storedChangesSchema, "version changes");
 }
 
 /** The declarations a published version shipped with. */
 export function parseVersionVariables(
   row: MailingTemplateVersion,
 ): VariableDefinition[] {
-  // SAFETY: a version row's json_variables is written only as JSON.stringify of a VariableDefinition[] that variableListSchema validated or the module built.
-  return JSON.parse(row.json_variables) as VariableDefinition[];
+  return parseStored(
+    row.json_variables,
+    storedVariablesSchema,
+    "variable declarations",
+  );
 }
 
 /**
@@ -461,8 +481,7 @@ export async function contentOfVersion(
 export function parseVersionContent(
   row: MailingTemplateVersion,
 ): TemplateContent {
-  // SAFETY: a version row's json_content is written only as JSON.stringify of a TemplateContent that saveContentSchema validated.
-  return JSON.parse(row.json_content) as TemplateContent;
+  return parseStored(row.json_content, storedContentSchema, "template content");
 }
 
 /**
