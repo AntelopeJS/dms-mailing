@@ -1,6 +1,30 @@
 # Changelog
 
 
+## v0.9.2
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.9.1...v0.9.2)
+
+### 🔥 Performance
+
+- **metrics:** Read only the send fields the figures use ([#166](https://github.com/AntelopeJS/dms-mailing/pull/166))
+- **metrics:** Group sends in linear time ([#167](https://github.com/AntelopeJS/dms-mailing/pull/167))
+- **metrics:** Count the attention feed's test sends instead of matching them ([#168](https://github.com/AntelopeJS/dms-mailing/pull/168))
+- **templates:** Read the sent template slugs with one distinct query ([#169](https://github.com/AntelopeJS/dms-mailing/pull/169))
+
+### 🩹 Fixes
+
+- **release:** Regenerate the module README table when the interface bumps ([#171](https://github.com/AntelopeJS/dms-mailing/pull/171))
+
+### 📦 Build
+
+- **deps:** Bump @antelopejs/tooling-configs to 0.5.0 ([#165](https://github.com/AntelopeJS/dms-mailing/pull/165))
+- **deps:** Bump @antelopejs/tooling-configs to 0.5.1 ([#170](https://github.com/AntelopeJS/dms-mailing/pull/170))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.9.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.9.0...v0.9.1)
