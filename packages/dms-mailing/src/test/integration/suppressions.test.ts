@@ -104,7 +104,7 @@ async function entryOf(
     .find((row) => row.email === email);
 }
 
-describe("[integration] suppression list", () => {
+describe("[integration] suppression list from provider events", () => {
   it("suppresses a spam complaint and logs the next send as suppressed", async () => {
     const { api } = await client();
     const id = await liveTemplate(api, "suppress-spam");
@@ -173,7 +173,9 @@ describe("[integration] suppression list", () => {
     );
     expect(await entryOf(api, "tester@example.test")).to.equal(undefined);
   });
+});
 
+describe("[integration] suppression list kept by hand", () => {
   it("adds an address by hand, refuses it twice and lifts it", async () => {
     const { api } = await client();
     const id = await liveTemplate(api, "suppress-manual");

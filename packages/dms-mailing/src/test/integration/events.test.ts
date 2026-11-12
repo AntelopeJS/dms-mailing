@@ -17,7 +17,7 @@ const eventsBodySchema = z.object({
   events: z.array(z.object({ type: z.string() })),
 });
 
-describe("[integration] events", () => {
+describe("[integration] events recording", () => {
   it("records a webhook event against the send that carries the provider message id", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -67,7 +67,9 @@ describe("[integration] events", () => {
     });
     expect(rejected.status).to.equal(HTTP_FORBIDDEN);
   });
+});
 
+describe("[integration] events resilience", () => {
   it("records the event even when an automation subscription throws", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);

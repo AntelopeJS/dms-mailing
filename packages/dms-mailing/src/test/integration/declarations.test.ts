@@ -10,6 +10,7 @@ const HTTP_OK = 200;
 const TABLE = "/api/mailing/tables/templates";
 const TEMPLATES = "/api/mailing/templates";
 const RECIPIENT = "declared@example.test";
+const stamp = Date.now();
 
 type Client = ReturnType<typeof authorizedClient>;
 
@@ -40,9 +41,7 @@ async function rowsWithSlug(slug: string): Promise<number> {
   return rows.length;
 }
 
-describe("[integration] template declarations", () => {
-  const stamp = Date.now();
-
+describe("[integration] template declarations tenant checks", () => {
   it("rejects absent or blank tenants on all new APIs before writing", async () => {
     const { DeclareTemplate, DeclareTemplateCategory, ImportSends } =
       await mailing();
@@ -131,7 +130,9 @@ describe("[integration] template declarations", () => {
       ).length,
     ).to.equal(1);
   });
+});
 
+describe("[integration] template declarations creating and reading", () => {
   it("creates a live template SendTemplate can use, once", async () => {
     const { DeclareTemplate, SendTemplate } = await mailing();
     const slug = `declared-create-${stamp}`;
@@ -234,7 +235,9 @@ describe("[integration] template declarations", () => {
     });
     expect(preview.data.html).to.include("Hello Sofie");
   });
+});
 
+describe("[integration] template declarations racing, kept and refused", () => {
   it("creates declarations racing on a fresh slug only once", async () => {
     const { DeclareTemplate } = await mailing();
     const slug = `declared-race-${stamp}`;
@@ -326,7 +329,9 @@ describe("[integration] template declarations", () => {
     ).catch((reason: unknown) => reason);
     expect(invalid).to.have.property("message").that.matches(/slug/);
   });
+});
 
+describe("[integration] template declarations tenant isolation", () => {
   it("isolates declarations and imports with identical keys in different tenants", async () => {
     const { DeclareTemplate, DeclareTemplateCategory, ImportSends } =
       await mailing();

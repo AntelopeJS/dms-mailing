@@ -4,8 +4,8 @@
   "tsIgnore": 0,
   "safety": 11,
   "config": {
-    "eslint/max-lines for packages/dms-mailing/src/test/**/*.test.ts": 1,
-    "eslint/max-lines-per-function for packages/dms-mailing/src/test/**/*.test.ts": 1,
+    "eslint/max-lines for packages/dms-mailing/src/test/**/*.test.ts": 0,
+    "eslint/max-lines-per-function for packages/dms-mailing/src/test/**/*.test.ts": 0,
     "vue/multi-word-component-names for packages/dms-mailing/frontend-vue/**/*.ts": 0,
     "vue/multi-word-component-names for packages/dms-mailing/frontend-vue/**/*.vue": 0
   },

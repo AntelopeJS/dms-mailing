@@ -15,13 +15,4 @@ export default defineConfig({
     typeAware: true,
     maxWarnings: 0,
   },
-  overrides: [
-    {
-      files: ["packages/dms-mailing/src/test/**/*.test.ts"],
-      rules: {
-        "eslint/max-lines": "off",
-        "eslint/max-lines-per-function": "off",
-      },
-    },
-  ],
 });

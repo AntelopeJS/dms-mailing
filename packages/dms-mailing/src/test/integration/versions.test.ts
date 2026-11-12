@@ -48,7 +48,7 @@ function withSubject(subject: string) {
   };
 }
 
-describe("[integration] template drafts and versions", () => {
+describe("[integration] template drafts, publishing and lifecycle", () => {
   it("keeps customers on the published version while a draft waits", async () => {
     const api = await client();
     const id = await createTemplate(api, "versioned");
@@ -134,7 +134,9 @@ describe("[integration] template drafts and versions", () => {
     const refused = await api.post(`${TEMPLATES}/${id}/publish`, {});
     expect(refused.status).to.equal(HTTP_UNPROCESSABLE);
   });
+});
 
+describe("[integration] template starters and figures", () => {
   it("creates a template from a starter with its variables and test data", async () => {
     const api = await client();
     const starters = await api.get(`${TEMPLATES}/starters`);

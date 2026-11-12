@@ -13,7 +13,7 @@ const TABLE = "/api/mailing/tables/templates";
 
 const sendResultSchema = z.object({ sendId: z.string() });
 
-describe("[integration] sends", () => {
+describe("[integration] sends test e-mails", () => {
   it("sends a test e-mail through the SMTP fixture and logs it", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -75,7 +75,9 @@ describe("[integration] sends", () => {
     expect(row?.templateSlug).to.equal("metrics-window");
     expect(row).to.not.have.property("json_variables");
   });
+});
 
+describe("[integration] sends real e-mails and recipients", () => {
   it("refuses a real send on a draft template", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -145,7 +147,9 @@ describe("[integration] sends", () => {
       .map((result) => result.sendId);
     expect(new Set(sendIds).size).to.equal(2);
   });
+});
 
+describe("[integration] sends variable blocking, replay and metrics", () => {
   it("refuses to send when required variables are missing and blocking is on", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
