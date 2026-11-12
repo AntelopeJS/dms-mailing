@@ -107,83 +107,84 @@ const base = { id: z.string(), visibleIf: storedConditionSchema.nullable() };
  * more, without the bounds an edit is held to, so every block the module
  * wrote reads back unchanged.
  */
-const storedBlockSchema: StoredSchema<Block> = z.lazy(() =>
-  z.discriminatedUnion("type", [
-    z
-      .object({
-        ...base,
-        type: z.literal("hero"),
-        imageUrl: z.string(),
-        alt: z.string(),
-      })
-      .passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("heading"),
-        text: z.string(),
-        align,
-        size: z.number(),
-      })
-      .passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("paragraph"),
-        text: z.string(),
-        align,
-      })
-      .passthrough(),
-    z
-      .object({ ...base, type: z.literal("code"), text: z.string() })
-      .passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("list"),
-        source: z.string(),
-        labelPath: z.string(),
-        valuePath: z.string(),
-      })
-      .passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("total"),
-        label: z.string(),
-        value: z.string(),
-      })
-      .passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("button"),
-        text: z.string(),
-        href: z.string(),
-        align,
-      })
-      .passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("if"),
-        condition: storedConditionSchema,
-        children: z.array(storedBlockSchema),
-        elseChildren: z.array(storedBlockSchema).nullable(),
-      })
-      .passthrough(),
-    z.object({ ...base, type: z.literal("divider") }).passthrough(),
-    z
-      .object({
-        ...base,
-        type: z.literal("footer"),
-        text: z.string(),
-        unsubscribeLabel: z.string(),
-        preferencesLabel: z.string(),
-      })
-      .passthrough(),
-  ]),
-);
+const storedBlockSchema: StoredSchema<Block> = z.lazy(() => storedBlockUnion);
+
+/** Built once: the lazy schema above returns it for every nested block. */
+const storedBlockUnion = z.discriminatedUnion("type", [
+  z
+    .object({
+      ...base,
+      type: z.literal("hero"),
+      imageUrl: z.string(),
+      alt: z.string(),
+    })
+    .passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("heading"),
+      text: z.string(),
+      align,
+      size: z.number(),
+    })
+    .passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("paragraph"),
+      text: z.string(),
+      align,
+    })
+    .passthrough(),
+  z
+    .object({ ...base, type: z.literal("code"), text: z.string() })
+    .passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("list"),
+      source: z.string(),
+      labelPath: z.string(),
+      valuePath: z.string(),
+    })
+    .passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("total"),
+      label: z.string(),
+      value: z.string(),
+    })
+    .passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("button"),
+      text: z.string(),
+      href: z.string(),
+      align,
+    })
+    .passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("if"),
+      condition: storedConditionSchema,
+      children: z.array(storedBlockSchema),
+      elseChildren: z.array(storedBlockSchema).nullable(),
+    })
+    .passthrough(),
+  z.object({ ...base, type: z.literal("divider") }).passthrough(),
+  z
+    .object({
+      ...base,
+      type: z.literal("footer"),
+      text: z.string(),
+      unsubscribeLabel: z.string(),
+      preferencesLabel: z.string(),
+    })
+    .passthrough(),
+]);
 
 /** Stored {@link TemplateContent}: `json_content`, `json_draft`, a version's. */
 export const storedContentSchema: StoredSchema<TemplateContent> = z

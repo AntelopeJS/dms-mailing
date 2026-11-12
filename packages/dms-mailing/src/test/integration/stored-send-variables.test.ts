@@ -6,6 +6,7 @@ import { checkedText } from "../helpers/checked";
 const HTTP_OK = 200;
 const HTTP_SERVER_ERROR = 500;
 const TABLE = "/api/mailing/tables/templates";
+const DETAILS = "/api/mailing/templates";
 
 async function sentTestEmail(slug: string) {
   const session = await ensureOwnerSession();
@@ -16,10 +17,21 @@ async function sentTestEmail(slug: string) {
     category: "orders",
   });
   expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-  const sent = await client.post(
-    `/api/mailing/templates/${checkedText.parse(created.data._id)}/test-send`,
-    { to: ["stored@example.test"], locale: "en", data: { order: { id: 7 } } },
-  );
+  const id = checkedText.parse(created.data._id);
+  await client.post(`${DETAILS}/${id}/content`, {
+    content: {
+      locales: {
+        en: { subject: "Order {{order.id}}", preheader: "", blocks: [] },
+      },
+    },
+  });
+  const published = await client.post(`${DETAILS}/${id}/publish`, {});
+  expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
+  const sent = await client.post(`${DETAILS}/${id}/test-send`, {
+    to: ["stored@example.test"],
+    locale: "en",
+    data: { order: { id: 7 } },
+  });
   expect(sent.status, JSON.stringify(sent.data)).to.equal(HTTP_OK);
   return { client, sendId: checkedText.parse(sent.data.results[0].sendId) };
 }
@@ -40,6 +52,7 @@ describe("[integration] a send's stored variables", () => {
     const { client, sendId } = await sentTestEmail("stored-variables-kept");
     const html = await client.get(`/api/mailing/sends/${sendId}/html`);
     expect(html.status, JSON.stringify(html.data)).to.equal(HTTP_OK);
+    expect(html.data.subject).to.equal("[TEST] Order 7");
   });
 
   it("refuses a send whose stored variables are not a JSON object", async () => {

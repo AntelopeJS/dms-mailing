@@ -154,6 +154,48 @@ describe("[unit] stored JSON reads back what the module wrote", () => {
   });
 });
 
+describe("[unit] stored JSON keeps the keys its type does not name", () => {
+  const block = '{"id":"b","type":"divider","visibleIf":null,"note":"x"}';
+  const content = `{"locales":{"en":{"subject":"s","preheader":"","blocks":[${block}],"theme":"dark"}},"layout":1}`;
+  const variables = '[{"path":"a","type":"string","required":true,"hint":"x"}]';
+  const changes =
+    '[{"locale":"","kind":"variable_added","variable":"a","by":"x"}]';
+
+  it("reads content, declarations and changes back with every extra key", () => {
+    const keptContent: unknown = JSON.parse(content);
+    const keptVariables: unknown = JSON.parse(variables);
+    const keptChanges: unknown = JSON.parse(changes);
+    expect(parseContent(templateRow({ json_content: content }))).to.deep.equal(
+      keptContent,
+    );
+    expect(
+      parseVariables(templateRow({ json_variables: variables })),
+    ).to.deep.equal(keptVariables);
+    expect(
+      parseVersionChanges(versionRow({ json_changes: changes })),
+    ).to.deep.equal(keptChanges);
+  });
+
+  it("reads a committed version row back with every extra key", () => {
+    const fields = {
+      _id: "version",
+      templateId: "template",
+      version: 1,
+      json_content: DRAFT,
+      json_variables: "[]",
+      locales: "en",
+      publishedBy: "",
+      json_changes: "[]",
+      legacy: 1,
+    };
+    const publishedAt = new Date("2026-11-12T10:00:00Z");
+    const stored = JSON.stringify({ ...fields, publishedAt });
+    expect(
+      committedVersionOf({ json_published_version: stored }),
+    ).to.deep.equal({ ...fields, publishedAt });
+  });
+});
+
 describe("[unit] stored JSON refuses a malformed row", () => {
   const refusals: Array<[string, () => void]> = [
     [
