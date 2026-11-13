@@ -25,19 +25,25 @@ const PNPM_ARGS = [
 ];
 
 /**
- * On Windows `pnpm` is a `.cmd` shim, which only cmd.exe starts: the call runs
- * there as one line with each argument quoted, none of which holds a `"` or `%`.
+ * The pnpm that runs this script, from the `npm_execpath` its `pnpm run` sets:
+ * its JavaScript entry runs under this Node, its native binary runs as is. The
+ * `pnpm` on `PATH` is the fallback; on Windows that is a `.cmd` shim, which
+ * `spawnSync` cannot start without a shell.
  */
-const result =
-  process.platform === "win32"
-    ? spawnSync(
-        ["pnpm", ...PNPM_ARGS].map((argument) => `"${argument}"`).join(" "),
-        {
-          encoding: "utf8",
-          shell: true,
-        },
-      )
-    : spawnSync("pnpm", PNPM_ARGS, { encoding: "utf8" });
+function pnpmCommand() {
+  const execPath = process.env["npm_execpath"];
+  if (execPath === undefined || execPath === "") {
+    return { command: "pnpm", prefix: [] };
+  }
+  return /\.[cm]?js$/u.test(execPath)
+    ? { command: process.execPath, prefix: [execPath] }
+    : { command: execPath, prefix: [] };
+}
+
+const pnpm = pnpmCommand();
+const result = spawnSync(pnpm.command, [...pnpm.prefix, ...PNPM_ARGS], {
+  encoding: "utf8",
+});
 
 if (result.status !== 0) {
   const output = `${result.stdout}${result.stderr}`;
