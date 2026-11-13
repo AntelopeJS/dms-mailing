@@ -6,6 +6,7 @@ import type {
   BlockType,
   Condition,
   ConditionOperator,
+  TemplateCategory,
   TemplateContent,
   TextAlign,
   VariableDefinition,
@@ -243,3 +244,14 @@ export const storedVersionRowSchema: StoredSchema<MailingTemplateVersion> = z
     json_changes: z.string(),
   })
   .passthrough();
+
+/** The settings' `json_categories`, each label one text per language. */
+export const storedCategoriesSchema: StoredSchema<TemplateCategory[]> = z.array(
+  z
+    .object({
+      id: z.string(),
+      label: z.record(z.string()),
+      icon: z.string(),
+    })
+    .passthrough(),
+);

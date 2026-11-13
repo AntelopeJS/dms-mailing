@@ -2,7 +2,7 @@
   "rules": {},
   "tsExpectError": 0,
   "tsIgnore": 0,
-  "safety": 1,
+  "safety": 0,
   "config": {
     "eslint/max-lines for packages/dms-mailing/src/test/**/*.test.ts": 0,
     "eslint/max-lines-per-function for packages/dms-mailing/src/test/**/*.test.ts": 0,
