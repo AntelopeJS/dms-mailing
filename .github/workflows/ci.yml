@@ -34,13 +34,28 @@ jobs:
       docs-typescript-project: packages/interface-dms-mailing/docs/tsconfig.json
       renovate-sync: false
       test-job: true
+      windows: true
     permissions:
       contents: read
 
   backend-tests:
-    runs-on: ubuntu-latest
+    name: backend-tests${{ matrix.os == 'windows-latest' && ' on Windows' || '' }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
+      # Package scripts are POSIX shell; pnpm runs them with cmd.exe unless told otherwise.
+      - if: runner.os == 'Windows'
+        run: |
+          bash_path=$(cygpath -w /usr/bin/bash)
+          echo "npm_config_script_shell=${bash_path}" >> "$GITHUB_ENV"
+          echo "pnpm_config_script_shell=${bash_path}" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       # The harness resolves the DMS stack's npm modules into this folder
@@ -72,18 +87,22 @@ jobs:
       # The harness installs a module version from its lock in antelope-lock/
       # and records one when there is none, as after a Renovate bump. A
       # recorded lock means this run resolved the module's dependencies fresh.
+      # Only the Linux leg uploads the locks, so only it sets the output that
+      # starts module-locks; a lock recorded on Windows alone fails that leg.
       - name: Module locks are committed
         id: locks
         if: ${{ !cancelled() }}
         run: |
           changes=$(git status --porcelain -- packages/dms-mailing/antelope-lock)
           if [ -n "$changes" ]; then
-            echo "recorded=true" >> "$GITHUB_OUTPUT"
+            if [ "$RUNNER_OS" = "Linux" ]; then
+              echo "recorded=true" >> "$GITHUB_OUTPUT"
+            fi
             echo "$changes"
             echo "::error::The backend tests recorded module locks that are not committed: run pnpm --dir packages/dms-mailing test:backend and commit packages/dms-mailing/antelope-lock/, deleting the lock of any version it replaces. On a Renovate pull request the module-locks job commits them."
             exit 1
           fi
-      - if: ${{ !cancelled() && steps.locks.outputs.recorded == 'true' && startsWith(github.head_ref, 'renovate/') }}
+      - if: ${{ !cancelled() && runner.os == 'Linux' && steps.locks.outputs.recorded == 'true' && startsWith(github.head_ref, 'renovate/') }}
         uses: actions/upload-artifact@v4
         with:
           name: antelope-lock

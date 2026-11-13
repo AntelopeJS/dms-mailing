@@ -13,20 +13,40 @@ const REPOSITORY_ROOT = join(import.meta.dirname, "..", "..", "..");
 const DEPS = join(REPOSITORY_ROOT, ".agents/skills/verify-dms-mailing/deps");
 const OUTDATED_LOCKFILE = "ERR_PNPM_OUTDATED_LOCKFILE";
 
-const result = spawnSync(
-  "pnpm",
-  [
-    "install",
-    "--dir",
-    DEPS,
-    "--ignore-workspace",
-    "--frozen-lockfile",
-    "--lockfile-only",
-    "--ignore-scripts",
-    "--config.minimum-release-age=0",
-  ],
-  { encoding: "utf8" },
-);
+const PNPM_ARGS = [
+  "install",
+  "--dir",
+  DEPS,
+  "--ignore-workspace",
+  "--frozen-lockfile",
+  "--lockfile-only",
+  "--ignore-scripts",
+  "--config.minimum-release-age=0",
+];
+
+/**
+ * The pnpm that runs this script, from the `npm_execpath` its `pnpm run` sets:
+ * its JavaScript entry runs under this Node, its native binary runs as is. The
+ * `pnpm` on `PATH` is the fallback, also when npm runs the script and
+ * `npm_execpath` names npm; on Windows that is a `.cmd` shim, which `spawnSync`
+ * cannot start without a shell.
+ */
+function pnpmCommand() {
+  const execPath = process.env["npm_execpath"];
+  const runByPnpm =
+    process.env["npm_config_user_agent"]?.startsWith("pnpm/") ?? false;
+  if (!runByPnpm || execPath === undefined || execPath === "") {
+    return { command: "pnpm", prefix: [] };
+  }
+  return /\.[cm]?js$/u.test(execPath)
+    ? { command: process.execPath, prefix: [execPath] }
+    : { command: execPath, prefix: [] };
+}
+
+const pnpm = pnpmCommand();
+const result = spawnSync(pnpm.command, [...pnpm.prefix, ...PNPM_ARGS], {
+  encoding: "utf8",
+});
 
 if (result.status !== 0) {
   const output = `${result.stdout}${result.stderr}`;

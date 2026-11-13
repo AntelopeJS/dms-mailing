@@ -76,7 +76,7 @@ await SendTemplate("order-confirmed", {
 | `@antelopejs/interface-database-decorators` | `>=0.2.0 <1.0.0`   | `0.2.0`     |
 | `@antelopejs/interface-dms`                 | `>=0.12.0 <1.0.0`  | `0.13.0`    |
 | `@antelopejs/interface-dms-automation`      | `>=0.6.0 <1.0.0`   | `0.6.0`     |
-| `@antelopejs/interface-dms-mailing`         | `>=0.10.0 <0.11.0` | `0.10.1`    |
+| `@antelopejs/interface-dms-mailing`         | `>=0.10.0 <0.11.0` | `workspace` |
 | `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`   | `0.0.6`     |
 
 <!-- antelopejs-docs-compat:end -->
