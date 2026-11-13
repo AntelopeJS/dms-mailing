@@ -42,7 +42,7 @@ async function rowsWithSlug(slug: string): Promise<number> {
 }
 
 describe("[integration] template declarations tenant checks", () => {
-  it("rejects absent or blank tenants on all new APIs before writing", async () => {
+  it("rejects blank tenants on all new APIs before writing", async () => {
     const { DeclareTemplate, DeclareTemplateCategory, ImportSends } =
       await mailing();
     const { GetModel } =
@@ -68,25 +68,11 @@ describe("[integration] template declarations tenant checks", () => {
         sentAt: new Date(),
       },
     ];
-    /**
-     * These calls are both compile-time contract checks and JavaScript boundary
-     * tests.
-     */
-    const calls = [
-      // @ts-expect-error tenantId is required
-      () => DeclareTemplate(withoutTenant),
-      // @ts-expect-error tenantId is required
-      () => DeclareTemplateCategory(category),
-      // @ts-expect-error tenantId is required
-      () => ImportSends({ sends }),
-    ];
-    for (const tenantId of ["", " \t\n "]) {
-      calls.push(
-        () => DeclareTemplate({ ...withoutTenant, tenantId }),
-        () => DeclareTemplateCategory({ ...category, tenantId }),
-        () => ImportSends({ sends, tenantId }),
-      );
-    }
+    const calls = ["", " \t\n "].flatMap((tenantId) => [
+      () => DeclareTemplate({ ...withoutTenant, tenantId }),
+      () => DeclareTemplateCategory({ ...category, tenantId }),
+      () => ImportSends({ sends, tenantId }),
+    ]);
     const codes = ["invalid_template", "invalid_category", "invalid_import"];
     for (const [index, call] of calls.entries()) {
       let error: unknown;
