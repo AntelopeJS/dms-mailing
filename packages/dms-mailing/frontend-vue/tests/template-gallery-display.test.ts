@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Component } from 'vue'
+import setup from '../app/plugins/template-gallery-display'
 
 interface DisplayRegistration {
 	id: string
@@ -9,21 +10,21 @@ interface DisplayRegistration {
 
 type PluginSetup = () => void
 
+vi.hoisted(() => {
+	vi.stubGlobal('defineDmsPlugin', (pluginSetup: PluginSetup) => pluginSetup)
+})
+
 afterEach(() => {
 	vi.unstubAllGlobals()
-	vi.resetModules()
 })
 
 describe('template gallery display plugin', () => {
-	it('registers the gallery under the mailing namespace without a DOM', async () => {
+	it('registers the gallery under the mailing namespace without a DOM', () => {
 		const registrations: DisplayRegistration[] = []
-		vi.stubGlobal('defineDmsPlugin', (setup: PluginSetup) => setup)
 		vi.stubGlobal(
 			'registerTableViewDisplay',
 			(registration: DisplayRegistration) => registrations.push(registration),
 		)
-		const { default: setup } =
-			await import('../app/plugins/template-gallery-display')
 		setup()
 		expect(registrations.map((registration) => registration.id)).toEqual([
 			'mailing:gallery',
