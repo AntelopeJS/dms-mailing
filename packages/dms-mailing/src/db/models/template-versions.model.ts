@@ -4,6 +4,10 @@ import {
   type MailingTemplate,
   MailingTemplateVersion,
 } from "../tables";
+import {
+  parseStored,
+  storedVersionRowSchema,
+} from "../../validation/stored.schema";
 import { TemplateModel } from "./templates.model";
 
 /** The latest committed history row, even before its separate insert completes. */
@@ -11,13 +15,11 @@ export function committedVersionOf(
   template: Pick<MailingTemplate, "json_published_version">,
 ): MailingTemplateVersion | undefined {
   if (!template.json_published_version) return undefined;
-  // SAFETY: json_published_version is written only by publishSnapshot and publishedAtCreation as the
-  // JSON.stringify of the version row they insert; its publishedAt reads back as a string, and the next line restores the Date.
-  const row = JSON.parse(
+  return parseStored(
     template.json_published_version,
-  ) as MailingTemplateVersion;
-  row.publishedAt = new Date(row.publishedAt);
-  return row;
+    storedVersionRowSchema,
+    "a version row",
+  );
 }
 
 export class TemplateVersionModel extends BasicDataModel(
