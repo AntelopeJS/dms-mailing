@@ -29,7 +29,62 @@ const blankContentSchema = z.object({
   }),
 });
 
-describe("[integration] templates table", () => {
+const HTTP_UNPROCESSABLE = 422;
+const RACERS = 3;
+
+type Client = ReturnType<typeof authorizedClient>;
+
+async function client(): Promise<Client> {
+  const session = await ensureOwnerSession();
+  return authorizedClient(session.accessToken);
+}
+
+async function models() {
+  const { GetModel } =
+    await import("@antelopejs/interface-database-decorators");
+  const { DEFAULT_TENANT_ID } =
+    await import("@antelopejs/interface-dms/constants");
+  const { TemplateModel, TemplateVersionModel } = await import("../../db");
+  return {
+    templates: GetModel(TemplateModel, DEFAULT_TENANT_ID),
+    versions: GetModel(TemplateVersionModel, DEFAULT_TENANT_ID),
+  };
+}
+
+async function create(api: Client, slug: string): Promise<string> {
+  const created = await api.post(`${TABLE}/new`, {
+    slug,
+    name: slug,
+    category: "orders",
+  });
+  expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+  return checkedText.parse(created.data._id);
+}
+
+async function publish(api: Client, id: string): Promise<void> {
+  await api.post(`${DETAILS}/${id}/content`, {
+    content: {
+      locales: { en: { subject: "Published", preheader: "", blocks: [] } },
+    },
+  });
+  const published = await api.post(`${DETAILS}/${id}/publish`, {});
+  expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
+}
+
+const remove = (api: Client, id: string) =>
+  api.delete(`${TABLE}/delete?id=${id}`);
+
+async function hasSends(
+  api: Client,
+  slug: string,
+  id: string,
+): Promise<boolean | undefined> {
+  const list = await api.get(`${TABLE}/list?limit=20&search=${slug}`);
+  expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
+  return listedTemplates(list).find((row) => row._id === id)?.hasSends;
+}
+
+describe("[integration] templates table creation", () => {
   it("creates a blank template with only a footer and lists it", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -124,7 +179,9 @@ describe("[integration] templates table", () => {
       { path: "customer.firstName", type: "string", required: true },
     ]);
   });
+});
 
+describe("[integration] templates table edits", () => {
   it("keeps the slug when only the name and category are edited", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -209,7 +266,9 @@ describe("[integration] templates table", () => {
     const { TemplateModel } = await import("../../db");
     await GetModel(TemplateModel, DEFAULT_TENANT_ID).delete(id);
   });
+});
 
+describe("[integration] templates table creation refusals", () => {
   it("refuses an unknown source template", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
@@ -234,62 +293,7 @@ describe("[integration] templates table", () => {
   });
 });
 
-describe("[integration] templates table guards", () => {
-  const HTTP_UNPROCESSABLE = 422;
-  const RACERS = 3;
-
-  type Client = ReturnType<typeof authorizedClient>;
-
-  async function client(): Promise<Client> {
-    const session = await ensureOwnerSession();
-    return authorizedClient(session.accessToken);
-  }
-
-  async function models() {
-    const { GetModel } =
-      await import("@antelopejs/interface-database-decorators");
-    const { DEFAULT_TENANT_ID } =
-      await import("@antelopejs/interface-dms/constants");
-    const { TemplateModel, TemplateVersionModel } = await import("../../db");
-    return {
-      templates: GetModel(TemplateModel, DEFAULT_TENANT_ID),
-      versions: GetModel(TemplateVersionModel, DEFAULT_TENANT_ID),
-    };
-  }
-
-  async function create(api: Client, slug: string): Promise<string> {
-    const created = await api.post(`${TABLE}/new`, {
-      slug,
-      name: slug,
-      category: "orders",
-    });
-    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    return checkedText.parse(created.data._id);
-  }
-
-  async function publish(api: Client, id: string): Promise<void> {
-    await api.post(`${DETAILS}/${id}/content`, {
-      content: {
-        locales: { en: { subject: "Published", preheader: "", blocks: [] } },
-      },
-    });
-    const published = await api.post(`${DETAILS}/${id}/publish`, {});
-    expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
-  }
-
-  const remove = (api: Client, id: string) =>
-    api.delete(`${TABLE}/delete?id=${id}`);
-
-  async function hasSends(
-    api: Client,
-    slug: string,
-    id: string,
-  ): Promise<boolean | undefined> {
-    const list = await api.get(`${TABLE}/list?limit=20&search=${slug}`);
-    expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
-    return listedTemplates(list).find((row) => row._id === id)?.hasSends;
-  }
-
+describe("[integration] templates table deletion guards", () => {
   it("refuses to delete a live template, and a sent archived one", async () => {
     const api = await client();
     const id = await create(api, "fix-l2-delete-live");
@@ -329,7 +333,9 @@ describe("[integration] templates table guards", () => {
     expect(await templates.get(id)).to.equal(undefined);
     expect(await versions.listForTemplate(id)).to.deep.equal([]);
   });
+});
 
+describe("[integration] templates table slug and name guards", () => {
   it("keeps a single template when creations of one slug race", async () => {
     const api = await client();
     const responses = await Promise.all(
@@ -383,7 +389,9 @@ describe("[integration] templates table guards", () => {
     });
     expect(nameless.status).to.equal(HTTP_BAD_REQUEST);
   });
+});
 
+describe("[integration] templates table category and rename guards", () => {
   it("refuses an unknown category and an emptied name", async () => {
     const api = await client();
     const unknown = await api.post(`${TABLE}/new`, {

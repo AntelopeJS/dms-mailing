@@ -219,7 +219,7 @@ const issuePaths = (response: { data: unknown }): string[] =>
     issue.path.join("."),
   );
 
-describe("[integration] settings writes (partial, checked)", () => {
+describe("[integration] settings writes (partial patch, refused values)", () => {
   it("puts only the fields sent: a stale tab cannot bring back an old secret", async () => {
     const client = await ownerClient();
     const staleTab = await client.get(SETTINGS);
@@ -273,7 +273,9 @@ describe("[integration] settings writes (partial, checked)", () => {
       expect(issuePaths(response), field).to.deep.equal([field]);
     }
   });
+});
 
+describe("[integration] settings writes (addresses, categories, verbs, preview)", () => {
   it("trims the addresses it stores", async () => {
     const client = await ownerClient();
     const initial = await client.get(SETTINGS);

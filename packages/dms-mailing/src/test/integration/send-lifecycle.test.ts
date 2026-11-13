@@ -100,7 +100,7 @@ async function liftSuppression(api: Client, email: string): Promise<void> {
   if (entry) await api.delete(`${SUPPRESSIONS}/${entry._id}`);
 }
 
-describe("[integration] send lifecycle", () => {
+describe("[integration] send lifecycle recording and rendering", () => {
   it("records version, requested locale and stage on a real send", async () => {
     const api = await client();
     const id = await liveTemplate(api, "real-versioned");
@@ -179,7 +179,9 @@ describe("[integration] send lifecycle", () => {
     expect(html.data.subject).to.equal("Published");
     expect(html.data.version).to.equal(1);
   });
+});
 
+describe("[integration] send lifecycle replays and stat strip", () => {
   it("sends a bounce again only to a corrected address", async () => {
     const api = await client();
     const id = await liveTemplate(api, "bounce-fix");
@@ -275,7 +277,9 @@ describe("[integration] send lifecycle", () => {
     expect(after.data.send.replayedBy).to.equal(replayedBy);
     expect(await sendsTo(api, recipient)).to.equal(2);
   });
+});
 
+describe("[integration] send lifecycle failures and bounces", () => {
   it("treats a delivery after a failure as delivered", async () => {
     const api = await client();
     const id = await liveTemplate(api, "failed-then-delivered");
@@ -355,7 +359,9 @@ describe("[integration] send lifecycle", () => {
     expect(stillProblem.data.send.replayedBy || "").to.equal("");
     await liftSuppression(api, recipient);
   });
+});
 
+describe("[integration] send lifecycle invalid recipients and draft tests", () => {
   it("refuses an invalid address with a recipient error", async () => {
     const api = await client();
     const id = await liveTemplate(api, "invalid-recipient");

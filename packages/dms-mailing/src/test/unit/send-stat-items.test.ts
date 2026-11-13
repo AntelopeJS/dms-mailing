@@ -26,10 +26,10 @@ const STATS: SendStats = {
 
 const NOW = new Date("2026-10-09T10:30:00.000Z").getTime();
 
-describe("[unit] services/send-stat-items", () => {
-  const items = buildSendStatItems(STATS, "Brevo", NOW);
-  const byId = (id: string) => items.find((item) => item.id === id);
+const items = buildSendStatItems(STATS, "Brevo", NOW);
+const byId = (id: string) => items.find((item) => item.id === id);
 
+describe("[unit] services/send-stat-items comparisons", () => {
   it("builds the five cells of the strip in order", () => {
     expect(items.map((item) => item.id)).to.deep.equal([
       "sends",
@@ -134,7 +134,9 @@ describe("[unit] services/send-stat-items", () => {
     const delivered = unmeasured.find((item) => item.id === "delivered");
     expect(JSON.stringify(delivered?.detail)).to.not.contain("versus");
   });
+});
 
+describe("[unit] services/send-stat-items problems, queue, latency and empty strip", () => {
   it("links the problems and lists only the kinds that happened", () => {
     const problems = byId("problems");
     expect(problems?.tone).to.equal("error");

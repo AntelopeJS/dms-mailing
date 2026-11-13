@@ -17,7 +17,7 @@ const ctxWith = (query: Record<string, string>): RangeContext => ({
 const spanDays = (range: { from: Date; to: Date }) =>
   (range.to.getTime() - range.from.getTime()) / DAY_MS;
 
-describe("[unit] period range", () => {
+describe("[unit] period range windows", () => {
   it("keeps a window the dashboard actually asks for", () => {
     const range = currentRange(
       ctxWith({
@@ -71,7 +71,9 @@ describe("[unit] period range", () => {
     );
     expect(previous.from.toISOString()).to.equal("2026-08-01T00:00:00.000Z");
   });
+});
 
+describe("[unit] period range comparison windows", () => {
   it("compares unless the selector turned the comparison off", () => {
     expect(isComparisonWanted(ctxWith({}))).to.equal(true);
     expect(

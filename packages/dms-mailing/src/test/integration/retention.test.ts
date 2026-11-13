@@ -116,7 +116,7 @@ async function loseAcknowledgement(
   return calls;
 }
 
-describe("[integration] replay-safe Mongo retention", () => {
+describe("[integration] replay-safe Mongo retention sweeps", () => {
   it("initializes a fresh identity and revision on every send", async () => {
     const f = fixture();
     const sourceId = await seed(f);
@@ -168,7 +168,9 @@ describe("[integration] replay-safe Mongo retention", () => {
     expect(await f.sends.getAll()).to.have.length(ids.length);
     expect(await f.events.getAll()).to.have.length(ids.length);
   });
+});
 
+describe("[integration] replay-safe Mongo retention against webhook activity", () => {
   it("rechecks stale candidates after a backdated webhook activates the send", async () => {
     const f = fixture();
     const id = await seed(f);
@@ -224,7 +226,9 @@ describe("[integration] replay-safe Mongo retention", () => {
     expect(await f.events.getBySend(id)).to.have.length(3);
     expect(await purgeSend(f.tenantId, id, CUTOFF)).to.equal(0);
   });
+});
 
+describe("[integration] replay-safe Mongo retention with uncertain writes", () => {
   it("does not retry an uncertain webhook write or emit an unacknowledged event", async () => {
     const f = fixture();
     const id = await seed(f);
@@ -293,7 +297,9 @@ describe("[integration] replay-safe Mongo retention", () => {
     ).to.equal(false);
     expect(await f.events.getBySend(id)).to.deep.equal([]);
   });
+});
 
+describe("[integration] replay-safe Mongo retention cleanup failures and orphans", () => {
   it("retries event cleanup failures after marking", async () => {
     const f = fixture();
     const id = await seed(f);
