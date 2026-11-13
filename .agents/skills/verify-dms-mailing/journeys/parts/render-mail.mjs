@@ -1,5 +1,4 @@
 import { readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { check, mailing, text, withConfig } from "../../mailing.mjs";
 import { block, declareRich, inOrder, RICH_BLOCKS, RICH_VARIABLES, sentMessage } from "./render-kit.mjs";
 
@@ -14,16 +13,26 @@ const FALLBACK_WARNING = "[dms-mailing] html-render unavailable, using fallback"
 
 /**
  * @param {Ctx} ctx The journey
+ * @returns {string} The log of the backend serving the journey's database, which is not `backend.log` past the run's first database
+ */
+const backendLog = (ctx) => {
+  const backend = ctx.state.processes.find((entry) => entry.name === "backend");
+  if (backend === undefined) throw new Error("the run records no backend");
+  return backend.log;
+};
+
+/**
+ * @param {Ctx} ctx The journey
  * @returns {number} The size of the backend log now
  */
-const logSize = (ctx) => statSync(join(ctx.state.logs, "backend.log")).size;
+const logSize = (ctx) => statSync(backendLog(ctx)).size;
 
 /**
  * @param {Ctx} ctx The journey
  * @param {number} from A size of the backend log
  * @returns {string} What the backend logged since
  */
-const logSince = (ctx, from) => readFileSync(join(ctx.state.logs, "backend.log")).subarray(from).toString("utf8");
+const logSince = (ctx, from) => readFileSync(backendLog(ctx)).subarray(from).toString("utf8");
 
 /** @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }[]} */
 export const mailJourneys = [
