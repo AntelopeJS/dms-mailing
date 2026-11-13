@@ -13,20 +13,31 @@ const REPOSITORY_ROOT = join(import.meta.dirname, "..", "..", "..");
 const DEPS = join(REPOSITORY_ROOT, ".agents/skills/verify-dms-mailing/deps");
 const OUTDATED_LOCKFILE = "ERR_PNPM_OUTDATED_LOCKFILE";
 
-const result = spawnSync(
-  "pnpm",
-  [
-    "install",
-    "--dir",
-    DEPS,
-    "--ignore-workspace",
-    "--frozen-lockfile",
-    "--lockfile-only",
-    "--ignore-scripts",
-    "--config.minimum-release-age=0",
-  ],
-  { encoding: "utf8" },
-);
+const PNPM_ARGS = [
+  "install",
+  "--dir",
+  DEPS,
+  "--ignore-workspace",
+  "--frozen-lockfile",
+  "--lockfile-only",
+  "--ignore-scripts",
+  "--config.minimum-release-age=0",
+];
+
+/**
+ * On Windows `pnpm` is a `.cmd` shim, which only cmd.exe starts: the call runs
+ * there as one line with each argument quoted, none of which holds a `"` or `%`.
+ */
+const result =
+  process.platform === "win32"
+    ? spawnSync(
+        ["pnpm", ...PNPM_ARGS].map((argument) => `"${argument}"`).join(" "),
+        {
+          encoding: "utf8",
+          shell: true,
+        },
+      )
+    : spawnSync("pnpm", PNPM_ARGS, { encoding: "utf8" });
 
 if (result.status !== 0) {
   const output = `${result.stdout}${result.stderr}`;
