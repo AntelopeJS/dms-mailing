@@ -54,8 +54,8 @@ describe("[integration] declarations called from JavaScript without a tenant", (
     ];
     for (const [code, call] of calls) {
       const error = await refusalOf(call);
-      expect(error).to.include({ code });
-      expect(error).to.have.property("message").that.includes("tenantId");
+      expect(error, code).to.include({ code });
+      expect(error, code).to.have.property("message").that.includes("tenantId");
     }
     const rows = await GetModel(TemplateModel, DEFAULT_TENANT_ID).getBy(
       "slug",
