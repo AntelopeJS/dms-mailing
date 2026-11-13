@@ -6,3 +6,6 @@ packages:
 onlyBuiltDependencies:
   - mongodb-memory-server-core
   - esbuild
+allowBuilds:
+  lefthook: false
+  mongodb-memory-server: false
