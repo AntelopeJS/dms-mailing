@@ -2,7 +2,11 @@ import { expect } from "chai";
 import { z } from "zod";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { authorizedClient } from "../helpers/http";
-import type { TemplateDeclaration } from "@antelopejs/interface-dms-mailing";
+import type {
+  SendImport,
+  TemplateCategoryDeclaration,
+  TemplateDeclaration,
+} from "@antelopejs/interface-dms-mailing";
 import { ensureOwnerSession } from "../helpers/owner";
 import { contentWith, declaration, mailing } from "../helpers/declarations";
 
@@ -13,6 +17,20 @@ const RECIPIENT = "declared@example.test";
 const stamp = Date.now();
 
 type Client = ReturnType<typeof authorizedClient>;
+
+/** `K`, when `P` requires it; `never` when it is optional. */
+type RequiredKey<P, K extends keyof P> =
+  Record<never, never> extends Pick<P, K> ? never : K;
+
+/**
+ * The field DeclareTemplate, DeclareTemplateCategory and ImportSends each
+ * require, in that order, as their refusal names it.
+ */
+const TENANT_FIELDS: [
+  RequiredKey<TemplateDeclaration, "tenantId">,
+  RequiredKey<TemplateCategoryDeclaration, "tenantId">,
+  RequiredKey<SendImport, "tenantId">,
+] = ["tenantId", "tenantId", "tenantId"];
 
 async function client(): Promise<Client> {
   const session = await ensureOwnerSession();
@@ -42,7 +60,7 @@ async function rowsWithSlug(slug: string): Promise<number> {
 }
 
 describe("[integration] template declarations tenant checks", () => {
-  it("rejects absent or blank tenants on all new APIs before writing", async () => {
+  it("rejects blank tenants on all new APIs before writing", async () => {
     const { DeclareTemplate, DeclareTemplateCategory, ImportSends } =
       await mailing();
     const { GetModel } =
@@ -68,25 +86,11 @@ describe("[integration] template declarations tenant checks", () => {
         sentAt: new Date(),
       },
     ];
-    /**
-     * These calls are both compile-time contract checks and JavaScript boundary
-     * tests.
-     */
-    const calls = [
-      // @ts-expect-error tenantId is required
-      () => DeclareTemplate(withoutTenant),
-      // @ts-expect-error tenantId is required
-      () => DeclareTemplateCategory(category),
-      // @ts-expect-error tenantId is required
-      () => ImportSends({ sends }),
-    ];
-    for (const tenantId of ["", " \t\n "]) {
-      calls.push(
-        () => DeclareTemplate({ ...withoutTenant, tenantId }),
-        () => DeclareTemplateCategory({ ...category, tenantId }),
-        () => ImportSends({ sends, tenantId }),
-      );
-    }
+    const calls = ["", " \t\n "].flatMap((tenantId) => [
+      () => DeclareTemplate({ ...withoutTenant, tenantId }),
+      () => DeclareTemplateCategory({ ...category, tenantId }),
+      () => ImportSends({ sends, tenantId }),
+    ]);
     const codes = ["invalid_template", "invalid_category", "invalid_import"];
     for (const [index, call] of calls.entries()) {
       let error: unknown;
@@ -96,7 +100,9 @@ describe("[integration] template declarations tenant checks", () => {
         error = reason;
       }
       expect(error).to.include({ code: codes[index % codes.length] });
-      expect(error).to.have.property("message").that.includes("tenantId");
+      expect(error)
+        .to.have.property("message")
+        .that.includes(TENANT_FIELDS[index % TENANT_FIELDS.length]);
     }
     expect(await rowsWithSlug(slug)).to.equal(0);
     expect(JSON.stringify(await settings.get(DEFAULT_TENANT_ID))).to.equal(
