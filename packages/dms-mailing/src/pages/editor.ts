@@ -25,7 +25,7 @@ export class MailingEditorController extends PageController(
   },
   DefaultLayout({ fullWidth: true, hideHeader: true, fillHeight: true }),
 ) {
-  static editor = CustomComponent("MailingEditor").meta({
+  static editor = CustomComponent("MailingTemplateEditor").meta({
     name: "$dms_mailing.permissions.editor.name",
     description: "$dms_mailing.permissions.editor.description",
     icon: "i-ph-pencil-simple",

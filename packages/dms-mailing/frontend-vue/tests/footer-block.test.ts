@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, provide, ref } from 'vue'
-import FooterBlockView from '../app/components/blocks/Footer.vue'
+import FooterBlockView from '../app/components/blocks/BlockFooter.vue'
 import type { FooterBlock } from '../app/types/mailing'
 import { TOKEN_DATA_KEY } from '../app/utils/tokens'
 import type { TokenData } from '../app/utils/tokens'

@@ -8,17 +8,14 @@ interface VueModule {
 }
 
 const COMPONENT_PREFIX = 'Mailing'
-const BLOCKS_DIRECTORY = '/components/blocks/'
-const BLOCK_NAME_PREFIX = 'Block'
 
 const components = import.meta.glob<VueModule>('./app/components/**/*.vue')
 
 function componentName(path: string): string {
-	const base = path
+	return path
 		.split('/')
 		.at(-1)!
 		.replace(/\.vue$/, '')
-	return path.includes(BLOCKS_DIRECTORY) ? `${BLOCK_NAME_PREFIX}${base}` : base
 }
 
 const frontendModule: DmsFrontendModule = {

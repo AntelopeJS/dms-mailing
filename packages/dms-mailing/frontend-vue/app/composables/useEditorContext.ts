@@ -21,7 +21,7 @@ export interface EditorContext {
 }
 
 const EDITOR_KEY: InjectionKey<EditorContext> = Symbol('dms-mailing-editor')
-const MISSING_CONTEXT = 'useEditorContext() must be called inside MailingEditor'
+const MISSING_CONTEXT = 'useEditorContext() must be called inside MailingTemplateEditor'
 
 export function provideEditorContext(context: EditorContext): void {
 	provide(EDITOR_KEY, context)
