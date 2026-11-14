@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.10.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.0...v0.10.1)
+
+### 🩹 Fixes
+
+- **frontend:** Name the DMS 0.20 components the layer renders ([#182](https://github.com/AntelopeJS/dms-mailing/pull/182))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.10.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.9.2...v0.10.0)
