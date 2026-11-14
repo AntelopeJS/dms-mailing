@@ -10,6 +10,10 @@ import {
 } from "../types";
 import type { JsonObject } from "../types/json";
 import type { SettingsPatch } from "../validation/settings.schema";
+import {
+  parseStored,
+  storedCategoriesSchema,
+} from "../validation/stored.schema";
 
 export const WEBHOOK_SECRET_BYTES = 24;
 
@@ -48,10 +52,11 @@ function toValues(row: MailingSettings): MailingSettingsValues {
     replyTo: row.replyTo,
     webhookSecret: row.webhookSecret,
     webhookSecretSource: storedSecretSource(row.webhookSecretSource),
-    // SAFETY: toRow writes categories that categoriesSchema validated or the defaults supplied, but up to v0.6.1 it
-    // stored each label as a string ({"id":"orders","label":"Orders","icon":"i-ph-package"}), which no guard for a
-    // LocalizedText label accepts; textIn reads such a label as "", and refusing the row would break those settings.
-    categories: JSON.parse(row.json_categories) as TemplateCategory[],
+    categories: parseStored(
+      row.json_categories,
+      storedCategoriesSchema,
+      "template categories",
+    ),
   };
 }
 
