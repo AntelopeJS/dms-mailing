@@ -21,7 +21,7 @@
     "vue": "^3.5.18"
   },
   "devDependencies": {
-    "@antelopejs/tooling-configs": "^0.3.3",
+    "@antelopejs/tooling-configs": ">=0.7.1 <0.8.0",
     "@nuxt/ui": "4.10.0",
     "@types/sortablejs": "^1.15.9",
     "@vitejs/plugin-vue": "^6.0.0",

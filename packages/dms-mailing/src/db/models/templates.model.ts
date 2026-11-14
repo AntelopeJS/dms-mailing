@@ -35,7 +35,9 @@ export class TemplateModel extends BasicDataModel(
 ) {
   /** The row of `fields`, its name written in every language it holds. */
   static fromFields(fields: TemplateFields): MailingTemplate {
-    return TemplateModel.fromPlainData(fields).localize("*", ["name"]);
+    const row = TemplateModel.fromPlainData(fields);
+    row.localize("*", ["name"]);
+    return row;
   }
 
   /**

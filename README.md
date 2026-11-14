@@ -38,7 +38,7 @@ In development, send to a throwaway Ethereal inbox:
 ```ts fragment
 // antelope.config.ts
 nodemailer: {
-  source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.6 <1.0.0" },
+  source: { type: "package", package: "@antelopejs/nodemailer", version: ">=0.0.12 <0.1.0" },
   config: { ethereal: true },
 },
 ```
