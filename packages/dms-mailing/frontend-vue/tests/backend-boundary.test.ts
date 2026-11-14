@@ -7,7 +7,7 @@ import {
 	writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join } from 'node:path/posix'
 import { normalizePath, build as viteBuild, type Plugin } from 'vite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { backendBoundary } from '../build/backend-boundary'
@@ -22,8 +22,8 @@ function write(file: string, text: string): void {
 }
 
 beforeAll(() => {
-	repository = realpathSync(
-		mkdtempSync(join(tmpdir(), 'dms-mailing-boundary-')),
+	repository = normalizePath(
+		realpathSync(mkdtempSync(`${tmpdir()}/dms-mailing-boundary-`)),
 	)
 	const backend = join(repository, 'packages/dms-mailing')
 	frontend = join(backend, 'frontend-vue')
@@ -102,9 +102,7 @@ describe('the backend boundary of the frontend build', () => {
 			'import { secret } from "../src/backend.ts"\nexport { secret }\n',
 		)
 		await expect(failure).rejects.toThrow(/Backend boundary/)
-		await expect(failure).rejects.toThrow(
-			normalizePath(join(frontend, 'entry.ts')),
-		)
+		await expect(failure).rejects.toThrow(join(frontend, 'entry.ts'))
 		await expect(failure).rejects.toThrow(backendFile())
 	})
 

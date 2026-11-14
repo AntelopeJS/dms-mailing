@@ -9,33 +9,33 @@ importers:
   .:
     dependencies:
       '@antelopejs/interface-core':
-        specifier: '>=0.4.0 <1.0.0'
+        specifier: '>=0.4.0 <0.5.0'
         version: 0.4.0
       '@antelopejs/interface-email':
-        specifier: '>=0.0.6 <1.0.0'
+        specifier: '>=0.0.6 <0.1.0'
         version: 0.0.6(@antelopejs/interface-core@0.4.0)
     devDependencies:
       '@antelopejs/interface-api':
-        specifier: '>=0.3.0 <1.0.0'
+        specifier: '>=0.3.0 <0.4.0'
         version: 0.3.0(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-api-util':
-        specifier: '>=0.3.0 <1.0.0'
+        specifier: '>=0.3.0 <0.4.0'
         version: 0.3.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-data-api':
-        specifier: '>=0.6.1 <1.0.0'
+        specifier: '>=0.6.1 <0.7.0'
         version: 0.6.1(@antelopejs/interface-api-util@0.3.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database-decorators@0.2.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database@0.3.0(@antelopejs/interface-core@0.4.0)))(@antelopejs/interface-database@0.3.0(@antelopejs/interface-core@0.4.0))
       '@antelopejs/interface-database':
-        specifier: '>=0.3.0 <1.0.0'
+        specifier: '>=0.3.0 <0.4.0'
         version: 0.3.0(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-database-decorators':
-        specifier: '>=0.2.0 <1.0.0'
+        specifier: '>=0.2.0 <0.3.0'
         version: 0.2.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database@0.3.0(@antelopejs/interface-core@0.4.0))
       '@antelopejs/interface-dms':
-        specifier: '>=0.12.0 <1.0.0'
+        specifier: '>=0.12.0 <0.13.0'
         version: 0.12.0(82af59805bc17e4a4810db01862aab1b)
       '@antelopejs/tooling-configs':
-        specifier: '>=0.5.8 <1.0.0'
-        version: 0.5.8(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: '>=0.7.0 <0.8.0'
+        version: 0.7.0(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -110,8 +110,8 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@0.5.8':
-    resolution: {integrity: sha512-F4q6E2HWXEF0f6MHHOCQGheRzaNkX4e8JeYI92x6KajWJIkk8HroThU8jmIaP7Q23w6fIv8fveHtyc7pJ2hQHg==}
+  '@antelopejs/tooling-configs@0.7.0':
+    resolution: {integrity: sha512-FtE+vFwTpQR1hgWWSdiylEtn8SaJ6L7B4F7TTyy97cYaj/qvpX/l5QDebJw/A/RQ/Tt1FVYtgKV+lzFFbjau7w==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -877,6 +877,10 @@ packages:
   '@types/parse-path@7.1.0':
     resolution: {integrity: sha512-EULJ8LApcVEPbrfND0cRQqutIOdiIgJ1Mgrhpy755r14xMohPTEpkV/k28SJvuOs9bHRFW8x+KeDAEPiGQPB9Q==}
     deprecated: This is a stub types definition. parse-path provides its own type definitions, so you do not need this installed.
+
+  '@typescript/typescript6@6.0.2':
+    resolution: {integrity: sha512-mbCddXd+jm7hfx7w2YU64/Av4/NqqeG3GoRZgxPcgoTxYjhrcfJRw9ULch71SS4G+Q3bOXFhRvPqjguN0Hyp5w==}
+    hasBin: true
 
   acorn@8.19.0:
     resolution: {integrity: sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==}
@@ -1736,11 +1740,6 @@ packages:
     resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
     engines: {node: '>=12.20'}
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
@@ -1890,12 +1889,13 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.4.0
 
-  '@antelopejs/tooling-configs@0.5.8(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
+  '@antelopejs/tooling-configs@0.7.0(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
     dependencies:
       '@oxlint/plugins': 1.81.0
+      '@typescript/typescript6': 6.0.2
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
-      typescript: 5.9.3
+      semver: 7.8.5
       yaml: 2.9.1
     optionalDependencies:
       knip: 6.35.1
@@ -2394,6 +2394,10 @@ snapshots:
   '@types/parse-path@7.1.0':
     dependencies:
       parse-path: 7.1.0
+
+  '@typescript/typescript6@6.0.2':
+    dependencies:
+      '@typescript/old': typescript@6.0.3
 
   acorn@8.19.0: {}
 
@@ -3332,8 +3336,6 @@ snapshots:
     optional: true
 
   type-fest@2.19.0: {}
-
-  typescript@5.9.3: {}
 
   typescript@6.0.3: {}
 
