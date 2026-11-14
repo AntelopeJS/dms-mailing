@@ -29,7 +29,7 @@ function openEnvelope(): void {
 			class="hover:bg-elevated/50 col-span-2 grid min-h-[38px] w-full grid-cols-subgrid items-center gap-x-2.5 px-3 text-left"
 			@click.stop="openEnvelope()"
 		>
-			<DmsEyebrow
+			<DmsEyebrowLabel
 				:label="t(`${KEY}.subject`)"
 				class="min-w-[78px] whitespace-nowrap"
 			/>
@@ -57,7 +57,7 @@ function openEnvelope(): void {
 			class="border-default hover:bg-elevated/50 col-span-2 grid min-h-[38px] w-full grid-cols-subgrid items-center gap-x-2.5 border-t px-3 text-left"
 			@click.stop="openEnvelope()"
 		>
-			<DmsEyebrow
+			<DmsEyebrowLabel
 				:label="t(`${KEY}.preheader`)"
 				class="min-w-[78px] whitespace-nowrap"
 			/>

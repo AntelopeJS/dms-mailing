@@ -63,7 +63,7 @@ const GLOBALS = {
 	UFormField: FormFieldStub,
 	UButton: ButtonStub,
 	UPopover: slotStub('UPopover'),
-	DmsEyebrow: slotStub('DmsEyebrow'),
+	DmsEyebrowLabel: slotStub('DmsEyebrowLabel'),
 	DmsInputText: slotStub('DmsInputText'),
 }
 

@@ -80,7 +80,7 @@ const hint = computed(() =>
 
 <template>
 	<div class="flex flex-col gap-1.5">
-		<DmsSelect
+		<DmsInputSelect
 			:model-value="selected || undefined"
 			:items="items"
 			value-key="value"

@@ -52,7 +52,7 @@ watch(
 </script>
 
 <template>
-	<DmsSelect
+	<DmsInputSelect
 		v-model="selected"
 		:items="items"
 		value-key="value"

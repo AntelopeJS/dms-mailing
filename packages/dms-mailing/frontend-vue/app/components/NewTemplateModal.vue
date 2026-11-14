@@ -339,7 +339,7 @@ async function submit(): Promise<void> {
 
 			<FormFieldRow :label="t('dms_mailing.templates.cols.category')">
 				<template #default="{ id }">
-					<DmsSelect
+					<DmsInputSelect
 						:id="id"
 						v-model="category"
 						:items="categoryItems"

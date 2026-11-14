@@ -24,9 +24,9 @@ const EmptyStateStub = defineComponent({
 })
 
 const GLOBALS = {
-	DmsCard: slotStub('DmsCard'),
-	DmsSegmented: slotStub('DmsSegmented'),
-	DmsMeter: slotStub('DmsMeter'),
+	DmsCardPanel: slotStub('DmsCardPanel'),
+	DmsSegmentedControl: slotStub('DmsSegmentedControl'),
+	DmsMeterBar: slotStub('DmsMeterBar'),
 	DmsEmptyState: EmptyStateStub,
 	USkeleton: slotStub('USkeleton'),
 	UIcon: slotStub('UIcon'),

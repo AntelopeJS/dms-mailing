@@ -22,7 +22,7 @@ const { t } = useI18n()
 		v-if="variables.length || checks.length"
 		class="flex min-w-0 flex-col gap-1"
 	>
-		<DmsEyebrow :label="t(`${KEY}.title`)" />
+		<DmsEyebrowLabel :label="t(`${KEY}.title`)" />
 		<p class="text-muted text-[12px] [overflow-wrap:anywhere]">
 			{{ t(`${KEY}.description`) }}
 		</p>

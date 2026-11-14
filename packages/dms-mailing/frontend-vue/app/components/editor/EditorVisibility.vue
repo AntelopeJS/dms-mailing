@@ -66,7 +66,7 @@ const mode = computed({
 <template>
 	<div class="flex flex-col gap-2">
 		<p class="text-highlighted text-sm font-medium">{{ t(`${KEY}.label`) }}</p>
-		<DmsSegmented
+		<DmsSegmentedControl
 			v-model="mode"
 			size="xs"
 			:items="items"

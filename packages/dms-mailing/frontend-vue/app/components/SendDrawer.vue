@@ -424,7 +424,7 @@ onMounted(() => {
 		<template v-else-if="send">
 			<header class="border-default flex flex-col gap-1.5 border-b pb-4">
 				<div class="flex items-center gap-1">
-					<DmsEyebrow
+					<DmsEyebrowLabel
 						class="min-w-0 flex-1"
 						truncate
 						:label="key('eyebrow', { id: shortSendId(send._id) })"
@@ -481,7 +481,7 @@ onMounted(() => {
 					columns-from="md"
 					:items="stats"
 				/>
-				<DmsBanner
+				<DmsNoticeBanner
 					v-if="problem"
 					:tone="isResolved ? 'info' : problemTone(problem.kind)"
 					:size="isResolved ? 'sm' : undefined"
@@ -492,7 +492,7 @@ onMounted(() => {
 					"
 					data-problem-banner
 				/>
-				<DmsBanner
+				<DmsNoticeBanner
 					v-if="suppression"
 					:tone="suppression.tone"
 					size="sm"
@@ -519,8 +519,8 @@ onMounted(() => {
 							@click="openSuppressionList"
 						/>
 					</template>
-				</DmsBanner>
-				<DmsBanner
+				</DmsNoticeBanner>
+				<DmsNoticeBanner
 					v-for="link in linkedSends"
 					:key="link.id"
 					tone="info"
@@ -539,7 +539,7 @@ onMounted(() => {
 							@click="void showSend(link.id)"
 						/>
 					</template>
-				</DmsBanner>
+				</DmsNoticeBanner>
 			</section>
 
 			<!--
@@ -548,7 +548,7 @@ onMounted(() => {
 			-->
 			<div class="@2xl:grid-cols-2 grid gap-6" data-send-details-grid>
 				<section class="flex min-w-0 flex-col gap-2">
-					<DmsEyebrow :label="key('timeline')" />
+					<DmsEyebrowLabel :label="key('timeline')" />
 					<ol class="flex flex-col">
 						<li
 							v-for="item in timeline"
@@ -581,7 +581,7 @@ onMounted(() => {
 				</section>
 
 				<section class="flex min-w-0 flex-col gap-2">
-					<DmsEyebrow :label="key('origin')" />
+					<DmsEyebrowLabel :label="key('origin')" />
 					<div
 						class="border-default divide-default divide-y overflow-hidden rounded-lg border"
 					>
@@ -623,7 +623,7 @@ onMounted(() => {
 
 			<section class="flex flex-col gap-2">
 				<div class="flex items-center justify-between gap-2">
-					<DmsEyebrow :label="key('payload')" />
+					<DmsEyebrowLabel :label="key('payload')" />
 					<UButton
 						v-if="payload"
 						size="xs"

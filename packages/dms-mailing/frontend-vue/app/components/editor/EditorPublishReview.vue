@@ -43,7 +43,7 @@ const { t } = useI18n()
 			{{ t(`${KEY}.no_changes`, { version: currentVersion }) }}
 		</p>
 
-		<DmsBanner
+		<DmsNoticeBanner
 			v-if="blockers.length"
 			tone="error"
 			icon="i-ph-prohibit"
@@ -54,9 +54,9 @@ const { t } = useI18n()
 					<li v-for="blocker in blockers" :key="blocker">{{ blocker }}</li>
 				</ul>
 			</template>
-		</DmsBanner>
+		</DmsNoticeBanner>
 
-		<DmsBanner
+		<DmsNoticeBanner
 			v-if="warnings.length"
 			tone="warning"
 			icon="i-ph-warning"
@@ -67,7 +67,7 @@ const { t } = useI18n()
 					<li v-for="warning in warnings" :key="warning">{{ warning }}</li>
 				</ul>
 			</template>
-		</DmsBanner>
+		</DmsNoticeBanner>
 
 		<div class="border-default -mx-1 flex items-center gap-2 border-t pt-4">
 			<UButton

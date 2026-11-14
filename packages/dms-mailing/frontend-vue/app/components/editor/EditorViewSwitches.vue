@@ -58,7 +58,7 @@ const mode = computed({
 			"
 		>
 			<span class="inline-flex">
-				<DmsSegmented
+				<DmsSegmentedControl
 					v-model="device"
 					size="xs"
 					:items="deviceItems"
@@ -66,7 +66,7 @@ const mode = computed({
 				/>
 			</span>
 		</UTooltip>
-		<DmsSegmented
+		<DmsSegmentedControl
 			v-model="mode"
 			size="xs"
 			:items="modeItems"

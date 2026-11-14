@@ -167,7 +167,7 @@ form?.addValidator(guardSubmit)
 <template>
 	<div class="flex flex-col gap-2">
 		<div class="flex flex-wrap items-center gap-2">
-			<DmsSegmented
+			<DmsSegmentedControl
 				v-model="choice"
 				:items="items"
 				:disabled="disabled"

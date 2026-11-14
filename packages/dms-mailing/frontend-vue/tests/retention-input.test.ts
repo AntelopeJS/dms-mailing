@@ -56,7 +56,7 @@ function mountRetention(): Harness {
 				'onUpdate:modelValue': (value: number) => (state.days = value),
 			}),
 	})
-	app.component('DmsSegmented', slotStub('DmsSegmented'))
+	app.component('DmsSegmentedControl', slotStub('DmsSegmentedControl'))
 	app.component('UInputNumber', slotStub('UInputNumber'))
 	app.component('UAlert', slotStub('UAlert'))
 	app.config.warnHandler = () => undefined
@@ -65,7 +65,7 @@ function mountRetention(): Harness {
 }
 
 function segmented(host: HTMLElement): HTMLElement {
-	return host.querySelector('[data-stub="DmsSegmented"]') as HTMLElement
+	return host.querySelector('[data-stub="DmsSegmentedControl"]') as HTMLElement
 }
 
 describe('RetentionInput', () => {

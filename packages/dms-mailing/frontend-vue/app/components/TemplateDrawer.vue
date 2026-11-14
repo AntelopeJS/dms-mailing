@@ -451,7 +451,7 @@ function onResolved(preview: PreviewResponse): void {
 		<template v-else-if="template">
 			<div class="flex flex-col gap-1.5 pb-3">
 				<div class="flex items-center gap-1">
-					<DmsEyebrow :label="t('dms_mailing.templates.drawer.eyebrow')" />
+					<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.eyebrow')" />
 					<div class="ml-auto flex items-center gap-0.5">
 						<template v-if="navigation">
 							<UButton
@@ -569,7 +569,7 @@ function onResolved(preview: PreviewResponse): void {
 
 			<div v-show="tab === 'preview'" class="flex flex-col gap-3 py-4">
 				<div class="flex items-center justify-between gap-2">
-					<DmsSegmented
+					<DmsSegmentedControl
 						v-if="localeItems.length > 1"
 						v-model="locale"
 						:items="localeItems"
@@ -599,7 +599,7 @@ function onResolved(preview: PreviewResponse): void {
 						/>
 					</div>
 				</div>
-				<DmsBanner
+				<DmsNoticeBanner
 					v-if="isLocaleMissing"
 					tone="warning"
 					size="sm"
@@ -629,7 +629,7 @@ function onResolved(preview: PreviewResponse): void {
 							@click="openEditor(locale)"
 						/>
 					</template>
-				</DmsBanner>
+				</DmsNoticeBanner>
 			</div>
 
 			<div v-show="tab === 'variables'" class="flex flex-col gap-4 py-4">

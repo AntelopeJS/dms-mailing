@@ -95,7 +95,7 @@ const preheader = computed({
 
 		<template v-if="editor.current">
 			<USeparator />
-			<DmsEyebrow
+			<DmsEyebrowLabel
 				:label="t(`${KEY}.envelope`, { locale: editor.locale.toUpperCase() })"
 			/>
 			<UFormField :label="t('dms_mailing.editor.subject')" size="sm">
@@ -112,7 +112,7 @@ const preheader = computed({
 
 		<USeparator />
 		<div class="flex flex-col gap-2">
-			<DmsEyebrow :label="t('dms_mailing.history.title')" />
+			<DmsEyebrowLabel :label="t('dms_mailing.history.title')" />
 			<MailingVersionHistory
 				v-if="session.state.version > 0"
 				:template-id="templateId"

@@ -32,7 +32,7 @@ const { t } = useI18n()
 <template>
 	<div class="flex flex-col gap-2">
 		<div class="flex items-center justify-between">
-			<DmsEyebrow :label="t('dms_mailing.templates.drawer.last_30_days')" />
+			<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.last_30_days')" />
 			<UButton
 				variant="link"
 				size="xs"
@@ -49,7 +49,7 @@ const { t } = useI18n()
 		/>
 	</div>
 	<div class="flex flex-col gap-1">
-		<DmsEyebrow :label="t('dms_mailing.templates.drawer.called_from')" />
+		<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.called_from')" />
 		<p
 			v-if="!hasSends || !performance?.sources.length"
 			class="text-muted text-[12.5px]"
@@ -73,7 +73,7 @@ const { t } = useI18n()
 		/>
 	</div>
 	<div class="flex flex-col gap-1">
-		<DmsEyebrow :label="t('dms_mailing.templates.drawer.fallbacks')" />
+		<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.fallbacks')" />
 		<p v-if="!hasSends" class="text-muted text-[12.5px]">
 			{{ t('dms_mailing.templates.drawer.no_sources') }}
 		</p>
