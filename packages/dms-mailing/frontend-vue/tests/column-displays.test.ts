@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { VNode } from 'vue'
+import CategoryLabel from '../app/components/CategoryLabel.vue'
+import setup, {
+	renderCategory,
+	renderLocaleChips,
+} from '../app/plugins/column-displays'
 
 interface RegisteredType {
 	id: string
@@ -11,9 +16,12 @@ type PluginSetup = () => void
 
 const registered: RegisteredType[] = []
 
+vi.hoisted(() => {
+	vi.stubGlobal('defineDmsPlugin', (pluginSetup: PluginSetup) => pluginSetup)
+})
+
 beforeEach(() => {
 	registered.length = 0
-	vi.stubGlobal('defineDmsPlugin', (setup: PluginSetup) => setup)
 	vi.stubGlobal('useDataTypes', () => ({
 		registerDataType: (type: RegisteredType) => registered.push(type),
 	}))
@@ -24,7 +32,6 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals()
-	vi.resetModules()
 })
 
 function texts(node: VNode): string[] {
@@ -36,8 +43,7 @@ function texts(node: VNode): string[] {
 }
 
 describe('column displays plugin', () => {
-	it('registers the locale chips and category displays without a DOM', async () => {
-		const { default: setup } = await import('../app/plugins/column-displays')
+	it('registers the locale chips and category displays without a DOM', () => {
 		;(setup as unknown as PluginSetup)()
 		expect(registered.map((type) => type.id)).toEqual([
 			'mailing:locale-chips',
@@ -45,18 +51,14 @@ describe('column displays plugin', () => {
 		])
 	})
 
-	it('draws a category through its label component', async () => {
-		const { renderCategory } = await import('../app/plugins/column-displays')
-		const { default: CategoryLabel } =
-			await import('../app/components/CategoryLabel.vue')
+	it('draws a category through its label component', () => {
 		const cell = renderCategory('orders')
 		expect(cell.type).toBe(CategoryLabel)
 		expect(cell.props).toEqual({ value: 'orders' })
 		expect(renderCategory(undefined).props).toEqual({ value: null })
 	})
 
-	it('draws the locale chips with the missing workspace ones dashed', async () => {
-		const { default: setup } = await import('../app/plugins/column-displays')
+	it('draws the locale chips with the missing workspace ones dashed', () => {
 		;(setup as unknown as PluginSetup)()
 		const cell = registered[0]!.formatter.default('en,fr', 'en')
 		const chips = cell.children as VNode[]
@@ -65,8 +67,7 @@ describe('column displays plugin', () => {
 		expect(String(chips[0]!.props?.class)).not.toContain('border-dashed')
 	})
 
-	it('draws a dash for a row without locale information', async () => {
-		const { renderLocaleChips } = await import('../app/plugins/column-displays')
+	it('draws a dash for a row without locale information', () => {
 		expect(texts(renderLocaleChips('', ['en']))).toEqual(['—'])
 		expect(texts(renderLocaleChips(undefined, ['en']))).toEqual(['—'])
 	})

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useTemplateDrawer } from '../app/composables/useTemplateDrawer'
 import type { TemplateRow } from '../app/types/mailing'
 
 interface OpenCall {
@@ -53,7 +54,6 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals()
-	vi.resetModules()
 })
 
 function row(id: string): TemplateRow {
@@ -68,9 +68,7 @@ function row(id: string): TemplateRow {
 }
 
 describe('useTemplateDrawer', () => {
-	it('opens the test send with the editor draft and locale', async () => {
-		const { useTemplateDrawer } =
-			await import('../app/composables/useTemplateDrawer')
+	it('opens the test send with the editor draft and locale', () => {
 		const content = { locales: {} }
 		useTemplateDrawer().openTestSend('t1', { locale: 'fr', content })
 		expect(modalCalls[0]?.component).toEqual({ name: 'MailingTestSendModal' })
@@ -82,8 +80,6 @@ describe('useTemplateDrawer', () => {
 	})
 
 	it('calls back only when the dialog closes after a change', async () => {
-		const { useTemplateDrawer } =
-			await import('../app/composables/useTemplateDrawer')
 		const onDone = vi.fn()
 		useTemplateDrawer().openRealSend('t1', { onDone })
 		await Promise.resolve()
@@ -97,9 +93,7 @@ describe('useTemplateDrawer', () => {
 		expect(modalCalls[1]?.componentOptions).toEqual({ initialName: 'Refund' })
 	})
 
-	it('opens the details from the right and steps through the rows shown', async () => {
-		const { useTemplateDrawer } =
-			await import('../app/composables/useTemplateDrawer')
+	it('opens the details from the right and steps through the rows shown', () => {
 		const rows = [row('a'), row('b'), row('c')]
 		useTemplateDrawer().openDetails(rows[1]!, { rows })
 		const call = drawerCalls[0]!
@@ -115,9 +109,7 @@ describe('useTemplateDrawer', () => {
 		expect((options.navigation as Navigation).hasNext).toBe(false)
 	})
 
-	it('opens the details of a bare id without navigation', async () => {
-		const { useTemplateDrawer } =
-			await import('../app/composables/useTemplateDrawer')
+	it('opens the details of a bare id without navigation', () => {
 		useTemplateDrawer().openDetails('x')
 		expect(drawerCalls[0]?.componentOptions.templateId).toBe('x')
 		expect(drawerCalls[0]?.componentOptions.navigation).toBeUndefined()
