@@ -58,18 +58,29 @@ export class TemplateModel extends BasicDataModel(
   }
 
   /**
+   * The stored form of a patch. The row's modifier container (`_internal`,
+   * where the localized name lives) comes out empty when the patch has no
+   * name, and the database merges a row shallowly, so that empty container
+   * would wipe the stored name: it is left out then.
+   */
+  private static storedPatch(row: MailingTemplate, fields: TemplateFields) {
+    const stored = TemplateModel.toDatabase(row);
+    if (fields.name === undefined) delete stored[MODIFIER_CONTAINER];
+    return stored;
+  }
+
+  /**
    * Updates a template, a name given holding every language. Every write of
-   * a template goes through here rather than `update`: an update event leaves
-   * the row's modifier container (`_internal`, where the localized name
-   * lives) empty when the patch has no name, and the database merges a row
-   * shallowly, so that empty container would wipe the stored name.
+   * a template goes through here rather than `update`, which would store the
+   * patch's empty modifier container over the name.
    */
   updateFields(id: string, fields: TemplateFields): Promise<number> {
     const row = TemplateModel.fromFields(fields);
     triggerEvent(row, "update");
-    const stored = TemplateModel.toDatabase(row);
-    if (fields.name === undefined) delete stored[MODIFIER_CONTAINER];
-    return this.table.get(id).update(stored).run();
+    return this.table
+      .get(id)
+      .update(TemplateModel.storedPatch(row, fields))
+      .run();
   }
 
   /** Publishes only over the exact semantic revision that was inspected. */
@@ -77,7 +88,10 @@ export class TemplateModel extends BasicDataModel(
     template: MailingTemplate,
     patch: TemplateFields,
   ): Promise<boolean> {
-    const stored = TemplateModel.toDatabase(TemplateModel.fromFields(patch));
+    const stored = TemplateModel.storedPatch(
+      TemplateModel.fromFields(patch),
+      patch,
+    );
     const outcome = await this.table
       .atomicMutation(template._id, {
         type: "update",

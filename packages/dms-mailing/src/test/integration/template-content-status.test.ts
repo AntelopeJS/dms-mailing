@@ -52,6 +52,7 @@ describe("[integration] template content and status", () => {
     expect(publish.status).to.equal(HTTP_OK);
     const after = await client.get(`/api/mailing/templates/${id}/content`);
     expect(after.data.template.status).to.equal("live");
+    expect(after.data.template.name).to.equal("welcome");
     expect(after.data.content.locales.en.subject).to.equal(
       "Welcome {{customer.firstName}}",
     );
