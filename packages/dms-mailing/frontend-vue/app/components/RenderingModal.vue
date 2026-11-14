@@ -116,7 +116,7 @@ onMounted(load)
 				{{ key('description') }}
 				<span class="font-mono text-[12px]">{{ sendIdValue }}</span>
 			</p>
-			<DmsSegmented
+			<DmsSegmentedControl
 				v-model="view"
 				size="xs"
 				:items="viewItems"
@@ -138,7 +138,7 @@ onMounted(load)
 		/>
 
 		<template v-else>
-			<DmsBanner
+			<DmsNoticeBanner
 				v-if="rendering.approximate"
 				tone="warning"
 				size="sm"

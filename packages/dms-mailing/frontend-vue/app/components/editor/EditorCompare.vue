@@ -178,7 +178,7 @@ watch(locale, load, { immediate: true })
 			>
 				<div class="flex min-w-0 flex-col gap-0.5">
 					<div class="flex items-center gap-2">
-						<DmsEyebrow :label="side.label" />
+						<DmsEyebrowLabel :label="side.label" />
 						<span
 							v-if="side.preview"
 							class="text-highlighted min-w-0 truncate text-xs font-medium"

@@ -114,7 +114,7 @@ function insert(path: string): void {
 
 <template>
 	<div class="flex flex-col gap-2">
-		<DmsEyebrow :label="t(`${KEY}.insert_hint`)" />
+		<DmsEyebrowLabel :label="t(`${KEY}.insert_hint`)" />
 		<p class="text-muted text-xs">{{ t(`${KEY}.draft_hint`) }}</p>
 
 		<p v-if="merged.length === 0" class="text-muted text-xs">

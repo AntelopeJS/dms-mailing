@@ -242,7 +242,7 @@ async function submit(): Promise<void> {
 				:label="t('dms_mailing.real_send.version')"
 			>
 				<template #default="{ id }">
-					<DmsSelect
+					<DmsInputSelect
 						:id="id"
 						v-model="versionChoice"
 						:items="versionItems"
@@ -257,7 +257,7 @@ async function submit(): Promise<void> {
 
 			<FormFieldRow :label="t('dms_mailing.test_send.locale')">
 				<template #default="{ id }">
-					<DmsSelect
+					<DmsInputSelect
 						:id="id"
 						v-model="locale"
 						:items="localeItems"
@@ -271,7 +271,7 @@ async function submit(): Promise<void> {
 
 			<FormFieldRow :label="t('dms_mailing.test_send.data')">
 				<template #default="{ id }">
-					<DmsSelect
+					<DmsInputSelect
 						:id="id"
 						v-model="dataChoice"
 						:items="dataItems"
@@ -284,7 +284,7 @@ async function submit(): Promise<void> {
 			</FormFieldRow>
 		</FormRows>
 
-		<DmsBanner
+		<DmsNoticeBanner
 			tone="info"
 			icon="i-ph-info"
 			:title="t('dms_mailing.test_send.info_title')"

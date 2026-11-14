@@ -93,7 +93,7 @@ const globals = {
 	...FORM_STUBS,
 	MailingRecipientsField: RecipientsField,
 	DmsKeyValueList: KeyValueListStub,
-	DmsBanner: slotStub('DmsBanner'),
+	DmsNoticeBanner: slotStub('DmsNoticeBanner'),
 }
 
 let stubs: NuxtStubs

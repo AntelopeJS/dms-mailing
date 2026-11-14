@@ -361,7 +361,7 @@ describe('TemplateGallery', () => {
 		const ctx = context({ items: [LIVE] })
 		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
-		const card = view.host.querySelector('dmscard') as HTMLElement
+		const card = view.host.querySelector('dmscardpanel') as HTMLElement
 		card.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 't', bubbles: true }),
 		)
@@ -426,7 +426,7 @@ describe('TemplateGallery', () => {
 		const skeleton = loading.host.querySelector(
 			'[data-gallery-skeleton]',
 		) as HTMLElement
-		const skeletonCard = skeleton.querySelector('dmscard') as HTMLElement
+		const skeletonCard = skeleton.querySelector('dmscardpanel') as HTMLElement
 		const skeletonHeading = skeleton.firstElementChild as HTMLElement
 		const skeletonBody = skeletonCard.lastElementChild as HTMLElement
 
@@ -443,7 +443,7 @@ describe('TemplateGallery', () => {
 		await flush()
 		expect(loaded.host.querySelector('[data-gallery-skeleton]')).toBeNull()
 		const section = loaded.host.querySelector('section') as HTMLElement
-		const card = section.querySelector('article, dmscard') as HTMLElement
+		const card = section.querySelector('article, dmscardpanel') as HTMLElement
 		const body = card.lastElementChild as HTMLElement
 
 		expect(skeleton.className).toBe(section.className)

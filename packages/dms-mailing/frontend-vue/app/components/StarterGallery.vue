@@ -90,7 +90,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 							class="rounded-(--dms-radius-card) h-[150px] w-full"
 						/>
 					</template>
-					<DmsCard
+					<DmsCardPanel
 						v-for="starter in starters"
 						v-else
 						:key="starter.id"
@@ -131,7 +131,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 								{{ starter.slug }}
 							</span>
 						</div>
-					</DmsCard>
+					</DmsCardPanel>
 				</div>
 				<UButton
 					icon="i-ph-plus"

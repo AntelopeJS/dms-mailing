@@ -250,7 +250,7 @@ useEventListener(
 				&#8203;
 			</div>
 			<div class="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-4">
-				<DmsCard
+				<DmsCardPanel
 					v-for="index in SKELETON_CARDS"
 					:key="index"
 					:padded="false"
@@ -273,7 +273,7 @@ useEventListener(
 							&#8203;
 						</div>
 					</div>
-				</DmsCard>
+				</DmsCardPanel>
 			</div>
 		</section>
 

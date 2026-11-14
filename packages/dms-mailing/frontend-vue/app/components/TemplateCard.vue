@@ -159,7 +159,7 @@ function chipLabel(code: string, present: boolean): string {
 </script>
 
 <template>
-	<DmsCard
+	<DmsCardPanel
 		as="article"
 		:padded="false"
 		interactive
@@ -302,5 +302,5 @@ function chipLabel(code: string, present: boolean): string {
 				<span v-else class="truncate">{{ footerText }}</span>
 			</div>
 		</div>
-	</DmsCard>
+	</DmsCardPanel>
 </template>

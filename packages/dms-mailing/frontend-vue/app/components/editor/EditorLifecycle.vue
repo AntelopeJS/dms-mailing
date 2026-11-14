@@ -45,7 +45,7 @@ const buttons = computed(() => lifecycleActions(status.value))
 
 <template>
 	<div class="flex flex-col gap-3">
-		<DmsEyebrow :label="t(`${KEY}.title`)" />
+		<DmsEyebrowLabel :label="t(`${KEY}.title`)" />
 		<DmsStatGroup :items="stats" layout="joined" :columns="3" />
 		<div class="flex flex-wrap items-center gap-1.5">
 			<UButton

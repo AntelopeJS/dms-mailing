@@ -91,7 +91,7 @@ async function save(): Promise<void> {
 		</div>
 
 		<USeparator />
-		<DmsEyebrow :label="t(`${KEY}.checks`)" />
+		<DmsEyebrowLabel :label="t(`${KEY}.checks`)" />
 		<DmsCheckList :items="items" size="sm" />
 		<MailingEditorMissingPolicy />
 	</div>

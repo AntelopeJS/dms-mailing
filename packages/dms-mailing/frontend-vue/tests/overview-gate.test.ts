@@ -57,7 +57,7 @@ const Gate = defineComponent({
 })
 
 const GLOBALS = {
-	DmsCard: slotStub('DmsCard'),
+	DmsCardPanel: slotStub('DmsCardPanel'),
 	DmsEmptyState: EmptyStateStub,
 	DmsIconWell: slotStub('DmsIconWell'),
 	DmsListRow: ListRowStub,

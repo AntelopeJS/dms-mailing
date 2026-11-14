@@ -97,9 +97,9 @@ const DropdownStub = {
 const globals = {
 	...FORM_STUBS,
 	UDropdownMenu: DropdownStub,
-	DmsBanner: slotStub('DmsBanner'),
+	DmsNoticeBanner: slotStub('DmsNoticeBanner'),
 	MailingTemplatePreviewFrame: slotStub('MailingTemplatePreviewFrame'),
-	DmsCard: slotStub('DmsCard'),
+	DmsCardPanel: slotStub('DmsCardPanel'),
 	DmsEmptyState: slotStub('DmsEmptyState'),
 }
 
@@ -271,7 +271,7 @@ describe('TemplateDrawer', () => {
 		)
 		expect(buttons).not.toContain('dms_mailing.templates.drawer.declare')
 		const banners = [
-			...view.host.querySelectorAll('[data-stub="DmsBanner"]'),
+			...view.host.querySelectorAll('[data-stub="DmsNoticeBanner"]'),
 		].map((banner) => banner.getAttribute('title'))
 		expect(banners).toContain('dms_mailing.templates.drawer.draft_declarations')
 		view.unmount()
@@ -362,7 +362,7 @@ describe('TemplateDrawer', () => {
 		api.templateContent.mockResolvedValue(detail(row('live')))
 		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
 		await flush()
-		const segmented = view.host.querySelector('dmssegmented')
+		const segmented = view.host.querySelector('dmssegmentedcontrol')
 		expect(segmented).not.toBeNull()
 		expect(
 			view.host.querySelectorAll('dmslistrow')[0]?.getAttribute('title'),
@@ -446,7 +446,7 @@ describe('StarterGallery', () => {
 		api.createTemplate.mockResolvedValue({ _id: 'new-id' })
 		const view = mount(StarterGallery, {}, globals)
 		await flush()
-		;(view.host.querySelector('[data-stub="DmsCard"]') as HTMLElement).click()
+		;(view.host.querySelector('[data-stub="DmsCardPanel"]') as HTMLElement).click()
 		await flush()
 		expect(api.createTemplate).toHaveBeenCalledWith({
 			name: 'Order confirmation',
@@ -464,7 +464,7 @@ describe('StarterGallery', () => {
 		api.createTemplate.mockRejectedValue({ statusCode: 409 })
 		const view = mount(StarterGallery, {}, globals)
 		await flush()
-		;(view.host.querySelector('[data-stub="DmsCard"]') as HTMLElement).click()
+		;(view.host.querySelector('[data-stub="DmsCardPanel"]') as HTMLElement).click()
 		await flush()
 		expect(stubs.modalCalls[0]?.componentOptions).toEqual({
 			initialName: 'Order confirmation',

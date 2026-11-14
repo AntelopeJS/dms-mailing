@@ -37,7 +37,7 @@ useSortableList(root, () => props.entries, {
 
 <template>
 	<section>
-		<DmsEyebrow :label="title" class="mb-2 block" />
+		<DmsEyebrowLabel :label="title" class="mb-2 block" />
 		<div ref="root" class="grid grid-cols-2 gap-1.5">
 			<template v-for="element in entries" :key="element.type">
 				<button

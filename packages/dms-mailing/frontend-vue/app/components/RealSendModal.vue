@@ -345,7 +345,7 @@ async function submit(): Promise<void> {
 		novalidate
 		@submit.prevent="submit"
 	>
-		<DmsBanner
+		<DmsNoticeBanner
 			tone="error"
 			icon="i-ph-paper-plane-right"
 			:title="
@@ -362,7 +362,7 @@ async function submit(): Promise<void> {
 
 			<FormFieldRow :label="t('dms_mailing.test_send.locale')">
 				<template #default="{ id }">
-					<DmsSelect
+					<DmsInputSelect
 						:id="id"
 						v-model="locale"
 						:items="localeItems"
@@ -420,7 +420,7 @@ async function submit(): Promise<void> {
 			</p>
 		</section>
 
-		<DmsBanner
+		<DmsNoticeBanner
 			v-if="detail && !hasSender"
 			tone="warning"
 			icon="i-ph-at"
@@ -437,7 +437,7 @@ async function submit(): Promise<void> {
 					@click="openSettings"
 				/>
 			</template>
-		</DmsBanner>
+		</DmsNoticeBanner>
 
 		<div class="border-default rounded-lg border px-3">
 			<DmsKeyValueList
@@ -478,7 +478,7 @@ async function submit(): Promise<void> {
 			</DmsKeyValueList>
 		</div>
 
-		<DmsCheckbox
+		<DmsInputCheckbox
 			v-model="isAcknowledged"
 			:disabled="!recipients.length"
 			:label="
@@ -517,7 +517,7 @@ async function submit(): Promise<void> {
 	</form>
 
 	<div v-else class="flex flex-col gap-4">
-		<DmsBanner
+		<DmsNoticeBanner
 			tone="warning"
 			icon="i-ph-paper-plane-right"
 			:title="

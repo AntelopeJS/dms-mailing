@@ -62,7 +62,7 @@ function onResolved(preview: PreviewResponse): void {
 <template>
 	<div class="flex flex-col gap-4">
 		<div class="flex items-center justify-between gap-2">
-			<DmsSegmented
+			<DmsSegmentedControl
 				v-if="localeItems.length > 1"
 				v-model="locale"
 				:items="localeItems"
@@ -95,7 +95,7 @@ function onResolved(preview: PreviewResponse): void {
 
 		<div class="grid gap-4 sm:grid-cols-2">
 			<div class="flex flex-col gap-1.5">
-				<DmsEyebrow :label="t(`${KEY}.brought`)" />
+				<DmsEyebrowLabel :label="t(`${KEY}.brought`)" />
 				<ul v-if="lines.length" class="flex flex-col gap-1 text-[12.5px]">
 					<li
 						v-for="line in lines"
@@ -114,7 +114,7 @@ function onResolved(preview: PreviewResponse): void {
 				</p>
 			</div>
 			<div class="flex flex-col gap-1.5">
-				<DmsEyebrow :label="t(`${KEY}.declared`)" />
+				<DmsEyebrowLabel :label="t(`${KEY}.declared`)" />
 				<p v-if="!declared.length" class="text-muted text-[12.5px]">
 					{{ t(`${KEY}.no_variables`) }}
 				</p>

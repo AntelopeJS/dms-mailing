@@ -42,6 +42,7 @@ function capabilities(): Promise<ProviderCapabilities> {
     features: {
       batch: true,
       templates: false,
+      providerTemplates: false,
       scheduling: false,
       openTracking: true,
       clickTracking: true,

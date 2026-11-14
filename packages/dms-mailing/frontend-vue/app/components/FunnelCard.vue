@@ -120,9 +120,9 @@ const deltaTitle = (step: FunnelStepReading): string | undefined =>
 </script>
 
 <template>
-	<DmsCard class="h-full" :padded="false" :title="t(`${KEY_PREFIX}title`)">
+	<DmsCardPanel class="h-full" :padded="false" :title="t(`${KEY_PREFIX}title`)">
 		<template #actions>
-			<DmsSegmented
+			<DmsSegmentedControl
 				v-model="kind"
 				size="xs"
 				:items="kindItems"
@@ -155,7 +155,7 @@ const deltaTitle = (step: FunnelStepReading): string | undefined =>
 					>
 						{{ stepLabel(step) }}
 					</span>
-					<DmsMeter
+					<DmsMeterBar
 						as="span"
 						class="@md:order-none @md:col-span-1 order-last"
 						:class="METER_SPAN[layout]"
@@ -208,5 +208,5 @@ const deltaTitle = (step: FunnelStepReading): string | undefined =>
 				{{ takeaway }}
 			</span>
 		</template>
-	</DmsCard>
+	</DmsCardPanel>
 </template>

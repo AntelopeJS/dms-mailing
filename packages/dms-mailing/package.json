@@ -72,7 +72,7 @@
     "@antelopejs/interface-dms-mailing": ">=0.11.0 <0.12.0",
     "@antelopejs/interface-email": ">=0.2.0 <0.3.0",
     "node-cron": "^4.2.1",
-    "zod": "~3.24.2"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@antelopejs/core": "~1.23.2",

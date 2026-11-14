@@ -83,7 +83,7 @@ function createTemplate(): void {
 </script>
 
 <template>
-	<DmsCard
+	<DmsCardPanel
 		v-if="state === 'loading' && !facts"
 		:padded="false"
 		aria-busy="true"
@@ -92,16 +92,16 @@ function createTemplate(): void {
 			<USkeleton class="h-6 w-56" />
 			<USkeleton v-for="row in SKELETON_ROWS" :key="row" class="h-10 w-full" />
 		</div>
-	</DmsCard>
+	</DmsCardPanel>
 
-	<DmsCard v-else-if="state === 'error' && !facts" :padded="false">
+	<DmsCardPanel v-else-if="state === 'error' && !facts" :padded="false">
 		<DmsEmptyState
 			variant="error"
 			:title="key('error_title')"
 			:description="key('error_description')"
 			:actions="errorActions"
 		/>
-	</DmsCard>
+	</DmsCardPanel>
 
 	<div v-else class="flex flex-col gap-4">
 		<div v-if="canResume" class="flex justify-end">
@@ -115,7 +115,7 @@ function createTemplate(): void {
 			/>
 		</div>
 
-		<DmsCard v-if="showsSetup" :padded="false">
+		<DmsCardPanel v-if="showsSetup" :padded="false">
 			<div
 				class="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
 			>
@@ -196,7 +196,7 @@ function createTemplate(): void {
 					</li>
 				</ol>
 			</div>
-		</DmsCard>
+		</DmsCardPanel>
 
 		<slot v-if="showsDashboard" />
 	</div>

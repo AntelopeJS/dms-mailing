@@ -50,7 +50,7 @@ const MOVE_DOWN = 1
 const FIELD_NAME = 'categories'
 const MOVE_FIELD_ID = 'moveTo'
 const MOVE_FIELD_TYPE = 'string'
-const MOVE_FIELD_COMPONENT = 'DmsSelect'
+const MOVE_FIELD_COMPONENT = 'DmsInputSelect'
 const LABEL_PART = 'label'
 const ROW_FIELD_UI = { error: 'mt-1 ps-9 text-[12px]' }
 
@@ -293,7 +293,7 @@ watch(
 							/>
 							<template #content>
 								<div class="flex flex-col gap-2 p-2.5">
-									<DmsEyebrow :label="key('pick_icon')" />
+									<DmsEyebrowLabel :label="key('pick_icon')" />
 									<div class="grid grid-cols-8 gap-1">
 										<UButton
 											v-for="icon in CATEGORY_ICONS"

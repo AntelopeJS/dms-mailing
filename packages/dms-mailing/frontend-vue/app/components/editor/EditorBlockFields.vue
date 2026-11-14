@@ -91,7 +91,7 @@ function patchChecked(field: BlockField, value: unknown): void {
 				:is-multiline="field.kind === 'tokens'"
 				@update:model-value="patch(field.key, $event)"
 			/>
-			<DmsSegmented
+			<DmsSegmentedControl
 				v-else-if="field.kind === 'align'"
 				:model-value="text(field.key) || ALIGNMENTS[0]"
 				:items="alignItems"
