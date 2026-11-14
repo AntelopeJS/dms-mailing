@@ -1,6 +1,59 @@
 # Changelog
 
 
+## v0.11.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.10.1...v0.11.0)
+
+### 🔥 Performance
+
+- **metrics:** Read only the send fields the figures use ([#166](https://github.com/AntelopeJS/dms-mailing/pull/166))
+- **metrics:** Group sends in linear time ([#167](https://github.com/AntelopeJS/dms-mailing/pull/167))
+- **metrics:** Count the attention feed's test sends instead of matching them ([#168](https://github.com/AntelopeJS/dms-mailing/pull/168))
+- **templates:** Read the sent template slugs with one distinct query ([#169](https://github.com/AntelopeJS/dms-mailing/pull/169))
+
+### 🩹 Fixes
+
+- **release:** Regenerate the module README table when the interface bumps ([#171](https://github.com/AntelopeJS/dms-mailing/pull/171))
+- **settings:** ⚠️  Read stored category labels as localized texts only ([#177](https://github.com/AntelopeJS/dms-mailing/pull/177))
+- **templates:** Keep the template name when a publish is stored ([#178](https://github.com/AntelopeJS/dms-mailing/pull/178))
+
+### 💅 Refactors
+
+- **frontend:** Give every Vue component a multi-word name ([#172](https://github.com/AntelopeJS/dms-mailing/pull/172))
+- **test:** Split the test suites that exceed the function length cap ([#173](https://github.com/AntelopeJS/dms-mailing/pull/173))
+- **templates:** Read stored JSON columns through a guard per column ([#174](https://github.com/AntelopeJS/dms-mailing/pull/174))
+
+### 📦 Build
+
+- **deps:** Bump @antelopejs/tooling-configs to 0.5.0 ([#165](https://github.com/AntelopeJS/dms-mailing/pull/165))
+- **deps:** Bump @antelopejs/tooling-configs to 0.5.1 ([#170](https://github.com/AntelopeJS/dms-mailing/pull/170))
+- ⚠️  Raise @antelopejs ranges to the November releases and compare the backend-boundary message as-is ([#181](https://github.com/AntelopeJS/dms-mailing/pull/181))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms-mailing v0.9.1 ([328bd32](https://github.com/AntelopeJS/dms-mailing/commit/328bd32))
+- **release:** @antelopejs/dms-mailing v0.9.2 ([ed07013](https://github.com/AntelopeJS/dms-mailing/commit/ed07013))
+
+### ✅ Tests
+
+- **declarations:** Check the missing-tenant refusals from plain JavaScript ([#175](https://github.com/AntelopeJS/dms-mailing/pull/175))
+- **frontend:** Load the gallery display plugin outside the timed test body ([#179](https://github.com/AntelopeJS/dms-mailing/pull/179))
+- **frontend:** Forbid dynamic imports inside layer test bodies ([#180](https://github.com/AntelopeJS/dms-mailing/pull/180))
+
+### 🤖 CI
+
+- Run the checks and the backend tests on Windows ([#176](https://github.com/AntelopeJS/dms-mailing/pull/176))
+
+#### ⚠️ Breaking Changes
+
+- **settings:** ⚠️  Read stored category labels as localized texts only ([#177](https://github.com/AntelopeJS/dms-mailing/pull/177))
+- ⚠️  Raise @antelopejs ranges to the November releases and compare the backend-boundary message as-is ([#181](https://github.com/AntelopeJS/dms-mailing/pull/181))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.10.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.10.0...v0.10.1)
