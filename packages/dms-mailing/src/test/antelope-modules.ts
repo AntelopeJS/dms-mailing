@@ -44,4 +44,9 @@ export const SHARED_MODULE_SOURCES = {
     package: "@antelopejs/nodemailer",
     version: "0.0.12",
   },
+  "dms-automation": {
+    type: "package",
+    package: "@antelopejs/dms-automation",
+    version: "0.11.1",
+  },
 } as const;

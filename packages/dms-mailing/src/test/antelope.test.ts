@@ -152,6 +152,9 @@ export default defineConfig({
     "file-storage-local": {
       source: SHARED_MODULE_SOURCES["file-storage-local"],
     },
+    "dms-automation": {
+      source: SHARED_MODULE_SOURCES["dms-automation"],
+    },
     nodemailer: {
       source: SHARED_MODULE_SOURCES.nodemailer,
       config: {
