@@ -6,6 +6,7 @@ import {
   Parameter,
   Post,
   Put,
+  type QueryValue,
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
@@ -203,14 +204,14 @@ export class TemplatesController extends Controller(
   @Get("/starters/:id/preview")
   async starterPreview(
     @Parameter("id", "param") id: string,
-    @Parameter("locale", "query") requested?: string,
+    @Parameter("locale", "query") requested: QueryValue,
   ) {
     const starter = findStarter(id);
     assert(starter, HTTP_NOT_FOUND, STARTER_NOT_FOUND);
     const settings = await getSettings(this.tenantId);
     const locale = pickLocale(
       starter.content,
-      requested || undefined,
+      requested === true || requested === "" ? undefined : requested,
       settings.fallbackLocale,
     );
     const localeContent = localeContentOf(starter.content, locale);
