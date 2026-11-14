@@ -62,22 +62,22 @@
     "test:integration": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/integration ajs module test ."
   },
   "dependencies": {
-    "@antelopejs/interface-api": ">=0.3.0 <1.0.0",
-    "@antelopejs/interface-api-util": ">=0.3.0 <1.0.0",
-    "@antelopejs/interface-core": ">=0.4.0 <1.0.0",
-    "@antelopejs/interface-data-api": ">=0.6.1 <1.0.0",
-    "@antelopejs/interface-database": ">=0.3.0 <1.0.0",
-    "@antelopejs/interface-database-decorators": ">=0.2.0 <1.0.0",
-    "@antelopejs/interface-dms": ">=0.12.0 <1.0.0",
+    "@antelopejs/interface-api": ">=0.3.0 <0.4.0",
+    "@antelopejs/interface-api-util": ">=0.3.0 <0.4.0",
+    "@antelopejs/interface-core": ">=0.4.0 <0.5.0",
+    "@antelopejs/interface-data-api": ">=0.6.1 <0.7.0",
+    "@antelopejs/interface-database": ">=0.3.0 <0.4.0",
+    "@antelopejs/interface-database-decorators": ">=0.2.0 <0.3.0",
+    "@antelopejs/interface-dms": ">=0.13.0 <0.14.0",
     "@antelopejs/interface-dms-mailing": ">=0.10.0 <0.11.0",
-    "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
+    "@antelopejs/interface-email": ">=0.0.6 <0.1.0",
     "node-cron": "^4.2.1",
     "zod": "~3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": "^1.21.0",
-    "@antelopejs/dms": ">=0.19.0 <1.0.0",
-    "@antelopejs/mongodb": "^1.6.2",
+    "@antelopejs/core": "~1.21.0",
+    "@antelopejs/dms": ">=0.19.0 <0.20.0",
+    "@antelopejs/mongodb": "~1.6.2",
     "@antelopejs/tooling-configs": ">=0.7.0 <0.8.0",
     "@types/chai": "^4.3.20",
     "@types/mocha": "^10",
@@ -93,7 +93,7 @@
     "typescript": "^6.0.3"
   },
   "optionalDependencies": {
-    "@antelopejs/interface-dms-automation": ">=0.6.0 <1.0.0"
+    "@antelopejs/interface-dms-automation": ">=0.6.0 <0.7.0"
   },
   "antelopeJs": {
     "baseUrl": "dist",

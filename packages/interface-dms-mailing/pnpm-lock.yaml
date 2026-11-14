@@ -9,29 +9,29 @@ importers:
   .:
     dependencies:
       '@antelopejs/interface-core':
-        specifier: '>=0.4.0 <1.0.0'
+        specifier: '>=0.4.0 <0.5.0'
         version: 0.4.0
       '@antelopejs/interface-email':
-        specifier: '>=0.0.6 <1.0.0'
+        specifier: '>=0.0.6 <0.1.0'
         version: 0.0.6(@antelopejs/interface-core@0.4.0)
     devDependencies:
       '@antelopejs/interface-api':
-        specifier: '>=0.3.0 <1.0.0'
+        specifier: '>=0.3.0 <0.4.0'
         version: 0.3.0(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-api-util':
-        specifier: '>=0.3.0 <1.0.0'
+        specifier: '>=0.3.0 <0.4.0'
         version: 0.3.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-data-api':
-        specifier: '>=0.6.1 <1.0.0'
+        specifier: '>=0.6.1 <0.7.0'
         version: 0.6.1(@antelopejs/interface-api-util@0.3.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database-decorators@0.2.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database@0.3.0(@antelopejs/interface-core@0.4.0)))(@antelopejs/interface-database@0.3.0(@antelopejs/interface-core@0.4.0))
       '@antelopejs/interface-database':
-        specifier: '>=0.3.0 <1.0.0'
+        specifier: '>=0.3.0 <0.4.0'
         version: 0.3.0(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-database-decorators':
-        specifier: '>=0.2.0 <1.0.0'
+        specifier: '>=0.2.0 <0.3.0'
         version: 0.2.0(@antelopejs/interface-api@0.3.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database@0.3.0(@antelopejs/interface-core@0.4.0))
       '@antelopejs/interface-dms':
-        specifier: '>=0.12.0 <1.0.0'
+        specifier: '>=0.12.0 <0.13.0'
         version: 0.12.0(82af59805bc17e4a4810db01862aab1b)
       '@antelopejs/tooling-configs':
         specifier: '>=0.7.0 <0.8.0'
