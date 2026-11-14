@@ -102,8 +102,11 @@ async function loadPage<T extends object>(
 
 /** A template as exported: its name in every language. */
 const templateCodec: RowCodec<MailingTemplate> = {
-  fromDatabase: (row) =>
-    TemplateModel.fromDatabase(row)?.localize("*", ["name"]),
+  fromDatabase: (stored) => {
+    const row = TemplateModel.fromDatabase(stored);
+    row?.localize("*", ["name"]);
+    return row;
+  },
 };
 
 export function exportedCollections(tenantId: string): ExportedCollection[] {

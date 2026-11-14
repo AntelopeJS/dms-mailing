@@ -21,27 +21,27 @@ export const SHARED_MODULE_SOURCES = {
   dms: {
     type: "package",
     package: "@antelopejs/dms",
-    version: "0.18.0",
+    version: "0.20.0",
   },
   mongodb: { type: "local", path: "node_modules/@antelopejs/mongodb" },
   "auth-jwt": {
     type: "package",
     package: "@antelopejs/auth-jwt",
-    version: "1.1.0",
+    version: "1.1.2",
   },
   api: {
     type: "package",
     package: "@antelopejs/api",
-    version: "1.7.1",
+    version: "1.7.4",
   },
   "file-storage-local": {
     type: "package",
     package: "@antelopejs/file-storage-local",
-    version: "0.2.0",
+    version: "0.2.1",
   },
   nodemailer: {
     type: "package",
     package: "@antelopejs/nodemailer",
-    version: "0.0.8",
+    version: "0.0.12",
   },
 } as const;
