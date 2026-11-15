@@ -10,7 +10,7 @@
   },
   "scripts": {
     "format": "prettier --write .",
-    "lint": "eslint . && node --input-type=module -e \"import { assertApiErrorPresentation } from '@antelopejs/dms/checks/api-error-presentation'; assertApiErrorPresentation(['app']);\"",
+    "lint": "eslint . && node --input-type=module -e \"import { assertApiErrorPresentation } from '@antelopejs/dms/checks/api-error-presentation'; assertApiErrorPresentation(['app']);\" && node --input-type=module -e \"import { assertDmsComponents } from '@antelopejs/dms/checks/dms-components'; await assertDmsComponents({ layer: '.', sources: ['../src'] });\"",
     "lint:fix": "eslint . --fix",
     "test": "vitest run"
   },
