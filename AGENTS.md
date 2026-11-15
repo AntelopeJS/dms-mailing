@@ -49,12 +49,6 @@ other shape. Release the interface first (**Release DMS mailing interface**),
 then the module (**Release DMS mailing module**), which refuses to run until
 the version in `packages/interface-dms-mailing/package.json` resolves on npm.
 
-## Orb
-
-`.agents/setup` belongs to the guardrail pack. The AntelopeJS CLI, MongoDB and
-the playground build live in `.agents/playground`, which the
-`dms-mailing-backend` service runs before it starts.
-
 <!-- antelopejs-guardrails:start -->
 <!-- Managed by @antelopejs/tooling-configs. `antelopejs-sync` rewrites everything between these markers; write repository-specific guidance outside them. -->
 
