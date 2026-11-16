@@ -167,7 +167,8 @@ describe("[integration] send figures", function () {
           category: template.category,
         }),
       );
-    for (const row of fixture(now)) await sends.insertImported(row);
+    const rows = fixture(now);
+    for (const row of rows) await sends.insertImported(row);
 
     const answers: GoldenAnswers = new Map();
     for (const route of ROUTES) {
@@ -201,6 +202,9 @@ describe("[integration] send figures", function () {
         )[0],
       );
     }
+
+    await Promise.all(rows.map((row) => sends.delete(row._id)));
+    await Promise.all([...ids].map((id) => templates.delete(id)));
 
     if (process.env.SEND_FIGURES_RECORD) recordGolden(GOLDEN_FILE, answers);
     const golden = readGolden(GOLDEN_FILE);
