@@ -6,6 +6,7 @@ import { table } from "./templates-kit.mjs";
 export const journeys = [
   {
     id: "the-new-template-dialog-derives-the-slug-and-creates-with-the-keyboard",
+    tag: "@smoke",
     title: "New template and the N key open a dialog that derives the slug from the name, offers the starters, and Ctrl+Enter creates the template and opens the editor",
     entryPoint: "/modules/mailing/templates, New template, N, Ctrl+Enter",
     async run(/** @type {Ctx} */ ctx) {

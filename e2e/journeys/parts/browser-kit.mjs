@@ -20,7 +20,7 @@ export async function pageText(tab) {
 
 /**
  * @param {Tab} tab The tab
- * @param {import("../../../../../packages/dms-mailing/node_modules/@antelopejs/dms/bin/control/browser.mjs").Target} target The element
+ * @param {import("../../mailing.mjs").Target} target The element
  * @param {string} name The attribute
  * @returns {Promise<string>} The attribute, empty when missing
  */
@@ -30,7 +30,7 @@ export async function attributeOf(tab, target, name) {
 
 /**
  * @param {Tab} tab The tab
- * @param {import("../../../../../packages/dms-mailing/node_modules/@antelopejs/dms/bin/control/browser.mjs").Target} target The element
+ * @param {import("../../mailing.mjs").Target} target The element
  * @returns {Promise<boolean>} Whether a radio or checkbox is checked
  */
 export async function isChecked(tab, target) {
@@ -146,7 +146,7 @@ export async function radioNames(tab, name) {
 
 /**
  * @param {Tab} tab The tab
- * @param {import("../../../../../packages/dms-mailing/node_modules/@antelopejs/dms/bin/control/browser.mjs").Target} target The element
+ * @param {import("../../mailing.mjs").Target} target The element
  * @param {string} name The attribute
  * @returns {Promise<string>} The attribute, `absent` when no element matches, empty when the attribute is missing
  */

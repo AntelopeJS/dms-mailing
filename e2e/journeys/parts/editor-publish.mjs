@@ -70,6 +70,7 @@ async function publishFromReview(ctx, tab, id, version) {
 export const journeys = [
   {
     id: "ctrl-enter-opens-the-publish-review-and-publishing-from-it-goes-live",
+    tag: "@smoke",
     title: "Ctrl+Enter opens the publish review without publishing, Keep editing leaves the template a draft with no version, Publish v1 makes it live with version 1 and customers receive that subject, and a later change publishes as v2 the same way",
     entryPoint: "/modules/mailing/templates/<id>, Ctrl+Enter, POST /api/mailing/templates/:id/publish",
     async run(/** @type {Ctx} */ ctx) {

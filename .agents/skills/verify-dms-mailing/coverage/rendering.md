@@ -17,9 +17,9 @@ Journey ids are `rendering/<id>`. mp = every-e-mail-is-multipart-alternative-wit
 | § Footer links: `{{unsubscribeUrl}}` anywhere declares the variable, required in marketing | settings (guards) | a marketing send without it is refused naming unsubscribeUrl |
 | § Footer links: manual real send refused; under Refuse every send except a test | settings | `the-missing-variables-guard-refuses-or-sends-anyway` |
 | § Footer links: starters and non-marketing templates get a footer without links | Not driven | creating a template from a starter belongs to the templates feature; no check here |
-| § Header logo: from branding.logo.email.light, else default.light, made absolute with clientBaseUrl | Not driven | the branding is the dashboard front end's app config, built into the DMS front end, not changeable per run |
+| § Header logo: from branding.logo.email.light, else default.light, made absolute with clientBaseUrl | hr, editor/the-canvas-header-shows-the-logo-the-sent-e-mail-carries | the playground's frontend layer sets branding.logo.email.light to a public PNG next to the default SVG: the DMS chain draws that PNG; default.light alone and the clientBaseUrl join are Not driven, since the branding is built into the run's dashboard |
 | § Header logo: dark mode gets branding.logo.email.dark | Not driven | same reason |
-| § Header logo: left out for a non-http(s) URL, localhost, private IP, .local .localhost .internal, SVG | hr | the default logo is an SVG at a private host: no `<img>` in the DMS chain or the standalone renderer; the other hosts and schemes are Not driven (branding) |
+| § Header logo: left out for a non-http(s) URL, localhost, private IP, .local .localhost .internal, SVG | Not driven | the run's branding is built into its dashboard, so it gives one e-mail logo, a public PNG |
 | FAQ § logo missing: the standalone renderer draws no logo | hr | no image |
 | 3.configuration § useHtmlRender default true: DMS html-render chain | hr | lower-case doctype and the DMS layout markup when unset and for `1` |
 | § useHtmlRender false: the module's standalone HTML renderer | hr | upper-case doctype, 600 pixel table, hidden preheader span, viewport tag, ordered blocks |

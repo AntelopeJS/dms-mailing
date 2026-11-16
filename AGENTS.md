@@ -30,6 +30,10 @@ backend suite runs in its own CI job, so run it when your change touches
   CI after its single build) both skip the build and test the existing `dist/`.
   Set it only after building the current sources; otherwise tests use stale
   output.
+- `pnpm e2e` runs the verify skill's journeys (`e2e/journeys`) as a Playwright
+  suite against one `dms-control` run; `--grep @smoke` or `-g <journey id>`
+  narrows it. CI runs the `@smoke` set on the full tier and every journey
+  nightly. A change to a journey runs that journey.
 - A change to the webhook event handling or the send retention also runs the
   TLA+ check in
   [`.agents/skills/formal-dms-mailing/SKILL.md`](.agents/skills/formal-dms-mailing/SKILL.md).

@@ -27,6 +27,9 @@ export const accessJourneys = [
     id: "every-mailing-route-answers-401-without-a-session-and-403-to-a-member",
     title: "every route of the mailing API answers 401 without a session and 403 `Forbidden: missing permission <page>` to a member even when its role grants every mailing permission (mailing.send and the page grants), while the owner is let in; the mailing.send gate is never reached by a member",
     entryPoint: "every /api/mailing route",
+    knownFailures: {
+      "a role granting everything passes the guard": "the DMS 0.20.7 page guard answers 403 `Forbidden: missing permission modules.mailing.configure.settings` to a member whose role holds `*`",
+    },
     async run(ctx) {
       await declareLive(ctx, "access-order", { variables: [] });
       await member(ctx, "everything", EVERYTHING);

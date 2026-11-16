@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "main": "dist/index.js",
+  "dmsFrontend": "dist/frontend-module.js",
   "antelopeJs": {
     "baseUrl": "dist"
   }

@@ -3,6 +3,7 @@ covers:
   - packages/dms-mailing/src/services/declarations.ts
   - packages/dms-mailing/src/services/declaration-error.ts
   - packages/dms-mailing/src/services/sender-declaration.ts
+  - packages/dms-mailing/src/services/webhook-secret-declaration.ts
   - packages/dms-mailing/src/services/send-import.ts
   - packages/dms-mailing/src/services/localized-text.ts
   - packages/dms-mailing/src/validation/declarations.schema.ts
