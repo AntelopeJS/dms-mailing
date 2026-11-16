@@ -4,6 +4,7 @@ Sources: docs/4.usage/3.editor.md, 5.extending (Amounts and dates, Footer links)
 
 | Behaviour (page, section) | Journey | Check |
 |---|---|---|
+| The canvas header shows the logo the sent e-mail carries: branding.logo.email.light before default.light (#158) | the-canvas-header-shows-the-logo-the-sent-e-mail-carries | one header image, the e-mail PNG; the test e-mail's HTML draws the same URL |
 | Edits stay in a draft; real sends use the published version (Draft, test, publish; FAQ) | edits-stay-in-a-draft-until-published | a save writes a draft next to the published content; a real send uses the published version |
 | Discard draft drops the changes and goes back to the published version | edits-stay-in-a-draft-until-published | discard goes back to the published version |
 | Content put back as published leaves no draft | edits-stay-in-a-draft-until-published | content put back as published leaves no draft |

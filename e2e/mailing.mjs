@@ -18,6 +18,9 @@ export const MAILING = "/api/mailing";
 /** The verification playground's trusted backend calls (`.agents/skills/verify-dms-mailing/playground/src/fixture.ts`). */
 export const FIXTURE = "/verify-mailing";
 
+/** The e-mail logo the playground's branding gives next to the default SVG one (`.agents/skills/verify-dms-mailing/playground/frontend-vue/app/app.config.ts`). */
+export const EMAIL_LOGO = "https://www.example.com/verify-dms-mailing/email-logo.png";
+
 /** The tenant of a single-tenant DMS. */
 export const TENANT = "default";
 
