@@ -102,6 +102,7 @@ const config: VerifyConfig = {
         `${MODULE}/src/db/models/sends.model.ts`,
         `${MODULE}/src/db/models/send-events.model.ts`,
         `${MODULE}/src/crons/retention.ts`,
+        `${MODULE}/src/services/send-import.ts`,
       ],
       files: [`${FORMAL}/**`],
       command: ["node", `${FORMAL}/check.mjs`],
