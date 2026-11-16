@@ -5,7 +5,7 @@ import {
   IsDuplicateKeyError,
   type ValueProxy,
 } from "@antelopejs/interface-database";
-import { isResolvedStage, stageOf } from "../../types";
+import { isResolvedStage, RESOLVED_STAGE, stageOf } from "../../types";
 import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
 
 const FIRST_ROW_OFFSET = 0;
@@ -45,6 +45,14 @@ const SEND_SUMMARY_FIELDS = [
 export type SendSummary = Pick<
   MailingSend,
   (typeof SEND_SUMMARY_FIELDS)[number]
+>;
+
+const SEND_FAILURE_FIELDS = ["_id", "recipientEmail"] as const;
+
+/** A provider failure as the bulk send again reads it. */
+export type SendFailure = Pick<
+  MailingSend,
+  (typeof SEND_FAILURE_FIELDS)[number]
 >;
 
 type SendActivity = Pick<
@@ -143,6 +151,23 @@ export class SendModel extends BasicDataModel(
       .filter((row) => row.key("createdAt").ge(from))
       .filter((row) => row.key("createdAt").lt(to))
       .pluck(...SEND_SUMMARY_FIELDS)
+      .run();
+  }
+
+  /**
+   * The provider failures made from `from` until `to`, oldest first: failed,
+   * not a test, not already sent again. The database filters them, so a long
+   * window of other sends is never read.
+   */
+  listProviderFailures(from: Date, to: Date): Promise<SendFailure[]> {
+    return this.table
+      .getAll("failed", "status")
+      .filter((row) => row.key("createdAt").ge(from))
+      .filter((row) => row.key("createdAt").lt(to))
+      .filter((row) => row.key("isTest").ne(true))
+      .filter((row) => row.key("stage").ne(RESOLVED_STAGE))
+      .orderBy("createdAt", "asc")
+      .pluck(...SEND_FAILURE_FIELDS)
       .run();
   }
 
