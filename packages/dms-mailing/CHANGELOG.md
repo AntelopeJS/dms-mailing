@@ -1,6 +1,38 @@
 # Changelog
 
 
+## v0.10.3
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.2...v0.10.3)
+
+### 🔥 Performance
+
+- **sends:** Filter provider failures in the query when sending them again ([#193](https://github.com/AntelopeJS/dms-mailing/pull/193))
+- **metrics:** Count send figures in the database query ([#194](https://github.com/AntelopeJS/dms-mailing/pull/194))
+
+### 🩹 Fixes
+
+- **release:** Build the interface before the release lint ([#195](https://github.com/AntelopeJS/dms-mailing/pull/195))
+- **deps:** Depend on the stable @antelopejs/tooling-configs
+
+### 💅 Refactors
+
+- **frontend:** Check DMS component names with the shared assertDmsComponents ([#184](https://github.com/AntelopeJS/dms-mailing/pull/184))
+
+### 📦 Build
+
+- **deps:** Move to the batch drivers and the 15 November platform releases ([#185](https://github.com/AntelopeJS/dms-mailing/pull/185))
+- Move to @antelopejs/tooling-configs 0.8 and the three-tier CI ([#186](https://github.com/AntelopeJS/dms-mailing/pull/186))
+- **release:** Publish dms-mailing through the shared release hook ([#188](https://github.com/AntelopeJS/dms-mailing/pull/188))
+
+### ✅ Tests
+
+- **e2e:** Run the verify skill's journeys as a Playwright suite in CI ([#191](https://github.com/AntelopeJS/dms-mailing/pull/191))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.10.2
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.1...v0.10.2)
