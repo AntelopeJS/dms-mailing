@@ -75,8 +75,12 @@ export interface SendScope {
 export type TallyGroup =
   | { by: "none" }
   | { by: "template" }
-  | { by: "domain" }
   | { by: "source" }
+  /**
+   * The recipient's domain, lower-cased once the query answered: the
+   * database folds ASCII letters only. Two tallies can then share a domain.
+   */
+  | { by: "domain" }
   /** The day of the window, counted from `from` in whole days. */
   | { by: "day"; from: Date };
 
@@ -128,11 +132,7 @@ function groupKey(row: ValueProxy<MailingSend>, group: TallyGroup) {
     case "template":
       return row.key("templateSlug");
     case "domain":
-      return row
-        .key("recipientEmail")
-        .split("@")
-        .index(LAST_ELEMENT)
-        .downcase();
+      return row.key("recipientEmail").split("@").index(LAST_ELEMENT);
     case "source":
       return row.key("source").default("");
     case "day":
@@ -291,7 +291,12 @@ export class SendModel extends BasicDataModel(
         lastAtMs: sends.max("atMs"),
       }))
       .run();
-    return rows.map(({ traits, ...counts }) => ({ ...traits, ...counts }));
+    return rows.map(({ traits, ...counts }) => ({
+      ...traits,
+      key:
+        group.by === "domain" ? String(traits.key).toLowerCase() : traits.key,
+      ...counts,
+    }));
   }
 
   /** The latency of each send of `scope` that left for the provider. */
