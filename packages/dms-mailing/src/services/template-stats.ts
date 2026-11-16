@@ -1,5 +1,5 @@
 import type { FallbackTally, SendTally } from "../db";
-import { aggregate, countOf, tallyGroups } from "./metrics";
+import { aggregate, byFirstSend, countOf, tallyGroups } from "./metrics";
 import { PROBLEM_STATUSES } from "../types";
 
 /** What a template card and the details drawer say about recent sends. */
@@ -68,10 +68,18 @@ export function sourcesOf(bySource: SendTally[]): SourceCount[] {
     .slice(0, MAX_SOURCES);
 }
 
-/** The locale fallbacks, the one whose first send came first, first. */
+/**
+ * The locale fallbacks, the one whose first send came first, first; a tie on
+ * the millisecond follows the requested then the used locale.
+ */
 export function fallbacksOf(fallbacks: FallbackTally[]): FallbackCount[] {
   return [...fallbacks]
-    .sort((left, right) => left.firstAtMs - right.firstAtMs)
+    .sort(
+      byFirstSend(
+        (fallback) => fallback.firstAtMs,
+        (fallback) => `${fallback.requested}>${fallback.used}`,
+      ),
+    )
     .map(({ requested, used, count }) => ({ requested, used, count }));
 }
 

@@ -328,15 +328,32 @@ export function tallySends(
   return [...tallies.values()];
 }
 
+/** Orders by `atMs`, then by `key` where two share a millisecond. */
+export function byFirstSend<Item>(
+  atMs: (item: Item) => number,
+  key: (item: Item) => string,
+): (left: Item, right: Item) => number {
+  return (left, right) => {
+    const byTime = atMs(left) - atMs(right);
+    if (byTime) return byTime;
+    const [leftKey, rightKey] = [key(left), key(right)];
+    return leftKey < rightKey ? -1 : Number(leftKey > rightKey);
+  };
+}
+
 /**
  * The tallies of each group, groups in the order of their earliest send: the
- * order a read of the sends in the order they were made meets them.
+ * order a read of the sends in the order they were made meets them. Groups
+ * whose earliest sends share a millisecond follow their key.
  */
 export function tallyGroups(tallies: SendTally[]): Map<TallyKey, SendTally[]> {
-  const byFirstSend = [...tallies].sort(
-    (left, right) => left.firstAtMs - right.firstAtMs,
+  const ordered = [...tallies].sort(
+    byFirstSend(
+      (tally) => tally.firstAtMs,
+      (tally) => String(tally.key),
+    ),
   );
-  return groupBy(byFirstSend, (tally) => tally.key);
+  return groupBy(ordered, (tally) => tally.key);
 }
 
 export function domainOf(email: string): string {

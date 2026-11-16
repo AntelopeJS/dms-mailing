@@ -78,6 +78,17 @@ describe("[unit] services/template-stats", () => {
     ).to.deep.equal(["billing", "checkout"]);
   });
 
+  it("orders sources tied to the millisecond by their name", () => {
+    expect(
+      sourcesOf(
+        tallyBySource([
+          send("sent", { source: "checkout" }),
+          send("sent", { source: "billing" }),
+        ]),
+      ).map((row) => row.source),
+    ).to.deep.equal(["billing", "checkout"]);
+  });
+
   it("lists the locale fallbacks in the order of their first send", () => {
     expect(
       fallbacksOf([
