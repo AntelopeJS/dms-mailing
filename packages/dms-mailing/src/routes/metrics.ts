@@ -13,14 +13,23 @@ import type { KpiCardData, TopListItem } from "@antelopejs/interface-dms/base";
 import type { ComposedText } from "@antelopejs/interface-dms/base/types";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { API_BASE_PATH, HTTP_NOT_FOUND } from "../constants";
-import { isMarketingCategory } from "../engine";
 import {
-  type SendSummary,
   type MailingTemplate,
+  type SendScope,
   SendModel,
+  type SendTally,
+  type TallyGroup,
+  type TallyKey,
   TemplateModel,
 } from "../db";
 import { OverviewPageController } from "../pages/overview";
+import {
+  comparedSteps,
+  filterByKind,
+  type FunnelStepResponse,
+  funnelSteps,
+  readFunnelKind,
+} from "../services/funnel";
 import { readCapabilities } from "../services/provider";
 import { trackingOf } from "../services/send-stats";
 import { localeOfRequest } from "../services/localized-text";
@@ -29,16 +38,19 @@ import { attentionFeedItem, buildAttentionItems } from "../services/attention";
 import {
   aggregate,
   alignSeries,
+  countOf,
+  dailyLatencies,
   dailySeries,
   dailyValues,
   deltaPercent,
-  domainOf,
   forAudience,
   groupBy,
   isDeliveryUntracked,
+  latencyMedian,
+  leavesOutTests,
   leftForProvider,
-  ratio,
   readAudience,
+  tallyGroups,
   type DateRange,
   type ProviderTracking,
   type Totals,
@@ -71,8 +83,19 @@ const KPI_EXTRACTORS = new Map<string, TotalsExtractor>([
   ["bounces", (totals) => totals.bounced],
   ["unsubscribes", (totals) => totals.unsubscribed],
   ["queued", (totals) => totals.queued],
-  ["latency", (totals) => totals.latencyMedian],
 ]);
+
+/** The KPI read from each send's latency rather than from the tallies. */
+const LATENCY_METRIC = "latency";
+
+const BY_TEMPLATE: TallyGroup = { by: "template" };
+const BY_DOMAIN: TallyGroup = { by: "domain" };
+
+/** A window's sends counted per day, day 0 being the window's first. */
+const byDay = (range: DateRange): TallyGroup => ({
+  by: "day",
+  from: range.from,
+});
 
 /** The KPIs read from delivery events: unmeasured when nothing reports them. */
 const DELIVERY_METRICS = new Set(["deliverability", "open-rate", "click-rate"]);
@@ -101,66 +124,10 @@ const TOP_METRICS = new Map<string, TopMetric>([
 ]);
 const DEFAULT_TOP_METRIC = OPEN_RATE_METRIC;
 
-interface FunnelStepDefinition {
-  id: string;
-  count: (totals: Totals) => number;
-  /** What the step's rate is a share of, the base its KPI uses. */
-  base: (totals: Totals) => number;
-  /** Counted from events the provider reports back. */
-  isDeliveryEvent: boolean;
-}
-
-const FUNNEL_STEPS: FunnelStepDefinition[] = [
-  {
-    id: "sent",
-    count: (totals) => totals.sends,
-    base: (totals) => totals.sends,
-    isDeliveryEvent: false,
-  },
-  {
-    id: "delivered",
-    count: (totals) => totals.delivered,
-    base: (totals) => totals.sends,
-    isDeliveryEvent: true,
-  },
-  {
-    id: "opened",
-    count: (totals) => totals.opened,
-    base: (totals) => totals.delivered,
-    isDeliveryEvent: true,
-  },
-  {
-    id: "clicked",
-    count: (totals) => totals.clicked,
-    base: (totals) => totals.delivered,
-    isDeliveryEvent: true,
-  },
-  {
-    id: "unsubscribed",
-    count: (totals) => totals.unsubscribed,
-    base: (totals) => totals.delivered,
-    isDeliveryEvent: false,
-  },
-];
-
-export interface FunnelStepResponse {
-  id: string;
-  label: string;
-  count: number;
-  /** Share of the step's base, as its KPI counts it; `null` on an empty base. */
-  rate: number | null;
-  /** `false` when nothing reports the events the step counts. */
-  isMeasured: boolean;
-  /** The step's count over the comparison window, when both measure it. */
-  previousCount?: number;
-  /** The change of the count, in percent; absent from an empty comparison. */
-  delta?: number;
-}
-
 /** The sends of the window the figures are compared with. */
 export interface ComparedWindow {
   range: DateRange;
-  sends: SendSummary[];
+  sends: SendTally[];
   /** What the comparison series is called: the previous period, year… */
   label: string;
 }
@@ -206,21 +173,56 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     return readAudience(this.ctx.url.searchParams.get(SEND_AUDIENCE_QUERY_KEY));
   }
 
-  private async load(range: DateRange): Promise<SendSummary[]> {
-    const rows = await this.sends.listBetween(range.from, range.to);
-    return forAudience(rows, this.audience);
+  private scopeOf(range: DateRange): SendScope {
+    return {
+      from: range.from,
+      to: range.to,
+      isTestLeftOut: leavesOutTests(this.audience),
+    };
+  }
+
+  /** The window's sends of this audience, tallied per `group` of the window. */
+  private load(
+    range: DateRange,
+    group: (range: DateRange) => TallyGroup,
+  ): Promise<SendTally[]> {
+    return this.sends.tally(this.scopeOf(range), group(range));
   }
 
   /** The comparison window and its sends; `null` when the user turned it off. */
   private async loadComparison(
     range: DateRange,
+    group: (range: DateRange) => TallyGroup,
   ): Promise<ComparedWindow | null> {
     if (!isComparisonWanted(this.ctx)) return null;
     const previousRange = comparisonRange(this.ctx, range);
     return {
       range: previousRange,
-      sends: await this.load(previousRange),
+      sends: await this.load(previousRange, group),
       label: comparisonLabel(this.ctx),
+    };
+  }
+
+  /**
+   * The latency KPI: a median, which the database cannot compute, so it
+   * reads the latency of every send of the window.
+   */
+  private async latencyKpi(range: DateRange): Promise<KpiCardData> {
+    const previousRange = isComparisonWanted(this.ctx)
+      ? comparisonRange(this.ctx, range)
+      : null;
+    const [current, previous] = await Promise.all([
+      this.sends.listLatencies(this.scopeOf(range)),
+      previousRange
+        ? this.sends.listLatencies(this.scopeOf(previousRange))
+        : null,
+    ]);
+    return {
+      ...comparedFigure(
+        latencyMedian(current),
+        previous ? latencyMedian(previous) : null,
+      ),
+      sparkline: dailyLatencies(current, range),
     };
   }
 
@@ -228,12 +230,13 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   async kpi(
     @Parameter("metric", "param") metric: string,
   ): Promise<KpiCardData> {
+    const range = currentRange(this.ctx);
+    if (metric === LATENCY_METRIC) return this.latencyKpi(range);
     const extract = KPI_EXTRACTORS.get(metric);
     assert(extract, HTTP_NOT_FOUND, UNKNOWN_METRIC);
-    const range = currentRange(this.ctx);
     const [current, previous, tracking] = await Promise.all([
-      this.load(range),
-      this.loadComparison(range),
+      this.load(range, byDay),
+      this.loadComparison(range, byDay),
       readTracking(),
     ]);
     if (isUnmeasured(metric, current, tracking)) return {};
@@ -248,8 +251,8 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   async volume() {
     const range = currentRange(this.ctx);
     const [current, previous] = await Promise.all([
-      this.load(range),
-      this.loadComparison(range),
+      this.load(range, byDay),
+      this.loadComparison(range, byDay),
     ]);
     return volumeChart(current, range, previous);
   }
@@ -261,15 +264,14 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
       DEFAULT_TOP_METRIC;
     const range = currentRange(this.ctx);
     const [sends, previous, templates] = await Promise.all([
-      this.load(range),
-      this.loadComparison(range),
+      this.load(range, () => BY_TEMPLATE),
+      this.loadComparison(range, () => BY_TEMPLATE),
       this.namedTemplates(),
     ]);
-    const bySlug = (send: SendSummary) => send.templateSlug;
-    const before = previous ? totalsBy(previous.sends, bySlug) : null;
-    const items = [...groupBy(sends, bySlug)].map(([slug, rows]) =>
+    const before = previous ? totalsBy(previous.sends) : null;
+    const items = [...tallyGroups(sends)].map(([slug, rows]) =>
       toTemplateItem(
-        slug,
+        String(slug),
         aggregate(rows),
         templates,
         metric,
@@ -283,13 +285,12 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
   async domains() {
     const range = currentRange(this.ctx);
     const [sends, previous] = await Promise.all([
-      this.load(range),
-      this.loadComparison(range),
+      this.load(range, () => BY_DOMAIN),
+      this.loadComparison(range, () => BY_DOMAIN),
     ]);
-    const byDomain = (send: SendSummary) => domainOf(send.recipientEmail);
-    const before = previous ? totalsBy(previous.sends, byDomain) : null;
-    const items = [...groupBy(sends, byDomain)].map(([domain, rows]) =>
-      toDomainItem(domain, aggregate(rows), before?.get(domain)),
+    const before = previous ? totalsBy(previous.sends) : null;
+    const items = [...tallyGroups(sends)].map(([domain, rows]) =>
+      toDomainItem(String(domain), aggregate(rows), before?.get(domain)),
     );
     return { items: ranked(items, MAX_TOP_DOMAINS) };
   }
@@ -299,12 +300,12 @@ export class MetricsController extends Controller(`${API_BASE_PATH}/metrics`) {
     const kind = readFunnelKind(this.ctx.url.searchParams.get("kind"));
     const range = currentRange(this.ctx);
     const [sends, previous, templates, tracking] = await Promise.all([
-      this.load(range),
-      this.loadComparison(range),
+      this.load(range, () => BY_TEMPLATE),
+      this.loadComparison(range, () => BY_TEMPLATE),
       this.namedTemplates(),
       readTracking(),
     ]);
-    const funnelOf = (rows: SendSummary[]): FunnelStepResponse[] => {
+    const funnelOf = (rows: SendTally[]): FunnelStepResponse[] => {
       const kept = filterByKind(rows, templates, kind);
       return funnelSteps(aggregate(kept), isDeliveryUntracked(kept, tracking));
     };
@@ -378,8 +379,8 @@ export function comparedFigure(
  */
 export function kpiFigure(
   extract: TotalsExtractor,
-  current: SendSummary[],
-  previous: SendSummary[] | null,
+  current: SendTally[],
+  previous: SendTally[] | null,
   range: DateRange,
 ): KpiCardData {
   const value = extract(aggregate(current));
@@ -396,7 +397,7 @@ export function kpiFigure(
  */
 export function isUnmeasured(
   metric: string,
-  sends: SendSummary[],
+  sends: SendTally[],
   tracking: ProviderTracking | null,
 ): boolean {
   return DELIVERY_METRICS.has(metric) && isDeliveryUntracked(sends, tracking);
@@ -407,97 +408,33 @@ export function isUnmeasured(
  * suppressed send never left, so it is not counted, as in the Sends KPI.
  */
 export function volumeChart(
-  current: SendSummary[],
+  current: SendTally[],
   range: DateRange,
   previous: ComparedWindow | null,
 ) {
   const sent = current.filter(leftForProvider);
   const previousSent = previous?.sends.filter(leftForProvider) ?? null;
-  const series = dailySeries(sent, range.from, range.to);
+  const series = dailySeries(sent, range);
   const comparisonSeries =
     previous && previousSent
       ? [
           {
             name: previous.label,
             data: alignSeries(
-              dailySeries(previousSent, previous.range.from, previous.range.to),
+              dailySeries(previousSent, previous.range),
               series,
             ),
           },
         ]
       : [];
   return {
-    ...comparedFigure(sent.length, previousSent ? previousSent.length : null),
+    ...comparedFigure(
+      countOf(sent),
+      previousSent ? countOf(previousSent) : null,
+    ),
     series: [{ name: "$dms_mailing.metrics.sends", data: series }],
     comparisonSeries,
   };
-}
-
-export function funnelSteps(
-  totals: Totals,
-  isUntracked: boolean,
-): FunnelStepResponse[] {
-  return FUNNEL_STEPS.map((step) => ({
-    id: step.id,
-    label: `$dms_mailing.funnel.${step.id}`,
-    count: step.count(totals),
-    rate: ratio(step.count(totals), step.base(totals)),
-    isMeasured: !(isUntracked && step.isDeliveryEvent),
-  }));
-}
-
-/**
- * The steps with their count over the comparison window, step by step. A step
- * either window does not measure states no comparison: a zero there would
- * read as a fall that never happened.
- */
-export function comparedSteps(
-  current: FunnelStepResponse[],
-  previous: FunnelStepResponse[],
-): FunnelStepResponse[] {
-  return current.map((step) => {
-    const before = previous.find((candidate) => candidate.id === step.id);
-    if (!step.isMeasured || !before?.isMeasured) return step;
-    const compared: FunnelStepResponse = {
-      ...step,
-      previousCount: before.count,
-    };
-    const delta = deltaPercent(step.count, before.count);
-    if (delta !== null) compared.delta = delta;
-    return compared;
-  });
-}
-
-/** Which sends the funnel counts: all, or one side of the marketing split. */
-export type FunnelKind = "all" | "marketing" | "transactional";
-
-const KIND_KEEPS: Record<FunnelKind, (category: string) => boolean> = {
-  all: () => true,
-  marketing: (category) => isMarketingCategory(category),
-  transactional: (category) => !isMarketingCategory(category),
-};
-
-const isFunnelKind = (raw: string): raw is FunnelKind =>
-  Object.hasOwn(KIND_KEEPS, raw);
-
-export function readFunnelKind(raw: string | null): FunnelKind {
-  return raw !== null && isFunnelKind(raw) ? raw : "all";
-}
-
-/**
- * Sends of the templates on one side of the split. A template's category
- * decides: "marketing" is the campaign side, everything else transactional.
- */
-export function filterByKind(
-  sends: SendSummary[],
-  templates: MailingTemplate[],
-  kind: FunnelKind,
-): SendSummary[] {
-  const categories = new Map(
-    templates.map((template) => [template.slug, template.category ?? ""]),
-  );
-  const keeps = KIND_KEEPS[kind];
-  return sends.filter((send) => keeps(categories.get(send.templateSlug) ?? ""));
 }
 
 /**
@@ -509,13 +446,13 @@ async function readTracking(): Promise<ProviderTracking | null> {
   return trackingOf(await readCapabilities());
 }
 
-/** The totals of each group of sends, by the key `keyOf` gives a send. */
-export function totalsBy(
-  sends: SendSummary[],
-  keyOf: (send: SendSummary) => string,
-): Map<string, Totals> {
+/** The totals of each group of tallies. */
+export function totalsBy(sends: SendTally[]): Map<TallyKey, Totals> {
   return new Map(
-    [...groupBy(sends, keyOf)].map(([key, rows]) => [key, aggregate(rows)]),
+    [...groupBy(sends, (send) => send.key)].map(([key, rows]) => [
+      key,
+      aggregate(rows),
+    ]),
   );
 }
 

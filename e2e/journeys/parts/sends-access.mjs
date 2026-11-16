@@ -28,6 +28,7 @@ async function templateOf(ctx, slug, live) {
 export const journeys = guarded([
   {
     id: "test-send-and-real-send-rules",
+    tag: "@smoke",
     title: "a test send is tagged [TEST] and left out of the figures; a real send needs a live template and counts; both take 1 to 5 valid addresses",
     entryPoint: "POST /api/mailing/templates/:id/test-send, POST /api/mailing/templates/:id/send",
     async run(/** @type {Ctx} */ ctx) {

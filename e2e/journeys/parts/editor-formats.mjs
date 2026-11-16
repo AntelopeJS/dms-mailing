@@ -32,7 +32,7 @@ async function sendBody(ctx, slug, locale, lines, variables) {
 
 export const journeys = [
   {
-    id: "amounts-and-dates-are-written-in-the-locale-of-the-send",
+    id: "declared-variables-write-amounts-and-dates-in-the-locale-of-the-send",
     title: "a money value, a Date and a declared date are written for the locale of the send, while other values, numbers and formatted strings go out as given",
     entryPoint: "SendTemplate with content, variables and locale",
     async run(/** @type {Ctx} */ ctx) {

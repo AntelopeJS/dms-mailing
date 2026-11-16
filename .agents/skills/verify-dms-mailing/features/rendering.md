@@ -23,7 +23,7 @@ What a recipient receives: the multipart message, the HTML and plain-text parts,
 
 - `every-e-mail-is-multipart-alternative-with-html-and-plain-text-from-the-same-blocks`: the structure, the plain text of every block kind, French labels, the three send paths.
 - `footer-links-are-system-variables-dropped-when-missing-or-unlabelled`: both links, a missing URL, an empty label, an empty footer.
-- `use-html-render-picks-the-renderer-and-a-failing-renderer-falls-back`: the DMS chain, the standalone renderer, a failing renderer and its log line, the same text, no logo.
+- `use-html-render-picks-the-renderer-and-a-failing-renderer-falls-back`: the DMS chain, the standalone renderer, a failing renderer and its log line, the same text, the branding's e-mail logo in the DMS chain and none in the standalone renderer.
 
 ## How to get to it (user POV)
 
@@ -40,5 +40,5 @@ The journeys read the raw message files of the mail sink (`message.file`), decod
 ## Gotchas
 
 - The fixture change that makes `broken` possible is in `playground/antelope.config.ts`.
-- The DMS branding logo is an SVG, so no logo is ever drawn in the playground; the other logo rules cannot be driven.
+- The playground's frontend layer (`playground/frontend-vue/app/app.config.ts`) gives the branding an e-mail logo, a public PNG (`EMAIL_LOGO` in `e2e/mailing.mjs`), next to the default SVG one. It is built into the run's dashboard, so a journey cannot change it; the other logo rules cannot be driven.
 - The backend log is read by byte offset; the warning appears within a second of the send.

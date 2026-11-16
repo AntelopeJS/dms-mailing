@@ -37,4 +37,5 @@ Members come from `member(ctx, name, permissions)`; the export archive is built 
 ## Gotchas
 
 - Module pages are owner-only in the DMS: a member holding every mailing permission id still gets `Forbidden: missing permission modules.mailing.<page>`, so the `mailing.send` gate (`missing_send_permission`) is never reached by a member.
+- Known failure: with DMS 0.20.7 a role holding `*` no longer passes the page guard either (`Forbidden: missing permission modules.mailing.configure.settings`), so `every-mailing-route-answers-401-without-a-session-and-403-to-a-member` lists `a role granting everything passes the guard` in its `knownFailures`.
 - The Sends page holds new rows behind "1 new send / Show", and the figures window ends when the page loaded.

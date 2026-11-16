@@ -1,5 +1,5 @@
 import { readFileSync, statSync } from "node:fs";
-import { check, mailing, text, withConfig } from "../../mailing.mjs";
+import { check, EMAIL_LOGO, mailing, text, withConfig } from "../../mailing.mjs";
 import { block, declareRich, inOrder, RICH_BLOCKS, RICH_VARIABLES, sentMessage } from "./render-kit.mjs";
 
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
@@ -100,7 +100,7 @@ export const mailJourneys = [
   },
   {
     id: "use-html-render-picks-the-renderer-and-a-failing-renderer-falls-back",
-    title: "useHtmlRender true (the default) draws the e-mail through the DMS html-render chain, false through the module's standalone renderer; when the DMS renderer fails the module sends with the standalone one and logs `[dms-mailing] html-render unavailable, using fallback`; the plain text is the same either way and neither draws a logo, which the DMS branding gives as an SVG or at a host a mail client cannot load",
+    title: "useHtmlRender true (the default) draws the e-mail through the DMS html-render chain, false through the module's standalone renderer; when the DMS renderer fails the module sends with the standalone one and logs `[dms-mailing] html-render unavailable, using fallback`; the plain text is the same either way; the DMS chain draws the branding's e-mail logo and the standalone renderer draws none",
     entryPoint: "VERIFY_MAILING_HTML_RENDER, SendTemplate",
     async run(ctx) {
       const template = await declareRich(ctx, "render-order", RICH_BLOCKS.filter((entry) => entry.type !== "hero"));
@@ -108,7 +108,7 @@ export const mailJourneys = [
       const chain = await sentMessage(ctx, template.slug, "rn-default");
       await ctx.verify("the default is the DMS chain", [
         check("lower-case doctype, the DMS layout and the viewport tag", chain.html.startsWith("<!doctype html>") && chain.html.includes(VIEWPORT) && chain.html.includes("max-width:37.5em"), chain.html.slice(0, 160)),
-        check("no logo: the layout draws none for a host a mail client cannot load", !chain.html.includes("<img"), chain.html.match(/<img[^>]*>/)?.[0]),
+        check("the layout draws the branding's e-mail logo", chain.html.includes(`src="${EMAIL_LOGO}"`), chain.html.match(/<img[^>]*>/)?.[0] ?? "no img"),
         check("nothing logged about a fallback", !logSince(ctx, beforeDefault).includes(FALLBACK_WARNING), "logged"),
       ]);
       /** @type {Record<string, { html: string, plain: string }>} */

@@ -1,0 +1,1816 @@
+{
+  "/api/mailing/metrics/kpi/sends?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 130,
+    "previousValue": 74,
+    "delta": 75.7,
+    "sparkline": [21, 20, 19, 22, 16, 18, 14]
+  },
+  "/api/mailing/metrics/kpi/sends?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 144,
+    "sparkline": [22, 22, 21, 22, 21, 18, 18]
+  },
+  "/api/mailing/metrics/kpi/sends?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {
+    "value": 12,
+    "previousValue": 0,
+    "sparkline": [12, 0]
+  },
+  "/api/mailing/metrics/kpi/sends?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 129,
+    "previousValue": 74,
+    "delta": 74.3,
+    "sparkline": [19, 21, 18, 22, 16, 19, 14]
+  },
+  "/api/mailing/metrics/kpi/deliverability?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 56.15384615384615,
+    "previousValue": 55.4054054054054,
+    "delta": 1.4,
+    "sparkline": [
+      57.14285714285714, 60, 52.63157894736842, 63.63636363636363, 43.75,
+      66.66666666666666, 42.857142857142854
+    ]
+  },
+  "/api/mailing/metrics/kpi/deliverability?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 55.55555555555556,
+    "sparkline": [
+      54.54545454545454, 54.54545454545454, 52.38095238095239,
+      63.63636363636363, 47.61904761904761, 66.66666666666666, 50
+    ]
+  },
+  "/api/mailing/metrics/kpi/deliverability?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {},
+  "/api/mailing/metrics/kpi/deliverability?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 55.81395348837209,
+    "previousValue": 55.4054054054054,
+    "delta": 0.7,
+    "sparkline": [
+      52.63157894736842, 66.66666666666666, 50, 59.09090909090909, 50,
+      63.1578947368421, 42.857142857142854
+    ]
+  },
+  "/api/mailing/metrics/kpi/open-rate?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 79.45205479452055,
+    "previousValue": 80.48780487804879,
+    "delta": -1.3,
+    "sparkline": [
+      83.33333333333334, 83.33333333333334, 70, 78.57142857142857,
+      71.42857142857143, 83.33333333333334, 83.33333333333334
+    ]
+  },
+  "/api/mailing/metrics/kpi/open-rate?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 80,
+    "sparkline": [
+      83.33333333333334, 83.33333333333334, 72.72727272727273,
+      78.57142857142857, 80, 83.33333333333334, 77.77777777777779
+    ]
+  },
+  "/api/mailing/metrics/kpi/open-rate?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {},
+  "/api/mailing/metrics/kpi/open-rate?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 79.16666666666666,
+    "previousValue": 80.48780487804879,
+    "delta": -1.6,
+    "sparkline": [
+      80, 85.71428571428571, 66.66666666666666, 76.92307692307693, 75,
+      83.33333333333334, 83.33333333333334
+    ]
+  },
+  "/api/mailing/metrics/kpi/click-rate?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 19.17808219178082,
+    "previousValue": 19.51219512195122,
+    "delta": -1.7,
+    "sparkline": [
+      16.666666666666664, 25, 20, 21.428571428571427, 14.285714285714285,
+      16.666666666666664, 16.666666666666664
+    ]
+  },
+  "/api/mailing/metrics/kpi/click-rate?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 20,
+    "sparkline": [
+      16.666666666666664, 25, 18.181818181818183, 21.428571428571427, 20,
+      16.666666666666664, 22.22222222222222
+    ]
+  },
+  "/api/mailing/metrics/kpi/click-rate?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {},
+  "/api/mailing/metrics/kpi/click-rate?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 19.444444444444446,
+    "previousValue": 19.51219512195122,
+    "delta": -0.3,
+    "sparkline": [
+      20, 21.428571428571427, 22.22222222222222, 23.076923076923077, 12.5,
+      8.333333333333332, 33.33333333333333
+    ]
+  },
+  "/api/mailing/metrics/kpi/bounces?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 15,
+    "previousValue": 8,
+    "delta": 87.5,
+    "sparkline": [3, 2, 3, 2, 1, 3, 1]
+  },
+  "/api/mailing/metrics/kpi/bounces?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 16,
+    "sparkline": [3, 2, 3, 2, 2, 3, 1]
+  },
+  "/api/mailing/metrics/kpi/bounces?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {
+    "value": 0,
+    "previousValue": 0,
+    "sparkline": [0, 0]
+  },
+  "/api/mailing/metrics/kpi/bounces?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 15,
+    "previousValue": 8,
+    "delta": 87.5,
+    "sparkline": [3, 2, 2, 3, 1, 3, 1]
+  },
+  "/api/mailing/metrics/kpi/unsubscribes?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 14,
+    "previousValue": 8,
+    "delta": 75,
+    "sparkline": [3, 1, 3, 1, 2, 2, 2]
+  },
+  "/api/mailing/metrics/kpi/unsubscribes?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 16,
+    "sparkline": [3, 1, 4, 1, 3, 2, 2]
+  },
+  "/api/mailing/metrics/kpi/unsubscribes?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {
+    "value": 0,
+    "previousValue": 0,
+    "sparkline": [0, 0]
+  },
+  "/api/mailing/metrics/kpi/unsubscribes?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 13,
+    "previousValue": 8,
+    "delta": 62.5,
+    "sparkline": [3, 1, 2, 2, 2, 2, 1]
+  },
+  "/api/mailing/metrics/kpi/queued?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 14,
+    "previousValue": 9,
+    "delta": 55.6,
+    "sparkline": [1, 2, 2, 2, 3, 1, 3]
+  },
+  "/api/mailing/metrics/kpi/queued?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 16,
+    "sparkline": [2, 3, 2, 2, 3, 1, 3]
+  },
+  "/api/mailing/metrics/kpi/queued?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {
+    "value": 3,
+    "previousValue": 0,
+    "sparkline": [3, 0]
+  },
+  "/api/mailing/metrics/kpi/queued?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 14,
+    "previousValue": 9,
+    "delta": 55.6,
+    "sparkline": [1, 2, 2, 2, 3, 1, 3]
+  },
+  "/api/mailing/metrics/kpi/latency?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 254,
+    "previousValue": 258,
+    "delta": -1.6,
+    "sparkline": [148, 254, 365, 182, 277, 273, 331]
+  },
+  "/api/mailing/metrics/kpi/latency?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none&audience=operational": {
+    "value": 240,
+    "sparkline": [148, 254, 365, 182, 256, 273, 310]
+  },
+  "/api/mailing/metrics/kpi/latency?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {
+    "value": 60,
+    "previousValue": 0,
+    "sparkline": [60, 0]
+  },
+  "/api/mailing/metrics/kpi/latency?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z": {
+    "value": 240,
+    "previousValue": 258,
+    "delta": -7,
+    "sparkline": [148, 254, 370, 161, 235, 346, 310]
+  },
+  "/api/mailing/metrics/volume?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "value": 130,
+    "previousValue": 74,
+    "delta": 75.7,
+    "series": [
+      {
+        "name": "$dms_mailing.metrics.sends",
+        "data": [
+          {
+            "x": "2001-03-01",
+            "y": 21
+          },
+          {
+            "x": "2001-03-02",
+            "y": 20
+          },
+          {
+            "x": "2001-03-03",
+            "y": 19
+          },
+          {
+            "x": "2001-03-04",
+            "y": 22
+          },
+          {
+            "x": "2001-03-05",
+            "y": 16
+          },
+          {
+            "x": "2001-03-06",
+            "y": 18
+          },
+          {
+            "x": "2001-03-07",
+            "y": 14
+          }
+        ]
+      }
+    ],
+    "comparisonSeries": [
+      {
+        "name": "$dms_mailing.metrics.previous",
+        "data": [
+          {
+            "x": "2001-03-01",
+            "y": 10
+          },
+          {
+            "x": "2001-03-02",
+            "y": 14
+          },
+          {
+            "x": "2001-03-03",
+            "y": 10
+          },
+          {
+            "x": "2001-03-04",
+            "y": 14
+          },
+          {
+            "x": "2001-03-05",
+            "y": 9
+          },
+          {
+            "x": "2001-03-06",
+            "y": 10
+          },
+          {
+            "x": "2001-03-07",
+            "y": 7
+          }
+        ]
+      }
+    ]
+  },
+  "/api/mailing/metrics/volume?from=2001-02-28T22:00:00.000Z&to=2001-03-07T21:59:59.999Z&audience=operational": {
+    "value": 143,
+    "previousValue": 81,
+    "delta": 76.5,
+    "series": [
+      {
+        "name": "$dms_mailing.metrics.sends",
+        "data": [
+          {
+            "x": "2001-03-01",
+            "y": 20
+          },
+          {
+            "x": "2001-03-02",
+            "y": 22
+          },
+          {
+            "x": "2001-03-03",
+            "y": 21
+          },
+          {
+            "x": "2001-03-04",
+            "y": 22
+          },
+          {
+            "x": "2001-03-05",
+            "y": 21
+          },
+          {
+            "x": "2001-03-06",
+            "y": 19
+          },
+          {
+            "x": "2001-03-07",
+            "y": 18
+          }
+        ]
+      }
+    ],
+    "comparisonSeries": [
+      {
+        "name": "$dms_mailing.metrics.previous",
+        "data": [
+          {
+            "x": "2001-03-01",
+            "y": 9
+          },
+          {
+            "x": "2001-03-02",
+            "y": 14
+          },
+          {
+            "x": "2001-03-03",
+            "y": 12
+          },
+          {
+            "x": "2001-03-04",
+            "y": 13
+          },
+          {
+            "x": "2001-03-05",
+            "y": 13
+          },
+          {
+            "x": "2001-03-06",
+            "y": 10
+          },
+          {
+            "x": "2001-03-07",
+            "y": 10
+          }
+        ]
+      }
+    ]
+  },
+  "/api/mailing/metrics/volume?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z&comparison=none": {
+    "value": 12,
+    "series": [
+      {
+        "name": "$dms_mailing.metrics.sends",
+        "data": [
+          {
+            "x": "2001-06-01",
+            "y": 12
+          },
+          {
+            "x": "2001-06-02",
+            "y": 0
+          }
+        ]
+      }
+    ],
+    "comparisonSeries": []
+  },
+  "/api/mailing/metrics/funnel?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&kind=all": {
+    "steps": [
+      {
+        "id": "sent",
+        "label": "$dms_mailing.funnel.sent",
+        "count": 130,
+        "rate": 100,
+        "isMeasured": true,
+        "previousCount": 74,
+        "delta": 75.7
+      },
+      {
+        "id": "delivered",
+        "label": "$dms_mailing.funnel.delivered",
+        "count": 73,
+        "rate": 56.15384615384615,
+        "isMeasured": true,
+        "previousCount": 41,
+        "delta": 78
+      },
+      {
+        "id": "opened",
+        "label": "$dms_mailing.funnel.opened",
+        "count": 58,
+        "rate": 79.45205479452055,
+        "isMeasured": true,
+        "previousCount": 33,
+        "delta": 75.8
+      },
+      {
+        "id": "clicked",
+        "label": "$dms_mailing.funnel.clicked",
+        "count": 14,
+        "rate": 19.17808219178082,
+        "isMeasured": true,
+        "previousCount": 8,
+        "delta": 75
+      },
+      {
+        "id": "unsubscribed",
+        "label": "$dms_mailing.funnel.unsubscribed",
+        "count": 14,
+        "rate": 19.17808219178082,
+        "isMeasured": true,
+        "previousCount": 8,
+        "delta": 75
+      }
+    ]
+  },
+  "/api/mailing/metrics/funnel?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z&kind=all": {
+    "steps": [
+      {
+        "id": "sent",
+        "label": "$dms_mailing.funnel.sent",
+        "count": 12,
+        "rate": 100,
+        "isMeasured": true,
+        "previousCount": 0
+      },
+      {
+        "id": "delivered",
+        "label": "$dms_mailing.funnel.delivered",
+        "count": 0,
+        "rate": 0,
+        "isMeasured": false
+      },
+      {
+        "id": "opened",
+        "label": "$dms_mailing.funnel.opened",
+        "count": 0,
+        "rate": null,
+        "isMeasured": false
+      },
+      {
+        "id": "clicked",
+        "label": "$dms_mailing.funnel.clicked",
+        "count": 0,
+        "rate": null,
+        "isMeasured": false
+      },
+      {
+        "id": "unsubscribed",
+        "label": "$dms_mailing.funnel.unsubscribed",
+        "count": 0,
+        "rate": null,
+        "isMeasured": true,
+        "previousCount": 0
+      }
+    ]
+  },
+  "/api/mailing/metrics/funnel?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&kind=marketing": {
+    "steps": [
+      {
+        "id": "sent",
+        "label": "$dms_mailing.funnel.sent",
+        "count": 43,
+        "rate": 100,
+        "isMeasured": true,
+        "previousCount": 24,
+        "delta": 79.2
+      },
+      {
+        "id": "delivered",
+        "label": "$dms_mailing.funnel.delivered",
+        "count": 29,
+        "rate": 67.44186046511628,
+        "isMeasured": true,
+        "previousCount": 16,
+        "delta": 81.3
+      },
+      {
+        "id": "opened",
+        "label": "$dms_mailing.funnel.opened",
+        "count": 24,
+        "rate": 82.75862068965517,
+        "isMeasured": true,
+        "previousCount": 14,
+        "delta": 71.4
+      },
+      {
+        "id": "clicked",
+        "label": "$dms_mailing.funnel.clicked",
+        "count": 14,
+        "rate": 48.275862068965516,
+        "isMeasured": true,
+        "previousCount": 8,
+        "delta": 75
+      },
+      {
+        "id": "unsubscribed",
+        "label": "$dms_mailing.funnel.unsubscribed",
+        "count": 0,
+        "rate": 0,
+        "isMeasured": true,
+        "previousCount": 0
+      }
+    ]
+  },
+  "/api/mailing/metrics/funnel?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z&kind=marketing": {
+    "steps": [
+      {
+        "id": "sent",
+        "label": "$dms_mailing.funnel.sent",
+        "count": 5,
+        "rate": 100,
+        "isMeasured": true,
+        "previousCount": 0
+      },
+      {
+        "id": "delivered",
+        "label": "$dms_mailing.funnel.delivered",
+        "count": 0,
+        "rate": 0,
+        "isMeasured": false
+      },
+      {
+        "id": "opened",
+        "label": "$dms_mailing.funnel.opened",
+        "count": 0,
+        "rate": null,
+        "isMeasured": false
+      },
+      {
+        "id": "clicked",
+        "label": "$dms_mailing.funnel.clicked",
+        "count": 0,
+        "rate": null,
+        "isMeasured": false
+      },
+      {
+        "id": "unsubscribed",
+        "label": "$dms_mailing.funnel.unsubscribed",
+        "count": 0,
+        "rate": null,
+        "isMeasured": true,
+        "previousCount": 0
+      }
+    ]
+  },
+  "/api/mailing/metrics/funnel?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&kind=transactional": {
+    "steps": [
+      {
+        "id": "sent",
+        "label": "$dms_mailing.funnel.sent",
+        "count": 87,
+        "rate": 100,
+        "isMeasured": true,
+        "previousCount": 50,
+        "delta": 74
+      },
+      {
+        "id": "delivered",
+        "label": "$dms_mailing.funnel.delivered",
+        "count": 44,
+        "rate": 50.57471264367817,
+        "isMeasured": true,
+        "previousCount": 25,
+        "delta": 76
+      },
+      {
+        "id": "opened",
+        "label": "$dms_mailing.funnel.opened",
+        "count": 34,
+        "rate": 77.27272727272727,
+        "isMeasured": true,
+        "previousCount": 19,
+        "delta": 78.9
+      },
+      {
+        "id": "clicked",
+        "label": "$dms_mailing.funnel.clicked",
+        "count": 0,
+        "rate": 0,
+        "isMeasured": true,
+        "previousCount": 0
+      },
+      {
+        "id": "unsubscribed",
+        "label": "$dms_mailing.funnel.unsubscribed",
+        "count": 14,
+        "rate": 31.818181818181817,
+        "isMeasured": true,
+        "previousCount": 8,
+        "delta": 75
+      }
+    ]
+  },
+  "/api/mailing/metrics/funnel?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z&kind=transactional": {
+    "steps": [
+      {
+        "id": "sent",
+        "label": "$dms_mailing.funnel.sent",
+        "count": 7,
+        "rate": 100,
+        "isMeasured": true,
+        "previousCount": 0
+      },
+      {
+        "id": "delivered",
+        "label": "$dms_mailing.funnel.delivered",
+        "count": 0,
+        "rate": 0,
+        "isMeasured": false
+      },
+      {
+        "id": "opened",
+        "label": "$dms_mailing.funnel.opened",
+        "count": 0,
+        "rate": null,
+        "isMeasured": false
+      },
+      {
+        "id": "clicked",
+        "label": "$dms_mailing.funnel.clicked",
+        "count": 0,
+        "rate": null,
+        "isMeasured": false
+      },
+      {
+        "id": "unsubscribed",
+        "label": "$dms_mailing.funnel.unsubscribed",
+        "count": 0,
+        "rate": null,
+        "isMeasured": true,
+        "previousCount": 0
+      }
+    ]
+  },
+  "/api/mailing/metrics/top-templates?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&metric=open-rate": {
+    "items": [
+      {
+        "id": "figures-news",
+        "title": "figures-news",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-news",
+            "count": {
+              "type": "count",
+              "value": 14
+            }
+          }
+        },
+        "value": 100,
+        "to": "/modules/mailing/templates/figures-template-1",
+        "delta": 0
+      },
+      {
+        "id": "figures-reset",
+        "title": "figures-reset",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-reset",
+            "count": {
+              "type": "count",
+              "value": 29
+            }
+          }
+        },
+        "value": 82.75862068965517,
+        "to": "/modules/mailing/templates/figures-template-2",
+        "delta": 0.5
+      },
+      {
+        "id": "figures-promo",
+        "title": "figures-promo",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-promo",
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        },
+        "value": 66.66666666666666,
+        "to": "/modules/mailing/templates/figures-template-3",
+        "delta": -11.1
+      },
+      {
+        "id": "figures-gone",
+        "title": "figures-gone",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-gone",
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        },
+        "value": 66.66666666666666,
+        "delta": 6.7
+      }
+    ]
+  },
+  "/api/mailing/metrics/top-templates?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&metric=open-rate&audience=operational": {
+    "items": [
+      {
+        "id": "figures-news",
+        "title": "figures-news",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-news",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 100,
+        "to": "/modules/mailing/templates/figures-template-1",
+        "delta": 0
+      },
+      {
+        "id": "figures-reset",
+        "title": "figures-reset",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-reset",
+            "count": {
+              "type": "count",
+              "value": 32
+            }
+          }
+        },
+        "value": 84.375,
+        "to": "/modules/mailing/templates/figures-template-2",
+        "delta": 1.2
+      },
+      {
+        "id": "figures-gone",
+        "title": "figures-gone",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-gone",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 68.75,
+        "delta": 3.1
+      },
+      {
+        "id": "figures-promo",
+        "title": "figures-promo",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-promo",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 62.5,
+        "to": "/modules/mailing/templates/figures-template-3",
+        "delta": -6.2
+      }
+    ]
+  },
+  "/api/mailing/metrics/top-templates?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&metric=click-rate": {
+    "items": [
+      {
+        "id": "figures-news",
+        "title": "figures-news",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-news",
+            "count": {
+              "type": "count",
+              "value": 14
+            }
+          }
+        },
+        "value": 100,
+        "to": "/modules/mailing/templates/figures-template-1",
+        "delta": 0
+      },
+      {
+        "id": "figures-promo",
+        "title": "figures-promo",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-promo",
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        },
+        "value": 0,
+        "to": "/modules/mailing/templates/figures-template-3"
+      },
+      {
+        "id": "figures-reset",
+        "title": "figures-reset",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-reset",
+            "count": {
+              "type": "count",
+              "value": 29
+            }
+          }
+        },
+        "value": 0,
+        "to": "/modules/mailing/templates/figures-template-2"
+      },
+      {
+        "id": "figures-gone",
+        "title": "figures-gone",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-gone",
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        },
+        "value": 0
+      }
+    ]
+  },
+  "/api/mailing/metrics/top-templates?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&metric=click-rate&audience=operational": {
+    "items": [
+      {
+        "id": "figures-news",
+        "title": "figures-news",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-news",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 100,
+        "to": "/modules/mailing/templates/figures-template-1",
+        "delta": 0
+      },
+      {
+        "id": "figures-promo",
+        "title": "figures-promo",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-promo",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 0,
+        "to": "/modules/mailing/templates/figures-template-3"
+      },
+      {
+        "id": "figures-reset",
+        "title": "figures-reset",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-reset",
+            "count": {
+              "type": "count",
+              "value": 32
+            }
+          }
+        },
+        "value": 0,
+        "to": "/modules/mailing/templates/figures-template-2"
+      },
+      {
+        "id": "figures-gone",
+        "title": "figures-gone",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-gone",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 0
+      }
+    ]
+  },
+  "/api/mailing/metrics/top-templates?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&metric=sends": {
+    "items": [
+      {
+        "id": "figures-promo",
+        "title": "figures-promo",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-promo",
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        },
+        "value": 29,
+        "to": "/modules/mailing/templates/figures-template-3",
+        "delta": 81.3
+      },
+      {
+        "id": "figures-reset",
+        "title": "figures-reset",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-reset",
+            "count": {
+              "type": "count",
+              "value": 29
+            }
+          }
+        },
+        "value": 29,
+        "to": "/modules/mailing/templates/figures-template-2",
+        "delta": 70.6
+      },
+      {
+        "id": "figures-orders",
+        "title": "figures-orders",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-orders",
+            "count": {
+              "type": "count",
+              "value": 0
+            }
+          }
+        },
+        "value": 29,
+        "to": "/modules/mailing/templates/figures-template-0",
+        "delta": 70.6
+      },
+      {
+        "id": "figures-gone",
+        "title": "figures-gone",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-gone",
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        },
+        "value": 29,
+        "delta": 81.3
+      },
+      {
+        "id": "figures-news",
+        "title": "figures-news",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-news",
+            "count": {
+              "type": "count",
+              "value": 14
+            }
+          }
+        },
+        "value": 14,
+        "to": "/modules/mailing/templates/figures-template-1",
+        "delta": 75
+      }
+    ]
+  },
+  "/api/mailing/metrics/top-templates?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&metric=sends&audience=operational": {
+    "items": [
+      {
+        "id": "figures-orders",
+        "title": "figures-orders",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-orders",
+            "count": {
+              "type": "count",
+              "value": 0
+            }
+          }
+        },
+        "value": 32,
+        "to": "/modules/mailing/templates/figures-template-0",
+        "delta": 77.8
+      },
+      {
+        "id": "figures-promo",
+        "title": "figures-promo",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-promo",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 32,
+        "to": "/modules/mailing/templates/figures-template-3",
+        "delta": 77.8
+      },
+      {
+        "id": "figures-reset",
+        "title": "figures-reset",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-reset",
+            "count": {
+              "type": "count",
+              "value": 32
+            }
+          }
+        },
+        "value": 32,
+        "to": "/modules/mailing/templates/figures-template-2",
+        "delta": 77.8
+      },
+      {
+        "id": "figures-gone",
+        "title": "figures-gone",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-gone",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 32,
+        "delta": 77.8
+      },
+      {
+        "id": "figures-news",
+        "title": "figures-news",
+        "description": {
+          "key": "$dms_mailing.metrics.template_volume",
+          "params": {
+            "slug": "figures-news",
+            "count": {
+              "type": "count",
+              "value": 16
+            }
+          }
+        },
+        "value": 16,
+        "to": "/modules/mailing/templates/figures-template-1",
+        "delta": 77.8
+      }
+    ]
+  },
+  "/api/mailing/metrics/domains?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "items": [
+      {
+        "id": "gamma.test",
+        "title": "gamma.test",
+        "description": {
+          "key": "$dms_mailing.metrics.delivered_count",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 7
+            }
+          }
+        },
+        "value": 100
+      },
+      {
+        "id": "beta.test",
+        "title": "beta.test",
+        "description": {
+          "key": "$dms_mailing.metrics.delivered_count",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 37
+            }
+          }
+        },
+        "value": 81.08108108108108,
+        "delta": 1.4
+      },
+      {
+        "id": "alpha.test",
+        "title": "alpha.test",
+        "description": {
+          "key": "$dms_mailing.metrics.delivered_count",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 29
+            }
+          }
+        },
+        "value": 72.41379310344827,
+        "delta": -5.3
+      }
+    ]
+  },
+  "/api/mailing/metrics/domains?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&audience=operational&comparison=none": {
+    "items": [
+      {
+        "id": "gamma.test",
+        "title": "gamma.test",
+        "description": {
+          "key": "$dms_mailing.metrics.delivered_count",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 8
+            }
+          }
+        },
+        "value": 100
+      },
+      {
+        "id": "beta.test",
+        "title": "beta.test",
+        "description": {
+          "key": "$dms_mailing.metrics.delivered_count",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 40
+            }
+          }
+        },
+        "value": 80
+      },
+      {
+        "id": "alpha.test",
+        "title": "alpha.test",
+        "description": {
+          "key": "$dms_mailing.metrics.delivered_count",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 32
+            }
+          }
+        },
+        "value": 75
+      }
+    ]
+  },
+  "/api/mailing/sends/stats?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z": {
+    "sends": 130,
+    "sendsDelta": 75.7,
+    "tests": 15,
+    "delivered": 73,
+    "deliverability": 56.15384615384615,
+    "isDeliveryUntracked": false,
+    "problems": 37,
+    "bounced": 15,
+    "failed": 14,
+    "spam": 8,
+    "queued": 14,
+    "oldestQueuedAt": "2001-03-01T14:01:10.000Z",
+    "latencyMedian": 254,
+    "compared": {
+      "sends": 74,
+      "deliverability": 55.4054054054054,
+      "problems": 20,
+      "latencyMedian": 258
+    },
+    "items": [
+      {
+        "id": "sends",
+        "icon": "i-ph-paper-plane-tilt",
+        "eyebrow": "$dms_mailing.sends.stats.sends",
+        "value": 130,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.joined",
+          "params": {
+            "left": {
+              "key": "$dms_mailing.sends.stats.delta_up_versus",
+              "params": {
+                "delta": {
+                  "type": "number",
+                  "value": 0.76,
+                  "format": "percent"
+                },
+                "previous": 74
+              }
+            },
+            "right": {
+              "key": "$dms_mailing.sends.stats.tests_excluded",
+              "params": {
+                "count": {
+                  "type": "count",
+                  "value": 15
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "delivered",
+        "icon": "i-ph-check-circle",
+        "eyebrow": "$dms_mailing.sends.stats.delivered",
+        "value": {
+          "key": "$dms_mailing.sends.stats.rate",
+          "params": {
+            "rate": {
+              "type": "number",
+              "value": 0.56,
+              "format": "percent"
+            }
+          }
+        },
+        "detail": {
+          "key": "$dms_mailing.sends.stats.joined",
+          "params": {
+            "left": {
+              "key": "$dms_mailing.sends.stats.delta_up_versus",
+              "params": {
+                "delta": {
+                  "type": "number",
+                  "value": 0.01,
+                  "format": "percent"
+                },
+                "previous": {
+                  "type": "number",
+                  "value": 0.55,
+                  "format": "percent"
+                }
+              }
+            },
+            "right": {
+              "key": "$dms_mailing.sends.stats.delivered_of",
+              "params": {
+                "delivered": 73,
+                "sends": 130
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "problems",
+        "icon": "i-ph-warning-octagon",
+        "tone": "error",
+        "eyebrow": "$dms_mailing.sends.stats.problems",
+        "value": 37,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.joined",
+          "params": {
+            "left": {
+              "key": "$dms_mailing.sends.stats.joined",
+              "params": {
+                "left": {
+                  "key": "$dms_mailing.sends.stats.joined",
+                  "params": {
+                    "left": {
+                      "key": "$dms_mailing.sends.stats.delta_up_versus",
+                      "params": {
+                        "delta": {
+                          "type": "number",
+                          "value": 0.85,
+                          "format": "percent"
+                        },
+                        "previous": 20
+                      }
+                    },
+                    "right": {
+                      "key": "$dms_mailing.sends.stats.breakdown.bounced",
+                      "params": {
+                        "count": {
+                          "type": "count",
+                          "value": 15
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "key": "$dms_mailing.sends.stats.breakdown.failed",
+                  "params": {
+                    "count": {
+                      "type": "count",
+                      "value": 14
+                    }
+                  }
+                }
+              }
+            },
+            "right": {
+              "key": "$dms_mailing.sends.stats.breakdown.spam",
+              "params": {
+                "count": {
+                  "type": "count",
+                  "value": 8
+                }
+              }
+            }
+          }
+        },
+        "to": "/modules/mailing/sends?view=problems"
+      },
+      {
+        "id": "queued",
+        "icon": "i-ph-clock",
+        "eyebrow": "$dms_mailing.sends.stats.queued",
+        "value": 14,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.oldest_waiting",
+          "params": {
+            "time": {
+              "type": "relative",
+              "value": "2001-03-01T14:01:10.000Z"
+            }
+          }
+        },
+        "detailTone": "warning"
+      },
+      {
+        "id": "latency",
+        "icon": "i-ph-timer",
+        "eyebrow": "$dms_mailing.sends.stats.latency",
+        "value": {
+          "key": "$dms_mailing.sends.stats.latency_ms",
+          "params": {
+            "value": 254
+          }
+        },
+        "detail": {
+          "key": "$dms_mailing.sends.stats.joined",
+          "params": {
+            "left": {
+              "key": "$dms_mailing.sends.stats.delta_down_versus",
+              "params": {
+                "delta": {
+                  "type": "number",
+                  "value": 0.02,
+                  "format": "percent"
+                },
+                "previous": {
+                  "key": "$dms_mailing.sends.stats.latency_ms",
+                  "params": {
+                    "value": 258
+                  }
+                }
+              }
+            },
+            "right": {
+              "key": "$dms_mailing.sends.stats.latency_detail",
+              "params": {
+                "provider": "nodemailer"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "/api/mailing/sends/stats?from=2001-03-01T00:00:00.000Z&to=2001-03-08T00:00:00.000Z&comparison=none": {
+    "sends": 130,
+    "sendsDelta": null,
+    "tests": 15,
+    "delivered": 73,
+    "deliverability": 56.15384615384615,
+    "isDeliveryUntracked": false,
+    "problems": 37,
+    "bounced": 15,
+    "failed": 14,
+    "spam": 8,
+    "queued": 14,
+    "oldestQueuedAt": "2001-03-01T14:01:10.000Z",
+    "latencyMedian": 254,
+    "compared": null,
+    "items": [
+      {
+        "id": "sends",
+        "icon": "i-ph-paper-plane-tilt",
+        "eyebrow": "$dms_mailing.sends.stats.sends",
+        "value": 130,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.tests_excluded",
+          "params": {
+            "count": {
+              "type": "count",
+              "value": 15
+            }
+          }
+        }
+      },
+      {
+        "id": "delivered",
+        "icon": "i-ph-check-circle",
+        "eyebrow": "$dms_mailing.sends.stats.delivered",
+        "value": {
+          "key": "$dms_mailing.sends.stats.rate",
+          "params": {
+            "rate": {
+              "type": "number",
+              "value": 0.56,
+              "format": "percent"
+            }
+          }
+        },
+        "detail": {
+          "key": "$dms_mailing.sends.stats.delivered_of",
+          "params": {
+            "delivered": 73,
+            "sends": 130
+          }
+        }
+      },
+      {
+        "id": "problems",
+        "icon": "i-ph-warning-octagon",
+        "tone": "error",
+        "eyebrow": "$dms_mailing.sends.stats.problems",
+        "value": 37,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.joined",
+          "params": {
+            "left": {
+              "key": "$dms_mailing.sends.stats.joined",
+              "params": {
+                "left": {
+                  "key": "$dms_mailing.sends.stats.breakdown.bounced",
+                  "params": {
+                    "count": {
+                      "type": "count",
+                      "value": 15
+                    }
+                  }
+                },
+                "right": {
+                  "key": "$dms_mailing.sends.stats.breakdown.failed",
+                  "params": {
+                    "count": {
+                      "type": "count",
+                      "value": 14
+                    }
+                  }
+                }
+              }
+            },
+            "right": {
+              "key": "$dms_mailing.sends.stats.breakdown.spam",
+              "params": {
+                "count": {
+                  "type": "count",
+                  "value": 8
+                }
+              }
+            }
+          }
+        },
+        "to": "/modules/mailing/sends?view=problems"
+      },
+      {
+        "id": "queued",
+        "icon": "i-ph-clock",
+        "eyebrow": "$dms_mailing.sends.stats.queued",
+        "value": 14,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.oldest_waiting",
+          "params": {
+            "time": {
+              "type": "relative",
+              "value": "2001-03-01T14:01:10.000Z"
+            }
+          }
+        },
+        "detailTone": "warning"
+      },
+      {
+        "id": "latency",
+        "icon": "i-ph-timer",
+        "eyebrow": "$dms_mailing.sends.stats.latency",
+        "value": {
+          "key": "$dms_mailing.sends.stats.latency_ms",
+          "params": {
+            "value": 254
+          }
+        },
+        "detail": {
+          "key": "$dms_mailing.sends.stats.latency_detail",
+          "params": {
+            "provider": "nodemailer"
+          }
+        }
+      }
+    ]
+  },
+  "/api/mailing/sends/stats?from=2001-06-01T00:00:00.000Z&to=2001-06-03T00:00:00.000Z": {
+    "sends": 12,
+    "sendsDelta": null,
+    "tests": 0,
+    "delivered": 0,
+    "deliverability": 0,
+    "isDeliveryUntracked": true,
+    "problems": 0,
+    "bounced": 0,
+    "failed": 0,
+    "spam": 0,
+    "queued": 3,
+    "oldestQueuedAt": "2001-06-01T00:00:00.000Z",
+    "latencyMedian": 60,
+    "compared": {
+      "sends": 0,
+      "deliverability": null,
+      "problems": 0,
+      "latencyMedian": null
+    },
+    "items": [
+      {
+        "id": "sends",
+        "icon": "i-ph-paper-plane-tilt",
+        "eyebrow": "$dms_mailing.sends.stats.sends",
+        "value": 12,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.versus",
+          "params": {
+            "previous": 0
+          }
+        }
+      },
+      {
+        "id": "delivered",
+        "icon": "i-ph-check-circle",
+        "eyebrow": "$dms_mailing.sends.stats.delivered",
+        "value": "—",
+        "detail": {
+          "key": "$dms_mailing.sends.stats.not_tracked",
+          "params": {
+            "provider": "nodemailer"
+          }
+        }
+      },
+      {
+        "id": "problems",
+        "icon": "i-ph-warning-octagon",
+        "eyebrow": "$dms_mailing.sends.stats.problems",
+        "value": 0,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.joined",
+          "params": {
+            "left": {
+              "key": "$dms_mailing.sends.stats.versus",
+              "params": {
+                "previous": 0
+              }
+            },
+            "right": {
+              "key": "$dms_mailing.sends.stats.no_problems"
+            }
+          }
+        }
+      },
+      {
+        "id": "queued",
+        "icon": "i-ph-clock",
+        "eyebrow": "$dms_mailing.sends.stats.queued",
+        "value": 3,
+        "detail": {
+          "key": "$dms_mailing.sends.stats.oldest_waiting",
+          "params": {
+            "time": {
+              "type": "relative",
+              "value": "2001-06-01T00:00:00.000Z"
+            }
+          }
+        },
+        "detailTone": "warning"
+      },
+      {
+        "id": "latency",
+        "icon": "i-ph-timer",
+        "eyebrow": "$dms_mailing.sends.stats.latency",
+        "value": {
+          "key": "$dms_mailing.sends.stats.latency_ms",
+          "params": {
+            "value": 60
+          }
+        },
+        "detail": {
+          "key": "$dms_mailing.sends.stats.latency_detail",
+          "params": {
+            "provider": "nodemailer"
+          }
+        }
+      }
+    ]
+  },
+  "templates/overview": [
+    {
+      "id": "figures-template-0",
+      "lastSentAt": 90000000,
+      "slug": "figures-orders",
+      "sends": 12,
+      "openRate": 0,
+      "problems": 6
+    },
+    {
+      "id": "figures-template-1",
+      "lastSentAt": 180000000,
+      "slug": "figures-news",
+      "sends": 13,
+      "openRate": 100,
+      "problems": 0
+    },
+    {
+      "id": "figures-template-2",
+      "lastSentAt": 360000000,
+      "slug": "figures-reset",
+      "sends": 13,
+      "openRate": 84.61538461538461,
+      "problems": 0
+    },
+    {
+      "id": "figures-template-3",
+      "lastSentAt": 90000000,
+      "slug": "figures-promo",
+      "sends": 12,
+      "openRate": 66.66666666666666,
+      "problems": 6
+    }
+  ],
+  "templates/figures-template-0/performance": {
+    "id": "figures-template-0",
+    "lastSentAt": 90000000,
+    "slug": "figures-orders",
+    "sends": 12,
+    "openRate": 0,
+    "problems": 6,
+    "sources": [
+      {
+        "source": "checkout",
+        "count": 3
+      },
+      {
+        "source": "manual",
+        "count": 2
+      },
+      {
+        "source": "cron",
+        "count": 2
+      },
+      {
+        "source": "api",
+        "count": 2
+      },
+      {
+        "source": "",
+        "count": 2
+      }
+    ],
+    "fallbacks": [
+      {
+        "requested": "de",
+        "used": "en",
+        "count": 1
+      },
+      {
+        "requested": "fr",
+        "used": "en",
+        "count": 1
+      }
+    ]
+  },
+  "templates/figures-template-1/performance": {
+    "id": "figures-template-1",
+    "lastSentAt": 180000000,
+    "slug": "figures-news",
+    "sends": 13,
+    "openRate": 100,
+    "problems": 0,
+    "sources": [
+      {
+        "source": "checkout",
+        "count": 4
+      },
+      {
+        "source": "api",
+        "count": 2
+      },
+      {
+        "source": "manual",
+        "count": 2
+      },
+      {
+        "source": "admin",
+        "count": 2
+      },
+      {
+        "source": "cron",
+        "count": 2
+      }
+    ],
+    "fallbacks": [
+      {
+        "requested": "fr",
+        "used": "en",
+        "count": 2
+      },
+      {
+        "requested": "de",
+        "used": "en",
+        "count": 1
+      }
+    ]
+  },
+  "templates/figures-template-2/performance": {
+    "id": "figures-template-2",
+    "lastSentAt": 360000000,
+    "slug": "figures-reset",
+    "sends": 13,
+    "openRate": 84.61538461538461,
+    "problems": 0,
+    "sources": [
+      {
+        "source": "checkout",
+        "count": 4
+      },
+      {
+        "source": "manual",
+        "count": 2
+      },
+      {
+        "source": "admin",
+        "count": 2
+      },
+      {
+        "source": "api",
+        "count": 2
+      },
+      {
+        "source": "",
+        "count": 2
+      }
+    ],
+    "fallbacks": [
+      {
+        "requested": "fr",
+        "used": "en",
+        "count": 2
+      },
+      {
+        "requested": "de",
+        "used": "en",
+        "count": 1
+      }
+    ]
+  },
+  "templates/figures-template-3/performance": {
+    "id": "figures-template-3",
+    "lastSentAt": 90000000,
+    "slug": "figures-promo",
+    "sends": 12,
+    "openRate": 66.66666666666666,
+    "problems": 6,
+    "sources": [
+      {
+        "source": "checkout",
+        "count": 3
+      },
+      {
+        "source": "admin",
+        "count": 2
+      },
+      {
+        "source": "cron",
+        "count": 2
+      },
+      {
+        "source": "api",
+        "count": 2
+      },
+      {
+        "source": "",
+        "count": 2
+      }
+    ],
+    "fallbacks": [
+      {
+        "requested": "fr",
+        "used": "en",
+        "count": 2
+      },
+      {
+        "requested": "de",
+        "used": "en",
+        "count": 1
+      }
+    ]
+  }
+}

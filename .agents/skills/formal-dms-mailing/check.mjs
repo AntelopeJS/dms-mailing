@@ -15,6 +15,7 @@ const CHECK_NAME = "webhook-events";
 const COVERED_RECORD = join(SKILL, "covered.json");
 const EVENTS_SOURCE = "packages/dms-mailing/src/services/events.ts";
 const TYPES_SOURCE = "packages/dms-mailing/src/types/sends.ts";
+const IMPORT_SOURCE = "packages/dms-mailing/src/services/send-import.ts";
 
 /**
  * The invariants each configuration breaks on the current code, with the number of states in TLC's shortest
@@ -25,6 +26,8 @@ const TYPES_SOURCE = "packages/dms-mailing/src/types/sends.ts";
 const FINDINGS = {
   fold: { StatusFollowsEventTime: 9 },
   race: { CountedOnce: 9 },
+  import: { ImportedEventsAttached: 12, CountedOnce: 6 },
+  "import-retry": { ImportedTimelineComplete: 19 },
 };
 
 /**
@@ -39,6 +42,24 @@ function initializer(file, name) {
   const match = new RegExp(String.raw`^(?:export )?const ${name}\b[^=]*=\s*([\s\S]*?);$`, "m").exec(source);
   if (!match) throw new Error(`cannot read ${name} from ${file}; MailingTables.tla is built from it, update check.mjs`);
   return match[1];
+}
+
+/**
+ * Whether `importOne` writes an imported send before its events, read from the order of its two `insertImported`
+ * calls: the send's takes the row, an event's takes an object literal.
+ *
+ * @returns {boolean} `true` when the send is written first
+ */
+function importWritesSendFirst() {
+  const source = readFileSync(join(REPO, IMPORT_SOURCE), "utf8");
+  const start = source.indexOf("async function importOne(");
+  const body = start < 0 ? "" : source.slice(start, source.indexOf("\n}\n", start));
+  const send = body.search(/insertImported\(\s*row\s*\)/);
+  const event = body.search(/insertImported\(\s*\{/);
+  if (send < 0 || event < 0) {
+    throw new Error(`cannot read the write order of importOne from ${IMPORT_SOURCE}; MailingTables.tla is built from it, update check.mjs`);
+  }
+  return send < event;
 }
 
 /**
@@ -90,6 +111,7 @@ function tablesModule() {
     `DeferrableStatuses == ${tlaSet(deferrable)}`,
     `Counters == ${tlaRecord(counters.map(([type, field]) => [type, JSON.stringify(field)]))}`,
     `MaxActivityAttempts == ${attempts}`,
+    `ImportSendFirst == ${importWritesSendFirst() ? "TRUE" : "FALSE"}`,
     "====",
     "",
   ].join("\n");
@@ -110,7 +132,7 @@ function writeModel(dir) {
 /**
  * Checks one configuration with the pinned TLC; exits 1 when a rule differs from FINDINGS.
  *
- * @param {string} config `fold` or `race`
+ * @param {string} config `fold`, `race` or `import`
  * @returns {Promise<void>}
  */
 async function checkConfig(config) {

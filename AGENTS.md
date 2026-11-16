@@ -30,6 +30,10 @@ backend suite runs in its own CI job, so run it when your change touches
   CI after its single build) both skip the build and test the existing `dist/`.
   Set it only after building the current sources; otherwise tests use stale
   output.
+- `pnpm e2e` runs the verify skill's journeys (`e2e/journeys`) as a Playwright
+  suite against one `dms-control` run; `--grep @smoke` or `-g <journey id>`
+  narrows it. CI runs the `@smoke` set on the full tier and every journey
+  nightly. A change to a journey runs that journey.
 - A change to the webhook event handling or the send retention also runs the
   TLA+ check in
   [`.agents/skills/formal-dms-mailing/SKILL.md`](.agents/skills/formal-dms-mailing/SKILL.md).
@@ -48,12 +52,6 @@ workspace that range resolves to the sibling package. `release.yml` refuses any
 other shape. Release the interface first (**Release DMS mailing interface**),
 then the module (**Release DMS mailing module**), which refuses to run until
 the version in `packages/interface-dms-mailing/package.json` resolves on npm.
-
-## Orb
-
-`.agents/setup` belongs to the guardrail pack. The AntelopeJS CLI, MongoDB and
-the playground build live in `.agents/playground`, which the
-`dms-mailing-backend` service runs before it starts.
 
 <!-- antelopejs-guardrails:start -->
 <!-- Managed by @antelopejs/tooling-configs. `antelopejs-sync` rewrites everything between these markers; write repository-specific guidance outside them. -->

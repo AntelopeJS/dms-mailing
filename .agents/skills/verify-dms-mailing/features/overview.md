@@ -56,7 +56,7 @@ The module's landing page: six KPIs, the send volume chart, Needs attention, the
 dms-control journey "$RUN" overview [journey-id ...] --skill "$SKILL"
 ```
 
-- Data comes from `ImportSends` through `calling(ctx, ..., "import", ...)` with `sentAt` days in the past and provider events (`delivered`, `opened`, `clicked`, `bounced`, `failed`, `spam`, `unsubscribed`); the helpers are in `journeys/parts/ui-kit.mjs` (`ago`, `sendOf`, `importSends`, `declareTemplates`, `windowQuery`, `metric`).
+- Data comes from `ImportSends` through `calling(ctx, ..., "import", ...)` with `sentAt` days in the past and provider events (`delivered`, `opened`, `clicked`, `bounced`, `failed`, `spam`, `unsubscribed`); the helpers are in `e2e/journeys/parts/ui-kit.mjs` (`ago`, `sendOf`, `importSends`, `declareTemplates`, `windowQuery`, `metric`).
 - The API journeys read `/api/mailing/metrics/*` with explicit `from`, `to` and `comparison` query parameters; the UI journeys read the page text on one line and match whole chains such as `SENDS 8 ▲ +100.0% vs 4 DELIVERABILITY 62.5%`.
 - A suppressed send is made by `POST /suppressions` then the `send` call to that address.
 

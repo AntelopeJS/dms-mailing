@@ -3,14 +3,14 @@ import type { SendSummary } from "../../db";
 import { summaryRow, templateRow } from "../helpers/rows";
 import {
   MIN_RANKED_DELIVERIES,
-  comparedSteps,
-  funnelSteps,
   rowDelta,
   toDomainItem,
   toTemplateItem,
   totalsBy,
 } from "../../routes/metrics";
-import { aggregate } from "../../services/metrics";
+import { comparedSteps, funnelSteps } from "../../services/funnel";
+import { tallySends, type Totals } from "../../services/metrics";
+import { totalsOf } from "../helpers/tallies";
 
 const send = (
   status: SendSummary["status"],
@@ -34,7 +34,7 @@ const delivered = (count: number, opened: number): SendSummary[] =>
   );
 
 const OPEN_RATE = {
-  extract: (totals: ReturnType<typeof aggregate>) => totals.openRate,
+  extract: (totals: Totals) => totals.openRate,
   minDeliveries: MIN_RANKED_DELIVERIES,
 };
 
@@ -46,10 +46,10 @@ describe("[unit] overview rankings against the comparison window", () => {
   it("gives a template its change in open rate", () => {
     const item = toTemplateItem(
       "welcome",
-      aggregate(delivered(10, 6)),
+      totalsOf(delivered(10, 6)),
       templates,
       OPEN_RATE,
-      aggregate(delivered(10, 4)),
+      totalsOf(delivered(10, 4)),
     );
     expect(item).to.deep.include({ value: 60, delta: 50 });
   });
@@ -57,24 +57,24 @@ describe("[unit] overview rankings against the comparison window", () => {
   it("gives a domain its change in open rate", () => {
     const item = toDomainItem(
       "gmail.com",
-      aggregate(delivered(10, 3)),
-      aggregate(delivered(10, 6)),
+      totalsOf(delivered(10, 3)),
+      totalsOf(delivered(10, 6)),
     );
     expect(item).to.deep.include({ value: 30, delta: -50 });
   });
 
   it("states no change with the comparison off", () => {
-    const item = toDomainItem("gmail.com", aggregate(delivered(10, 3)));
+    const item = toDomainItem("gmail.com", totalsOf(delivered(10, 3)));
     expect(item).to.not.have.property("delta");
   });
 
   it("states no change against a row the window could not rank", () => {
-    const thin = aggregate(delivered(MIN_RANKED_DELIVERIES - 1, 1));
+    const thin = totalsOf(delivered(MIN_RANKED_DELIVERIES - 1, 1));
     expect(rowDelta(30, thin, OPEN_RATE)).to.equal(null);
     expect(rowDelta(30, undefined, OPEN_RATE)).to.equal(null);
     const item = toTemplateItem(
       "welcome",
-      aggregate(delivered(10, 3)),
+      totalsOf(delivered(10, 3)),
       templates,
       OPEN_RATE,
       thin,
@@ -83,16 +83,18 @@ describe("[unit] overview rankings against the comparison window", () => {
   });
 
   it("states no change against a window nobody opened in", () => {
-    expect(rowDelta(30, aggregate(delivered(10, 0)), OPEN_RATE)).to.equal(null);
+    expect(rowDelta(30, totalsOf(delivered(10, 0)), OPEN_RATE)).to.equal(null);
   });
 
   it("totals the window's sends per row key", () => {
     const totals = totalsBy(
-      [
-        ...delivered(2, 1),
-        send("delivered", { recipientEmail: "b@outlook.com" }),
-      ],
-      (row) => row.recipientEmail.split("@")[1] ?? "",
+      tallySends(
+        [
+          ...delivered(2, 1),
+          send("delivered", { recipientEmail: "b@outlook.com" }),
+        ],
+        (row) => row.recipientEmail.split("@")[1] ?? "",
+      ),
     );
     expect(totals.get("gmail.com")?.delivered).to.equal(2);
     expect(totals.get("outlook.com")?.delivered).to.equal(1);
@@ -102,8 +104,8 @@ describe("[unit] overview rankings against the comparison window", () => {
 describe("[unit] overview funnel against the comparison window", () => {
   it("gives each step its compared count and change", () => {
     const steps = comparedSteps(
-      funnelSteps(aggregate(delivered(6, 3)), false),
-      funnelSteps(aggregate(delivered(4, 2)), false),
+      funnelSteps(totalsOf(delivered(6, 3)), false),
+      funnelSteps(totalsOf(delivered(4, 2)), false),
     );
     const sent = steps.find((step) => step.id === "sent");
     expect(sent).to.deep.include({ count: 6, previousCount: 4, delta: 50 });
@@ -113,8 +115,8 @@ describe("[unit] overview funnel against the comparison window", () => {
 
   it("states the compared count but no change from zero", () => {
     const steps = comparedSteps(
-      funnelSteps(aggregate(delivered(4, 1)), false),
-      funnelSteps(aggregate(delivered(4, 0)), false),
+      funnelSteps(totalsOf(delivered(4, 1)), false),
+      funnelSteps(totalsOf(delivered(4, 0)), false),
     );
     const opened = steps.find((step) => step.id === "opened");
     expect(opened).to.deep.include({ previousCount: 0 });
@@ -123,8 +125,8 @@ describe("[unit] overview funnel against the comparison window", () => {
 
   it("compares no step either window does not measure", () => {
     const steps = comparedSteps(
-      funnelSteps(aggregate(delivered(4, 1)), false),
-      funnelSteps(aggregate([send("sent")]), true),
+      funnelSteps(totalsOf(delivered(4, 1)), false),
+      funnelSteps(totalsOf([send("sent")]), true),
     );
     const byId = (id: string) => steps.find((step) => step.id === id);
     expect(byId("sent")).to.have.property("previousCount", 1);

@@ -4,6 +4,7 @@ Journey ids are `declarations/<id>`. tpl = declare-template-creates-publishes-on
 
 | Behaviour (docs page § section) | Journey | Check |
 | --- | --- | --- |
+| 5.extending: DeclareWebhookSecret sets, keeps or leaves the workspace's webhook secret | Not driven | the fixture's `POST /call` does not expose DeclareWebhookSecret yet |
 | 5.extending § Ship templates as code: DeclareTemplate creates the template and publishes it as v1 | tpl | outcome created, version 1, live in the table |
 | § Ship: SendTemplate can use it at once | tpl | the send is sent |
 | § Ship: from then on the template belongs to the workspace; a declared slug already there is kept | tpl | kept after a second declaration; name, category and e-mail unchanged |

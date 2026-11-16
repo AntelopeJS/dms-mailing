@@ -7,6 +7,7 @@ import { check, list, mailing, pick, text } from "../mailing.mjs";
 export const journeys = guarded([
   {
     id: "smoke",
+    tag: "@smoke",
     title: "an owner creates a template from a starter, sends a test, and reads it in Sends and in the mail sink",
     entryPoint: "/modules/mailing/templates, POST /api/mailing/templates/:id/test-send, /modules/mailing/sends",
     async run(/** @type {Ctx} */ ctx) {
