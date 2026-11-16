@@ -33,7 +33,7 @@ import {
 } from "../db";
 import { INVALID_TEMPLATE, saveDetails } from "../data/templates-table";
 import { TemplatesPageController } from "../pages/templates";
-import { forAudience, groupBy, statsWindowStart } from "../services/metrics";
+import { groupBy, statsWindowStart } from "../services/metrics";
 import { refreshTemplateAttention } from "../services/template-attention";
 import { renderEmailHtml } from "../services/render";
 import { categoriesIn } from "../services/categories";
@@ -72,11 +72,7 @@ import {
   refuseTakenSlug,
   requireTemplate,
 } from "../services/templates";
-import {
-  BUSINESS_AUDIENCE,
-  type CategoryInLocale,
-  type TemplateStatus,
-} from "../types";
+import { type CategoryInLocale, type TemplateStatus } from "../types";
 import {
   duplicateSchema,
   previewSchema,
@@ -231,14 +227,14 @@ export class TemplatesController extends Controller(
    */
   @Get("/overview")
   async overview(): Promise<{ items: TemplateStats[] }> {
-    const [templates, rows] = await Promise.all([
+    const [templates, tallies] = await Promise.all([
       this.templates.getAll(),
-      this.sends.listBetween(statsWindowStart(), new Date()),
+      this.sends.tally(
+        { from: statsWindowStart(), to: new Date(), isTestLeftOut: true },
+        { by: "template" },
+      ),
     ]);
-    const bySlug = groupBy(
-      forAudience(rows, BUSINESS_AUDIENCE),
-      (send) => send.templateSlug,
-    );
+    const bySlug = groupBy(tallies, (tally) => tally.key);
     return {
       items: templates.map((template) =>
         statsOf(template._id, template.slug, bySlug.get(template.slug) ?? []),
@@ -251,15 +247,16 @@ export class TemplatesController extends Controller(
     @Parameter("id", "param") id: string,
   ): Promise<TemplatePerformance> {
     const template = await requireTemplate(this.templates, id);
-    const rows = await this.sends.listForTemplate(
-      template.slug,
-      statsWindowStart(),
-    );
-    return performanceOf(
-      template._id,
-      template.slug,
-      forAudience(rows, BUSINESS_AUDIENCE),
-    );
+    const scope = {
+      from: statsWindowStart(),
+      isTestLeftOut: true,
+      templateSlug: template.slug,
+    };
+    const [bySource, fallbacks] = await Promise.all([
+      this.sends.tally(scope, { by: "source" }),
+      this.sends.tallyFallbacks(scope),
+    ]);
+    return performanceOf(template._id, template.slug, bySource, fallbacks);
   }
 
   @Get("/:id/content")

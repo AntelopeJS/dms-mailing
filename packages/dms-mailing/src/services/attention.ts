@@ -10,7 +10,11 @@ import {
   PROBLEM_STATUSES,
   type TemplateAttentionReason,
 } from "../types";
-import { isDeliveryUntracked, type ProviderTracking } from "./metrics";
+import {
+  isDeliveryUntracked,
+  type ProviderTracking,
+  tallySends,
+} from "./metrics";
 import { isNumber } from "../validation/guards";
 
 export type AttentionTone = "error" | "warning" | "neutral";
@@ -177,7 +181,8 @@ function senderMissingItem(window: AttentionWindow): AttentionItem[] {
  * them is set.
  */
 function untrackedDeliveryItem(window: AttentionWindow): AttentionItem[] {
-  if (!isDeliveryUntracked(window.sends, window.tracking)) return [];
+  if (!isDeliveryUntracked(tallySends(window.sends), window.tracking))
+    return [];
   return [
     {
       id: "untracked-delivery",
@@ -205,7 +210,7 @@ function untrackedRatesItem(window: AttentionWindow): AttentionItem[] {
   const { tracking } = window;
   if (!tracking || !window.sends.length) return [];
   if (tracking.openTracking && tracking.clickTracking) return [];
-  if (isDeliveryUntracked(window.sends, tracking)) return [];
+  if (isDeliveryUntracked(tallySends(window.sends), tracking)) return [];
   if (window.sends.some(showsEngagement)) return [];
   return [
     {

@@ -3,12 +3,9 @@ import type { MailingTemplate, SendSummary } from "../../db";
 import { summaryRow, templateRow } from "../helpers/rows";
 import {
   MIN_RANKED_DELIVERIES,
-  filterByKind,
-  funnelSteps,
   isUnmeasured,
   kpiFigure,
   ranked,
-  readFunnelKind,
   toDomainItem,
   toTemplateItem,
   volumeChart,
@@ -19,7 +16,13 @@ import {
   missingLocaleTemplates,
   templateAttentionReasons,
 } from "../../services/attention";
-import { aggregate } from "../../services/metrics";
+import {
+  filterByKind,
+  funnelSteps,
+  readFunnelKind,
+} from "../../services/funnel";
+import { tallySends, type Totals } from "../../services/metrics";
+import { tallyByDay, tallyByTemplate, totalsOf } from "../helpers/tallies";
 
 const template = (
   slug: string,
@@ -48,9 +51,15 @@ describe("[unit] overview helpers", () => {
       summaryRow({ templateSlug: "receipt" }),
       summaryRow({ templateSlug: "gone" }),
     ];
-    expect(filterByKind(sends, templates, "marketing")).to.have.length(1);
-    expect(filterByKind(sends, templates, "transactional")).to.have.length(2);
-    expect(filterByKind(sends, templates, "all")).to.have.length(3);
+    expect(
+      filterByKind(tallyByTemplate(sends), templates, "marketing"),
+    ).to.have.length(1);
+    expect(
+      filterByKind(tallyByTemplate(sends), templates, "transactional"),
+    ).to.have.length(2);
+    expect(
+      filterByKind(tallyByTemplate(sends), templates, "all"),
+    ).to.have.length(3);
     expect(readFunnelKind("nope")).to.equal("all");
   });
 
@@ -94,7 +103,7 @@ describe("[unit] overview figures", () => {
   it("leaves the change out when no comparison window is read", () => {
     const figure = kpiFigure(
       (totals) => totals.sends,
-      [sendOn(0, "sent")],
+      tallyByDay([sendOn(0, "sent")], RANGE),
       null,
       RANGE,
     );
@@ -104,7 +113,7 @@ describe("[unit] overview figures", () => {
   it("leaves the change out against an empty previous period", () => {
     const figure = kpiFigure(
       (totals) => totals.sends,
-      [sendOn(0, "sent")],
+      tallyByDay([sendOn(0, "sent")], RANGE),
       [],
       RANGE,
     );
@@ -123,14 +132,20 @@ describe("[unit] overview figures", () => {
       to: RANGE.from,
     };
     const chart = volumeChart(
-      [sendOn(0, "sent"), sendOn(0, "suppressed"), sendOn(1, "delivered")],
+      tallyByDay(
+        [sendOn(0, "sent"), sendOn(0, "suppressed"), sendOn(1, "delivered")],
+        RANGE,
+      ),
       RANGE,
       {
         range: previousRange,
-        sends: [
-          { ...sendOn(0, "sent"), createdAt: previousRange.from },
-          { ...sendOn(0, "suppressed"), createdAt: previousRange.from },
-        ],
+        sends: tallyByDay(
+          [
+            { ...sendOn(0, "sent"), createdAt: previousRange.from },
+            { ...sendOn(0, "suppressed"), createdAt: previousRange.from },
+          ],
+          previousRange,
+        ),
         label: PREVIOUS_LABEL,
       },
     );
@@ -146,15 +161,27 @@ describe("[unit] overview figures", () => {
   it("measures no delivery KPI on a window nothing reported for", () => {
     const smtp = { name: "smtp", openTracking: false, clickTracking: false };
     const untracked = [sendOn(0, "sent")];
-    expect(isUnmeasured("deliverability", untracked, smtp)).to.equal(true);
-    expect(isUnmeasured("sends", untracked, smtp)).to.equal(false);
     expect(
-      isUnmeasured("deliverability", [sendOn(0, "delivered")], smtp),
+      isUnmeasured("deliverability", tallySends(untracked), smtp),
+    ).to.equal(true);
+    expect(isUnmeasured("sends", tallySends(untracked), smtp)).to.equal(false);
+    expect(
+      isUnmeasured(
+        "deliverability",
+        tallySends([sendOn(0, "delivered")]),
+        smtp,
+      ),
     ).to.equal(false);
   });
+});
 
+describe("[unit] overview volume comparison", () => {
   it("draws no comparison series when the comparison is off", () => {
-    const chart = volumeChart([sendOn(0, "sent")], RANGE, null);
+    const chart = volumeChart(
+      tallyByDay([sendOn(0, "sent")], RANGE),
+      RANGE,
+      null,
+    );
     expect(chart.comparisonSeries).to.deep.equal([]);
     expect(chart).to.not.have.property("delta");
   });
@@ -165,9 +192,9 @@ describe("[unit] overview figures", () => {
       to: RANGE.from,
     };
     const previous = [{ ...sendOn(0, "sent"), createdAt: previousRange.from }];
-    const chart = volumeChart([sendOn(1, "sent")], RANGE, {
+    const chart = volumeChart(tallyByDay([sendOn(1, "sent")], RANGE), RANGE, {
       range: previousRange,
-      sends: previous,
+      sends: tallyByDay(previous, previousRange),
       label: PREVIOUS_LABEL,
     });
     const current = chart.series[0]?.data ?? [];
@@ -184,12 +211,15 @@ describe("[unit] overview figures", () => {
       from: yearBefore(RANGE.from),
       to: yearBefore(RANGE.to),
     };
-    const chart = volumeChart([sendOn(0, "sent")], RANGE, {
+    const chart = volumeChart(tallyByDay([sendOn(0, "sent")], RANGE), RANGE, {
       range: previousRange,
-      sends: [
-        { ...sendOn(0, "sent"), createdAt: previousRange.from },
-        { ...sendOn(0, "sent"), createdAt: previousRange.from },
-      ],
+      sends: tallyByDay(
+        [
+          { ...sendOn(0, "sent"), createdAt: previousRange.from },
+          { ...sendOn(0, "sent"), createdAt: previousRange.from },
+        ],
+        previousRange,
+      ),
       label: "$dms_mailing.metrics.previous_year",
     });
     expect(chart).to.deep.include({ value: 1, previousValue: 2, delta: -50 });
@@ -211,7 +241,7 @@ describe("[unit] overview funnel", () => {
   ];
 
   it("rates the engagement steps on the deliveries, as the KPIs do", () => {
-    const steps = funnelSteps(aggregate(sends), false);
+    const steps = funnelSteps(totalsOf(sends), false);
     const rates = Object.fromEntries(steps.map((step) => [step.id, step.rate]));
     expect(rates.sent).to.equal(100);
     expect(rates.delivered).to.equal(75);
@@ -221,14 +251,14 @@ describe("[unit] overview funnel", () => {
   });
 
   it("marks the delivery steps unmeasured when nothing reports them", () => {
-    const steps = funnelSteps(aggregate([sendOn(0, "sent")]), true);
+    const steps = funnelSteps(totalsOf([sendOn(0, "sent")]), true);
     expect(
       steps.filter((step) => !step.isMeasured).map((step) => step.id),
     ).to.deep.equal(["delivered", "opened", "clicked"]);
   });
 
   it("states no rate when nothing was sent", () => {
-    const steps = funnelSteps(aggregate([]), false);
+    const steps = funnelSteps(totalsOf([]), false);
     expect(steps.map((step) => step.rate)).to.deep.equal([
       null,
       null,
@@ -247,15 +277,13 @@ describe("[unit] overview rankings", () => {
       }),
     );
   const openRate = {
-    extract: (totals: ReturnType<typeof aggregate>) => totals.openRate,
+    extract: (totals: Totals) => totals.openRate,
     minDeliveries: MIN_RANKED_DELIVERIES,
   };
 
   it("does not rank a domain on too few deliveries", () => {
-    expect(toDomainItem("gmail.com", aggregate(delivered(2, 1)))).to.equal(
-      null,
-    );
-    expect(toDomainItem("gmail.com", aggregate([sendOn(0, "sent")]))).to.equal(
+    expect(toDomainItem("gmail.com", totalsOf(delivered(2, 1)))).to.equal(null);
+    expect(toDomainItem("gmail.com", totalsOf([sendOn(0, "sent")]))).to.equal(
       null,
     );
   });
@@ -263,7 +291,7 @@ describe("[unit] overview rankings", () => {
   it("gives a ranked row its volume", () => {
     const item = toDomainItem(
       "gmail.com",
-      aggregate(delivered(MIN_RANKED_DELIVERIES, 1)),
+      totalsOf(delivered(MIN_RANKED_DELIVERIES, 1)),
     );
     expect(item).to.deep.include({ value: 20 });
     expect(item?.description).to.deep.equal({
@@ -276,21 +304,16 @@ describe("[unit] overview rankings", () => {
     const templates = [template("welcome", "en")];
     const items = ranked(
       [
-        toTemplateItem(
-          "small",
-          aggregate(delivered(2, 2)),
-          templates,
-          openRate,
-        ),
+        toTemplateItem("small", totalsOf(delivered(2, 2)), templates, openRate),
         toTemplateItem(
           "welcome",
-          aggregate(delivered(MIN_RANKED_DELIVERIES, 2)),
+          totalsOf(delivered(MIN_RANKED_DELIVERIES, 2)),
           templates,
           openRate,
         ),
         toTemplateItem(
           "other",
-          aggregate(delivered(MIN_RANKED_DELIVERIES, 4)),
+          totalsOf(delivered(MIN_RANKED_DELIVERIES, 4)),
           templates,
           openRate,
         ),

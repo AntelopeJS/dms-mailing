@@ -1,18 +1,19 @@
-import type { SendSummary } from "../db";
+import type { SendSummary, SendTally, SendTraits, TallyKey } from "../db";
 import {
   BUSINESS_AUDIENCE,
+  isResolvedStage,
   OPERATIONAL_AUDIENCE,
   type SendAudience,
   type SendStatus,
 } from "../types";
 
-const AUDIENCE_KEEPS: Record<SendAudience, (send: SendSummary) => boolean> = {
-  [BUSINESS_AUDIENCE]: (send) => !send.isTest,
-  [OPERATIONAL_AUDIENCE]: () => true,
+const LEAVES_OUT_TESTS: Record<SendAudience, boolean> = {
+  [BUSINESS_AUDIENCE]: true,
+  [OPERATIONAL_AUDIENCE]: false,
 };
 
 const isAudience = (raw: string): raw is SendAudience =>
-  Object.hasOwn(AUDIENCE_KEEPS, raw);
+  Object.hasOwn(LEAVES_OUT_TESTS, raw);
 
 /** Named audience behind a query value; anything unknown is the business view. */
 export function readAudience(raw: string | null | undefined): SendAudience {
@@ -26,11 +27,19 @@ export function statsWindowStart(now: number = Date.now()): Date {
   return new Date(now - STATS_WINDOW_DAYS * DAY_MS);
 }
 
+/** The sends `audience` describes, out of a window read whole. */
 export function forAudience(
   sends: SendSummary[],
   audience: SendAudience,
 ): SendSummary[] {
-  return sends.filter(AUDIENCE_KEEPS[audience]);
+  return leavesOutTests(audience)
+    ? sends.filter((send) => !send.isTest)
+    : sends;
+}
+
+/** Whether `audience` leaves the test sends out of its figures. */
+export function leavesOutTests(audience: SendAudience): boolean {
+  return LEAVES_OUT_TESTS[audience];
 }
 
 /**
@@ -51,7 +60,6 @@ export interface Totals {
   deliverability: number | null;
   openRate: number | null;
   clickRate: number | null;
-  latencyMedian: number;
 }
 
 /** Reads one figure out of the totals; `null` when it cannot be stated. */
@@ -92,17 +100,22 @@ const PROVIDER_EVENT_STATUSES: SendStatus[] = [...DELIVERED_LIKE, "bounced"];
 export const ratio = (part: number, whole: number): number | null =>
   whole ? (part / whole) * PERCENT : null;
 
-const countIf = (
-  sends: SendSummary[],
-  predicate: (send: SendSummary) => boolean,
-): number => sends.filter(predicate).length;
+/** How many sends the tallies count, those `predicate` keeps. */
+export const countOf = (
+  tallies: SendTally[],
+  predicate: (tally: SendTally) => boolean = () => true,
+): number =>
+  tallies.reduce(
+    (total, tally) => (predicate(tally) ? total + tally.count : total),
+    0,
+  );
 
 const byStatus =
   (status: SendStatus) =>
-  (send: SendSummary): boolean =>
+  (send: SendTraits): boolean =>
     send.status === status;
 
-const isDelivered = (send: SendSummary): boolean =>
+const isDelivered = (send: SendTraits): boolean =>
   DELIVERED_LIKE.includes(send.status);
 
 /**
@@ -110,43 +123,46 @@ const isDelivered = (send: SendSummary): boolean =>
  * unsubscribed (or reported as spam) was still opened and clicked, and a
  * click implies an open the pixel may have missed.
  */
-const wasClicked = (send: SendSummary): boolean =>
-  isDelivered(send) && (send.status === "clicked" || send.clicks > 0);
+const wasClicked = (send: SendTraits): boolean =>
+  isDelivered(send) && (send.status === "clicked" || send.hasClicks);
 
-const wasOpened = (send: SendSummary): boolean =>
-  isDelivered(send) &&
-  (OPENED_LIKE.includes(send.status) || send.opens > 0 || send.clicks > 0);
+const wasOpened = (send: SendTraits): boolean =>
+  isDelivered(send) && (OPENED_LIKE.includes(send.status) || send.hasOpens);
 
-function median(values: number[]): number {
+export function median(values: number[]): number {
   if (!values.length) return 0;
   const sorted = [...values].sort((left, right) => left - right);
   return sorted[Math.floor(sorted.length / 2)];
 }
 
 /** A send to a suppressed address never left: no figure counts it. */
-export const leftForProvider = (send: SendSummary): boolean =>
+export const leftForProvider = (send: Pick<SendTraits, "status">): boolean =>
   send.status !== "suppressed";
 
-export function aggregate(logged: SendSummary[]): Totals {
+/** The latency median of the sends that left for the provider. */
+export const latencyMedian = (sends: Array<Pick<SendSummary, "latencyMs">>) =>
+  median(sends.flatMap((send) => send.latencyMs ?? []));
+
+export function aggregate(logged: SendTally[]): Totals {
   const sends = logged.filter(leftForProvider);
-  const delivered = countIf(sends, isDelivered);
-  const opened = countIf(sends, wasOpened);
-  const clicked = countIf(sends, wasClicked);
+  const total = countOf(sends);
+  const delivered = countOf(sends, isDelivered);
+  const opened = countOf(sends, wasOpened);
+  const clicked = countOf(sends, wasClicked);
   return {
-    sends: sends.length,
-    queued: countIf(sends, byStatus("queued")),
-    sent: countIf(sends, byStatus("sent")),
+    sends: total,
+    queued: countOf(sends, byStatus("queued")),
+    sent: countOf(sends, byStatus("sent")),
     delivered,
     opened,
     clicked,
-    bounced: countIf(sends, byStatus("bounced")),
-    failed: countIf(sends, byStatus("failed")),
-    spam: countIf(sends, byStatus("spam")),
-    unsubscribed: countIf(sends, byStatus("unsubscribed")),
-    deliverability: ratio(delivered, sends.length),
+    bounced: countOf(sends, byStatus("bounced")),
+    failed: countOf(sends, byStatus("failed")),
+    spam: countOf(sends, byStatus("spam")),
+    unsubscribed: countOf(sends, byStatus("unsubscribed")),
+    deliverability: ratio(delivered, total),
     openRate: ratio(opened, delivered),
     clickRate: ratio(clicked, delivered),
-    latencyMedian: median(sends.flatMap((send) => send.latencyMs ?? [])),
   };
 }
 
@@ -165,10 +181,8 @@ export function deltaPercent(
   );
 }
 
-const showsProviderEvent = (send: SendSummary): boolean =>
-  PROVIDER_EVENT_STATUSES.includes(send.status) ||
-  send.opens > 0 ||
-  send.clicks > 0;
+const showsProviderEvent = (send: SendTraits): boolean =>
+  PROVIDER_EVENT_STATUSES.includes(send.status) || send.hasOpens;
 
 /**
  * Whether the window's delivery figures are unmeasured: the provider tracks
@@ -177,20 +191,20 @@ const showsProviderEvent = (send: SendSummary): boolean =>
  * capabilities (the provider unreachable) claim nothing.
  */
 export function isDeliveryUntracked(
-  sends: SendSummary[],
+  sends: SendTally[],
   tracking: ProviderTracking | null,
 ): boolean {
   if (!tracking || tracking.openTracking || tracking.clickTracking)
     return false;
-  return sends.length > 0 && !sends.some(showsProviderEvent);
+  return countOf(sends) > 0 && !sends.some(showsProviderEvent);
 }
 
 const dayKey = (date: Date): string =>
   date.toISOString().slice(0, DAY_KEY_LENGTH);
 
-interface DayBucket {
+interface DayBucket<Item> {
   x: string;
-  sends: SendSummary[];
+  items: Item[];
 }
 
 /**
@@ -209,30 +223,39 @@ interface DayBucket {
  * to drop it, so a send made today was missing from the chart while the KPI
  * still counted it.
  */
-function dailyBuckets(sends: SendSummary[], from: Date, to: Date): DayBucket[] {
-  const start = from.getTime();
-  const dayCount = Math.max(1, Math.ceil((to.getTime() - start) / DAY_MS));
-  const buckets: DayBucket[] = Array.from({ length: dayCount }, (_, index) => ({
+function dailyBuckets<Item>(
+  items: Item[],
+  dayOf: (item: Item) => TallyKey,
+  range: DateRange,
+): Array<DayBucket<Item>> {
+  const start = range.from.getTime();
+  const dayCount = Math.max(
+    1,
+    Math.ceil((range.to.getTime() - start) / DAY_MS),
+  );
+  const buckets = Array.from({ length: dayCount }, (_, index) => ({
     x: dayKey(new Date(start + index * DAY_MS + DAY_MS / 2)),
-    sends: [],
+    items: new Array<Item>(),
   }));
-  for (const send of sends) {
-    const offset = new Date(send.createdAt).getTime() - start;
-    if (offset < 0 || offset >= dayCount * DAY_MS) continue;
-    buckets[Math.floor(offset / DAY_MS)]?.sends.push(send);
+  for (const item of items) {
+    const day = Number(dayOf(item));
+    if (day >= 0) buckets[day]?.items.push(item);
   }
   return buckets;
 }
 
-/** The number of sends of each day of the window. */
+/** The day of the window a send was made on, counted from its start. */
+export const dayIndex = (at: Date, range: DateRange): number =>
+  Math.floor((new Date(at).getTime() - range.from.getTime()) / DAY_MS);
+
+/** The number of sends of each day of the window, from tallies per day. */
 export function dailySeries(
-  sends: SendSummary[],
-  from: Date,
-  to: Date,
+  sends: SendTally[],
+  range: DateRange,
 ): SeriesPoint[] {
-  return dailyBuckets(sends, from, to).map((bucket) => ({
+  return dailyBuckets(sends, (tally) => tally.key, range).map((bucket) => ({
     x: bucket.x,
-    y: bucket.sends.length,
+    y: countOf(bucket.items),
   }));
 }
 
@@ -242,13 +265,25 @@ export function dailySeries(
  * deliveries) is left out rather than drawn as a fall to zero.
  */
 export function dailyValues(
-  sends: SendSummary[],
+  sends: SendTally[],
   range: DateRange,
   extract: TotalsExtractor,
 ): number[] {
-  return dailyBuckets(sends, range.from, range.to)
-    .map((bucket) => extract(aggregate(bucket.sends)))
+  return dailyBuckets(sends, (tally) => tally.key, range)
+    .map((bucket) => extract(aggregate(bucket.items)))
     .filter((value): value is number => value !== null);
+}
+
+/** The latency median of each day of the window, the latency sparkline. */
+export function dailyLatencies(
+  sends: Array<Pick<SendSummary, "createdAt" | "latencyMs">>,
+  range: DateRange,
+): number[] {
+  return dailyBuckets(
+    sends,
+    (send) => dayIndex(send.createdAt, range),
+    range,
+  ).map((bucket) => latencyMedian(bucket.items));
 }
 
 /**
@@ -265,15 +300,71 @@ export function alignSeries(
   }));
 }
 
+/** The tallies of sends read in memory, the way the database counts them. */
+export function tallySends(
+  sends: SendSummary[],
+  keyOf: (send: SendSummary) => TallyKey = () => "",
+): SendTally[] {
+  const tallies = new Map<string, SendTally>();
+  for (const send of sends) {
+    const at = new Date(send.createdAt).getTime();
+    const traits: SendTraits = {
+      key: keyOf(send),
+      status: send.status,
+      hasOpens: send.opens > 0 || send.clicks > 0,
+      hasClicks: send.clicks > 0,
+      isTest: send.isTest === true,
+      isResolved: isResolvedStage(send.stage),
+    };
+    const id = JSON.stringify(traits);
+    const tally = tallies.get(id);
+    if (tally) {
+      tally.count += 1;
+      tally.firstAtMs = Math.min(tally.firstAtMs, at);
+      tally.lastAtMs = Math.max(tally.lastAtMs, at);
+    } else
+      tallies.set(id, { ...traits, count: 1, firstAtMs: at, lastAtMs: at });
+  }
+  return [...tallies.values()];
+}
+
+/** Orders by `atMs`, then by `key` where two share a millisecond. */
+export function byFirstSend<Item>(
+  atMs: (item: Item) => number,
+  key: (item: Item) => string,
+): (left: Item, right: Item) => number {
+  return (left, right) => {
+    const byTime = atMs(left) - atMs(right);
+    if (byTime) return byTime;
+    const [leftKey, rightKey] = [key(left), key(right)];
+    return leftKey < rightKey ? -1 : Number(leftKey > rightKey);
+  };
+}
+
+/**
+ * The tallies of each group, groups in the order of their earliest send: the
+ * order a read of the sends in the order they were made meets them. Groups
+ * whose earliest sends share a millisecond follow their key.
+ */
+export function tallyGroups(tallies: SendTally[]): Map<TallyKey, SendTally[]> {
+  const ordered = [...tallies].sort(
+    byFirstSend(
+      (tally) => tally.firstAtMs,
+      (tally) => String(tally.key),
+    ),
+  );
+  return groupBy(ordered, (tally) => tally.key);
+}
+
 export function domainOf(email: string): string {
   return email.slice(email.lastIndexOf("@") + 1).toLowerCase();
 }
 
-export function groupBy<T>(
+export function groupBy<T, Key = string>(
   items: T[],
-  key: (item: T) => string,
-): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
+  key: (item: T) => Key,
+): Map<Key, T[]> {
+  const groups = new Map<Key, T[]>();
   for (const item of items) {
     const id = key(item);
     const group = groups.get(id);

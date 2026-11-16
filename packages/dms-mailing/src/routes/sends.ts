@@ -31,7 +31,6 @@ import {
   type MailingTemplate,
   normalizeAddress,
   SendEventModel,
-  type SendSummary,
   SendModel,
   TemplateModel,
 } from "../db";
@@ -49,8 +48,8 @@ import {
 import { MANUAL_SEND_SOURCE, SendError, subjectFor } from "../services/send";
 import {
   buildSendStats,
-  isProviderFailure,
   isTransportFailure,
+  type SendWindow,
   MAX_BULK_REPLAY,
   type SendStats,
   trackingOf,
@@ -330,8 +329,10 @@ export class SendsController extends Controller(API_BASE_PATH) {
   async stats(): Promise<SendStatsResponse> {
     const range = currentRange(this.ctx);
     const [current, previous, capabilities] = await Promise.all([
-      this.sends.listBetween(range.from, range.to),
-      this.previousSends(range),
+      this.sendWindow(range),
+      isComparisonWanted(this.ctx)
+        ? this.sendWindow(comparisonRange(this.ctx, range))
+        : null,
       readCapabilities(),
     ]);
     const stats = buildSendStats(current, previous, trackingOf(capabilities));
@@ -348,19 +349,19 @@ export class SendsController extends Controller(API_BASE_PATH) {
   @Get("/sends/banner")
   async banner(): Promise<BannerContent | null> {
     const since = new Date(Date.now() - HOUR_MS);
-    const [capabilities, recent] = await Promise.all([
+    const [capabilities, failures, recentSends] = await Promise.all([
       readCapabilities(),
-      this.sends.listBetween(since, new Date()),
+      this.sends.listProviderFailures(since, new Date()),
+      this.sends.countReal(since),
     ]);
-    const failures = recent.filter(isProviderFailure);
     const suppressed = await suppressedSendIds(this.tenantId, failures);
     return buildProviderBanner({
       providerName: capabilities?.name ?? "",
       providerReachable: capabilities !== null,
       recentFailures: failures.length,
-      transportFailures: recent.filter(isTransportFailure).length,
+      transportFailures: failures.filter(isTransportFailure).length,
       suppressedFailures: suppressed.size,
-      recentSends: recent.filter((send) => !send.isTest).length,
+      recentSends,
       since,
     });
   }
@@ -542,11 +543,14 @@ export class SendsController extends Controller(API_BASE_PATH) {
     );
   }
 
-  /** The sends the strip compares with; `null` when the user wants none. */
-  private previousSends(range: DateRange): Promise<SendSummary[] | null> {
-    if (!isComparisonWanted(this.ctx)) return Promise.resolve(null);
-    const previous = comparisonRange(this.ctx, range);
-    return this.sends.listBetween(previous.from, previous.to);
+  /** The window's sends tallied, and the latencies of its real ones. */
+  private async sendWindow(range: DateRange): Promise<SendWindow> {
+    const scope = { from: range.from, to: range.to };
+    const [tallies, latencies] = await Promise.all([
+      this.sends.tally({ ...scope, isTestLeftOut: false }, { by: "none" }),
+      this.sends.listLatencies({ ...scope, isTestLeftOut: true }),
+    ]);
+    return { tallies, latencies };
   }
 
   private async send(
