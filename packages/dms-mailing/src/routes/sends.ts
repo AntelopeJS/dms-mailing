@@ -462,8 +462,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
       replayFailedSchema.parse(value),
     );
     const from = since ?? new Date(Date.now() - HOUR_MS);
-    const rows = await this.sends.listBetween(from, new Date());
-    const failures = rows.filter(isProviderFailure);
+    const failures = await this.sends.listProviderFailures(from, new Date());
     const suppressed = await suppressedSendIds(this.tenantId, failures);
     const sendable = failures
       .filter((failure) => !suppressed.has(failure._id))
