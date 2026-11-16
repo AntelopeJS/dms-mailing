@@ -3,8 +3,9 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * @typedef {import("../../../packages/dms-mailing/node_modules/@antelopejs/dms/bin/control/journey.mjs").JourneyContext} Ctx
- * @typedef {import("../../../packages/dms-mailing/node_modules/@antelopejs/dms/bin/control/tab.mjs").Tab} Tab
+ * @typedef {import("@antelopejs/dms/e2e").Ctx} Ctx
+ * @typedef {import("@antelopejs/dms/e2e").Tab} Tab
+ * @typedef {Parameters<Tab["locator"]>[0]} Target
  * @typedef {{ status: number | null, body: unknown, error: string | null, folder?: string }} Answer
  * @typedef {{ folder: string, status: number | null, headers: Record<string, string>, bytes: Buffer, text: string, json: unknown }} Raw
  * @typedef {Record<string, unknown>} Row
@@ -14,7 +15,7 @@ import { join } from "node:path";
 /** The module's HTTP API, which the dashboard calls. */
 export const MAILING = "/api/mailing";
 
-/** The verification playground's trusted backend calls (`playground/src/fixture.ts`). */
+/** The verification playground's trusted backend calls (`.agents/skills/verify-dms-mailing/playground/src/fixture.ts`). */
 export const FIXTURE = "/verify-mailing";
 
 /** The tenant of a single-tenant DMS. */
@@ -218,7 +219,7 @@ export function sha256(bytes) {
 
 
 /**
- * Restarts the backend with `VERIFY_MAILING_*` variables set (see `playground/antelope.config.ts`), runs `body`, then
+ * Restarts the backend with `VERIFY_MAILING_*` variables set (see `.agents/skills/verify-dms-mailing/playground/antelope.config.ts`), runs `body`, then
  * restarts it with the variables it had, so later journeys get the module's defaults back.
  *
  * @param {Ctx} ctx The journey

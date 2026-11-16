@@ -17,9 +17,9 @@ Sources: docs/4.usage/3.editor.md, 5.extending (Amounts and dates, Footer links)
 | Visibility: filled, empty, equals, differs, greater, lower | visibility-rules-compare-a-variable-with-a-value | every operator shows and hides the right blocks |
 | Tokens `{{path}}` resolve in the subject, the preheader and the blocks | every-block-type-renders-with-its-settings | the preview answers the subject, the preheader and no missing variable |
 | The preview names the variables the data does not carry | footer-links-need-a-label-and-a-url-and-tokens-report-what-is-missing | the preview names the variables the data does not carry |
-| Amounts and dates are written for the locale of the send (Amounts and dates) | amounts-and-dates-are-written-in-the-locale-of-the-send | French, English |
-| A list's length and an element by index resolve; numbers and formatted strings go out as given | amounts-and-dates-are-written-in-the-locale-of-the-send | French |
-| An unknown currency code writes a plain number | amounts-and-dates-are-written-in-the-locale-of-the-send | an unknown currency writes a plain number (an invalid code such as EURO; the well-formed unknown ZZZ writes "ZZZ 9,874.20", which the docs do not describe) |
+| Amounts and dates are written for the locale of the send (Amounts and dates) | declared-variables-write-amounts-and-dates-in-the-locale-of-the-send | French, English |
+| A list's length and an element by index resolve; numbers and formatted strings go out as given | declared-variables-write-amounts-and-dates-in-the-locale-of-the-send | French |
+| An unknown currency code writes a plain number | declared-variables-write-amounts-and-dates-in-the-locale-of-the-send | an unknown currency writes a plain number (an invalid code such as EURO; the well-formed unknown ZZZ writes "ZZZ 9,874.20", which the docs do not describe) |
 | Footer unsubscribe and preferences links need a label and a URL; an empty label removes the link (Footer links) | footer-links-need-a-label-and-a-url-and-tokens-report-what-is-missing | footer links |
 | Editor panes, tabs, toolbar and palette (Layout) | the-editor-page-has-its-panes-toolbar-and-keyboard-shortcuts | the editor shows its panes, toolbar and block palette |
 | Shortcuts Ctrl+S, Ctrl+D, Ctrl+Z, Ctrl+Shift+Z, Delete, Backspace, T, Escape | the-editor-page-has-its-panes-toolbar-and-keyboard-shortcuts | one verify step per shortcut |

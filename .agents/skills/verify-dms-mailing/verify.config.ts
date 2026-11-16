@@ -29,6 +29,8 @@ export interface VerifyConfig {
   notUserFacing: string[];
   smoke: string;
   smokeJourney: string;
+  /** The folder of the journeys modules, relative to the repository root. */
+  journeys: string;
   doors: Record<DoorKind, DoorRule | null>;
   formal: FormalCheck[];
 }
@@ -61,6 +63,7 @@ const config: VerifyConfig = {
   ],
   smoke: "smoke",
   smokeJourney: "onboard, create a template from a starter, send a test, read it in Sends and in the mail sink",
+  journeys: "e2e/journeys",
   doors: {
     data: {
       globs: [`${MODULE}/src/db/models/send-events.model.ts`, `${MODULE}/src/db/models/sends.model.ts`, `${MODULE}/src/routes/suppressions.ts`, `${MODULE}/src/data/templates-table.ts`, `${MODULE}/src/crons/**`, `${MODULE}/src/services/send-import.ts`],
@@ -88,7 +91,7 @@ const config: VerifyConfig = {
       why: "the webhook is a public endpoint guarded by a secret, and the permissions decide who may send or read the log",
     },
     publish: {
-      globs: [`${MODULE}/package.json`, `${INTERFACE}/package.json`, `${MODULE}/.release-it.json`, `${MODULE}/changelogen.config.json`, ".github/workflows/release.yml", ".github/workflows/release-interface.yml"],
+      globs: [`${MODULE}/package.json`, `${INTERFACE}/package.json`, `${MODULE}/.release-it.json`, `${MODULE}/changelogen.config.json`, ".github/workflows/release.yml"],
       funnels: [],
       why: "the package names, their files and the release workflows claim @antelopejs/dms-mailing and @antelopejs/interface-dms-mailing in the npm registry",
     },

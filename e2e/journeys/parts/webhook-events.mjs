@@ -46,6 +46,7 @@ const AFTER_FAILED = [
 export const eventJourneys = [
   {
     id: "a-send-status-only-moves-forward-and-counts-opens-and-clicks",
+    tag: "@smoke",
     title: "events move a send's status forward only in the order queued, sent, delivered, opened, clicked, unsubscribed, spam, bounced or failed, every event joins the timeline, opens and clicks are counted, and from failed any event from delivered on replaces the failure",
     entryPoint: "POST /api/mailing/events/:provider/:tenantId, GET /api/mailing/sends/:id",
     async run(ctx) {

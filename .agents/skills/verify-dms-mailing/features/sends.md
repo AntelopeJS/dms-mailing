@@ -61,8 +61,8 @@ The send log: stat strip, stage tabs, the send drawer, send again, send to anoth
 dms-control journey "$RUN" sends [journey-id ...] --skill "$SKILL"
 ```
 
-- `journeys/parts/sends-kit.mjs` seeds a log of every status through `ImportSends` (`seedLog`), plus a suppressed send, and reads the dialog and the tabs.
-- Browser reads go through `journeys/parts/browser-kit.mjs`, so the skill lints clean without playwright types.
+- `e2e/journeys/parts/sends-kit.mjs` seeds a log of every status through `ImportSends` (`seedLog`), plus a suppressed send, and reads the dialog and the tabs.
+- Browser reads go through `e2e/journeys/parts/browser-kit.mjs`, so the skill lints clean without playwright types.
 
 ## Gotchas
 

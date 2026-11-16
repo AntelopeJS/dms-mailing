@@ -5,16 +5,14 @@ description: "Drive the AntelopeJS dms-mailing module (e-mail templates and thei
 
 # Verify dms-mailing
 
-Every deterministic step is a `dms-control` command. You choose which journeys to run and judge what they show; you never write a multi-step shell recipe. When a journey you need does not exist, add it to `journeys/<feature>.mjs`, describe it in its feature file, and run it.
+Every deterministic step is a `dms-control` command. You choose which journeys to run and judge what they show; you never write a multi-step shell recipe. When a journey you need does not exist, add it to `e2e/journeys/<feature>.mjs`, describe it in its feature file, and run it.
 
-`dms-control` is the bin of `@antelopejs/dms`, a devDependency of `packages/dms-mailing`. Run it with Node 24 after `pnpm install`, through that package:
+`dms-control` is the bin of `@antelopejs/dms`, a devDependency of the workspace root, which also runs the `e2e/` suite. Run it with Node 24 after `pnpm install`, from the repository root:
 
 ```bash
-C="pnpm --dir packages/dms-mailing exec dms-control"
+C="pnpm exec dms-control"
 $C                       # lists every command
 ```
-
-Give `doors` and `--skill` absolute paths: the command runs in `packages/dms-mailing`.
 
 ## Launch
 
@@ -48,7 +46,9 @@ $C journey "$RUN" smoke
 $C journey "$RUN" sends [journey-id...]
 ```
 
-- Each feature file in [features/](features/README.md) lists its source globs (`covers:`), its docs pages (`docs:`) and its journeys; the journeys are in `journeys/<feature>.mjs` and `journeys/parts/`, with the helpers they share in `mailing.mjs` (requests, checks, `calling` for the interface functions, `member`, `withConfig`, `raw`) and `guard.mjs` (environment loss). [coverage/](coverage) holds one table per feature: every documented behaviour, its catching journey and check, or `Not driven` with the reason.
+- Each feature file in [features/](features/README.md) lists its source globs (`covers:`), its docs pages (`docs:`) and its journeys; the journeys are in `e2e/journeys/<feature>.mjs` and `e2e/journeys/parts/` (the `journeys` folder of `verify.config.ts`), with the helpers they share in `e2e/mailing.mjs` (requests, checks, `calling` for the interface functions, `member`, `withConfig`, `raw`) and `e2e/guard.mjs` (environment loss). [coverage/](coverage) holds one table per feature: every documented behaviour, its catching journey and check, or `Not driven` with the reason.
+- A journey may set `tag` (Playwright tags such as `"@smoke"`, the set the full CI tier runs), `knownFailures`, which maps the name of each check that fails today to the finding that makes it fail, and `last: true`, for a journey that leaves the run's playground changed for every later backend. A listed check that fails is `known` and does not fail the journey. A listed check that passes is `fixed` and fails the journey until the entry is removed.
+- The same journeys run as the Playwright suite of `e2e/`, which CI runs (`@smoke` on a push to `next` and on a manual run of `ci.yml`, every journey nightly): `pnpm e2e` prepares and starts a run, runs every journey on it and stops it; `pnpm e2e -g <feature or journey id>` or `--grep @smoke` narrows it. `DMS_E2E_PREBUILT=1` skips the prepare commands, and `DMS_E2E_RUN=$RUN` drives a run you started with `up`, which it leaves running. Failed journeys keep their evidence under the run, and the report attaches each failed step's screenshot and ARIA snapshot and the backend log.
 - A journey starts on an empty database with the administrator onboarded and the backend restarted on it, so settings and configuration switches are gone. It reads every mutation back through a second view: the API, a reload, the mail sink, the stored rows or a backend restart.
 - `withConfig(ctx, { VERIFY_MAILING_*: … }, body)` restarts the backend with the playground's switches set and restarts it again without them.
 - To look at the product yourself: `$C onboard "$RUN"`, `$C browser "$RUN" login`, `goto --path`, `snapshot`, `click --role --name`, `fill`, `press`, `screenshot`, `$C api "$RUN" <method> <path> [--as anon] [--body <json>]`, `$C reset "$RUN"`. Each writes its evidence under `$RUN/evidence/`.
@@ -67,25 +67,25 @@ $C down "$RUN"
 
 1. **Run every feature whose `covers:` globs the diff touches, plus the smoke journey.** `plan` prints that list as `run`.
 2. **Unmapped surface fails the verdict.** User-facing code is `packages/dms-mailing/src/**`, `frontend-vue/**`, `skills/**`, `package.json`, and `packages/interface-dms-mailing/src/**` and `package.json`, tests and tool configs excluded (`verify.config.ts`). `map` checks the whole tree.
-3. **Every registered journey of a feature in `run` must have run and passed.** Known findings stay as failing journeys (see Gotchas): they fail a verdict only when the diff touches their feature.
+3. **Every registered journey of a feature in `run` must have run and passed.** A known finding is listed in its journey's `knownFailures`: its check reads `known` and does not fail the journey. Name each one in the reply as a note.
 4. **Docs.** Judge every `docs:` page of each touched feature against what the journeys showed.
 5. **One-way doors.** The section comes right after the result line and is mandatory. `$C doors` prints the `One-way-door:` line for the diff.
 6. **Formal check.** `$C formal "$RUN"` runs each `formal` check of `verify.config.ts` whose covered files or own folder the diff touches. `webhook-events` is the TLA+ model of the webhook events and the retention; read its result with [formal-dms-mailing](../formal-dms-mailing/SKILL.md). `template-slugs` is the TLA+ model of racing template creations on one slug; read its result with [formal-template-slugs](../formal-template-slugs/SKILL.md). A touched check that did not run fails the verdict, and so does one whose output no longer matches its record (`BROKEN`, `CHANGED`, `HOLDS`). A recorded finding that still reproduces as recorded does not fail it: list it under `attention`.
 7. **Result.** FAIL if any of rules 1 to 6 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
 
-Write `$RUN/evidence/judgement.json` (`doors`, `docs`, `notVerified`, `attention`, `verifier`), then `$C verdict "$RUN" --pr <n>`, which writes `$RUN/evidence/verdict.md`. Report the verdict and what you saw in your own reply.
+State the verdict in your own reply: the result, then the doors, the docs, what is not verified and what needs the owner's attention.
 
 ## Gotchas
 
 - The playground resolves its packages from `deps/` (its own lockfile), not from the module, so the fixture module declares no dependency of its own: a dependency in `playground/package.json` would make the project load the unreleased `@antelopejs/interface-dms` tarball for the whole DMS, and the sign-in answers 500 (`testHashAsync is not a function`).
 - Every dashboard page renders on the server and hydrates after `load`; a click that lands first does nothing. The journeys click again until what the click opens shows, and `tab.signIn` waits for the sign-in form to hydrate.
-- A step whose check fails because the backend or the dashboard stopped answering ends the journey with a `NOT VERIFIED` error and no failing check (`guard.mjs`).
+- A step whose check fails because the backend or the dashboard stopped answering ends the journey with a `NOT VERIFIED` error and no failing check (`e2e/guard.mjs`).
 - `mongod` comes from `DMS_CONTROL_MONGOD`, `PATH`, or the mongodb-memory-server cache (`~/.cache/mongodb-binaries`).
-- Known findings at the integration head are failing journeys, each with an issue draft; the list is in the pull request's Attention section.
+- Known findings at the integration head are `knownFailures` entries of their journeys, each with an issue draft; the list is in the pull request's Attention section.
 
 ## Not driven
 
-List these under `notVerified` in the judgement of every verdict. The per-feature reasons are in [coverage/](coverage).
+Name these as not verified in every verdict. The per-feature reasons are in [coverage/](coverage).
 
 - The daily jobs (the 03:15 retention sweep, the attention refresh): a journey cannot wait for the clock.
 - The automation nodes (`mailing.send-template`, `mailing.email-event`): the playground loads no module that implements `@antelopejs/interface-dms-automation`.
