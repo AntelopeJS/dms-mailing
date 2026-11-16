@@ -1,6 +1,27 @@
 # Changelog
 
 
+## v0.11.1
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.0...interface-v0.11.1)
+
+### 🩹 Fixes
+
+- **deps:** Depend on the stable @antelopejs/tooling-configs
+
+### 📦 Build
+
+- **deps:** Move to the batch drivers and the 15 November platform releases ([#185](https://github.com/AntelopeJS/dms-mailing/pull/185))
+- Move to @antelopejs/tooling-configs 0.8 and the three-tier CI ([#186](https://github.com/AntelopeJS/dms-mailing/pull/186))
+
+### ✅ Tests
+
+- **e2e:** Run the verify skill's journeys as a Playwright suite in CI ([#191](https://github.com/AntelopeJS/dms-mailing/pull/191))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.11.0
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.10.1...v0.11.0)
