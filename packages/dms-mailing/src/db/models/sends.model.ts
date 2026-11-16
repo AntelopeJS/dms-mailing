@@ -3,9 +3,15 @@ import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import {
   type AtomicMutationOutcome,
   IsDuplicateKeyError,
+  type Stream,
   type ValueProxy,
 } from "@antelopejs/interface-database";
-import { isResolvedStage, RESOLVED_STAGE, stageOf } from "../../types";
+import {
+  isResolvedStage,
+  RESOLVED_STAGE,
+  type SendStatus,
+  stageOf,
+} from "../../types";
 import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
 
 const FIRST_ROW_OFFSET = 0;
@@ -47,13 +53,92 @@ export type SendSummary = Pick<
   (typeof SEND_SUMMARY_FIELDS)[number]
 >;
 
-const SEND_FAILURE_FIELDS = ["_id", "recipientEmail"] as const;
+const SEND_FAILURE_FIELDS = ["_id", "recipientEmail", "error"] as const;
 
-/** A provider failure as the bulk send again reads it. */
+/** A provider failure as the bulk send again and the banner read it. */
 export type SendFailure = Pick<
   MailingSend,
   (typeof SEND_FAILURE_FIELDS)[number]
 >;
+
+/** Which sends a tally counts: made from `from` until `to`, when it is set. */
+export interface SendScope {
+  from: Date;
+  to?: Date;
+  /** Leave test sends out, as the business audience does. */
+  isTestLeftOut: boolean;
+  /** Only the sends of this template. */
+  templateSlug?: string;
+}
+
+/** What a tally splits the sends by, besides the traits every figure reads. */
+export type TallyGroup =
+  | { by: "none" }
+  | { by: "template" }
+  | { by: "domain" }
+  | { by: "source" }
+  /** The day of the window, counted from `from` in whole days. */
+  | { by: "day"; from: Date };
+
+/** The value a tally is grouped on: a slug, a domain, a source or a day. */
+export type TallyKey = string | number;
+
+/** The traits of a send the figures read, besides its group. */
+export interface SendTraits {
+  key: TallyKey;
+  status: SendStatus;
+  /** Opened or clicked at least once. */
+  hasOpens: boolean;
+  hasClicks: boolean;
+  isTest: boolean;
+  isResolved: boolean;
+}
+
+/** The sends alike in every trait, counted together. */
+export interface SendTally extends SendTraits {
+  count: number;
+  /** When the earliest and the latest of them were made, in epoch ms. */
+  firstAtMs: number;
+  lastAtMs: number;
+}
+
+/** A send's latency and when it was made, what the latency median reads. */
+export type LatencySample = Pick<MailingSend, "createdAt" | "latencyMs">;
+
+/** Recipients who asked for a locale the template did not carry. */
+export interface FallbackTally {
+  requested: string;
+  used: string;
+  count: number;
+  firstAtMs: number;
+}
+
+const MS_PER_SECOND = 1000;
+const MS_PER_DAY = 86_400_000;
+const LAST_ELEMENT = -1;
+
+/** When a send was made in whole epoch ms; `epoch()` carries float noise. */
+const epochMs = (row: ValueProxy<MailingSend>) =>
+  row.key("createdAt").epoch().mul(MS_PER_SECOND).round();
+
+function groupKey(row: ValueProxy<MailingSend>, group: TallyGroup) {
+  switch (group.by) {
+    case "none":
+      return "";
+    case "template":
+      return row.key("templateSlug");
+    case "domain":
+      return row
+        .key("recipientEmail")
+        .split("@")
+        .index(LAST_ELEMENT)
+        .downcase();
+    case "source":
+      return row.key("source").default("");
+    case "day":
+      return epochMs(row).sub(group.from.getTime()).div(MS_PER_DAY).floor();
+  }
+}
 
 type SendActivity = Pick<
   MailingSend,
@@ -168,6 +253,80 @@ export class SendModel extends BasicDataModel(
       .filter((row) => row.key("stage").ne(RESOLVED_STAGE))
       .orderBy("createdAt", "asc")
       .pluck(...SEND_FAILURE_FIELDS)
+      .run();
+  }
+
+  private inScope(scope: SendScope): Stream<MailingSend> {
+    const sends = scope.templateSlug
+      ? this.table.getAll(scope.templateSlug, "templateSlug")
+      : this.table;
+    const { to } = scope;
+    const since = sends.filter((row) => row.key("createdAt").ge(scope.from));
+    const until = to
+      ? since.filter((row) => row.key("createdAt").lt(to))
+      : since;
+    return scope.isTestLeftOut
+      ? until.filter((row) => row.key("isTest").ne(true))
+      : until;
+  }
+
+  /** The sends of `scope`, counted per group and traits in the database. */
+  async tally(scope: SendScope, group: TallyGroup): Promise<SendTally[]> {
+    const rows = await this.inScope(scope)
+      .map((row) => ({
+        atMs: epochMs(row),
+        traits: {
+          key: groupKey(row, group),
+          status: row.key("status"),
+          hasOpens: row.key("opens").gt(0).or(row.key("clicks").gt(0)),
+          hasClicks: row.key("clicks").gt(0),
+          isTest: row.key("isTest").eq(true),
+          isResolved: row.key("stage").eq(RESOLVED_STAGE),
+        },
+      }))
+      .group("traits", (sends, traits) => ({
+        traits,
+        count: sends.count(),
+        firstAtMs: sends.min("atMs"),
+        lastAtMs: sends.max("atMs"),
+      }))
+      .run();
+    return rows.map(({ traits, ...counts }) => ({ ...traits, ...counts }));
+  }
+
+  /** The latency of each send of `scope` that left for the provider. */
+  listLatencies(scope: SendScope): Promise<LatencySample[]> {
+    return this.inScope(scope)
+      .filter((row) => row.key("status").ne("suppressed"))
+      .pluck("createdAt", "latencyMs")
+      .run();
+  }
+
+  /** The sends of `scope` that went out in another locale than they asked. */
+  tallyFallbacks(scope: SendScope): Promise<FallbackTally[]> {
+    return this.inScope(scope)
+      .filter((row) => row.key("requestedLocale").default("").ne(""))
+      .filter((row) => row.key("requestedLocale").ne(row.key("locale")))
+      .map((row) => ({
+        atMs: epochMs(row),
+        pair: {
+          requested: row.key("requestedLocale"),
+          used: row.key("locale"),
+        },
+      }))
+      .group("pair", (sends, pair) => ({
+        requested: pair.key("requested"),
+        used: pair.key("used"),
+        count: sends.count(),
+        firstAtMs: sends.min("atMs"),
+      }))
+      .run();
+  }
+
+  /** How many real sends were made since `since`. */
+  countReal(since: Date): Promise<number> {
+    return this.inScope({ from: since, to: new Date(), isTestLeftOut: true })
+      .count()
       .run();
   }
 

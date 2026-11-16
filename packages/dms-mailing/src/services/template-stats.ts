@@ -1,5 +1,5 @@
-import type { SendSummary } from "../db";
-import { aggregate, groupBy } from "./metrics";
+import type { FallbackTally, SendTally } from "../db";
+import { aggregate, countOf, tallyGroups } from "./metrics";
 import { PROBLEM_STATUSES } from "../types";
 
 /** What a template card and the details drawer say about recent sends. */
@@ -29,76 +29,61 @@ export interface TemplatePerformance extends TemplateStats {
   fallbacks: FallbackCount[];
 }
 
-const UNKNOWN_SOURCE = "";
 const MAX_SOURCES = 5;
 
-const isProblem = (send: SendSummary): boolean =>
+const isProblem = (send: SendTally): boolean =>
   PROBLEM_STATUSES.includes(send.status);
 
-function lastSentAt(sends: SendSummary[]): string | null {
-  const latest = sends.reduce<Date | null>((current, send) => {
-    const at = new Date(send.createdAt);
-    return !current || at > current ? at : current;
-  }, null);
-  return latest ? latest.toISOString() : null;
+function lastSentAt(sends: SendTally[]): string | null {
+  if (!sends.length) return null;
+  return new Date(
+    Math.max(...sends.map((send) => send.lastAtMs)),
+  ).toISOString();
 }
 
+/** A template's figures, from its sends tallied by any group. */
 export function statsOf(
   id: string,
   slug: string,
-  sends: SendSummary[],
+  sends: SendTally[],
 ): TemplateStats {
   return {
     id,
     slug,
-    sends: sends.length,
+    sends: countOf(sends),
     openRate: aggregate(sends).openRate ?? 0,
-    problems: sends.filter(isProblem).length,
+    problems: countOf(sends, isProblem),
     lastSentAt: lastSentAt(sends),
   };
 }
 
-/** Sends grouped by the code path that made them, busiest first. */
-export function sourcesOf(sends: SendSummary[]): SourceCount[] {
-  return [...groupBy(sends, (send) => send.source ?? UNKNOWN_SOURCE)]
-    .map(([source, rows]) => ({ source, count: rows.length }))
+/**
+ * Sends per code path that made them, busiest first, from tallies by source;
+ * a tie keeps the source whose first send came first.
+ */
+export function sourcesOf(bySource: SendTally[]): SourceCount[] {
+  return [...tallyGroups(bySource)]
+    .map(([source, rows]) => ({ source: String(source), count: countOf(rows) }))
     .sort((left, right) => right.count - left.count)
     .slice(0, MAX_SOURCES);
 }
 
-/** Whether `send` went out in another locale than the one it asked for. */
-function isRequestedFallback(
-  send: SendSummary,
-): send is SendSummary & { requestedLocale: string } {
-  return Boolean(send.requestedLocale && send.requestedLocale !== send.locale);
-}
-
-export function isFallback(send: SendSummary): boolean {
-  return isRequestedFallback(send);
-}
-
-export function fallbacksOf(sends: SendSummary[]): FallbackCount[] {
-  const fallbacks = sends.filter(isRequestedFallback);
-  return [
-    ...groupBy(fallbacks, (send) => `${send.requestedLocale}>${send.locale}`),
-  ].map(([, rows]) => {
-    const first = rows[0];
-    return {
-      requested: first.requestedLocale,
-      used: first.locale,
-      count: rows.length,
-    };
-  });
+/** The locale fallbacks, the one whose first send came first, first. */
+export function fallbacksOf(fallbacks: FallbackTally[]): FallbackCount[] {
+  return [...fallbacks]
+    .sort((left, right) => left.firstAtMs - right.firstAtMs)
+    .map(({ requested, used, count }) => ({ requested, used, count }));
 }
 
 export function performanceOf(
   id: string,
   slug: string,
-  sends: SendSummary[],
+  bySource: SendTally[],
+  fallbacks: FallbackTally[],
 ): TemplatePerformance {
   return {
-    ...statsOf(id, slug, sends),
-    sources: sourcesOf(sends),
-    fallbacks: fallbacksOf(sends),
+    ...statsOf(id, slug, bySource),
+    sources: sourcesOf(bySource),
+    fallbacks: fallbacksOf(fallbacks),
   };
 }

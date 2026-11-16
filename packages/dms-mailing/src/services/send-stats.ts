@@ -1,12 +1,23 @@
 import type { ProviderCapabilities } from "@antelopejs/interface-email";
-import type { SendSummary } from "../db";
+import type { LatencySample, SendSummary, SendTally } from "../db";
 import { isResolvedStage, type SendStatus } from "../types";
 import {
   aggregate,
+  countOf,
   deltaPercent,
   isDeliveryUntracked,
+  latencyMedian,
   type ProviderTracking,
 } from "./metrics";
+
+/**
+ * A period's sends as the strip reads them: every send tallied, and the
+ * latency of each real send, which a median needs one by one.
+ */
+export interface SendWindow {
+  tallies: SendTally[];
+  latencies: LatencySample[];
+}
 
 /** The figures of the send log's stat strip, for one period. */
 export interface SendStats {
@@ -52,12 +63,10 @@ export interface ComparedSendStats {
   latencyMedian: number | null;
 }
 
-const isQueued = (send: SendSummary): boolean => send.status === "queued";
-
-function oldestQueuedAt(sends: SendSummary[]): string | null {
+function oldestQueuedAt(sends: SendTally[]): string | null {
   const queued = sends
-    .filter(isQueued)
-    .map((send) => new Date(send.createdAt).getTime());
+    .filter((send) => send.status === "queued")
+    .map((send) => send.firstAtMs);
   if (!queued.length) return null;
   return new Date(Math.min(...queued)).toISOString();
 }
@@ -79,23 +88,23 @@ type ProblemBreakdown = Pick<
   "problems" | "bounced" | "failed" | "spam"
 >;
 
-function problemBreakdown(real: SendSummary[]): ProblemBreakdown {
-  const open = real.filter((send) => !isResolvedStage(send.stage));
-  const countOf = (status: SendStatus): number =>
-    open.filter((send) => send.status === status).length;
-  const bounced = countOf("bounced");
-  const failed = countOf("failed");
-  const spam = countOf("spam");
+function problemBreakdown(real: SendTally[]): ProblemBreakdown {
+  const open = real.filter((send) => !send.isResolved);
+  const countWith = (status: SendStatus): number =>
+    countOf(open, (send) => send.status === status);
+  const bounced = countWith("bounced");
+  const failed = countWith("failed");
+  const spam = countWith("spam");
   return { problems: bounced + failed + spam, bounced, failed, spam };
 }
 
-const isRealSend = (send: SendSummary): boolean => !send.isTest;
+const isRealSend = (send: SendTally): boolean => !send.isTest;
 
 function comparedStats(
-  previous: SendSummary[],
+  previous: SendWindow,
   tracking: ProviderTracking | null,
 ): ComparedSendStats {
-  const real = previous.filter(isRealSend);
+  const real = previous.tallies.filter(isRealSend);
   const totals = aggregate(real);
   return {
     sends: totals.sends,
@@ -103,30 +112,30 @@ function comparedStats(
       ? null
       : totals.deliverability,
     problems: problemBreakdown(real).problems,
-    latencyMedian: totals.sends ? totals.latencyMedian : null,
+    latencyMedian: totals.sends ? latencyMedian(previous.latencies) : null,
   };
 }
 
 /** `previous` is `null` when the user turned the comparison off. */
 export function buildSendStats(
-  current: SendSummary[],
-  previous: SendSummary[] | null,
+  current: SendWindow,
+  previous: SendWindow | null,
   tracking: ProviderTracking | null = null,
 ): SendStats {
-  const real = current.filter(isRealSend);
+  const real = current.tallies.filter(isRealSend);
   const totals = aggregate(real);
   const compared = previous ? comparedStats(previous, tracking) : null;
   return {
     sends: totals.sends,
     sendsDelta: deltaPercent(totals.sends, compared?.sends ?? null),
-    tests: current.length - real.length,
+    tests: countOf(current.tallies) - countOf(real),
     delivered: totals.delivered,
     deliverability: totals.deliverability,
     isDeliveryUntracked: isDeliveryUntracked(real, tracking),
     ...problemBreakdown(real),
     queued: totals.queued,
     oldestQueuedAt: oldestQueuedAt(real),
-    latencyMedian: totals.latencyMedian,
+    latencyMedian: latencyMedian(current.latencies),
     compared,
   };
 }
@@ -148,7 +157,12 @@ export function isProviderFailure(send: SendSummary): boolean {
   );
 }
 
-/** A provider failure that says the provider could not be reached at all. */
-export function isTransportFailure(send: SendSummary): boolean {
-  return isProviderFailure(send) && TRANSPORT_ERROR.test(send.error ?? "");
+/**
+ * Whether a provider failure says the provider could not be reached at all,
+ * rather than a recipient refused. `failure` is one `isProviderFailure` keeps.
+ */
+export function isTransportFailure(
+  failure: Pick<SendSummary, "error">,
+): boolean {
+  return TRANSPORT_ERROR.test(failure.error ?? "");
 }
