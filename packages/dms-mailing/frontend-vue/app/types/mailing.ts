@@ -465,6 +465,8 @@ export interface SendRow {
 	error?: string
 	source?: string
 	json_variables: string
+	/** The files it carried (`SentAttachment[]` as JSON); absent for most sends. */
+	json_attachments?: string
 	opens: number
 	clicks: number
 	createdAt: string

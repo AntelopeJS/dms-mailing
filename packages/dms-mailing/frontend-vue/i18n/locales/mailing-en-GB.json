@@ -411,6 +411,10 @@
 			"no_replay_after_spam": "The recipient reported this e-mail as spam: it is not sent again.",
 			"nothing_to_publish": "This template has no content to publish yet.",
 			"replay_needs_new_address": "This address bounced. Send to a corrected address instead.",
+			"no_replay_with_attachments": "This e-mail carried attachments, which the send log does not keep. Send it again from the application that sent it.",
+			"attachments_unsupported": "The e-mail provider cannot send attachments.",
+			"attachments_too_large": "The attachments are too large, or too many.",
+			"invalid_attachment": "An attachment has no usable name, an unaccepted type or no content.",
 			"starter_not_found": "This starter template does not exist.",
 			"template_in_use": "Only an archived template that was never sent can be deleted. Archive it instead.",
 			"invalid_template": "The template name or slug is invalid.",
@@ -500,6 +504,7 @@
 			},
 			"description": "Every e-mail your workspace sent: to whom, with which data, and what the provider reported back.",
 			"drawer": {
+				"attachments_not_kept": "The send log keeps their name, size and fingerprint, not the files: this e-mail cannot be sent again from here.",
 				"latency": "API latency",
 				"locale": "Locale",
 				"payload": "Data sent",

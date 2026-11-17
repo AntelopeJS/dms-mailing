@@ -42,8 +42,8 @@ const STUBS = Object.fromEntries(
 	STUB_NAMES.map((name) => [name, slotStub(name)]),
 )
 
-async function render(): Promise<HTMLElement> {
-	const { host } = mount(SendDrawer, { rowData: SEND }, STUBS)
+async function render(row: SendRow = SEND): Promise<HTMLElement> {
+	const { host } = mount(SendDrawer, { rowData: row }, STUBS)
 	await flush()
 	return host
 }
@@ -115,5 +115,33 @@ describe('send drawer layout', () => {
 		expect(row?.hasAttribute('trailing')).toBe(false)
 		expect(row?.getAttribute('meta')).toContain('source')
 		expect(row?.textContent).toContain(SEND.source)
+	})
+
+	it('lists the files a send carried and says the log keeps none of them', async () => {
+		const row: SendRow = {
+			...SEND,
+			json_attachments: JSON.stringify([
+				{
+					filename: 'invoice-001.pdf',
+					contentType: 'application/pdf',
+					size: 2048,
+					sha256: 'a'.repeat(64),
+				},
+			]),
+		}
+		stubApiData().respond(
+			mailingReads({ send: () => ({ send: row, events: [] }) }),
+		)
+		const host = await render(row)
+		const listed = host.querySelector('[data-send-attachment]')
+		expect(listed?.textContent).toContain('invoice-001.pdf')
+		expect(listed?.getAttribute('meta')).toContain('2 kB')
+		expect(host.querySelector('[data-attachments-not-kept]')).not.toBeNull()
+	})
+
+	it('shows no attachment section for a send without files', async () => {
+		const host = await render()
+		expect(host.querySelector('[data-send-attachment]')).toBeNull()
+		expect(host.querySelector('[data-attachments-not-kept]')).toBeNull()
 	})
 })

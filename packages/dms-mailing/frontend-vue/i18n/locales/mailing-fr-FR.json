@@ -411,6 +411,10 @@
 			"no_replay_after_spam": "Le destinataire a signalé cet e-mail comme spam : il n’est pas renvoyé.",
 			"nothing_to_publish": "Ce modèle n’a pas encore de contenu à publier.",
 			"replay_needs_new_address": "Cette adresse a rebondi. Envoyez plutôt à une adresse corrigée.",
+			"no_replay_with_attachments": "Cet e-mail portait des pièces jointes, que le journal des envois ne garde pas. Renvoyez-le depuis l’application qui l’a envoyé.",
+			"attachments_unsupported": "Le fournisseur d’e-mails ne peut pas envoyer de pièces jointes.",
+			"attachments_too_large": "Les pièces jointes sont trop lourdes, ou trop nombreuses.",
+			"invalid_attachment": "Une pièce jointe n’a pas de nom utilisable, a un type refusé ou est vide.",
 			"starter_not_found": "Ce modèle de départ n’existe pas.",
 			"template_in_use": "Seul un modèle archivé et jamais envoyé peut être supprimé. Archivez-le plutôt.",
 			"invalid_template": "Le nom ou le slug du modèle est invalide.",
@@ -500,6 +504,7 @@
 			},
 			"description": "Chaque e-mail envoyé par votre espace de travail : à qui, avec quelles données, et ce que le fournisseur a répondu.",
 			"drawer": {
+				"attachments_not_kept": "Le journal des envois garde leur nom, leur taille et leur empreinte, pas les fichiers : cet e-mail ne peut pas être renvoyé d’ici.",
 				"latency": "Latence API",
 				"locale": "Langue",
 				"payload": "Données envoyées",

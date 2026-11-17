@@ -34,6 +34,7 @@ const PREPARED: PreparedSend = {
   tenantId: "tenant-1",
   category: "",
   attention: "",
+  attachments: [],
 };
 
 const SETTINGS: MailingSettingsValues = {

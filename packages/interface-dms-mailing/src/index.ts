@@ -171,6 +171,27 @@ export interface VariableDefinition {
   required: boolean;
 }
 
+/**
+ * A file a send carries, as bytes the caller already holds: the module never
+ * reads a path or fetches a URL for it. Every recipient of the call gets the
+ * same files.
+ */
+export interface SendAttachment {
+  /**
+   * The name the recipient sees. The module keeps its last path segment,
+   * removes control and formatting characters and refuses a name left empty.
+   */
+  filename: string;
+  /**
+   * The MIME type (`application/pdf`), written in lower case without its
+   * parameters; `application/octet-stream` when absent. `multipart/*`,
+   * `message/*` and anything that is not `type/subtype` is refused.
+   */
+  contentType?: string;
+  /** The file's bytes; a `Buffer` is one. An empty file is refused. */
+  content: Uint8Array;
+}
+
 /** Parameters of a template send triggered from application code. */
 export interface SendTemplateParams {
   tenantId: string;
@@ -180,6 +201,52 @@ export interface SendTemplateParams {
   content?: TemplateContent;
   source?: string;
   isTest?: boolean;
+  /**
+   * Files the e-mail carries. The send log keeps their names, types, sizes
+   * and SHA-256 hashes, never their bytes, so a send with attachments cannot
+   * be sent again from the dashboard. See {@link GetSendCapabilities} for
+   * the limits.
+   */
+  attachments?: SendAttachment[];
+}
+
+/**
+ * The `code` of the error a refused `SendTemplate` call rejects with. The
+ * interface does not export the error class: branch on `error.code`.
+ *
+ * - `attachments_unsupported`: the e-mail provider reports it cannot carry
+ *   attachments. Nothing was sent or logged.
+ * - `attachments_too_large`: the files exceed the module's or the provider's
+ *   ceiling, or there are too many of them.
+ * - `invalid_attachment`: a file has no usable name, an unaccepted type or no
+ *   bytes.
+ */
+export type SendErrorCode =
+  | "no_recipient"
+  | "template_not_found"
+  | "template_not_live"
+  | "invalid_content"
+  | "missing_variables"
+  | "attachments_unsupported"
+  | "attachments_too_large"
+  | "invalid_attachment";
+
+/** What a send can carry, read before sending. */
+export interface SendCapabilities {
+  /**
+   * Whether a send can carry attachments: `false` only when the provider
+   * reports it cannot. An unreachable provider leaves it `true`; the send
+   * itself then fails as any send would.
+   */
+  attachments: boolean;
+  /** Most files one send carries. */
+  maxAttachments: number;
+  /** Most bytes the files of one send add up to: the module's ceiling, lowered to the provider's. */
+  maxAttachmentBytes: number;
+  /** Most bytes one file holds: `maxAttachmentBytes`, lowered to the provider's own per-file limit. */
+  maxAttachmentFileBytes: number;
+  /** The provider's name, when it could be read. */
+  provider?: string;
 }
 
 /**
@@ -242,6 +309,14 @@ export const SendTemplate =
   InterfaceFunction<
     (slug: string, params: SendTemplateParams) => Promise<SendTemplateResult>
   >();
+
+/**
+ * What a send can carry today, for a caller that falls back to a link when
+ * the files cannot travel with the e-mail. `SendTemplate` checks the same
+ * limits and rejects with an {@link SendErrorCode} instead of dropping a file.
+ */
+export const GetSendCapabilities =
+  InterfaceFunction<() => Promise<SendCapabilities>>();
 
 /** Records a provider event against the send it belongs to. */
 export const RecordEmailEvent =

@@ -76,6 +76,13 @@ export class MailingSend extends Table {
   @Field("string")
   declare json_variables: string;
 
+  /**
+   * JSON-serialized `AttachmentSummary[]`: name, type, size and hash of each
+   * file the e-mail carried, never its bytes. Absent for a send without any.
+   */
+  @Field("string")
+  declare json_attachments?: string;
+
   @Field("number")
   declare opens: number;
 
