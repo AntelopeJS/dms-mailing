@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.11.2
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.1...interface-v0.11.2)
+
+### 🩹 Fixes
+
+- **docs:** List the packed range for the sibling interface in the README ([#198](https://github.com/AntelopeJS/dms-mailing/pull/198))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.11.1
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.0...interface-v0.11.1)
