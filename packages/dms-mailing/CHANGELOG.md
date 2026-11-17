@@ -1,6 +1,19 @@
 # Changelog
 
 
+## v0.10.4
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.3...v0.10.4)
+
+### 🩹 Fixes
+
+- **deps:** Name the sibling interface with workspace:^ ([#196](https://github.com/AntelopeJS/dms-mailing/pull/196))
+- **docs:** List the packed range for the sibling interface in the README ([#198](https://github.com/AntelopeJS/dms-mailing/pull/198))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.10.3
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.2...v0.10.3)
