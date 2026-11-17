@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.10.5
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.4...v0.10.5)
+
+### 🩹 Fixes
+
+- **deps:** Move the DMS pins to the released 0.21 line ([#204](https://github.com/AntelopeJS/dms-mailing/pull/204))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.10.4
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.3...v0.10.4)
