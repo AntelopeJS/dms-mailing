@@ -13,7 +13,7 @@ import { readCapabilities } from "./provider";
 import { SendError } from "./send-error";
 
 /** A file of a send as the send log keeps it: everything but its bytes. */
-export interface AttachmentSummary {
+interface AttachmentSummary {
   filename: string;
   contentType: string;
   size: number;
@@ -27,7 +27,7 @@ export interface CheckedAttachment extends AttachmentSummary {
 }
 
 /** How many files, and how many bytes, one send may carry. */
-export interface AttachmentLimits {
+interface AttachmentLimits {
   count: number;
   totalBytes: number;
   fileBytes: number;
@@ -146,7 +146,7 @@ const lowered = (limit: number, providerLimit: number | undefined): number =>
  * message (of which base64 leaves three quarters to raw bytes) and its
  * largest file.
  */
-export function attachmentLimits(
+function attachmentLimits(
   capabilities: ProviderCapabilities | null,
 ): AttachmentLimits {
   const config = getConfig();
@@ -170,9 +170,7 @@ export function attachmentLimits(
  * read, one without it is taken at the interface's word, whose `EmailParams`
  * carries attachments.
  */
-export function refusesAttachments(
-  capabilities: ProviderCapabilities,
-): boolean {
+function refusesAttachments(capabilities: ProviderCapabilities): boolean {
   const { features } = capabilities;
   return "attachments" in features && features.attachments === false;
 }

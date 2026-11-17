@@ -1,13 +1,17 @@
-/**
- * The raw messages the SMTP fixture received, oldest first. The fixture runs
- * in the test process, so a test reads what nodemailer really wrote.
- */
-const received: string[] = [];
-
-export function recordSmtpMessage(message: string): void {
-  received.push(message);
+declare global {
+  /**
+   * The raw messages the SMTP fixture received, oldest first: a global, since
+   * the fixture's copy of this module is not the one the tests import.
+   */
+  var dmsMailingSmtpMessages: string[] | undefined;
 }
 
+export function recordSmtpMessage(message: string): void {
+  globalThis.dmsMailingSmtpMessages ??= [];
+  globalThis.dmsMailingSmtpMessages.push(message);
+}
+
+/** What nodemailer really wrote to the fixture, oldest first. */
 export function smtpMessages(): string[] {
-  return [...received];
+  return [...(globalThis.dmsMailingSmtpMessages ?? [])];
 }
