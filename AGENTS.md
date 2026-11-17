@@ -47,9 +47,7 @@ exports. Confirm each finding before you remove it.
 ## Versions and releases
 
 The module names its sibling interface with `workspace:^`, so `pnpm pack`
-writes `^<sibling version>` and no release hook rewrites it. Release the interface first (**Release DMS mailing interface**),
-then the module (**Release DMS mailing module**), which refuses to run until
-the version in `packages/interface-dms-mailing/package.json` resolves on npm.
+writes `^<sibling version>` and no release hook rewrites it. Release the interface first, then the module, through the **Release** workflow: dispatch it with `package-directory` set to `packages/interface-dms-mailing`, then to `packages/dms-mailing`.
 
 <!-- antelopejs-guardrails:start -->
 <!-- Managed by @antelopejs/tooling-configs. `antelopejs-sync` rewrites everything between these markers; write repository-specific guidance outside them. -->
