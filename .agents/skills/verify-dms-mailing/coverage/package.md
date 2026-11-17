@@ -11,7 +11,7 @@
 | The package is public | the-module-tarball-holds-what-its-manifest-names | public access |
 | The interface exports SendTemplate, RecordEmailEvent, DeclareTemplate, DeclareTemplateCategory, DeclareSender, ImportSends and their types (Extending) | the-interface-tarball-exports-the-contract | exports `<name>` per name |
 | The README compatibility table matches the module's dependency ranges | ranges-match-the-compatibility-table | `<name>` is in the table with the same range |
-| The interface range stops below the next minor (AGENTS Versions) | ranges-match-the-compatibility-table | the range stops below the next minor |
+| The interface is named `workspace:^`, packed as `^<interface version>` (AGENTS Versions) | ranges-match-the-compatibility-table | the packed range is `^<interface version>` |
 | The renderer range is one minor (Installation, Requirements) | ranges-match-the-compatibility-table | the dashboard layer pins one renderer minor |
 | Releasing the interface first, then the module (release workflows) | Not driven | CI workflows cannot run here |
 | `ajs dms` refuses a renderer outside the range | Not driven | needs a second renderer build |
