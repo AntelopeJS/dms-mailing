@@ -46,10 +46,8 @@ exports. Confirm each finding before you remove it.
 
 ## Versions and releases
 
-The module implements the interface, so `packages/dms-mailing` caps its
-interface range below the next minor (`>=<floor> <0.<minor+1>.0`); inside the
-workspace that range resolves to the sibling package. `release.yml` refuses any
-other shape. Release the interface first (**Release DMS mailing interface**),
+The module names its sibling interface with `workspace:^`, so `pnpm pack`
+writes `^<sibling version>` and no release hook rewrites it. Release the interface first (**Release DMS mailing interface**),
 then the module (**Release DMS mailing module**), which refuses to run until
 the version in `packages/interface-dms-mailing/package.json` resolves on npm.
 
