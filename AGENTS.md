@@ -72,8 +72,6 @@ CI runs `pnpm run checks` in full on every pull request and reports what failed.
 - `pnpm exec oxlint <files>` and `pnpm exec oxfmt <files>` on the files you changed.
 - One test file, not the suite. In a module that tests with `ajs module test`: `pnpm run build`, then `pnpm exec ajs module test . -f dist/<path>.test.js`.
 
-Prove a change works before you call it done: run the journeys it touches with `pnpm e2e -g <journey id>`, and add a journey to `e2e/journeys/<feature>.mjs` when none covers it.
-
 ### Comments
 
 Say it in code: a constraint in a type, a lint rule or a test, a public item's contract in TSDoc. Other comments are lint directives naming their rules, `@ts-expect-error <reason>`, `SAFETY: <reason>` above a type assertion, and license or tool directives. A reason states what the code does now.
