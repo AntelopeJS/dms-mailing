@@ -116,7 +116,6 @@ export const basicsJourneys = [
   },
   {
     id: "the-sender-settings-decide-who-every-e-mail-comes-from",
-    tag: "@smoke",
     title: "with a sender address, every e-mail comes from it with the sender name next to it and answers go to the reply-to; a name without an address changes nothing; without a reply-to there is no Reply-To header; the three send paths agree",
     entryPoint: "SendTemplate, POST /api/mailing/templates/:id/{test-send,send}",
     async run(ctx) {

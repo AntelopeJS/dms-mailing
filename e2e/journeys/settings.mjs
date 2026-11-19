@@ -9,4 +9,7 @@ import { webhookSettingsJourneys } from "./parts/settings-webhook.mjs";
 import { deliveryJourneys } from "./parts/settings-delivery.mjs";
 import { basicsJourneys } from "./parts/settings-basics.mjs";
 
-export const journeys = guarded([...basicsJourneys, ...deliveryJourneys, ...webhookSettingsJourneys, ...urlJourneys, retention, ...categoryJourneys, ...pageJourneys, ...morePageJourneys, categoriesPage]);
+export const journeys = guarded([...pageJourneys, ...morePageJourneys, categoriesPage]);
+
+/** The HTTP journeys, which the backend suite runs in-process (`packages/dms-mailing/src/test/integration/settings.journeys.test.ts`). */
+export const apiJourneys = [...basicsJourneys, ...deliveryJourneys, ...webhookSettingsJourneys, ...urlJourneys, retention, ...categoryJourneys];

@@ -47,6 +47,7 @@ export async function saveChanges(tab) {
 export const pageJourneys = [
   {
     id: "the-settings-page-has-five-sections-and-the-save-bar-saves-the-changes",
+    tag: "@smoke",
     title: "Configure › Settings shows five sections in its side navigation, the save bar appears on a change, Discard puts the saved values back, Save changes stores them (toast Settings saved), and a field changed elsewhere in the meantime is not overwritten",
     entryPoint: PAGE,
     async run(ctx) {
