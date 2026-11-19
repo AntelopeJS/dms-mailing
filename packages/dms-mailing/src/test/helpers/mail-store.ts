@@ -107,10 +107,8 @@ export function keepMail(
 }
 
 /** The messages the SMTP fixture kept so far, oldest first; none when no fixture keeps mail. */
-export function capturedMail(
-  environment: NodeJS.ProcessEnv = process.env,
-): CapturedMail[] {
-  const folder = environment[MAIL_FOLDER_VARIABLE];
+export function capturedMail(): CapturedMail[] {
+  const folder = process.env[MAIL_FOLDER_VARIABLE];
   if (folder === undefined || !existsSync(folder)) return [];
   return readdirSync(folder)
     .filter((name) => name.endsWith(".json"))

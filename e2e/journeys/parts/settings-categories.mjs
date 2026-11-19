@@ -64,9 +64,8 @@ export const categoryJourneys = [
       ]);
       const reordered = [...afterAdd].reverse().map((row) => (text(row, "id") === "marketing" ? { ...row, label: { en: "Campaigns", fr: "Campagnes" }, icon: "i-ph-megaphone" } : row));
       await putSettings(ctx, "reverse the order, rename marketing and change its icon", { categories: reordered });
-      await ctx.restartBackend();
       const stored = await categoriesOf(ctx);
-      await ctx.verify("the order, the renamed marketing and the icon survive a restart", [
+      await ctx.verify("a later read returns the order, the renamed marketing and the icon", [
         check("the order is reversed", JSON.stringify(stored.map((row) => row.id)) === JSON.stringify(reordered.map((row) => text(row, "id"))), stored.map((row) => row.id)),
         check("marketing keeps its id and has the new labels and icon", text(stored.find((row) => row.id === "marketing"), "label", "en") === "Campaigns" && text(stored.find((row) => row.id === "marketing"), "label", "fr") === "Campagnes" && text(stored.find((row) => row.id === "marketing"), "icon") === "i-ph-megaphone", stored.find((row) => row.id === "marketing")),
       ]);

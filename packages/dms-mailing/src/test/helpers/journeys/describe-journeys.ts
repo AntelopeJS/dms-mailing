@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { expect } from "chai";
@@ -22,16 +22,18 @@ const WORKSPACE_MARKER = "pnpm-workspace.yaml";
  * `knownFailures` maps the name of each check that fails today to the
  * finding that makes it fail.
  */
-const journeySchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  entryPoint: z.string(),
-  knownFailures: z.record(z.string()).default({}),
-  run: z
-    .function()
-    .args(z.instanceof(JourneyContext))
-    .returns(z.promise(z.void())),
-});
+const journeySchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    entryPoint: z.string(),
+    knownFailures: z.record(z.string()).default({}),
+    run: z
+      .function()
+      .args(z.instanceof(JourneyContext))
+      .returns(z.promise(z.void())),
+  })
+  .strict();
 
 /** A feature module: `journeys` the Playwright suite runs, `apiJourneys` this suite runs. */
 const featureSchema = z.object({ apiJourneys: z.array(journeySchema) });
@@ -42,12 +44,13 @@ type Journey = z.infer<typeof journeySchema>;
 function repoRoot(from: string = __dirname): string {
   if (existsSync(join(from, WORKSPACE_MARKER))) return from;
   const parent = dirname(from);
-  if (parent === from)
-    throw new Error(`no ${WORKSPACE_MARKER} above ${__dirname}`);
+  if (parent === from) throw new Error(`no ${WORKSPACE_MARKER} above ${from}`);
   return repoRoot(parent);
 }
 
 let run: Promise<JourneyState> | undefined;
+let failed = false;
+let cleanupRegistered = false;
 
 async function openRun(): Promise<JourneyState> {
   const owner = await ensureOwnerSession();
@@ -73,6 +76,12 @@ function runState(): Promise<JourneyState> {
   return run;
 }
 
+/** Removes the run's scratch and evidence folder once every journey passed; a failure keeps it for whoever reads the failure. */
+async function removeRunUnlessFailed(): Promise<void> {
+  if (failed || run === undefined) return;
+  rmSync((await run).dir, { recursive: true, force: true });
+}
+
 /** Gives the next journey a workspace that never opened Mailing, under the module's default configuration. */
 async function freshWorkspace(): Promise<void> {
   const state = await runState();
@@ -89,7 +98,12 @@ async function runJourney(
   state.journeyCount += 1;
   const context = new JourneyContext(state, feature, journey.id);
   await context.drive(journey.run);
-  return judge(context.steps, context.end, journey.knownFailures);
+  if (context.steps.length === 0 && context.end.error === null) {
+    context.end.error = "the journey recorded no check";
+  }
+  const judged = judge(context.steps, context.end, journey.knownFailures);
+  if (judged.status !== "PASS") failed = true;
+  return judged;
 }
 
 /** The HTTP and command-line journeys `e2e/journeys/<feature>.mjs` exports as `apiJourneys`. */
@@ -118,6 +132,10 @@ export function describeJourneys(
     throw new Error(
       `${feature}: ${journeys.length} API journeys, timeouts for unknown journeys: ${strays.join(", ")}`,
     );
+  }
+  if (!cleanupRegistered) {
+    cleanupRegistered = true;
+    after(removeRunUnlessFailed);
   }
   describe(`[journeys] ${feature}`, function () {
     this.timeout(RESET_TIMEOUT_MS);

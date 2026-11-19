@@ -39,8 +39,9 @@ backend suite runs in its own CI job, so run it when your change touches
 - `pnpm e2e` runs the browser journeys (`e2e/journeys`) as a Playwright suite
   through the `@antelopejs/dms/e2e` kit; `--grep @smoke` or `-g <journey id>`
   narrows it. `pnpm e2e:build` builds the module and the playground first;
-  with `DMS_E2E_PREBUILT=1` the suite skips that build, as CI does. CI runs the `@smoke` set on a pull request, and every journey
-  in the merge queue, nightly, on a manual run and with the `ci:full` label.
+  with `DMS_E2E_PREBUILT=1` the suite skips that build, as CI does. CI runs
+  the `@smoke` set on a pull request, and every journey in the merge queue,
+  nightly, on a manual run and with the `ci:full` label.
   A change to a journey runs that journey.
 - A change to the webhook event handling or the send retention also runs the
   TLA+ check in
