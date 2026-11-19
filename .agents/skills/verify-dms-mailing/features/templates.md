@@ -70,6 +70,7 @@ The gallery, the New template dialog, the drawer and the lifecycle of a template
 - `the-details-drawer-opens-with-its-tabs-and-footer`: the info icon of a card opens the details drawer with the Preview, Variables, Performance and History tabs and the Test, Duplicate and Open the editor buttons.
 - `the-table-display-lists-the-same-templates-as-rows`: switching from the Gallery to the Table view swaps the cards for rows with each template's name, slug, category and status, the Live, Drafts and Archived tabs leave one row each, and Gallery brings the cards back.
 - `a-new-footer-has-its-links-only-for-marketing-or-no-category`: a new blank template gets the unsubscribe and preferences links in the marketing category and without a category, and a legal line alone in any other category and from a starter.
+- `more-actions-offers-only-the-moves-the-status-allows`: the drawer's More actions offers Publish the draft and Archive on a draft, Unpublish, Archive and Send to real recipients on a live template, and Publish the draft from it asks for a confirmation and makes the draft live as version 1.
 
 ## How to get to it (user POV)
 

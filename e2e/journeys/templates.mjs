@@ -5,7 +5,8 @@ import { journeys as footer } from "./parts/templates-footer.mjs";
 import { journeys as table } from "./parts/templates-table.mjs";
 import { journeys as gallery } from "./parts/templates-gallery.mjs";
 import { journeys as lifecycle } from "./parts/templates-lifecycle.mjs";
+import { journeys as actions } from "./parts/templates-actions.mjs";
 import { guarded } from "../guard.mjs";
 
 /** The templates: creation rules, copies, lifecycle, sends of templates out of use and deletion. */
-export const journeys = guarded([...create, ...lifecycle, ...gallery, ...dialog, ...drawer, ...table, ...footer]);
+export const journeys = guarded([...create, ...lifecycle, ...gallery, ...dialog, ...drawer, ...table, ...footer, ...actions]);

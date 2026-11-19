@@ -5,7 +5,8 @@ import { journeys as blocks } from "./parts/editor-blocks.mjs";
 import { journeys as drafts } from "./parts/editor-drafts.mjs";
 import { journeys as publish } from "./parts/editor-publish.mjs";
 import { journeys as branding } from "./parts/editor-branding.mjs";
+import { journeys as flows } from "./parts/editor-flows.mjs";
 import { guarded } from "../guard.mjs";
 
 /** The editor: drafts, versions and revisions, preview and rendering of blocks. */
-export const journeys = guarded([...drafts, ...blocks, ...formats, ...footer, ...page, ...publish, ...branding]);
+export const journeys = guarded([...drafts, ...blocks, ...formats, ...footer, ...page, ...publish, ...branding, ...flows]);

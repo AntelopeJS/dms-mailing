@@ -67,6 +67,10 @@ Drafts, published versions, revisions, the history and how the blocks render.
 - `the-editor-page-has-its-panes-toolbar-and-keyboard-shortcuts`: the editor at /modules/mailing/templates/<id> shows the blocks, outline and variables tabs, the block, test data and template tabs and the toolbar, saves with Ctrl+S, redoes with Ctrl+Y, searches the blocks with `/`, opens the publish review with Ctrl+Enter, opens the test dialog with T and goes back to Templates with Escape.
 - Branding: `the-canvas-header-shows-the-logo-the-sent-e-mail-carries`: with the playground's `branding.logo.email.light` a public PNG next to the default SVG logo, the canvas header draws that PNG above the blocks, and a test send of the template carries the same URL.
 - `ctrl-enter-opens-the-publish-review-and-publishing-from-it-goes-live`: Ctrl+Enter opens the review and publishes nothing, Keep editing publishes nothing, Publish v1 makes the template live as version 1 and a send carries that subject, and a later change publishes as v2 the same way.
+- `the-test-dialog-sends-the-draft-to-every-address-given-as-a-test`: Test opens Send a test on the editor draft with the owner's address, an address added with Enter makes it Send 2 tests, and both receive the unpublished draft's subject behind [TEST], logged as tests, with no version published.
+- `the-publish-review-blocks-an-empty-subject-until-the-subject-is-written`: the review of a draft without a subject names the empty subject as a problem and disables Publish v1; once the subject is written in the Template tab the review lets Publish v1 make it live with that subject.
+- `the-device-and-preview-switches-change-the-canvas`: Mobile narrows the e-mail on the canvas from 600 to 380 pixels and Desktop widens it back; Data shows the test data in place of a token and Variables the token.
+- `a-variable-declared-in-the-variables-tab-is-saved-in-the-draft`: Declare a variable takes a path, the Amount type and the Required switch, lists the variable, and the saved draft declares it as a required `money` variable.
 
 ## How to get to it (user POV)
 
