@@ -6,6 +6,12 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 import { SHARED_MODULE_SOURCES } from "./antelope-modules";
 import { isText } from "../validation/guards";
+import {
+  keepMail,
+  MAIL_FOLDER_VARIABLE,
+  type MailEnvelope,
+  SMTP_DOWN_VARIABLE,
+} from "./helpers/mail-store";
 import { SETUP_TOKEN } from "./helpers/setup-token";
 
 const API_PORT = 5019;
@@ -14,7 +20,7 @@ const HTML_RENDER_SECRET = "test-html-render-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
 const SMTP_HOST = "127.0.0.1";
 const EPHEMERAL_PORT = 0;
-const TEST_SENDER = "dms-mailing@test.local";
+const TEST_SENDER = "verify@dms-mailing.local";
 const SMTP_RESPONSES = new Map([
   ["EHLO", "250-dms-mailing.test\r\n250 PIPELINING\r\n"],
   ["HELO", "250 dms-mailing.test\r\n"],
@@ -26,28 +32,56 @@ const SMTP_RESPONSES = new Map([
   ["QUIT", "221 Bye\r\n"],
 ]);
 
+const SMTP_UNAVAILABLE = "421 dms-mailing.test Service not available\r\n";
+
 interface SmtpConnectionState {
   pending: string;
   isReadingData: boolean;
+  envelope: MailEnvelope;
+  data: string[];
 }
 
 let mongod: MongoMemoryReplSet;
 let storageDir: string;
+let mailDir: string;
 let smtpServer: Server;
+
+function isSmtpDown(): boolean {
+  return process.env[SMTP_DOWN_VARIABLE] === "1";
+}
+
+function argumentOf(line: string): string {
+  return line.slice(line.indexOf(":") + 1).trim();
+}
+
+function readDataLine(
+  socket: Socket,
+  state: SmtpConnectionState,
+  line: string,
+): void {
+  if (line !== ".") {
+    state.data.push(line.startsWith("..") ? line.slice(1) : line);
+    return;
+  }
+  keepMail(mailDir, state.envelope, state.data.join("\r\n"));
+  state.isReadingData = false;
+  state.data = [];
+  socket.write("250 Queued\r\n");
+}
 
 function processSmtpLine(
   socket: Socket,
   state: SmtpConnectionState,
   line: string,
 ): void {
-  if (state.isReadingData) {
-    if (line === ".") {
-      state.isReadingData = false;
-      socket.write("250 Queued\r\n");
-    }
+  if (state.isReadingData) return readDataLine(socket, state, line);
+  const command = line.split(" ", 1)[0]?.toUpperCase() ?? "";
+  if (isSmtpDown() && command !== "QUIT") {
+    socket.end(SMTP_UNAVAILABLE);
     return;
   }
-  const command = line.split(" ", 1)[0]?.toUpperCase() ?? "";
+  if (command === "MAIL") state.envelope = { from: argumentOf(line), to: [] };
+  if (command === "RCPT") state.envelope.to.push(argumentOf(line));
   state.isReadingData = command === "DATA";
   const response = SMTP_RESPONSES.get(command) ?? "250 OK\r\n";
   if (command === "QUIT") socket.end(response);
@@ -56,8 +90,17 @@ function processSmtpLine(
 
 function createSmtpFixture(): Server {
   return createServer((socket) => {
-    const state: SmtpConnectionState = { pending: "", isReadingData: false };
+    const state: SmtpConnectionState = {
+      pending: "",
+      isReadingData: false,
+      envelope: { from: "", to: [] },
+      data: [],
+    };
     socket.setEncoding("utf8");
+    if (isSmtpDown()) {
+      socket.end(SMTP_UNAVAILABLE);
+      return;
+    }
     socket.write("220 dms-mailing.test ESMTP\r\n");
     socket.on("data", (chunk) => {
       state.pending += chunk;
@@ -168,6 +211,8 @@ export default defineConfig({
   test: {
     folder: process.env.DMS_MAILING_TEST_DIR ?? "dist/test",
     async setup() {
+      mailDir = await mkdtemp(join(tmpdir(), "dms-mailing-test-mail-"));
+      process.env[MAIL_FOLDER_VARIABLE] = mailDir;
       const smtpPort = await startSmtpFixture();
       mongod = await MongoMemoryReplSet.create({
         replSet: { count: 1 },
@@ -206,7 +251,11 @@ export default defineConfig({
           stopSmtpFixture(),
         ]);
       } finally {
-        if (storageDir) await rm(storageDir, { recursive: true, force: true });
+        await Promise.all(
+          [storageDir, mailDir]
+            .filter(Boolean)
+            .map((dir) => rm(dir, { recursive: true, force: true })),
+        );
       }
     },
   },
