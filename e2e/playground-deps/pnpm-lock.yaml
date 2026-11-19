@@ -33,8 +33,8 @@ importers:
         specifier: '>=0.14.0 <0.15.0'
         version: 0.14.4(1183000973ac86d33c63b2338e554d86)
       '@antelopejs/interface-dms-mailing':
-        specifier: link:../../../../packages/interface-dms-mailing
-        version: link:../../../../packages/interface-dms-mailing
+        specifier: link:../../packages/interface-dms-mailing
+        version: link:../../packages/interface-dms-mailing
       '@antelopejs/interface-email':
         specifier: '>=0.2.0 <0.3.0'
         version: 0.2.1(@antelopejs/interface-core@0.5.1)

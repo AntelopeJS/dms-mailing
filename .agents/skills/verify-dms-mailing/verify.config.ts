@@ -1,3 +1,5 @@
+import journeys from "../../../e2e/journeys.config.ts";
+
 /** A kind of one-way door. */
 export type DoorKind = "data" | "format" | "contract" | "outbound" | "exposure" | "publish";
 
@@ -42,15 +44,8 @@ const MODULE = "packages/dms-mailing";
 const INTERFACE = "packages/interface-dms-mailing";
 
 const config: VerifyConfig = {
-  playground: `${SKILL}/playground`,
-  prepare: [
-    ["pnpm", "install", "--frozen-lockfile", "--prefer-offline", "--ignore-scripts"],
-    ["pnpm", "run", "build"],
-    ["npm", "install", "--no-save", "--no-package-lock", "--no-audit", "--no-fund", "--prefix", SKILL, "playwright-core@1.56.1"],
-    ["pnpm", "install", "--dir", `${SKILL}/deps`, "--ignore-workspace", "--frozen-lockfile", "--prefer-offline", "--ignore-scripts"],
-    ["ln", "-sfn", "../deps/node_modules", `${SKILL}/playground/node_modules`],
-    [`${SKILL}/deps/node_modules/.bin/tsc`, "-p", `${SKILL}/playground/tsconfig.build.json`],
-  ],
+  playground: journeys.playground,
+  prepare: [...journeys.prepare, ["npm", "install", "--no-save", "--no-package-lock", "--no-audit", "--no-fund", "--prefix", SKILL, "playwright-core@1.56.1"]],
   userFacing: [`${MODULE}/src/**`, `${MODULE}/frontend-vue/**`, `${MODULE}/skills/**`, `${MODULE}/package.json`, `${INTERFACE}/src/**`, `${INTERFACE}/package.json`],
   notUserFacing: [
     `${MODULE}/src/test/**`,

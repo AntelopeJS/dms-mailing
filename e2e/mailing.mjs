@@ -15,10 +15,10 @@ import { join } from "node:path";
 /** The module's HTTP API, which the dashboard calls. */
 export const MAILING = "/api/mailing";
 
-/** The verification playground's trusted backend calls (`.agents/skills/verify-dms-mailing/playground/src/fixture.ts`). */
+/** The verification playground's trusted backend calls (`e2e/playground/src/fixture.ts`). */
 export const FIXTURE = "/verify-mailing";
 
-/** The e-mail logo the playground's branding gives next to the default SVG one (`.agents/skills/verify-dms-mailing/playground/frontend-vue/app/app.config.ts`). */
+/** The e-mail logo the playground's branding gives next to the default SVG one (`e2e/playground/frontend-vue/app/app.config.ts`). */
 export const EMAIL_LOGO = "https://www.example.com/verify-dms-mailing/email-logo.png";
 
 /** The tenant of a single-tenant DMS. */
@@ -222,7 +222,7 @@ export function sha256(bytes) {
 
 
 /**
- * Restarts the backend with `VERIFY_MAILING_*` variables set (see `.agents/skills/verify-dms-mailing/playground/antelope.config.ts`), runs `body`, then
+ * Restarts the backend with `VERIFY_MAILING_*` variables set (see `e2e/playground/antelope.config.ts`), runs `body`, then
  * restarts it with the variables it had, so later journeys get the module's defaults back.
  *
  * @param {Ctx} ctx The journey

@@ -2,15 +2,15 @@ import { spawnSync } from "node:child_process";
 import { join, relative } from "node:path";
 
 /**
- * The verify skill installs its playground packages from `deps/` with a frozen
- * lockfile, so a `deps/package.json` bump without a regenerated lockfile breaks
- * `dms-control up --prepare` on every run. Checks the lockfile against the
+ * The e2e suite installs its playground packages from `e2e/playground-deps/`
+ * with a frozen lockfile, so a `package.json` bump there without a regenerated
+ * lockfile breaks `pnpm e2e:build` on every run. Checks the lockfile against the
  * manifest without installing anything, whatever release-age policy the host's
  * pnpm applies to new installs. Prints the failure only; exits 1 on it.
  */
 
 const REPOSITORY_ROOT = join(import.meta.dirname, "..", "..", "..");
-const DEPS = join(REPOSITORY_ROOT, ".agents/skills/verify-dms-mailing/deps");
+const DEPS = join(REPOSITORY_ROOT, "e2e/playground-deps");
 const OUTDATED_LOCKFILE = "ERR_PNPM_OUTDATED_LOCKFILE";
 
 const PNPM_ARGS = [

@@ -11,8 +11,7 @@ export default defineConfig({
     ...ANTELOPE_IGNORE_PATTERNS,
     "packages/dms-mailing/frontend-vue/**",
     "packages/dms-mailing/playground/**",
-    ".agents/skills/verify-dms-mailing/playground/**",
-    ".claude/skills/verify-dms-mailing/playground/**",
+    "e2e/playground/**",
   ],
   options: {
     typeAware: true,
