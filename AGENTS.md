@@ -25,6 +25,10 @@ backend suite runs in its own CI job, so run it when your change touches
 - `pnpm --dir packages/dms-mailing test:backend` runs `ajs module test`, unit
   and integration, against a Mongo memory server and an SMTP fixture.
   `test:unit` and `test:integration` narrow it to one folder.
+- The HTTP and command-line journeys, which each feature module of
+  `e2e/journeys` exports as `apiJourneys`, run in that suite: one test per
+  journey in `src/test/integration/<feature>.journeys.test.ts`, in-process, on
+  a workspace reset before each, judged against its `knownFailures`.
 - The backend scripts build the module first, and the test harness builds it
   again as the local module's `installCommand`. With `DMS_PREBUILT=1` (set in
   CI after its single build) both skip the build and test the existing `dist/`.
