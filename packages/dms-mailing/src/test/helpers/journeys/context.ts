@@ -180,7 +180,7 @@ export class JourneyContext {
   /**
    * Calls the backend as `request.as`, signing the account in once more when
    * its token is refused, or with an explicit token and no retry. A path
-   * under `/verify-mailing` reaches the trusted fixture routes in-process.
+   * under `/playground-mailing` reaches the trusted fixture routes in-process.
    */
   async api(label: string, request: ApiRequest): Promise<ApiAnswer> {
     const folder = (): string => this.step(`api ${label}`);

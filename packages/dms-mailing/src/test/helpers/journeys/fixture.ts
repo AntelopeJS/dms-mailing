@@ -7,8 +7,8 @@ import { z } from "zod";
 import { callInterface } from "./calls.untyped";
 import type { Json } from "./json";
 
-/** The path the verification playground served its trusted backend calls under. */
-export const FIXTURE_PREFIX = "/verify-mailing";
+/** The path the e2e playground serves its trusted backend calls under. */
+export const FIXTURE_PREFIX = "/playground-mailing";
 
 /** What one of the trusted routes answered, as its HTTP response carried it. */
 export interface FixtureAnswer {
@@ -93,7 +93,7 @@ const ROUTES = new Map<string, (body: Json) => Promise<string>>([
 ]);
 
 /**
- * Serves the verification playground's trusted routes in the test process,
+ * Serves the e2e playground's trusted routes in the test process,
  * answering what their HTTP response carried: the JSON of what the route
  * returned, a 500 with the message when it threw, a 404 for another path.
  */

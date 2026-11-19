@@ -59,7 +59,7 @@ async function send(params: EmailParams): Promise<EmailResponse> {
   return {
     success: true,
     status: "sent",
-    messageId: `verify-${randomUUID()}`,
+    messageId: `playground-${randomUUID()}`,
     timestamp: new Date(),
     provider: configuredName() ?? "verify",
   };

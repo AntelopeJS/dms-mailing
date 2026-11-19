@@ -1,6 +1,6 @@
 ---
 name: formal-template-slugs
-description: "Model-check with TLA+ that creations of one template slug that race (the templates table's `new`, a duplicate, and a code declaration) leave exactly one template holding the slug and fail every other creation cleanly. Use when a change touches how a template is created, the slug's unique index or `refuseTakenSlug`, when `dms-control formal` reports `template-slugs`, or to check a fix for one of its findings."
+description: "Model-check with TLA+ that creations of one template slug that race (the templates table's `new`, a duplicate, and a code declaration) leave exactly one template holding the slug and fail every other creation cleanly. Use when a change touches how a template is created, the slug's unique index or `refuseTakenSlug`, when `test/formal.test.mjs` reports `template-slugs`, or to check a fix for one of its findings."
 ---
 
 # Formal check of template slug creation races
@@ -9,13 +9,13 @@ description: "Model-check with TLA+ that creations of one template slug that rac
 
 ## Does the change touch it
 
-The `template-slugs` entry of [`verify.config.ts`](../verify-dms-mailing/verify.config.ts) lists the covered files (`covers`). See what changed since the model last matched the code:
+`COVERS` in [`check.mjs`](check.mjs) lists the covered files. See what changed since the model last matched the code:
 
 ```bash
 git diff 7be1f0884d0f9c160f45d1c1bc99a28687173be1..HEAD -- packages/dms-mailing/src/db/tables/templates.table.ts packages/dms-mailing/src/services/templates.ts packages/dms-mailing/src/data/templates-table.ts packages/dms-mailing/src/routes/templates.ts packages/dms-mailing/src/services/declarations.ts packages/dms-mailing/src/db/models/templates.model.ts
 ```
 
-Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A new code path that inserts a template is a new kind of racer and needs a new action, and its file goes into `covers`. `dms-control formal` runs this check only when the diff touches `covers` or this folder, so a creation path added in another file goes unchecked until then.
+Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A new code path that inserts a template is a new kind of racer and needs a new action, and its file goes into `COVERS`.
 
 ## Run
 
@@ -23,7 +23,7 @@ Any change to a covered file breaks `ModelInSync`, which names the files. Read t
 node .agents/skills/formal-template-slugs/check.mjs   # about 2 s
 ```
 
-Run it from the repository root after `pnpm install`. It uses `checkSpec` of `@antelopejs/tooling-configs/formal`. That is TLC 1.7.4, downloaded once into `~/.cache/antelopejs-formal` and checked against its SHA-256, run by `$JAVA`, a `java` on `PATH`, or the `eclipse-temurin:21-jre` Docker image. In a verify run, `dms-control formal "$RUN"` runs it whenever the diff touches a covered file or this folder (see verify-dms-mailing's [SKILL.md](../verify-dms-mailing/SKILL.md)).
+Run it from the repository root after `pnpm install`. It uses `checkSpec` of `@antelopejs/tooling-configs/formal`. That is TLC 1.7.4, downloaded once into `~/.cache/antelopejs-formal` and checked against its SHA-256, run by `$JAVA`, a `java` on `PATH`, or the `eclipse-temurin:21-jre` Docker image. `pnpm test:repo` runs it as `test/formal.test.mjs`.
 
 `check.mjs` first prints `ModelInSync`, then one line per rule:
 

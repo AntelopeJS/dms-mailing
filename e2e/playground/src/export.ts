@@ -7,9 +7,9 @@ const exportSchema = z.object({ tenantId: z.string(), localPath: z.string() });
 /**
  * Builds the tenant data export archive the DMS offers modules' contributors
  * (`Hook.TENANT_DATA_EXPORT`), which has no HTTP route of its own. Only the
- * verification playground serves it.
+ * e2e playground serves it.
  */
-export class VerifyExportController extends Controller("/verify-mailing") {
+export class VerifyExportController extends Controller("/playground-mailing") {
   @Post("/export")
   async build(@JSONBody() body: unknown) {
     const { tenantId, localPath } = exportSchema.parse(body);

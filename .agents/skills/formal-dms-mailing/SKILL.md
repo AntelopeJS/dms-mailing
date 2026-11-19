@@ -1,6 +1,6 @@
 ---
 name: formal-dms-mailing
-description: "Model-check with TLA+ how dms-mailing folds provider webhook events into a send (its status, opens and clicks, history rows and automation trigger), how the nightly retention deletes sends and their history, and how `ImportSends` writes a past send against both. Use when a change touches the webhook event handling, the send retention or the send import, when `dms-control formal` reports `webhook-events`, or to check a fix for one of its findings."
+description: "Model-check with TLA+ how dms-mailing folds provider webhook events into a send (its status, opens and clicks, history rows and automation trigger), how the nightly retention deletes sends and their history, and how `ImportSends` writes a past send against both. Use when a change touches the webhook event handling, the send retention or the send import, when `test/formal.test.mjs` reports `webhook-events`, or to check a fix for one of its findings."
 ---
 
 # Formal check of webhook events, retention and send import
@@ -9,7 +9,7 @@ description: "Model-check with TLA+ how dms-mailing folds provider webhook event
 
 ## Does the change touch it
 
-The `webhook-events` entry of [`verify.config.ts`](../verify-dms-mailing/verify.config.ts) lists the covered files (`covers`). See what changed since the model last matched the code:
+`COVERS` in [`check.mjs`](check.mjs) lists the covered files. See what changed since the model last matched the code:
 
 ```bash
 git diff 599d744d4d9ee662d503f68861381a583a815e58..HEAD -- packages/dms-mailing/src/services/events.ts packages/dms-mailing/src/types/sends.ts packages/dms-mailing/src/db/models/sends.model.ts packages/dms-mailing/src/db/models/send-events.model.ts packages/dms-mailing/src/crons/retention.ts packages/dms-mailing/src/services/send-import.ts
@@ -24,7 +24,7 @@ node .agents/skills/formal-dms-mailing/check.mjs        # every configuration, a
 node .agents/skills/formal-dms-mailing/check.mjs race   # one configuration: fold, race, import or import-retry
 ```
 
-Run it from the repository root after `pnpm install`. It uses `checkSpec` of `@antelopejs/tooling-configs/formal`. That is TLC 1.7.4, downloaded once into `~/.cache/antelopejs-formal` and checked against its SHA-256, run by `$JAVA`, a `java` on `PATH`, or the `eclipse-temurin:21-jre` Docker image. In a verify run, `dms-control formal "$RUN"` runs it whenever the diff touches a covered file or this folder (see verify-dms-mailing's [SKILL.md](../verify-dms-mailing/SKILL.md)).
+Run it from the repository root after `pnpm install`. It uses `checkSpec` of `@antelopejs/tooling-configs/formal`. That is TLC 1.7.4, downloaded once into `~/.cache/antelopejs-formal` and checked against its SHA-256, run by `$JAVA`, a `java` on `PATH`, or the `eclipse-temurin:21-jre` Docker image. `pnpm test:repo` runs it as `test/formal.test.mjs`.
 
 `check.mjs` first prints `ModelInSync`, then each configuration prints one line per rule:
 

@@ -12,7 +12,7 @@ const PLAYWRIGHT = createRequire(import.meta.url).resolve(
 );
 const LISTED_FEATURE = /^ +\[chromium\] › .+? › (\S+) › \S+$/gm;
 
-await test("the e2e kit registers every journey of e2e/journeys, the smoke journey first, without a verify skill or dms-control: fails on a journeys module the kit refuses, two journeys sharing an id, or a missing smoke feature", () => {
+await test("the e2e kit registers every journey of e2e/journeys, the smoke journey first: fails on a journeys module the kit refuses, two journeys sharing an id, or a missing smoke feature", () => {
   const result = spawnSync(
     process.execPath,
     [PLAYWRIGHT, "test", "-c", "e2e", "--list"],

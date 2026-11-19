@@ -24,11 +24,11 @@ function mailingConfig(): { useHtmlRender?: boolean } {
 
 /**
  * The repository's playground with the ports, origins, secrets and mail
- * `dms-control` sets for a run, a fixture module (`app`) and the module under
- * verification built from the checkout.
+ * the e2e kit sets for a run, a fixture module (`app`) and the module under
+ * test built from the checkout.
  */
 export default defineConfig({
-  name: "verify-dms-mailing",
+  name: "dms-mailing-playground",
   modules: {
     app: {
       source: { type: "local", path: "." },
