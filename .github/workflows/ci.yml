@@ -2,12 +2,14 @@ name: ci
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  merge_group:
   push:
-    branches: [next]
+    branches: [main]
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
+
 permissions:
   contents: read
 
@@ -34,10 +36,12 @@ jobs:
       test-job: true
     permissions:
       contents: read
+    secrets:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
 
   # ci-node.yml exposes no outputs, so this copies its tier rule for the jobs
-  # declared here: a draft and the next to main pull request run none of them,
-  # and only the nightly run adds Windows. The e2e suite runs its @smoke
+  # declared here: a push to main runs none of them, and only the nightly run
+  # adds Windows. The e2e suite runs its @smoke
   # journeys on a pull request and every journey, in shards, in the merge
   # queue, nightly, on a manual run and on a pull request labelled ci:full.
   select:
