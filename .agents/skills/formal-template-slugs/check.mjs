@@ -4,13 +4,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSpec, EXIT } from "@antelopejs/tooling-configs/formal";
-import verifyConfig from "../verify-dms-mailing/verify.config.ts";
 
 const SKILL = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(SKILL, "../../..");
 const SPEC = "TemplateSlugs";
 const CONFIG = "slugs";
-const CHECK_NAME = "template-slugs";
 const COVERED_RECORD = join(SKILL, "covered.json");
 const SOURCE = "packages/dms-mailing/src";
 const TABLE_SOURCE = `${SOURCE}/db/tables/templates.table.ts`;
@@ -18,6 +16,15 @@ const SERVICE_SOURCE = `${SOURCE}/services/templates.ts`;
 const DATA_SOURCE = `${SOURCE}/data/templates-table.ts`;
 const ROUTE_SOURCE = `${SOURCE}/routes/templates.ts`;
 const DECLARATION_SOURCE = `${SOURCE}/services/declarations.ts`;
+/** The files the model is read from, whose digests `covered.json` records. */
+const COVERS = [
+  TABLE_SOURCE,
+  SERVICE_SOURCE,
+  DATA_SOURCE,
+  ROUTE_SOURCE,
+  DECLARATION_SOURCE,
+  `${SOURCE}/db/models/templates.model.ts`,
+];
 const SLUG = "slug";
 
 /**
@@ -151,15 +158,13 @@ function writeModel(dir) {
 }
 
 /**
- * The SHA-256 of each file the `template-slugs` check of verify.config.ts covers, as the code stands now.
+ * The SHA-256 of each file of `COVERS`, as the code stands now.
  *
  * @returns {Record<string, string>} Each covered path and its digest
  */
 function coveredDigests() {
-  const check = verifyConfig.formal.find((entry) => entry.name === CHECK_NAME);
-  if (!check) throw new Error(`verify.config.ts has no formal check named ${CHECK_NAME}`);
   return Object.fromEntries(
-    check.covers.map((file) => [file, createHash("sha256").update(readFileSync(join(REPO, file))).digest("hex")]),
+    COVERS.map((file) => [file, createHash("sha256").update(readFileSync(join(REPO, file))).digest("hex")]),
   );
 }
 

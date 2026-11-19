@@ -5,17 +5,24 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSpec, EXIT } from "@antelopejs/tooling-configs/formal";
-import verifyConfig from "../verify-dms-mailing/verify.config.ts";
 
 const SCRIPT = fileURLToPath(import.meta.url);
 const SKILL = dirname(SCRIPT);
 const REPO = resolve(SKILL, "../../..");
 const SPEC = "MailingEvents";
-const CHECK_NAME = "webhook-events";
 const COVERED_RECORD = join(SKILL, "covered.json");
 const EVENTS_SOURCE = "packages/dms-mailing/src/services/events.ts";
 const TYPES_SOURCE = "packages/dms-mailing/src/types/sends.ts";
 const IMPORT_SOURCE = "packages/dms-mailing/src/services/send-import.ts";
+/** The files the model is read from, whose digests `covered.json` records. */
+const COVERS = [
+  EVENTS_SOURCE,
+  TYPES_SOURCE,
+  "packages/dms-mailing/src/db/models/sends.model.ts",
+  "packages/dms-mailing/src/db/models/send-events.model.ts",
+  "packages/dms-mailing/src/crons/retention.ts",
+  IMPORT_SOURCE,
+];
 
 /**
  * The invariants each configuration breaks on the current code, with the number of states in TLC's shortest
@@ -144,15 +151,13 @@ async function checkConfig(config) {
 }
 
 /**
- * The SHA-256 of each file the `webhook-events` check of verify.config.ts covers, as the code stands now.
+ * The SHA-256 of each file of `COVERS`, as the code stands now.
  *
  * @returns {Record<string, string>} Each covered path and its digest
  */
 function coveredDigests() {
-  const check = verifyConfig.formal.find((entry) => entry.name === CHECK_NAME);
-  if (!check) throw new Error(`verify.config.ts has no formal check named ${CHECK_NAME}`);
   return Object.fromEntries(
-    check.covers.map((file) => [file, createHash("sha256").update(readFileSync(join(REPO, file))).digest("hex")]),
+    COVERS.map((file) => [file, createHash("sha256").update(readFileSync(join(REPO, file))).digest("hex")]),
   );
 }
 
