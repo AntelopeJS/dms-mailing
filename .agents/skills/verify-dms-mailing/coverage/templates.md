@@ -27,7 +27,7 @@ Sources: docs/4.usage/2.templates.md, README Slugs, 5.extending (ship templates)
 | Needs attention holds live templates with no real send in 30 days | needs-attention-lists-live-templates-without-a-real-send | two live templates without a send, the sent template left the tab |
 | New template (button and N key) opens a dialog; slug derived from the name; Ctrl+Enter creates and opens the editor | the-new-template-dialog-derives-the-slug-and-creates-with-the-keyboard | all checks |
 | The drawer's tabs and footer | the-details-drawer-opens-with-its-tabs-and-footer | FAILS at the head: product finding, ~/.cache/campaign/issues/dms-mailing-template-drawer-500.md |
-| More actions offers only the moves the status allows; Send to real recipients on live templates only, up to 5 addresses, acknowledgement | Not driven | blocked by the drawer finding (the drawer does not open) |
+| More actions offers only the moves the status allows; Send to real recipients on live templates only, up to 5 addresses, acknowledgement | more-actions-offers-only-the-moves-the-status-allows | draft: Publish the draft, Archive; live: Unpublish, Archive, Send to real recipients; Publish the draft asks "Publish “ma-draft”?" and Publish makes v1 live. The real-send dialog (5 addresses, acknowledgement) is Not driven |
 | Test, real send and send again need `mailing.send` | Not driven here | the access feature drives the permission |
 | Needs attention: drafts never published and untouched over a week | Not driven | a draft cannot be aged: updatedAt is written by the server |
 | Needs attention: live templates missing a locale that another live template has | Not driven | needs a second live locale set; left to the gallery chips |
