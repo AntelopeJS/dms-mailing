@@ -39,7 +39,7 @@ const featureSchema = z.object({ apiJourneys: z.array(journeySchema) });
 type Journey = z.infer<typeof journeySchema>;
 
 /** The checkout's root: the first folder up from here that holds the pnpm workspace file. */
-export function repoRoot(from: string = __dirname): string {
+function repoRoot(from: string = __dirname): string {
   if (existsSync(join(from, WORKSPACE_MARKER))) return from;
   const parent = dirname(from);
   if (parent === from)
@@ -93,7 +93,7 @@ async function runJourney(
 }
 
 /** The HTTP and command-line journeys `e2e/journeys/<feature>.mjs` exports as `apiJourneys`. */
-export function loadApiJourneys(feature: string): Journey[] {
+function loadApiJourneys(feature: string): Journey[] {
   const file = join(repoRoot(), "e2e", "journeys", `${feature}.mjs`);
   return featureSchema.parse(require(file)).apiJourneys;
 }

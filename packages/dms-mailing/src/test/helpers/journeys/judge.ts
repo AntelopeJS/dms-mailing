@@ -21,14 +21,14 @@ export interface JourneyEnd {
  * A check against the journey's known failures: it fails unlisted (`fail`) or
  * listed (`known`), and passes unlisted (`pass`) or listed (`fixed`).
  */
-export type CheckVerdict = "pass" | "fail" | "known" | "fixed";
+type CheckVerdict = "pass" | "fail" | "known" | "fixed";
 
-export interface JudgedCheck extends Check {
+interface JudgedCheck extends Check {
   verdict: CheckVerdict;
   finding?: string;
 }
 
-export interface JudgedStep {
+interface JudgedStep {
   name: string;
   checks: JudgedCheck[];
 }
