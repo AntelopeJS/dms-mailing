@@ -34,7 +34,7 @@ export default defineConfig({
       source: { type: "local", path: "." },
     },
     "dms-mailing": {
-      source: { type: "local", path: "../../../../packages/dms-mailing" },
+      source: { type: "local", path: "../../packages/dms-mailing" },
       config: mailingConfig(),
     },
     dms: {

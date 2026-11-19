@@ -34,11 +34,14 @@ backend suite runs in its own CI job, so run it when your change touches
   CI after its single build) both skip the build and test the existing `dist/`.
   Set it only after building the current sources; otherwise tests use stale
   output.
-- `pnpm test:repo` runs `dms-control map` and the two TLA+ checks
-  (`test/formal.test.mjs`) as `node:test` tests; `pnpm test` runs it first.
+- `pnpm test:repo` runs the journeys suite's shape check
+  (`test/journeys.test.mjs`) and the two TLA+ checks (`test/formal.test.mjs`)
+  as `node:test` tests; `pnpm test` runs it first.
 - `pnpm e2e` runs the browser journeys (`e2e/journeys`) as a Playwright suite
-  through the `@antelopejs/dms/e2e` kit; `--grep @smoke` or `-g <journey id>`
-  narrows it. `pnpm e2e:build` builds the module and the playground first;
+  through the `@antelopejs/dms/e2e` kit, which reads `e2e/journeys.config.ts`;
+  `--grep @smoke` or `-g <journey id>` narrows it. `pnpm e2e:build` builds the
+  module and the playground (`e2e/playground`, its packages from
+  `e2e/playground-deps`) first;
   with `DMS_E2E_PREBUILT=1` the suite skips that build, as CI does. CI runs
   the `@smoke` set on a pull request, and every journey in the merge queue,
   nightly, on a manual run and with the `ci:full` label.
