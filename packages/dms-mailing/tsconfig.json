@@ -18,6 +18,10 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["./src/**/*.ts", "./src/**/*.untyped.spec.js"],
+  "include": [
+    "./src/**/*.ts",
+    "./src/**/*.untyped.spec.js",
+    "./src/**/*.untyped.js"
+  ],
   "references": [{ "path": "./tsconfig.config.json" }]
 }
