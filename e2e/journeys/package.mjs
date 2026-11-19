@@ -17,7 +17,7 @@ const WINDOWS = process.platform === "win32";
  * @returns {{ files: string[], manifest: unknown }} The packed paths and the packed manifest
  */
 function packed(ctx, dir) {
-  const folder = mkdtempSync(join(tmpdir(), "verify-dms-mailing-pack-"));
+  const folder = mkdtempSync(join(tmpdir(), "dms-mailing-pack-"));
   try {
     const pack = spawnSync("npm", ["pack", "--ignore-scripts", "--silent", "--pack-destination", WINDOWS ? `"${folder}"` : folder], { cwd: join(ctx.state.repo ?? ".", dir), encoding: "utf8", shell: WINDOWS });
     const tarball = pack.stdout.trim().split("\n").at(-1) ?? "";

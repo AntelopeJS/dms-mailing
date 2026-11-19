@@ -31,9 +31,9 @@ function withAncestors(permissions: string[]): string[] {
 /**
  * Trusted backend calls a journey cannot make over HTTP: members with a role,
  * and the functions of `@antelopejs/interface-dms-mailing`. Only the
- * verification playground serves them.
+ * e2e playground serves them.
  */
-export class VerifyFixtureController extends Controller("/verify-mailing") {
+export class VerifyFixtureController extends Controller("/playground-mailing") {
   @Post("/member")
   async member(@JSONBody() body: unknown) {
     const { name, permissions, language } = memberSchema.parse(body);

@@ -1,5 +1,5 @@
 {
-  "name": "verify-dms-mailing-frontend-vue",
+  "name": "dms-mailing-playground-frontend-vue",
   "version": "0.0.0",
   "private": true,
   "type": "module"

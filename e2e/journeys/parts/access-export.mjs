@@ -66,7 +66,7 @@ async function archiveOf(ctx) {
   const dir = join(ctx.state.dir, "export");
   mkdirSync(dir, { recursive: true });
   const archive = join(dir, `${String(ctx.state.journeyCount ?? 0)}.zip`);
-  const built = await ctx.api("build the export archive", { method: "POST", path: "/verify-mailing/export", body: { tenantId: "default", localPath: archive }, as: "anon" });
+  const built = await ctx.api("build the export archive", { method: "POST", path: "/playground-mailing/export", body: { tenantId: "default", localPath: archive }, as: "anon" });
   await ctx.verify("the archive is built without a failing contributor", [
     check("HTTP 200, not partial, no failure", built.status === 200 && pick(built.body, "partial") === false && list(built.body, "failures").length === 0, built.body),
     check("the file exists", existsSync(archive) && statSync(archive).size > 0, archive),

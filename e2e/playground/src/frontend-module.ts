@@ -9,7 +9,7 @@ import type { AddFrontendModuleOptions } from "@antelopejs/interface-dms/page";
  */
 export function frontendModule(): AddFrontendModuleOptions {
   return {
-    name: "verify-mailing",
+    name: "playground-mailing",
     sourcePath: path.join(__dirname, "../frontend-vue"),
     renderer: { name: "vue", version: "3" },
     options: {},

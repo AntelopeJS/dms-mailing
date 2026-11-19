@@ -13,7 +13,7 @@ const UNSET = "unset";
 
 /**
  * The `VERIFY_MAILING_*` variables a journey sets before it restarts the
- * backend, as the verification playground read them. `VERIFY_MAILING_PROVIDER`
+ * backend, as the e2e playground reads them. `VERIFY_MAILING_PROVIDER`
  * `fake` swaps the provider's capabilities only (its name, or none while
  * `VERIFY_MAILING_PROVIDER_NAME` is unset): sends still reach the SMTP
  * fixture. `down` makes the SMTP fixture refuse every connection. A base URL

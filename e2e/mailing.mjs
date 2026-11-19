@@ -15,11 +15,11 @@ import { join } from "node:path";
 /** The module's HTTP API, which the dashboard calls. */
 export const MAILING = "/api/mailing";
 
-/** The verification playground's trusted backend calls (`e2e/playground/src/fixture.ts`). */
-export const FIXTURE = "/verify-mailing";
+/** The e2e playground's trusted backend calls (`e2e/playground/src/fixture.ts`). */
+export const FIXTURE = "/playground-mailing";
 
 /** The e-mail logo the playground's branding gives next to the default SVG one (`e2e/playground/frontend-vue/app/app.config.ts`). */
-export const EMAIL_LOGO = "https://www.example.com/verify-dms-mailing/email-logo.png";
+export const EMAIL_LOGO = "https://www.example.com/dms-mailing-playground/email-logo.png";
 
 /** The tenant of a single-tenant DMS. */
 export const TENANT = "default";
@@ -132,7 +132,7 @@ export function mailing(ctx, label, method, path, options = {}) {
 }
 
 /**
- * Calls one function of `@antelopejs/interface-dms-mailing` through the verification playground's trusted backend.
+ * Calls one function of `@antelopejs/interface-dms-mailing` through the e2e playground's trusted backend.
  * `{ "$date": "<ISO string>" }` in an argument becomes a `Date`.
  *
  * @param {Ctx} ctx The journey
@@ -268,7 +268,7 @@ export async function member(ctx, name, permissions, language = "en") {
 }
 
 /**
- * Calls the verification playground's trusted backend over plain HTTP (the member endpoint).
+ * Calls the e2e playground's trusted backend over plain HTTP (the member endpoint).
  *
  * @param {Ctx} ctx The journey
  * @param {string} label What the call does
