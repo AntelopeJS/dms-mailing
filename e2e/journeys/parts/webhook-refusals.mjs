@@ -27,6 +27,33 @@ function refused(answer, status, reason) {
 /** @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }[]} */
 export const refusalJourneys = [
   {
+    id: "the-webhook-is-reachable-through-the-dashboard-url-with-the-header-passed-on",
+    tag: "@smoke",
+    title: "a provider posting through the dashboard's public URL gets the same answers as one posting to the API: the secret header is passed on and a missing one is refused",
+    entryPoint: "POST <dashboard>/api/mailing/events/:provider/:tenantId",
+    async run(ctx) {
+      const template = await declareLive(ctx, "proxy-order");
+      const secret = await secretOf(ctx);
+      await importSends(ctx, "import a send", [{ importId: "p1", templateSlug: template.slug, to: { email: ctx.email("p") }, sentAt: { $date: new Date(Date.now() - 60_000).toISOString() }, providerMessageId: "proxy-1" }]);
+      const through = (/** @type {string} */ label, /** @type {Record<string, string>} */ headers) =>
+        raw(ctx, label, { origin: "web", path: "/api/mailing/events/postmark/default", method: "POST", headers: { "content-type": "application/json", ...headers }, body: Buffer.from(JSON.stringify({ messageId: "proxy-1", type: "opened" })) });
+      const good = await through("through the dashboard with the secret", { [SECRET_HEADER]: secret });
+      const none = await through("through the dashboard without the secret", {});
+      await ctx.verify("the dashboard URL carries the webhook", [
+        check("200 recorded true with the secret", good.status === 200 && pick(good.json, "recorded") === true, good.text),
+        check("403 missing_secret without it", none.status === 403 && pick(none.json, "reason") === "missing_secret", none.text),
+      ]);
+    },
+  },
+];
+
+/**
+ * The HTTP journeys of this part, which the backend suite runs in-process.
+ *
+ * @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }[]}
+ */
+export const apiJourneys = [
+  {
     id: "a-refused-webhook-call-gets-its-status-and-reason-and-shows-in-the-status",
     title: "the webhook answers 403 missing_secret, 403 bad_secret and 400 invalid_event with a readable body, checks the secret before the body, records each refusal in the webhook status, and refuses a workspace without settings without recording it",
     entryPoint: "POST /api/mailing/events/:provider/:tenantId, GET /api/mailing/settings/webhook-status",
@@ -79,24 +106,6 @@ export const refusalJourneys = [
       await ctx.verify("an event matching no send answers recorded false and shows as unmatched", [
         check("200 recorded false", unmatched.status === 200 && pick(unmatched.json, "recorded") === false, unmatched.text),
         check("the status says it matched no send", pick(after, "isMatched") === false && text(after, "type") === "opened", after),
-      ]);
-    },
-  },
-  {
-    id: "the-webhook-is-reachable-through-the-dashboard-url-with-the-header-passed-on",
-    title: "a provider posting through the dashboard's public URL gets the same answers as one posting to the API: the secret header is passed on and a missing one is refused",
-    entryPoint: "POST <dashboard>/api/mailing/events/:provider/:tenantId",
-    async run(ctx) {
-      const template = await declareLive(ctx, "proxy-order");
-      const secret = await secretOf(ctx);
-      await importSends(ctx, "import a send", [{ importId: "p1", templateSlug: template.slug, to: { email: ctx.email("p") }, sentAt: { $date: new Date(Date.now() - 60_000).toISOString() }, providerMessageId: "proxy-1" }]);
-      const through = (/** @type {string} */ label, /** @type {Record<string, string>} */ headers) =>
-        raw(ctx, label, { origin: "web", path: "/api/mailing/events/postmark/default", method: "POST", headers: { "content-type": "application/json", ...headers }, body: Buffer.from(JSON.stringify({ messageId: "proxy-1", type: "opened" })) });
-      const good = await through("through the dashboard with the secret", { [SECRET_HEADER]: secret });
-      const none = await through("through the dashboard without the secret", {});
-      await ctx.verify("the dashboard URL carries the webhook", [
-        check("200 recorded true with the secret", good.status === 200 && pick(good.json, "recorded") === true, good.text),
-        check("403 missing_secret without it", none.status === 403 && pick(none.json, "reason") === "missing_secret", none.text),
       ]);
     },
   },

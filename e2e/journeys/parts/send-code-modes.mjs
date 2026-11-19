@@ -18,6 +18,43 @@ const content = (/** @type {string} */ subject) => ({ locales: { en: { subject, 
 /** @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }[]} */
 export const modeJourneys = [
   {
+    id: "the-send-log-shows-the-language-asked-when-another-was-sent",
+    title: "a send that asked for a language the template lacks is logged with the language sent and, in the Sends page, the line DE asked under it; a send that got its language shows no such line",
+    entryPoint: "SendTemplate(slug, { locale }), /modules/mailing/sends",
+    async run(ctx) {
+      const template = await declareLive(ctx, "asked-order", { locales: { en: { subject: "English", blocks: [paragraph("p", "en")] }, fr: { subject: "French", blocks: [paragraph("p", "fr")] } }, variables: [] });
+      const asked = ctx.email("asked-de");
+      const got = ctx.email("got-fr");
+      const fallback = await sendCode(ctx, "send asking for German", template.slug, { to: asked, locale: "de", variables: {} });
+      const exact = await sendCode(ctx, "send asking for French", template.slug, { to: got, locale: "fr", variables: {} });
+      const rows = list((await mailing(ctx, "list the sends", "GET", "/tables/sends/list?limit=20")).body, "results");
+      const askedRow = rows.find((row) => text(row, "_id") === text(fallback.result, "sendId"));
+      const gotRow = rows.find((row) => text(row, "_id") === text(exact.result, "sendId"));
+      await ctx.verify("the log row keeps both languages", [
+        check("English sent, German asked", text(askedRow, "locale") === "en" && text(askedRow, "requestedLocale") === "de" && text(askedRow, "localeLabel") === "EN", askedRow),
+        check("the fallback line says DE asked, in the warning tone", text(askedRow, "localeFallback", "text", "key") === "$dms_mailing.sends.locale_fallback" && text(askedRow, "localeFallback", "text", "params", "requested") === "DE" && text(askedRow, "localeFallback", "tone") === "warning", askedRow?.localeFallback),
+        check("French asked and sent: no fallback line", gotRow?.localeFallback === null && text(gotRow, "localeLabel") === "FR", gotRow),
+      ]);
+      const tab = await ctx.tab();
+      await tab.signIn("admin");
+      await tab.goto("/modules/mailing/sends");
+      const row = (/** @type {string} */ address) => ({ role: "row", name: new RegExp(address.replace(/[+.]/g, "\\$&")) });
+      await ctx.verify("the Sends page writes DE asked on the fallback row only", [
+        tab.visible({ role: "row", name: new RegExp(`${asked.replace(/[+.]/g, "\\$&")}.*DE asked`) }),
+        tab.visible(row(got)),
+        tab.visible({ role: "row", name: new RegExp(`${got.replace(/[+.]/g, "\\$&")}.*[A-Z]{2} asked`) }, { hidden: true, timeoutMs: 3000 }),
+      ]);
+    },
+  },
+];
+
+/**
+ * The HTTP journeys of this part, which the backend suite runs in-process.
+ *
+ * @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }[]}
+ */
+export const apiJourneys = [
+  {
     id: "test-sends-use-the-draft-and-content-overrides-change-nothing",
     title: "a live send uses the published version and records its number; isTest prefixes the subject with [TEST] , uses the draft when there is one, is logged as a test and left out of the figures; content sends an alternate body without saving or publishing; publishing moves later sends to version 2",
     entryPoint: "SendTemplate(slug, { isTest, content })",
@@ -70,35 +107,6 @@ export const modeJourneys = [
         check("the new subject", v2Subject === "Draft subject", v2Subject),
         check("version 2 is recorded", v2Detail.send?.templateVersion === 2, v2Detail.send?.templateVersion),
         check("the earlier live send still says version 1", (await sendDetail(ctx, text(live.result, "sendId"))).send?.templateVersion === 1, "changed"),
-      ]);
-    },
-  },
-  {
-    id: "the-send-log-shows-the-language-asked-when-another-was-sent",
-    title: "a send that asked for a language the template lacks is logged with the language sent and, in the Sends page, the line DE asked under it; a send that got its language shows no such line",
-    entryPoint: "SendTemplate(slug, { locale }), /modules/mailing/sends",
-    async run(ctx) {
-      const template = await declareLive(ctx, "asked-order", { locales: { en: { subject: "English", blocks: [paragraph("p", "en")] }, fr: { subject: "French", blocks: [paragraph("p", "fr")] } }, variables: [] });
-      const asked = ctx.email("asked-de");
-      const got = ctx.email("got-fr");
-      const fallback = await sendCode(ctx, "send asking for German", template.slug, { to: asked, locale: "de", variables: {} });
-      const exact = await sendCode(ctx, "send asking for French", template.slug, { to: got, locale: "fr", variables: {} });
-      const rows = list((await mailing(ctx, "list the sends", "GET", "/tables/sends/list?limit=20")).body, "results");
-      const askedRow = rows.find((row) => text(row, "_id") === text(fallback.result, "sendId"));
-      const gotRow = rows.find((row) => text(row, "_id") === text(exact.result, "sendId"));
-      await ctx.verify("the log row keeps both languages", [
-        check("English sent, German asked", text(askedRow, "locale") === "en" && text(askedRow, "requestedLocale") === "de" && text(askedRow, "localeLabel") === "EN", askedRow),
-        check("the fallback line says DE asked, in the warning tone", text(askedRow, "localeFallback", "text", "key") === "$dms_mailing.sends.locale_fallback" && text(askedRow, "localeFallback", "text", "params", "requested") === "DE" && text(askedRow, "localeFallback", "tone") === "warning", askedRow?.localeFallback),
-        check("French asked and sent: no fallback line", gotRow?.localeFallback === null && text(gotRow, "localeLabel") === "FR", gotRow),
-      ]);
-      const tab = await ctx.tab();
-      await tab.signIn("admin");
-      await tab.goto("/modules/mailing/sends");
-      const row = (/** @type {string} */ address) => ({ role: "row", name: new RegExp(address.replace(/[+.]/g, "\\$&")) });
-      await ctx.verify("the Sends page writes DE asked on the fallback row only", [
-        tab.visible({ role: "row", name: new RegExp(`${asked.replace(/[+.]/g, "\\$&")}.*DE asked`) }),
-        tab.visible(row(got)),
-        tab.visible({ role: "row", name: new RegExp(`${got.replace(/[+.]/g, "\\$&")}.*[A-Z]{2} asked`) }, { hidden: true, timeoutMs: 3000 }),
       ]);
     },
   },

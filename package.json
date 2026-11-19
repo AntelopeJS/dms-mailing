@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm --filter @antelopejs/dms-mailing build",
     "e2e": "playwright test -c e2e",
+    "e2e:build": "pnpm run build && npm install --no-save --no-package-lock --no-audit --no-fund --silent --prefix .agents/skills/verify-dms-mailing playwright-core@1.56.1 && pnpm install --dir .agents/skills/verify-dms-mailing/deps --ignore-workspace --frozen-lockfile --prefer-offline --ignore-scripts --reporter=silent && ln -sfn ../deps/node_modules .agents/skills/verify-dms-mailing/playground/node_modules && .agents/skills/verify-dms-mailing/deps/node_modules/.bin/tsc -p .agents/skills/verify-dms-mailing/playground/tsconfig.build.json",
     "lint": "oxlint && pnpm --dir packages/dms-mailing/frontend-vue lint && node packages/dms-mailing/scripts/check-locales.mts && node packages/dms-mailing/scripts/check-frontend-dependencies.mts && node packages/dms-mailing/scripts/check-docs-module-version.mts && node packages/dms-mailing/scripts/check-verify-deps-lockfile.mts && node packages/dms-mailing/scripts/check-module-locks.mts",
     "typecheck": "pnpm --dir packages/interface-dms-mailing build && pnpm --dir packages/dms-mailing typecheck",
     "knip": "pnpm --filter @antelopejs/dms-mailing knip",
@@ -23,7 +24,7 @@
     "suppressions:update": "antelopejs-suppressions --update"
   },
   "devDependencies": {
-    "@antelopejs/dms": ">=0.21.0 <0.22.0",
+    "@antelopejs/dms": "0.21.4-next.941.gfbafd9a",
     "@antelopejs/tooling-configs": ">=0.8.9 <0.9.0",
     "@playwright/test": "~1.65.0",
     "knip": "^6.34.0",

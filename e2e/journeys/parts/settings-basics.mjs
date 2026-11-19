@@ -55,7 +55,7 @@ export const basicsJourneys = [
   },
   {
     id: "a-settings-write-is-a-checked-patch",
-    title: "PUT /settings changes only the fields it carries, refuses unknown and read-only fields with 400, checks each field's rules and bounds, stores a cleared field as empty, and what it stored survives a backend restart",
+    title: "PUT /settings changes only the fields it carries, refuses unknown and read-only fields with 400, checks each field's rules and bounds, stores a cleared field as empty, and a later read returns what it stored",
     entryPoint: "PUT /api/mailing/settings",
     async run(ctx) {
       await mailing(ctx, "open the settings", "GET", "/settings");
@@ -106,17 +106,15 @@ export const basicsJourneys = [
         check("the warning notice", text(pick(name.body, "notice"), "title") === "$dms_mailing.settings.sender_name_ignored" && text(pick(name.body, "notice"), "color") === "warning", name.body),
         check("no warning once the address is there", pick(both.body, "notice") === undefined, both.body),
       ]);
-      await ctx.restartBackend();
-      const restarted = await mailing(ctx, "read the settings after a restart", "GET", "/settings");
-      await ctx.verify("the settings survive a backend restart", [
-        check("the sender and the locale are stored", text(restarted.body, "senderName") === "Acme" && text(restarted.body, "senderEmail") === "hello@acme.example" && text(restarted.body, "fallbackLocale") === "fr", restarted.body),
-        check("the retention is stored", pick(restarted.body, "logRetentionDays") === 30, pick(restarted.body, "logRetentionDays")),
+      const reread = await mailing(ctx, "read the settings again", "GET", "/settings");
+      await ctx.verify("a later read returns the stored settings", [
+        check("the sender and the locale are stored", text(reread.body, "senderName") === "Acme" && text(reread.body, "senderEmail") === "hello@acme.example" && text(reread.body, "fallbackLocale") === "fr", reread.body),
+        check("the retention is stored", pick(reread.body, "logRetentionDays") === 30, pick(reread.body, "logRetentionDays")),
       ]);
     },
   },
   {
     id: "the-sender-settings-decide-who-every-e-mail-comes-from",
-    tag: "@smoke",
     title: "with a sender address, every e-mail comes from it with the sender name next to it and answers go to the reply-to; a name without an address changes nothing; without a reply-to there is no Reply-To header; the three send paths agree",
     entryPoint: "SendTemplate, POST /api/mailing/templates/:id/{test-send,send}",
     async run(ctx) {

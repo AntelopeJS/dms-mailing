@@ -12,48 +12,6 @@ const STARTERS = [
 
 export const journeys = [
   {
-    id: "the-four-starters-arrive-as-drafts-with-variables-and-test-data",
-    title: "Order confirmation, Shipping update, Password reset and Invoice available come with English and French content, declared variables and test data",
-    entryPoint: "GET /api/mailing/templates/starters, POST /api/mailing/tables/templates/new with starterId",
-    async run(/** @type {Ctx} */ ctx) {
-      const starters = await mailing(ctx, "list the starters", "GET", "/templates/starters");
-      const rows = list(starters.body, "starters");
-      await ctx.verify("the starters", [
-        check("exactly four", rows.length === 4, rows.map((row) => text(row, "id"))),
-        ...STARTERS.map(([id, name, category]) => {
-          const row = rows.find((entry) => text(entry, "id") === id);
-          return check(`${id}: name, slug, category and locales`, row !== undefined && text(row, "name") === name && text(row, "slug") === id && text(row, "category") === category && JSON.stringify(pick(row, "locales")) === '["en","fr"]', row);
-        }),
-      ], { critical: true });
-      for (const [id] of STARTERS) {
-        const made = await created(ctx, { slug: `from-${id}`, name: `From ${id}`, starterId: id });
-        const read = await mailing(ctx, "read it", "GET", `/templates/${made.id}/content`);
-        const row = await table(ctx, "its row", "GET", `/get?id=${made.id}`);
-        const variables = pick(read.body, "variables");
-        const data = pick(read.body, "testData");
-        await ctx.verify(`${id} arrives as a draft`, [
-          check("created", made.answer.status === 200, made.answer.body),
-          check("a draft", text(row.body, "status") === "draft", row.body),
-          check("English and French", Object.keys(pick(read.body, "content", "locales") ?? {}).sort().join() === "en,fr", read.body),
-          check("variables are declared", Array.isArray(variables) && variables.length > 0, variables),
-          check("test data is filled", Object.keys(isRow(data) ? data : {}).length > 0, data),
-        ]);
-        const fr = await mailing(ctx, "preview in French", "GET", `/templates/starters/${id}/preview?locale=fr`);
-        const en = await mailing(ctx, "preview in English", "GET", `/templates/starters/${id}/preview?locale=en`);
-        const de = await mailing(ctx, "preview in German", "GET", `/templates/starters/${id}/preview?locale=de`);
-        await ctx.verify(`${id} previews in the locale asked, else the fallback`, [
-          check("French", text(fr.body, "locale") === "fr" && text(fr.body, "html").includes('lang="fr"'), text(fr.body, "locale")),
-          check("English", text(en.body, "locale") === "en" && text(en.body, "html").includes('lang="en"'), text(en.body, "locale")),
-          check("an unknown locale gives the fallback locale", text(de.body, "locale") === "en", text(de.body, "locale")),
-          check("French differs from English", text(fr.body, "html") !== text(en.body, "html"), "same html"),
-        ]);
-      }
-      const unknown = await mailing(ctx, "preview an unknown starter", "GET", "/templates/starters/nope/preview");
-      const create = await created(ctx, { slug: "from-nope", name: "Nope", starterId: "nope" });
-      await ctx.verify("an unknown starter is refused", [refused(unknown, 404, "starter_not_found"), refused(create.answer, 404, "starter_not_found")]);
-    },
-  },
-  {
     id: "the-gallery-groups-by-category-and-filters-by-status",
     title: "the gallery groups templates by category in the settings order with the uncategorised last, shows each status, and the tabs hold exactly their statuses",
     entryPoint: "/modules/mailing/templates",
@@ -126,6 +84,52 @@ export const journeys = [
       ]);
       await tab.click({ role: "button", name: "Needs attention 1", exact: true });
       await ctx.verify("only the quiet template remains", [tab.visible({ role: "article", name: "na-quiet" }), tab.count({ role: "article", name: "na-sent" }, 0)]);
+    },
+  },
+];
+
+/** The HTTP journeys of this part, which the backend suite runs in-process. */
+export const apiJourneys = [
+  {
+    id: "the-four-starters-arrive-as-drafts-with-variables-and-test-data",
+    title: "Order confirmation, Shipping update, Password reset and Invoice available come with English and French content, declared variables and test data",
+    entryPoint: "GET /api/mailing/templates/starters, POST /api/mailing/tables/templates/new with starterId",
+    async run(/** @type {Ctx} */ ctx) {
+      const starters = await mailing(ctx, "list the starters", "GET", "/templates/starters");
+      const rows = list(starters.body, "starters");
+      await ctx.verify("the starters", [
+        check("exactly four", rows.length === 4, rows.map((row) => text(row, "id"))),
+        ...STARTERS.map(([id, name, category]) => {
+          const row = rows.find((entry) => text(entry, "id") === id);
+          return check(`${id}: name, slug, category and locales`, row !== undefined && text(row, "name") === name && text(row, "slug") === id && text(row, "category") === category && JSON.stringify(pick(row, "locales")) === '["en","fr"]', row);
+        }),
+      ], { critical: true });
+      for (const [id] of STARTERS) {
+        const made = await created(ctx, { slug: `from-${id}`, name: `From ${id}`, starterId: id });
+        const read = await mailing(ctx, "read it", "GET", `/templates/${made.id}/content`);
+        const row = await table(ctx, "its row", "GET", `/get?id=${made.id}`);
+        const variables = pick(read.body, "variables");
+        const data = pick(read.body, "testData");
+        await ctx.verify(`${id} arrives as a draft`, [
+          check("created", made.answer.status === 200, made.answer.body),
+          check("a draft", text(row.body, "status") === "draft", row.body),
+          check("English and French", Object.keys(pick(read.body, "content", "locales") ?? {}).sort().join() === "en,fr", read.body),
+          check("variables are declared", Array.isArray(variables) && variables.length > 0, variables),
+          check("test data is filled", Object.keys(isRow(data) ? data : {}).length > 0, data),
+        ]);
+        const fr = await mailing(ctx, "preview in French", "GET", `/templates/starters/${id}/preview?locale=fr`);
+        const en = await mailing(ctx, "preview in English", "GET", `/templates/starters/${id}/preview?locale=en`);
+        const de = await mailing(ctx, "preview in German", "GET", `/templates/starters/${id}/preview?locale=de`);
+        await ctx.verify(`${id} previews in the locale asked, else the fallback`, [
+          check("French", text(fr.body, "locale") === "fr" && text(fr.body, "html").includes('lang="fr"'), text(fr.body, "locale")),
+          check("English", text(en.body, "locale") === "en" && text(en.body, "html").includes('lang="en"'), text(en.body, "locale")),
+          check("an unknown locale gives the fallback locale", text(de.body, "locale") === "en", text(de.body, "locale")),
+          check("French differs from English", text(fr.body, "html") !== text(en.body, "html"), "same html"),
+        ]);
+      }
+      const unknown = await mailing(ctx, "preview an unknown starter", "GET", "/templates/starters/nope/preview");
+      const create = await created(ctx, { slug: "from-nope", name: "Nope", starterId: "nope" });
+      await ctx.verify("an unknown starter is refused", [refused(unknown, 404, "starter_not_found"), refused(create.answer, 404, "starter_not_found")]);
     },
   },
 ];

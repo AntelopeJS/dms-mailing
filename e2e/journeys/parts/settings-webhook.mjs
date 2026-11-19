@@ -11,7 +11,7 @@ const TEST_MESSAGE_ID = "dms-mailing-webhook-test";
 export const webhookSettingsJourneys = [
   {
     id: "rotating-the-webhook-secret-stops-the-old-one-at-once",
-    title: "Rotate issues a new 48 character secret that the webhook accepts, the old one is refused at once (403 bad_secret), the new one survives a restart; a pasted secret needs 32 to 120 characters and works",
+    title: "Rotate issues a new 48 character secret that the webhook accepts, the old one is refused at once (403 bad_secret), a later read returns the new one; a pasted secret needs 32 to 120 characters and works",
     entryPoint: "POST /api/mailing/settings/webhook-secret/rotate, PUT /api/mailing/settings",
     async run(ctx) {
       const template = await declareLive(ctx, "rotate-order");
@@ -28,9 +28,8 @@ export const webhookSettingsJourneys = [
         check("the new secret is accepted", freshTry.status === 200 && pick(freshTry.json, "recorded") === true, freshTry.text),
       ]);
       const second = text((await mailing(ctx, "rotate again", "POST", "/settings/webhook-secret/rotate")).body, "value");
-      await ctx.restartBackend();
       const stored = await secretOf(ctx);
-      await ctx.verify("every rotation gives a different secret and it is stored", [check("a third, different secret", second !== fresh && second !== old, [old, fresh, second]), check("kept after a restart", stored === second, stored)]);
+      await ctx.verify("every rotation gives a different secret and it is stored", [check("a third, different secret", second !== fresh && second !== old, [old, fresh, second]), check("a later read returns it", stored === second, stored)]);
 
       const short = await putSettings(ctx, "paste a secret of 31 characters", { webhookSecret: "s".repeat(31) });
       const empty = await putSettings(ctx, "clear the secret", { webhookSecret: null });

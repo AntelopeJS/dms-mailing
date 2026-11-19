@@ -212,8 +212,8 @@ jobs:
           gh workflow run ci.yml --ref "$HEAD_REF" > /dev/null
 
   # The journeys of e2e/ as a Playwright suite, as select picks them: the
-  # @smoke ones, or every journey in shards. Its global setup prepares and
-  # starts one dms-control run per shard.
+  # @smoke ones, or every journey in shards. `pnpm e2e:build` builds the module
+  # and the playground; the kit's global setup then starts one run per shard.
   e2e:
     needs: select
     if: needs.select.outputs.e2e != 'none'
@@ -225,6 +225,7 @@ jobs:
         shard: ${{ fromJSON(needs.select.outputs.shards) }}
     env:
       E2E: ${{ needs.select.outputs.e2e }}
+      DMS_E2E_PREBUILT: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -250,6 +251,7 @@ jobs:
           fi
           echo "::warning::Chromium's system packages did not install: installing the browser alone"
           pnpm exec playwright install --only-shell chromium
+      - run: pnpm e2e:build
       - if: env.E2E == 'smoke'
         run: pnpm e2e --grep @smoke
       - if: env.E2E == 'all'

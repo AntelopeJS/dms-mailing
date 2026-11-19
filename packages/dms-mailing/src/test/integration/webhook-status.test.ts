@@ -24,6 +24,7 @@ async function secretOf(api: Client): Promise<string> {
 describe("[integration] webhook status", () => {
   it("answers a refused secret in words and remembers why", async () => {
     const api = await client();
+    expect((await api.get(SETTINGS)).status).to.equal(HTTP_OK);
     const missing = await api.post(EVENTS, { messageId: "x", type: "opened" });
     expect(missing.status).to.equal(HTTP_FORBIDDEN);
     expect(missing.data).to.deep.include({

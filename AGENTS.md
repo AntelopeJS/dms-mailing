@@ -25,17 +25,23 @@ backend suite runs in its own CI job, so run it when your change touches
 - `pnpm --dir packages/dms-mailing test:backend` runs `ajs module test`, unit
   and integration, against a Mongo memory server and an SMTP fixture.
   `test:unit` and `test:integration` narrow it to one folder.
+- The HTTP and command-line journeys, which each feature module of
+  `e2e/journeys` exports as `apiJourneys`, run in that suite: one test per
+  journey in `src/test/integration/<feature>.journeys.test.ts`, in-process, on
+  a workspace reset before each, judged against its `knownFailures`.
 - The backend scripts build the module first, and the test harness builds it
   again as the local module's `installCommand`. With `DMS_PREBUILT=1` (set in
   CI after its single build) both skip the build and test the existing `dist/`.
   Set it only after building the current sources; otherwise tests use stale
   output.
-- `pnpm test:repo` runs `dms-control map` and the formal checks of
-  `verify.config.ts` as `node:test` tests; `pnpm test` runs it first.
-- `pnpm e2e` runs the verify skill's journeys (`e2e/journeys`) as a Playwright
-  suite against one `dms-control` run; `--grep @smoke` or `-g <journey id>`
-  narrows it. CI runs the `@smoke` set on a pull request, and every journey
-  in the merge queue, nightly, on a manual run and with the `ci:full` label.
+- `pnpm test:repo` runs `dms-control map` and the two TLA+ checks
+  (`test/formal.test.mjs`) as `node:test` tests; `pnpm test` runs it first.
+- `pnpm e2e` runs the browser journeys (`e2e/journeys`) as a Playwright suite
+  through the `@antelopejs/dms/e2e` kit; `--grep @smoke` or `-g <journey id>`
+  narrows it. `pnpm e2e:build` builds the module and the playground first;
+  with `DMS_E2E_PREBUILT=1` the suite skips that build, as CI does. CI runs
+  the `@smoke` set on a pull request, and every journey in the merge queue,
+  nightly, on a manual run and with the `ci:full` label.
   A change to a journey runs that journey.
 - A change to the webhook event handling or the send retention also runs the
   TLA+ check in
