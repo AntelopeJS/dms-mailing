@@ -6,6 +6,7 @@ covers:
   - packages/dms-mailing/src/routes/period.ts
   - packages/dms-mailing/src/services/metrics.ts
   - packages/dms-mailing/src/services/attention.ts
+  - packages/dms-mailing/src/services/funnel.ts
   - packages/dms-mailing/src/pages/overview.ts
   - packages/dms-mailing/src/pages/toolbar.ts
   - packages/dms-mailing/frontend-vue/app/components/FunnelCard.vue

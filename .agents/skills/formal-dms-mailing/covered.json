@@ -1,7 +1,7 @@
 {
   "packages/dms-mailing/src/services/events.ts": "a90af89801fe51214108d9903d5284f9b2d0bdf4f11d7a9b5fb3c425e9f20dc8",
   "packages/dms-mailing/src/types/sends.ts": "2daf9b22e256098ed38ff0d8f47528ff4a21a5a9393cc0885d88d10392cdbb85",
-  "packages/dms-mailing/src/db/models/sends.model.ts": "57afe04d9172d9ef6270cdeb7ce3c99da5a81108b40e529202b9e8f8d951b082",
+  "packages/dms-mailing/src/db/models/sends.model.ts": "43c3375534be5e13db2760c8a8745ecadddca0688ad7f223582efbb5a3415726",
   "packages/dms-mailing/src/db/models/send-events.model.ts": "cbb97fa9385b98cfacd240799a757c9dac9438465a1ad1f2baaccddbcf409a25",
   "packages/dms-mailing/src/crons/retention.ts": "8899031230137096eb3d701b485fba4358e4ec567afb9f4ea099a6c46df24eaa",
   "packages/dms-mailing/src/services/send-import.ts": "95f339cf70d2939d048d1adda9c9c3751aba97f8074e8114251d8bbc1ad94da7"
