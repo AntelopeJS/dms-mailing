@@ -6,6 +6,9 @@ import { check, isRow, parseJson, pick } from "../mailing.mjs";
 
 /** @typedef {import("../mailing.mjs").Ctx} Ctx */
 
+/** On Windows `npm` is `npm.cmd`, which Node only spawns through a shell, where a path with a space needs its quotes. */
+const WINDOWS = process.platform === "win32";
+
 /**
  * Packs one package of the checkout the way a release would and lists the tarball.
  *
@@ -16,10 +19,10 @@ import { check, isRow, parseJson, pick } from "../mailing.mjs";
 function packed(ctx, dir) {
   const folder = mkdtempSync(join(tmpdir(), "verify-dms-mailing-pack-"));
   try {
-    const pack = spawnSync("npm", ["pack", "--ignore-scripts", "--silent", "--pack-destination", folder], { cwd: join(ctx.state.repo ?? ".", dir), encoding: "utf8" });
-    const tarball = join(folder, pack.stdout.trim().split("\n").at(-1) ?? "");
-    const listed = spawnSync("tar", ["-tzf", tarball], { encoding: "utf8" });
-    const manifest = parseJson(spawnSync("tar", ["-xzOf", tarball, "package/package.json"], { encoding: "utf8" }).stdout);
+    const pack = spawnSync("npm", ["pack", "--ignore-scripts", "--silent", "--pack-destination", WINDOWS ? `"${folder}"` : folder], { cwd: join(ctx.state.repo ?? ".", dir), encoding: "utf8", shell: WINDOWS });
+    const tarball = pack.stdout.trim().split("\n").at(-1) ?? "";
+    const listed = spawnSync("tar", ["-tzf", tarball], { cwd: folder, encoding: "utf8" });
+    const manifest = parseJson(spawnSync("tar", ["-xzOf", tarball, "package/package.json"], { cwd: folder, encoding: "utf8" }).stdout);
     return { files: listed.stdout.split("\n").map((line) => line.replace(/^package\//, "")).filter(Boolean), manifest };
   } finally {
     rmSync(folder, { recursive: true, force: true });
