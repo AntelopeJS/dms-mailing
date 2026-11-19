@@ -75,6 +75,10 @@ export const journeys = [
       await ctx.verify("a heading renders the size it was given", [check("24px", /<h1[^>]*font-size:24px/.test(short.html), "h1")]);
     },
   },
+];
+
+/** The HTTP journeys of this part, which the backend suite runs in-process. */
+export const apiJourneys = [
   {
     id: "visibility-rules-compare-a-variable-with-a-value",
     title: "a block shows only if a variable is filled, empty, equal, different, greater or lower, and a condition block shows its if branch or its else branch",

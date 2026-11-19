@@ -74,31 +74,6 @@ export const mailJourneys = [
     },
   },
   {
-    id: "footer-links-are-system-variables-dropped-when-missing-or-unlabelled",
-    title: "a footer with an unsubscribe and a preferences label writes both links in the HTML and the plain text from unsubscribeUrl and preferencesUrl; a link whose URL is missing is dropped and so is one whose label is empty; a footer without text or links draws nothing",
-    entryPoint: "SendTemplate(slug, { variables: { unsubscribeUrl, preferencesUrl } })",
-    async run(ctx) {
-      const template = await declareRich(ctx, "footer-order");
-      const both = await sentMessage(ctx, template.slug, "ft-both");
-      await ctx.verify("both URLs: both links in HTML and plain text", [
-        check("HTML links", both.html.includes('href="https://app.example.com/unsub/1"') && both.html.includes('href="https://app.example.com/prefs"'), both.html.length),
-        check("plain-text lines", both.plain.endsWith("Unsubscribe: https://app.example.com/unsub/1\nPreferences: https://app.example.com/prefs"), JSON.stringify(both.plain.slice(-120))),
-      ]);
-      const onlyUnsubscribe = await sentMessage(ctx, template.slug, "ft-one", { variables: { ...RICH_VARIABLES, preferencesUrl: undefined } });
-      await ctx.verify("a missing preferences URL drops that link only", [
-        check("no preferences link, the unsubscribe link stays", !onlyUnsubscribe.html.includes("Preferences") && onlyUnsubscribe.html.includes("Unsubscribe") && !onlyUnsubscribe.plain.includes("Preferences") && onlyUnsubscribe.plain.endsWith("Unsubscribe: https://app.example.com/unsub/1"), JSON.stringify(onlyUnsubscribe.plain.slice(-100))),
-      ]);
-      const noLabel = await declareRich(ctx, "footer-nolabel", RICH_BLOCKS.map((entry) => (entry.type === "footer" ? { ...entry, preferencesLabel: "" } : entry)));
-      const unlabelled = await sentMessage(ctx, noLabel.slug, "ft-nolabel");
-      await ctx.verify("an empty label removes the link though the URL is passed", [
-        check("no preferences link in the HTML or the text, the unsubscribe link stays", !unlabelled.html.includes("https://app.example.com/prefs") && !unlabelled.plain.includes("prefs") && unlabelled.html.includes("https://app.example.com/unsub/1"), JSON.stringify(unlabelled.plain.slice(-100))),
-      ]);
-      const bare = await declareRich(ctx, "footer-bare", [block("p", "paragraph", { text: "Only text", align: "left" }), block("f", "footer", { text: "", unsubscribeLabel: "", preferencesLabel: "" })]);
-      const empty = await sentMessage(ctx, bare.slug, "ft-bare", { variables: {} });
-      await ctx.verify("an empty footer draws nothing", [check("the text part is the paragraph alone", empty.plain.replace(/\r/g, "") === "Only text", JSON.stringify(empty.plain)), check("no divider rule after the paragraph", !empty.plain.includes("----------"), JSON.stringify(empty.plain))]);
-    },
-  },
-  {
     id: "use-html-render-picks-the-renderer-and-a-failing-renderer-falls-back",
     title: "useHtmlRender true (the default) draws the e-mail through the DMS html-render chain, false through the module's standalone renderer; when the DMS renderer fails the module sends with the standalone one and logs `[dms-mailing] html-render unavailable, using fallback`; the plain text is the same either way; the DMS chain draws the branding's e-mail logo and the standalone renderer draws none",
     entryPoint: "VERIFY_MAILING_HTML_RENDER, SendTemplate",
@@ -144,6 +119,39 @@ export const mailJourneys = [
       await ctx.verify("the plain text does not depend on the renderer", [
         check("the same text with the chain, the standalone renderer and the fallback", chain.plain === seen.off?.plain && chain.plain === seen.on?.plain && chain.plain === seen.broken?.plain, [chain.plain.length, seen.off?.plain.length, seen.broken?.plain.length]),
       ]);
+    },
+  },
+];
+
+/**
+ * The HTTP journeys of this part, which the backend suite runs in-process.
+ *
+ * @type {{ id: string, title: string, entryPoint: string, run: (ctx: Ctx) => Promise<void> }[]}
+ */
+export const apiJourneys = [
+  {
+    id: "footer-links-are-system-variables-dropped-when-missing-or-unlabelled",
+    title: "a footer with an unsubscribe and a preferences label writes both links in the HTML and the plain text from unsubscribeUrl and preferencesUrl; a link whose URL is missing is dropped and so is one whose label is empty; a footer without text or links draws nothing",
+    entryPoint: "SendTemplate(slug, { variables: { unsubscribeUrl, preferencesUrl } })",
+    async run(ctx) {
+      const template = await declareRich(ctx, "footer-order");
+      const both = await sentMessage(ctx, template.slug, "ft-both");
+      await ctx.verify("both URLs: both links in HTML and plain text", [
+        check("HTML links", both.html.includes('href="https://app.example.com/unsub/1"') && both.html.includes('href="https://app.example.com/prefs"'), both.html.length),
+        check("plain-text lines", both.plain.endsWith("Unsubscribe: https://app.example.com/unsub/1\nPreferences: https://app.example.com/prefs"), JSON.stringify(both.plain.slice(-120))),
+      ]);
+      const onlyUnsubscribe = await sentMessage(ctx, template.slug, "ft-one", { variables: { ...RICH_VARIABLES, preferencesUrl: undefined } });
+      await ctx.verify("a missing preferences URL drops that link only", [
+        check("no preferences link, the unsubscribe link stays", !onlyUnsubscribe.html.includes("Preferences") && onlyUnsubscribe.html.includes("Unsubscribe") && !onlyUnsubscribe.plain.includes("Preferences") && onlyUnsubscribe.plain.endsWith("Unsubscribe: https://app.example.com/unsub/1"), JSON.stringify(onlyUnsubscribe.plain.slice(-100))),
+      ]);
+      const noLabel = await declareRich(ctx, "footer-nolabel", RICH_BLOCKS.map((entry) => (entry.type === "footer" ? { ...entry, preferencesLabel: "" } : entry)));
+      const unlabelled = await sentMessage(ctx, noLabel.slug, "ft-nolabel");
+      await ctx.verify("an empty label removes the link though the URL is passed", [
+        check("no preferences link in the HTML or the text, the unsubscribe link stays", !unlabelled.html.includes("https://app.example.com/prefs") && !unlabelled.plain.includes("prefs") && unlabelled.html.includes("https://app.example.com/unsub/1"), JSON.stringify(unlabelled.plain.slice(-100))),
+      ]);
+      const bare = await declareRich(ctx, "footer-bare", [block("p", "paragraph", { text: "Only text", align: "left" }), block("f", "footer", { text: "", unsubscribeLabel: "", preferencesLabel: "" })]);
+      const empty = await sentMessage(ctx, bare.slug, "ft-bare", { variables: {} });
+      await ctx.verify("an empty footer draws nothing", [check("the text part is the paragraph alone", empty.plain.replace(/\r/g, "") === "Only text", JSON.stringify(empty.plain)), check("no divider rule after the paragraph", !empty.plain.includes("----------"), JSON.stringify(empty.plain))]);
     },
   },
 ];

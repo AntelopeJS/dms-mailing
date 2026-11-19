@@ -2,10 +2,12 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { guarded } from "../guard.mjs";
 import { check, isRow, parseJson, pick } from "../mailing.mjs";
 
 /** @typedef {import("../mailing.mjs").Ctx} Ctx */
+
+/** On Windows `npm` is `npm.cmd`, which Node only spawns through a shell, where a path with a space needs its quotes. */
+const WINDOWS = process.platform === "win32";
 
 /**
  * Packs one package of the checkout the way a release would and lists the tarball.
@@ -17,10 +19,10 @@ import { check, isRow, parseJson, pick } from "../mailing.mjs";
 function packed(ctx, dir) {
   const folder = mkdtempSync(join(tmpdir(), "verify-dms-mailing-pack-"));
   try {
-    const pack = spawnSync("npm", ["pack", "--ignore-scripts", "--silent", "--pack-destination", folder], { cwd: join(ctx.state.repo ?? ".", dir), encoding: "utf8" });
-    const tarball = join(folder, pack.stdout.trim().split("\n").at(-1) ?? "");
-    const listed = spawnSync("tar", ["-tzf", tarball], { encoding: "utf8" });
-    const manifest = parseJson(spawnSync("tar", ["-xzOf", tarball, "package/package.json"], { encoding: "utf8" }).stdout);
+    const pack = spawnSync("npm", ["pack", "--ignore-scripts", "--silent", "--pack-destination", WINDOWS ? `"${folder}"` : folder], { cwd: join(ctx.state.repo ?? ".", dir), encoding: "utf8", shell: WINDOWS });
+    const tarball = pack.stdout.trim().split("\n").at(-1) ?? "";
+    const listed = spawnSync("tar", ["-tzf", tarball], { cwd: folder, encoding: "utf8" });
+    const manifest = parseJson(spawnSync("tar", ["-xzOf", tarball, "package/package.json"], { cwd: folder, encoding: "utf8" }).stdout);
     return { files: listed.stdout.split("\n").map((line) => line.replace(/^package\//, "")).filter(Boolean), manifest };
   } finally {
     rmSync(folder, { recursive: true, force: true });
@@ -47,14 +49,15 @@ function compatibility(ctx) {
   return new Map([...readme.matchAll(/^\| `(@antelopejs\/[^`]+)`\s*\| `([^`]+)`/gm)].map((match) => [match[1] ?? "", match[2] ?? ""]));
 }
 
-/** What a project installs from the registry: the module, its dashboard layer, its skill, and the interface. */
-export const journeys = guarded([
+/** No browser journey: every package journey runs in the backend suite. */
+export const journeys = [];
+
+/** What a project installs from the registry: the module, its dashboard layer, its skill, and the interface; the backend suite runs them (`packages/dms-mailing/src/test/integration/package.journeys.test.ts`). */
+export const apiJourneys = [
   {
     id: "the-module-tarball-holds-what-its-manifest-names",
     title: "the module's tarball holds the build, the dashboard layer, the agent skill and every path its manifest points at, without build info",
     entryPoint: "npm pack of packages/dms-mailing",
-    database: "shared",
-    onboard: false,
     async run(/** @type {Ctx} */ ctx) {
       const { files, manifest } = packed(ctx, "packages/dms-mailing");
       const targets = [pick(manifest, "main"), pick(manifest, "types"), pick(manifest, "exports", ".", "types"), pick(manifest, "exports", ".", "default"), pick(manifest, "dmsFrontend")].map((target) => String(target).replace(/^\.\//, ""));
@@ -74,8 +77,6 @@ export const journeys = guarded([
     id: "the-interface-tarball-exports-the-contract",
     title: "the interface's tarball holds its build and its consumer reference, and its root export carries every function, constant and type its README lists",
     entryPoint: "npm pack of packages/interface-dms-mailing",
-    database: "shared",
-    onboard: false,
     async run(/** @type {Ctx} */ ctx) {
       const { files, manifest } = packed(ctx, "packages/interface-dms-mailing");
       const declarations = readFileSync(join(ctx.state.repo ?? ".", "packages/interface-dms-mailing/dist/index.d.ts"), "utf8");
@@ -91,8 +92,6 @@ export const journeys = guarded([
     id: "ranges-match-the-compatibility-table",
     title: "the README compatibility table lists the interface ranges the module depends on, its interface-dms-mailing range accepts the interface in the tree, and the dashboard layer pins its renderer minor",
     entryPoint: "packages/dms-mailing/README.md, package.json files",
-    database: "shared",
-    onboard: false,
     async run(/** @type {Ctx} */ ctx) {
       const table = compatibility(ctx);
       const module = readJson(ctx, "packages/dms-mailing/package.json");
@@ -111,4 +110,4 @@ export const journeys = guarded([
       ]);
     },
   },
-]);
+];

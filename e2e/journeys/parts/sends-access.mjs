@@ -27,8 +27,40 @@ async function templateOf(ctx, slug, live) {
 
 export const journeys = guarded([
   {
-    id: "test-send-and-real-send-rules",
+    id: "sends-badge-counts-real-problems-of-the-last-24-hours",
     tag: "@smoke",
+    title: "the Sends badge in the sidebar counts the real sends with a problem in the last 24 hours",
+    entryPoint: "/modules/mailing/sends (sidebar)",
+    async run(/** @type {Ctx} */ ctx) {
+      await declareTemplates(ctx, [{ slug: "order", category: "orders" }]);
+      const ids = await importSends(ctx, "problems of different ages", [
+        sendOf("in", "order", "in@one.test", ago(0, 23), [{ type: "bounced" }]),
+        sendOf("out", "order", "out@one.test", ago(0, 25), [{ type: "bounced" }]),
+        testOf("test", "order", "test@one.test", ago(0, 2), [FAILURE]),
+        sendOf("spam", "order", "spam@one.test", ago(0, 5), [{ type: "delivered" }, { type: "spam" }]),
+        sendOf("resolved", "order", "resolved@one.test", ago(0, 3), [FAILURE]),
+        sendOf("fine", "order", "fine@one.test", ago(0, 3), [{ type: "delivered" }]),
+      ]);
+      const replay = await mailing(ctx, "send the failure again", "POST", `/sends/${String(ids[4])}/replay`, { body: {} });
+      const tab = await openSends(ctx);
+      await wait(tab, 2000);
+      const badge = await tab.visible({ role: "link", name: "Sends 2", exact: true }, { timeoutMs: 15_000 });
+      await ctx.verify("only open real problems of the last 24 hours count", [
+        check("the failure was sent again", replay.status === 200, replay.body),
+        check("the link reads Sends 2: the 23 hour bounce and the spam report, not the 25 hour one, the test, the resolved failure or the delivered send", badge.pass, WHO.test),
+      ]);
+      await calling(ctx, "one more problem", "import", [{ tenantId: TENANT, sends: [sendOf("more", "order", "more@one.test", ago(0, 1), [FAILURE])] }]);
+      await tab.reload();
+      const more = await tab.visible({ role: "link", name: "Sends 3", exact: true }, { timeoutMs: 15_000 });
+      await ctx.verify("a new problem moves the badge", [check("Sends 3", more.pass, more.detail)]);
+    },
+  },
+]);
+
+/** The HTTP journeys of this part, which the backend suite runs in-process. */
+export const apiJourneys = [
+  {
+    id: "test-send-and-real-send-rules",
     title: "a test send is tagged [TEST] and left out of the figures; a real send needs a live template and counts; both take 1 to 5 valid addresses",
     entryPoint: "POST /api/mailing/templates/:id/test-send, POST /api/mailing/templates/:id/send",
     async run(/** @type {Ctx} */ ctx) {
@@ -65,32 +97,4 @@ export const journeys = guarded([
       await ctx.verify("only the real send counts", [check("Sends is 1: the 5 test sends are left out, the real one counts", sends === 1, sends)]);
     },
   },
-  {
-    id: "sends-badge-counts-real-problems-of-the-last-24-hours",
-    title: "the Sends badge in the sidebar counts the real sends with a problem in the last 24 hours",
-    entryPoint: "/modules/mailing/sends (sidebar)",
-    async run(/** @type {Ctx} */ ctx) {
-      await declareTemplates(ctx, [{ slug: "order", category: "orders" }]);
-      const ids = await importSends(ctx, "problems of different ages", [
-        sendOf("in", "order", "in@one.test", ago(0, 23), [{ type: "bounced" }]),
-        sendOf("out", "order", "out@one.test", ago(0, 25), [{ type: "bounced" }]),
-        testOf("test", "order", "test@one.test", ago(0, 2), [FAILURE]),
-        sendOf("spam", "order", "spam@one.test", ago(0, 5), [{ type: "delivered" }, { type: "spam" }]),
-        sendOf("resolved", "order", "resolved@one.test", ago(0, 3), [FAILURE]),
-        sendOf("fine", "order", "fine@one.test", ago(0, 3), [{ type: "delivered" }]),
-      ]);
-      const replay = await mailing(ctx, "send the failure again", "POST", `/sends/${String(ids[4])}/replay`, { body: {} });
-      const tab = await openSends(ctx);
-      await wait(tab, 2000);
-      const badge = await tab.visible({ role: "link", name: "Sends 2", exact: true }, { timeoutMs: 15_000 });
-      await ctx.verify("only open real problems of the last 24 hours count", [
-        check("the failure was sent again", replay.status === 200, replay.body),
-        check("the link reads Sends 2: the 23 hour bounce and the spam report, not the 25 hour one, the test, the resolved failure or the delivered send", badge.pass, WHO.test),
-      ]);
-      await calling(ctx, "one more problem", "import", [{ tenantId: TENANT, sends: [sendOf("more", "order", "more@one.test", ago(0, 1), [FAILURE])] }]);
-      await tab.reload();
-      const more = await tab.visible({ role: "link", name: "Sends 3", exact: true }, { timeoutMs: 15_000 });
-      await ctx.verify("a new problem moves the badge", [check("Sends 3", more.pass, more.detail)]);
-    },
-  },
-]);
+];

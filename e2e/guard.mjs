@@ -73,7 +73,8 @@ async function signInHydrated(ctx, tab, account) {
 /**
  * Makes a check that fails because the environment went away NOT VERIFIED: before a step with a failing check is
  * recorded, the backend and the dashboard are probed, and when one is gone the journey ends with an error and no
- * failing check.
+ * failing check. A context without a browser, the backend suite's in-process runner, has no dashboard to probe and
+ * runs the journey as it is.
  *
  * @template {{ run: (ctx: Ctx) => Promise<void> }} Journey
  * @param {Journey[]} journeys The journeys of a feature
@@ -83,6 +84,10 @@ export function guarded(journeys) {
   return journeys.map((journey) => ({
     ...journey,
     async run(/** @type {Ctx} */ ctx) {
+      if (!("browser" in ctx)) {
+        await journey.run(ctx);
+        return;
+      }
       const openTab = ctx.tab.bind(ctx);
       ctx.tab = async (account, label) => {
         const tab = await openTab(account, label);

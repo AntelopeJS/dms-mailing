@@ -106,6 +106,10 @@ export const journeys = [
       ]);
     },
   },
+];
+
+/** The HTTP journeys of this part, which the backend suite runs in-process. */
+export const apiJourneys = [
   {
     id: "imported-sends-record-every-field-and-the-published-version",
     title: "an imported send reads back its recipient and name, locale, variables, provider, provider message id, source and test flag, and records the template's published version, not its draft or the first",

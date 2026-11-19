@@ -2,10 +2,14 @@ import { checkedText } from "./checked";
 import { createClient } from "./http";
 import { SETUP_TOKEN } from "./setup-token";
 
-const OWNER_EMAIL = "owner@test.local";
-const OWNER_PASSWORD = "TestPassw0rd!";
-const OWNER_FIRST_NAME = "Test";
-const OWNER_LAST_NAME = "Owner";
+/** The account the test run onboards as the workspace's owner. */
+export const OWNER_CREDENTIALS = {
+  email: "owner@test.local",
+  password: "TestPassw0rd!",
+  firstName: "Test",
+  lastName: "Owner",
+};
+
 const HTTP_BAD_REQUEST = 400;
 
 export interface OwnerSession {
@@ -24,10 +28,7 @@ export function ensureOwnerSession(): Promise<OwnerSession> {
 async function openOwnerSession(): Promise<OwnerSession> {
   const client = createClient();
   const registration = await client.post("/api/onboarding/register", {
-    firstName: OWNER_FIRST_NAME,
-    lastName: OWNER_LAST_NAME,
-    email: OWNER_EMAIL,
-    password: OWNER_PASSWORD,
+    ...OWNER_CREDENTIALS,
     setupToken: SETUP_TOKEN,
   });
   const isRegistered = registration.status < HTTP_BAD_REQUEST;
@@ -38,8 +39,8 @@ async function openOwnerSession(): Promise<OwnerSession> {
     );
   }
   const login = await client.post("/api/auth/login", {
-    email: OWNER_EMAIL,
-    password: OWNER_PASSWORD,
+    email: OWNER_CREDENTIALS.email,
+    password: OWNER_CREDENTIALS.password,
   });
   if (login.status >= HTTP_BAD_REQUEST) {
     throw new Error(
@@ -48,6 +49,6 @@ async function openOwnerSession(): Promise<OwnerSession> {
   }
   return {
     accessToken: checkedText.parse(login.data.access_token),
-    email: OWNER_EMAIL,
+    email: OWNER_CREDENTIALS.email,
   };
 }

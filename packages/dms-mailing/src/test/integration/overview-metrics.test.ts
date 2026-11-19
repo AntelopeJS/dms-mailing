@@ -28,7 +28,16 @@ describe("[integration] overview metrics", () => {
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
     const id = checkedText.parse(created.data._id);
-    await client.post(`/api/mailing/templates/${id}/publish`, {});
+    await client.post(`/api/mailing/templates/${id}/content`, {
+      content: {
+        locales: { en: { subject: "Setup", preheader: "", blocks: [] } },
+      },
+    });
+    const published = await client.post(
+      `/api/mailing/templates/${id}/publish`,
+      {},
+    );
+    expect(published.status, JSON.stringify(published.data)).to.equal(HTTP_OK);
     await client.post(`/api/mailing/templates/${id}/test-send`, {
       to: ["setup@example.test"],
       locale: "en",

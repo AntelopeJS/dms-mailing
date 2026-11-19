@@ -1,6 +1,6 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { inflateRawSync } from "node:zlib";
 import { check, list, mailing, parseJson, pick, text, texts } from "../../mailing.mjs";
 import { declareLive, secretOf } from "./api-kit.mjs";
 
@@ -8,6 +8,34 @@ import { declareLive, secretOf } from "./api-kit.mjs";
 
 const COUNT = 201;
 const ENTRIES = ["templates.json", "template-versions.json", "settings.json", "suppressions.json"];
+const END_OF_CENTRAL_DIRECTORY = Buffer.from([0x50, 0x4b, 0x05, 0x06]);
+const CENTRAL_HEADER_LENGTH = 46;
+const LOCAL_HEADER_LENGTH = 30;
+const STORED = 0;
+
+/**
+ * Reads every entry of a ZIP archive with Node alone, through its central directory, so the journey needs no
+ * `unzip`, which Windows lacks. Entries are stored or deflated, as the DMS writes them.
+ *
+ * @param {string} file The archive
+ * @returns {Map<string, string>} The text of each entry, by name, in the archive's order
+ */
+function zipEntries(file) {
+  const zip = readFileSync(file);
+  const end = zip.lastIndexOf(END_OF_CENTRAL_DIRECTORY);
+  /** @type {Map<string, string>} */
+  const entries = new Map();
+  let at = zip.readUInt32LE(end + 16);
+  for (let index = 0; index < zip.readUInt16LE(end + 10); index += 1) {
+    const [method, size, nameLength] = [zip.readUInt16LE(at + 10), zip.readUInt32LE(at + 20), zip.readUInt16LE(at + 28)];
+    const local = zip.readUInt32LE(at + 42);
+    const start = local + LOCAL_HEADER_LENGTH + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+    const data = zip.subarray(start, start + size);
+    entries.set(zip.toString("utf8", at + CENTRAL_HEADER_LENGTH, at + CENTRAL_HEADER_LENGTH + nameLength), (method === STORED ? data : inflateRawSync(data)).toString("utf8"));
+    at += CENTRAL_HEADER_LENGTH + nameLength + zip.readUInt16LE(at + 30) + zip.readUInt16LE(at + 32);
+  }
+  return entries;
+}
 
 /**
  * @param {Ctx} ctx The journey
@@ -43,8 +71,9 @@ async function archiveOf(ctx) {
     check("HTTP 200, not partial, no failure", built.status === 200 && pick(built.body, "partial") === false && list(built.body, "failures").length === 0, built.body),
     check("the file exists", existsSync(archive) && statSync(archive).size > 0, archive),
   ], { critical: true });
-  const read = (/** @type {string} */ entry) => spawnSync("unzip", ["-p", archive, entry], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).stdout;
-  const names = spawnSync("unzip", ["-Z1", archive], { encoding: "utf8" }).stdout.split("\n").filter(Boolean);
+  const entries = zipEntries(archive);
+  const read = (/** @type {string} */ entry) => entries.get(entry) ?? "";
+  const names = [...entries.keys()];
   const prefix = names.find((name) => name.endsWith("/suppressions.json"))?.replace(/suppressions\.json$/, "") ?? "modules/mailing/";
   return { names, read, prefix };
 }
