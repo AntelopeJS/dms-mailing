@@ -55,7 +55,7 @@ import {
   type VersionedSnapshot,
   workingSnapshot,
 } from "./templates";
-import { isText } from "../validation/guards";
+import { addressOf, nameOf, toRecipients } from "./addresses";
 
 export interface PreparedSend {
   content: TemplateContent;
@@ -75,6 +75,8 @@ export interface PreparedSend {
   attention: string;
   /** The files every recipient gets; absent for most sends. */
   attachments?: BufferAttachment[];
+  cc?: EmailAddress[];
+  replyTo?: EmailAddress;
 }
 
 /**
@@ -154,14 +156,6 @@ const OUTCOME_SEVERITY: Record<SendStatus, number> = {
   bounced: 8,
   failed: 9,
 };
-
-const addressOf = (to: EmailAddress): string => (isText(to) ? to : to.email);
-
-const nameOf = (to: EmailAddress): string | undefined =>
-  isText(to) ? undefined : to.name;
-
-const toRecipients = (to: EmailAddress | EmailAddress[]): EmailAddress[] =>
-  Array.isArray(to) ? to : [to];
 
 /**
  * The content a send renders and the version it belongs to. A real send gets
@@ -285,6 +279,8 @@ export async function prepare(
     category: template.category ?? "",
     attention: template.attention,
     attachments,
+    cc: params.cc?.length ? params.cc : undefined,
+    replyTo: params.replyTo,
   };
 }
 
@@ -306,7 +302,8 @@ export function messageFor(
     from: settings.senderEmail
       ? { email: settings.senderEmail, name: settings.senderName || undefined }
       : undefined,
-    replyTo: settings.replyTo || undefined,
+    replyTo: prepared.replyTo ?? (settings.replyTo || undefined),
+    cc: prepared.cc,
     tags: [MODULE_ID, prepared.slug],
     metadata: {
       tenantId: prepared.tenantId,
@@ -460,6 +457,7 @@ async function record(
     source: params.source,
     json_variables: JSON.stringify(params.variables ?? {}),
     json_attachments: attachmentsLog(prepared.attachments),
+    json_cc: prepared.cc && JSON.stringify(prepared.cc.map(addressOf)),
     opens: 0,
     clicks: 0,
     isTest: Boolean(params.isTest),

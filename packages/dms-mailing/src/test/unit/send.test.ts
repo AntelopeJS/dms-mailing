@@ -233,3 +233,35 @@ describe("[unit] services/send missing system URLs", () => {
     expect(refusedMissing(test, true, ["a"], SYSTEM)).to.deep.equal(["a"]);
   });
 });
+
+describe("[unit] services/send copies and reply-to", () => {
+  const message = (
+    prepared: Partial<PreparedSend>,
+    replyTo: string,
+  ): EmailParams =>
+    messageFor(
+      {
+        ...input(RECIPIENTS),
+        prepared: { ...PREPARED, ...prepared },
+        settings: { ...SETTINGS, replyTo },
+      },
+      RECIPIENTS[0],
+    );
+
+  it("passes the copied addresses to the message", () => {
+    expect(message({ cc: ["boss@test.local"] }, "").cc).to.deep.equal([
+      "boss@test.local",
+    ]);
+    expect(message({}, "").cc).to.equal(undefined);
+  });
+
+  it("prefers the send's reply-to over the workspace's", () => {
+    expect(
+      message({ replyTo: "per-send@test.local" }, "workspace@test.local")
+        .replyTo,
+    ).to.equal("per-send@test.local");
+    expect(message({}, "workspace@test.local").replyTo).to.equal(
+      "workspace@test.local",
+    );
+  });
+});

@@ -203,6 +203,14 @@ export interface SendTemplateParams {
    * attachments cannot be sent again from the dashboard.
    */
   attachments?: SendAttachment[];
+  /**
+   * Copied on every message of the send. An address on the tenant's
+   * suppression list is left out, and the send log keeps those that were
+   * copied. There is no `bcc`.
+   */
+  cc?: EmailAddress[];
+  /** Where replies go, instead of the workspace's reply-to address. */
+  replyTo?: EmailAddress;
 }
 
 /**
