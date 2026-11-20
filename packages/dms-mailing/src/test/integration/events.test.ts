@@ -5,7 +5,13 @@ import {
   emailEventTrigger,
 } from "../../automation/email-event-trigger";
 import { clearTriggerSubscriptions } from "../../automation/emitter";
-import { capture } from "../helpers/automation";
+import {
+  automationLoopGuard,
+  LOOP_GUARD_LIMIT,
+} from "../../automation/loop-guard";
+import { sendTemplateAction } from "../../automation/send-template-action";
+import { capture, stepCtx } from "../helpers/automation";
+import { declaration } from "../helpers/declarations";
 import { authorizedClient, createClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText, parsedBody } from "../helpers/checked";
@@ -253,6 +259,60 @@ describe("[integration] e-mail event trigger on test sends", () => {
         new Date(at),
       ),
     ).to.equal(received[1].deliveryId);
+  });
+});
+
+describe("[integration] e-mail event trigger on a procedure's sends", () => {
+  afterEach(() => {
+    clearTriggerSubscriptions();
+    automationLoopGuard.reset();
+  });
+
+  it("skips a procedure's send by default, names the procedure when taken, and breaks a loop", async () => {
+    const { DeclareTemplate } =
+      await import("@antelopejs/interface-dms-mailing");
+    await DeclareTemplate(declaration("event-procedure-send"));
+    const sent = await sendTemplateAction.execute(
+      {
+        slug: "event-procedure-send",
+        to: "procedure-send@example.test",
+        variables: { customer: { firstName: "Ann" } },
+      },
+      stepCtx("procedure-5"),
+    );
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const settings = await client.get("/api/mailing/settings");
+    const detail = await client.get(`/api/mailing/sends/${sent.sendId}`);
+    const messageId = checkedText.parse(detail.data.send.providerMessageId);
+    const saved = await capture(emailEventTrigger, {});
+    const opted = await capture(emailEventTrigger, {
+      includeAutomationWrites: true,
+    });
+
+    for (let index = 0; index <= LOOP_GUARD_LIMIT; index++) {
+      const hook = await client.post(
+        eventsPath("manual"),
+        { messageId, type: "opened", details: { eventId: `loop-${index}` } },
+        {
+          headers: {
+            "x-mailing-webhook-secret": checkedText.parse(
+              settings.data.webhookSecret,
+            ),
+          },
+        },
+      );
+      expect(hook.data.recorded).to.equal(true);
+    }
+
+    expect(saved.received).to.deep.equal([]);
+    expect(opted.received).to.have.length(LOOP_GUARD_LIMIT);
+    expect(opted.received[0]).to.deep.include({
+      sendId: sent.sendId,
+      source: "automation:procedure-5",
+      originProcedureId: "procedure-5",
+    });
+    expect(opted.received[0]).to.not.have.property("originRunId");
   });
 });
 

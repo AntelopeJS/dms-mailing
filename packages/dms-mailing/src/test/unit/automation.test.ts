@@ -182,6 +182,7 @@ describe("[unit] automation node declarations", () => {
       )
       .map((trigger) => trigger.id);
     expect(switched).to.deep.equal([
+      "mailing.email-event",
       "mailing.address-suppressed",
       "mailing.address-unsuppressed",
     ]);
@@ -191,6 +192,7 @@ describe("[unit] automation node declarations", () => {
 describe("[unit] automation e-mail event trigger", () => {
   afterEach(() => {
     clearTriggerSubscriptions();
+    automationLoopGuard.reset();
   });
 
   it("fans e-mail events out to active trigger subscriptions filtered by type", async () => {
@@ -234,6 +236,39 @@ describe("[unit] automation e-mail event trigger", () => {
     const { received } = await capture(emailEventTrigger, {});
     expect(() => emitEmailEvent(EVENT)).to.not.throw();
     expect(received).to.deep.equal([EVENT]);
+  });
+
+  it("counts an event on a procedure's send as the procedure's, skipped unless taken", async () => {
+    const saved = await capture(emailEventTrigger, {});
+    const opted = await capture(emailEventTrigger, {
+      includeAutomationWrites: true,
+    });
+    const procedureSend = { ...EVENT, source: "automation:procedure-4" };
+    const manualSend = { ...EVENT, source: "dms-mailing:manual" };
+
+    emitEmailEvent(procedureSend);
+    emitEmailEvent(manualSend);
+
+    expect(saved.received).to.deep.equal([manualSend]);
+    expect(opted.received).to.deep.equal([
+      { ...procedureSend, originProcedureId: "procedure-4" },
+      manualSend,
+    ]);
+  });
+
+  it("drops events on one procedure's send past the breaker's limit, not on another send", async () => {
+    const { received } = await capture(emailEventTrigger, {
+      includeAutomationWrites: true,
+    });
+    const procedureSend = { ...EVENT, source: "automation:procedure-4" };
+
+    for (let index = 0; index <= LOOP_GUARD_LIMIT; index++)
+      emitEmailEvent(procedureSend);
+    emitEmailEvent({ ...procedureSend, sendId: "other" });
+    for (let index = 0; index <= LOOP_GUARD_LIMIT; index++)
+      emitEmailEvent(EVENT);
+
+    expect(received).to.have.length(2 * LOOP_GUARD_LIMIT + 2);
   });
 
   it("clears the subscriptions when the node types are unregistered", async () => {
