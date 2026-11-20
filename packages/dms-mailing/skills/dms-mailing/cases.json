@@ -44,6 +44,17 @@
         "mustMention": ["data-website-id"],
         "avoid": ["dms-mailing"]
       }
+    },
+    {
+      "id": "mailing-notification-email",
+      "area": "modules",
+      "style": "clean",
+      "prompt": "Users should also get our invoice notifications by e-mail when they turn it on.",
+      "expect": {
+        "skills": ["dms-mailing"],
+        "acceptable": ["dms"],
+        "mustMention": ["tenantId"]
+      }
     }
   ]
 }

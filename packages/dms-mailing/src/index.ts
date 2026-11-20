@@ -16,6 +16,7 @@ import {
 } from "./crons";
 import { registerTenantExport, unregisterTenantExport } from "./hooks";
 import { registerRealtimeTopics } from "./realtime";
+import { registerNotificationEmailChannel } from "./services/notification-email";
 import { frontendModule } from "./frontend-module";
 
 export * from "./data";
@@ -38,6 +39,7 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
   registerAutomationNodes();
   registerTenantExport();
   registerRealtimeTopics();
+  registerNotificationEmailChannel();
   await AddFrontendModule(frontendModule());
 }
 
