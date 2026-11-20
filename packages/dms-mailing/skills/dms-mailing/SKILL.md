@@ -59,7 +59,8 @@ const result = await SendTemplate("order-confirmed", {
 - Automation (if `interface-dms-automation` is loaded), every action taking an optional `tenantId` (empty: default
   workspace; unknown: step fails), every trigger an optional `tenantId` filter:
   - Triggers: `mailing.email-event` (test sends only with `includeTests`), `mailing.address-suppressed`,
-    `mailing.address-unsuppressed` (procedure-made changes only with `includeAutomationWrites`),
+    `mailing.address-unsuppressed`; procedure-made changes, and events on sends whose `source` is
+    `automation:<procedure id>`, fire only with `includeAutomationWrites`;
     `mailing.template-published` (declarations only with `includeDeclared`), `mailing.template-status-changed`,
     `mailing.retention-purged` (once per workspace and night). Dedup on the payload's `deliveryId`.
   - Writes with `dryRun`: `mailing.send-template`, `mailing.suppress-address` (`manual`/`unsubscribe`),
