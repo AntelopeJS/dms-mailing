@@ -3,7 +3,7 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantModel } from "@antelopejs/interface-dms/db";
 
 /** Prefix of what a procedure writes as its author: `automation:<procedure id>`. */
-const AUTOMATION_ACTOR_PREFIX = "automation:";
+export const AUTOMATION_ACTOR_PREFIX = "automation:";
 
 /** The author a procedure's write records. */
 export const automationActor = (procedureId: string): string =>

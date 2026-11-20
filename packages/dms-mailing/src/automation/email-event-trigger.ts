@@ -5,6 +5,8 @@ import {
   TriggerChannel,
   type TriggerSettings,
 } from "./emitter";
+import type { AutomationOriginFields } from "./origin";
+import { AUTOMATION_ACTOR_PREFIX } from "./tenant";
 
 export type EmailEventPayload = {
   tenantId: string;
@@ -16,7 +18,7 @@ export type EmailEventPayload = {
   deliveryId: string;
   at: string;
   source?: string;
-};
+} & AutomationOriginFields;
 
 export interface EmailEventTriggerConfig extends TriggerSettings {
   types?: SendEventType[];
@@ -37,9 +39,27 @@ const emailEventChannel = new TriggerChannel<
   EmailEventPayload
 >(EMAIL_EVENT_TRIGGER_ID, accepts);
 
-/** Hands a provider event on a send to every subscription that takes it. */
+/**
+ * The procedure a send's `source` names: a procedure's send is recorded as
+ * `automation:<procedure id>`. The send keeps no run, so no run id is known.
+ */
+function sendOrigin(source: string | undefined): AutomationOriginFields {
+  if (!source?.startsWith(AUTOMATION_ACTOR_PREFIX)) return {};
+  const procedureId = source.slice(AUTOMATION_ACTOR_PREFIX.length);
+  return procedureId ? { originProcedureId: procedureId } : {};
+}
+
+/**
+ * Hands a provider event on a send to every subscription that takes it. An
+ * event on a procedure's send counts as caused by that procedure: it passes
+ * the circuit breaker on the send, and fires only where procedure-made
+ * changes are taken.
+ */
 export function emitEmailEvent(payload: EmailEventPayload): void {
-  emailEventChannel.emit(payload);
+  emailEventChannel.emitAttributed(`${payload.tenantId}|${payload.sendId}`, {
+    ...payload,
+    ...sendOrigin(payload.source),
+  });
 }
 
 const STRING: JsonSchema = { type: "string" };
@@ -49,6 +69,7 @@ export const emailEventTrigger = channelTrigger(emailEventChannel, {
   description:
     "Fires when a provider reports a delivery event on a mailing send; test sends only when enabled",
   icon: "i-ph-bell-ringing",
+  automationWrites: true,
   configProperties: {
     types: {
       type: "array",

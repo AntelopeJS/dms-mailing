@@ -97,9 +97,17 @@ export class TriggerChannel<
    * procedure and its run, and passes the circuit breaker on `subject` first.
    */
   emitOriginated(subject: string, payload: TPayload): void {
-    const origin = automationOriginFields();
-    if (isOriginated(origin) && !admitAutomationEvent(this.id, subject)) return;
-    this.emit({ ...payload, ...origin });
+    this.emitAttributed(subject, { ...payload, ...automationOriginFields() });
+  }
+
+  /**
+   * Emits an event whose payload already names the procedure that caused it,
+   * if any: an attributed event passes the circuit breaker on `subject` first.
+   */
+  emitAttributed(subject: string, payload: TPayload): void {
+    if (isOriginated(payload) && !admitAutomationEvent(this.id, subject))
+      return;
+    this.emit(payload);
   }
 
   clear(): void {
