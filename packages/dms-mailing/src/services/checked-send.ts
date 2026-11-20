@@ -10,7 +10,7 @@ import {
   sendTemplate,
 } from "./send";
 import { suppressionsOf } from "./suppressions";
-import { isText } from "../validation/guards";
+import { addressOf, toRecipients } from "./addresses";
 
 /**
  * A send the module checks against the suppression list. `allowSuppressed`
@@ -24,11 +24,6 @@ export interface CheckedSendParams extends ModuleSendParams {
 export const SUPPRESSED_ERROR_PREFIX = "$dms_mailing.errors.suppressed.";
 
 const NO_LATENCY = null;
-
-const addressOf = (to: EmailAddress): string => (isText(to) ? to : to.email);
-
-const toRecipients = (to: EmailAddress | EmailAddress[]): EmailAddress[] =>
-  Array.isArray(to) ? to : [to];
 
 /** The error a suppressed recipient's send keeps: an i18n key per reason. */
 export function suppressedError(row: MailingSuppression): string {
@@ -85,6 +80,18 @@ async function sendAllowed(
   return result.results ?? [result];
 }
 
+/** The send without the copied addresses that are on the suppression list. */
+async function withoutSuppressedCc(
+  params: CheckedSendParams,
+): Promise<CheckedSendParams> {
+  if (!params.cc?.length) return params;
+  const blocked = await blockedRecipients(params, params.cc);
+  return {
+    ...params,
+    cc: params.cc.filter((to) => !blocked.has(normalizeAddress(addressOf(to)))),
+  };
+}
+
 /**
  * Sends a template to every recipient but those on the suppression list,
  * which are logged as `suppressed` instead. The results keep the order the
@@ -92,8 +99,9 @@ async function sendAllowed(
  */
 export async function sendUnlessSuppressed(
   slug: string,
-  params: CheckedSendParams,
+  given: CheckedSendParams,
 ): Promise<SendTemplateResult> {
+  const params = await withoutSuppressedCc(given);
   const recipients = toRecipients(params.to);
   const rows = await blockedRecipients(params, recipients);
   if (!rows.size) return sendTemplate(slug, params);

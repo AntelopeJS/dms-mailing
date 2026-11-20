@@ -80,6 +80,10 @@ export class MailingSend extends Table {
   @Field("string")
   declare json_attachments?: string;
 
+  /** JSON list of the addresses copied on the e-mail; absent for most sends. */
+  @Field("string")
+  declare json_cc?: string;
+
   @Field("number")
   declare opens: number;
 
