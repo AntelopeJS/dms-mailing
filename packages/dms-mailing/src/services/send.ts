@@ -2,6 +2,7 @@ import {
   type BatchEmailMessageResponse,
   type BatchEmailParams,
   type BatchEmailResponse,
+  type BufferAttachment,
   type EmailAddress,
   type EmailParams,
   type EmailResponse,
@@ -38,7 +39,9 @@ import {
   type TemplateContent,
 } from "../types";
 import { publishSendCreated } from "../realtime";
+import { attachmentsLog, checkAttachments } from "./attachments";
 import { renderEmailHtml } from "./render";
+import { SendError } from "./send-error";
 import { getSettings } from "./settings";
 import { toSendStatus } from "./status";
 import { refreshAttentionIfFlagged } from "./template-attention";
@@ -53,15 +56,6 @@ import {
   workingSnapshot,
 } from "./templates";
 import { isText } from "../validation/guards";
-
-export class SendError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 
 export interface PreparedSend {
   content: TemplateContent;
@@ -79,6 +73,8 @@ export interface PreparedSend {
   category: string;
   /** Why the template needed a look when the send started. */
   attention: string;
+  /** The files every recipient gets; absent for most sends. */
+  attachments?: BufferAttachment[];
 }
 
 /**
@@ -273,6 +269,7 @@ export async function prepare(
   if (missing.length) {
     throw new SendError("missing_variables", missing.join(", "));
   }
+  const attachments = checkAttachments(params.attachments);
   const { content, version, variables } = resolveContent(template, params);
   const settings = await getSettings(tenantId);
   const locale = pickLocale(content, params.locale, settings.fallbackLocale);
@@ -287,6 +284,7 @@ export async function prepare(
     tenantId,
     category: template.category ?? "",
     attention: template.attention,
+    attachments,
   };
 }
 
@@ -315,6 +313,7 @@ export function messageFor(
       templateSlug: prepared.slug,
     },
     tracking: { opens: true, clicks: true },
+    attachments: prepared.attachments,
   };
 }
 
@@ -460,6 +459,7 @@ async function record(
     error: outcome.error,
     source: params.source,
     json_variables: JSON.stringify(params.variables ?? {}),
+    json_attachments: attachmentsLog(prepared.attachments),
     opens: 0,
     clicks: 0,
     isTest: Boolean(params.isTest),

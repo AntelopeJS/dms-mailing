@@ -45,7 +45,8 @@ import {
   type CheckedSendParams,
   sendUnlessSuppressed,
 } from "../services/checked-send";
-import { MANUAL_SEND_SOURCE, SendError, subjectFor } from "../services/send";
+import { MANUAL_SEND_SOURCE, subjectFor } from "../services/send";
+import { SendError } from "../services/send-error";
 import {
   buildSendStats,
   isTransportFailure,
@@ -87,6 +88,8 @@ const REPLAY_SKIPPED = "$dms_mailing.sends.banner.replay_skipped";
 const RECIPIENT_FIELD = "to";
 const NEEDS_NEW_ADDRESS = "$dms_mailing.errors.replay_needs_new_address";
 const NO_REPLAY_AFTER_SPAM = "$dms_mailing.errors.no_replay_after_spam";
+const NO_REPLAY_WITH_ATTACHMENTS =
+  "$dms_mailing.errors.no_replay_with_attachments";
 const TEST_SEND_SOURCE = "dms-mailing:test-send";
 const REPLAY_SOURCE = "dms-mailing:replay";
 const FIX_ADDRESS_SOURCE = "dms-mailing:fix-address";
@@ -522,6 +525,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
     to: string | undefined,
     source: string,
   ): Promise<SendTemplateResult> {
+    assert(!send.json_attachments, HTTP_CONFLICT, NO_REPLAY_WITH_ATTACHMENTS);
     const template = await requireTemplate(this.templates, send.templateId);
     const version = send.templateVersion;
     const content =

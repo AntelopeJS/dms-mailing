@@ -31,7 +31,7 @@ export interface DrawerSend extends SendRow {
 /** What decides a drawer's footer. */
 export interface FooterSend extends Pick<
 	DrawerSend,
-	'status' | 'isSoftBounce' | 'replayedBy'
+	'status' | 'isSoftBounce' | 'replayedBy' | 'json_attachments'
 > {
 	/**
 	 * Whether the recipient is on the suppression list today; unknown until
@@ -99,12 +99,14 @@ const ACTIONS_BY_STATUS: Partial<Record<SendStatus, SendAction[]>> = {
 }
 
 /**
- * Footers that win over the status: a send someone already sent again offers
+ * Footers that win over the status: a send that carried attachments cannot be
+ * repeated since the log keeps no file, a send someone already sent again offers
  * no second one, a temporary bounce (a full mailbox) may go to the same
  * address later, and so may a suppressed send once its address is
  * reactivated.
  */
 const FOOTER_RULES: FooterRule[] = [
+	{ matches: (send) => !!send.json_attachments, actions: LOOK_ONLY },
 	{ matches: (send) => !!send.replayedBy, actions: LOOK_ONLY },
 	{
 		matches: (send) => send.status === 'bounced' && !!send.isSoftBounce,

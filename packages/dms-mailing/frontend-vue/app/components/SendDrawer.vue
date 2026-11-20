@@ -19,6 +19,7 @@ import {
 	type SendActionId,
 } from '../utils/send-actions'
 import { renderingTitleKey } from '../utils/rendering-title'
+import { formatFileSize, sentAttachments } from '../utils/attachments'
 import { formatLatency, isSlowLatency } from '../utils/send-stats'
 import {
 	isSuppressedStatus,
@@ -210,6 +211,10 @@ const stats = computed<StatTrioItem[]>(() => {
 		},
 	]
 })
+
+const attachments = computed(() =>
+	sentAttachments(send.value?.json_attachments),
+)
 
 const originTitle = computed(() => {
 	const template = detail.value?.template
@@ -599,6 +604,19 @@ onMounted(() => {
 									aria-hidden="true"
 								/>
 							</template>
+						</DmsListRow>
+						<DmsListRow
+							v-for="(file, index) in attachments"
+							:key="index"
+							icon="i-ph-paperclip"
+							icon-size="2xs"
+							size="sm"
+							:meta="[formatFileSize(file.size, locale)]"
+							data-send-attachment
+						>
+							<span class="min-w-0 text-[12.5px] [overflow-wrap:anywhere]">
+								{{ file.filename }}
+							</span>
 						</DmsListRow>
 						<!-- The "source" label goes under the value: beside it, a dotted
 							name like `automation.overdue-reminders` broke at its hyphen

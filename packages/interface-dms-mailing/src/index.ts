@@ -171,6 +171,22 @@ export interface VariableDefinition {
   required: boolean;
 }
 
+/**
+ * A file a send carries, as bytes the caller already holds. Every recipient of
+ * the call gets the same files.
+ */
+export interface SendAttachment {
+  /**
+   * The name the recipient sees: the module keeps its last path segment,
+   * without line breaks.
+   */
+  filename: string;
+  /** The MIME type (`application/pdf`); the provider guesses it when absent. */
+  contentType?: string;
+  /** The file's bytes; a `Buffer` is one. */
+  content: Uint8Array;
+}
+
 /** Parameters of a template send triggered from application code. */
 export interface SendTemplateParams {
   tenantId: string;
@@ -180,6 +196,13 @@ export interface SendTemplateParams {
   content?: TemplateContent;
   source?: string;
   isTest?: boolean;
+  /**
+   * Files the e-mail carries: at most 10, adding up to at most 10 MiB, or the
+   * send rejects with `code` `attachments_too_large`. The send log keeps their
+   * names, types, sizes and SHA-256 hashes, never their bytes, so a send with
+   * attachments cannot be sent again from the dashboard.
+   */
+  attachments?: SendAttachment[];
 }
 
 /**

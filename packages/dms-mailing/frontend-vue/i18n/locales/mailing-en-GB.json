@@ -411,6 +411,7 @@
 			"no_replay_after_spam": "The recipient reported this e-mail as spam: it is not sent again.",
 			"nothing_to_publish": "This template has no content to publish yet.",
 			"replay_needs_new_address": "This address bounced. Send to a corrected address instead.",
+			"no_replay_with_attachments": "This e-mail carried attachments, which the send log does not keep. Send it again from the application that sent it.",
 			"starter_not_found": "This starter template does not exist.",
 			"template_in_use": "Only an archived template that was never sent can be deleted. Archive it instead.",
 			"invalid_template": "The template name or slug is invalid.",

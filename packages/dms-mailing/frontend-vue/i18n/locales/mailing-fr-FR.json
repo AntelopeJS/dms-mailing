@@ -411,6 +411,7 @@
 			"no_replay_after_spam": "Le destinataire a signalé cet e-mail comme spam : il n’est pas renvoyé.",
 			"nothing_to_publish": "Ce modèle n’a pas encore de contenu à publier.",
 			"replay_needs_new_address": "Cette adresse a rebondi. Envoyez plutôt à une adresse corrigée.",
+			"no_replay_with_attachments": "Cet e-mail portait des pièces jointes, que le journal des envois ne garde pas. Renvoyez-le depuis l’application qui l’a envoyé.",
 			"starter_not_found": "Ce modèle de départ n’existe pas.",
 			"template_in_use": "Seul un modèle archivé et jamais envoyé peut être supprimé. Archivez-le plutôt.",
 			"invalid_template": "Le nom ou le slug du modèle est invalide.",
