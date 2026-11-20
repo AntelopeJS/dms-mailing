@@ -19,7 +19,7 @@ import {
 	type SendActionId,
 } from '../utils/send-actions'
 import { renderingTitleKey } from '../utils/rendering-title'
-import { formatFileSize, sentAttachments, shortHash } from '../utils/attachments'
+import { formatFileSize, sentAttachments } from '../utils/attachments'
 import { formatLatency, isSlowLatency } from '../utils/send-stats'
 import {
 	isSuppressedStatus,
@@ -212,7 +212,9 @@ const stats = computed<StatTrioItem[]>(() => {
 	]
 })
 
-const attachments = computed(() => sentAttachments(send.value?.json_attachments))
+const attachments = computed(() =>
+	sentAttachments(send.value?.json_attachments),
+)
 
 const originTitle = computed(() => {
 	const template = detail.value?.template
@@ -604,15 +606,12 @@ onMounted(() => {
 							</template>
 						</DmsListRow>
 						<DmsListRow
-							v-for="file in attachments"
-							:key="file.sha256 + file.filename"
+							v-for="(file, index) in attachments"
+							:key="index"
 							icon="i-ph-paperclip"
 							icon-size="2xs"
 							size="sm"
-							:meta="[
-								formatFileSize(file.size, locale),
-								`sha256 ${shortHash(file.sha256)}`,
-							]"
+							:meta="[formatFileSize(file.size, locale)]"
 							data-send-attachment
 						>
 							<span class="min-w-0 text-[12.5px] [overflow-wrap:anywhere]">
@@ -637,13 +636,6 @@ onMounted(() => {
 							</span>
 						</DmsListRow>
 					</div>
-					<p
-						v-if="attachments.length"
-						class="text-muted text-[12px]"
-						data-attachments-not-kept
-					>
-						{{ key('attachments_not_kept') }}
-					</p>
 				</section>
 			</div>
 

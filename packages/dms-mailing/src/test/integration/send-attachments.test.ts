@@ -8,7 +8,8 @@ import { suppressAddress } from "../../services/suppressions";
 import { declaration, mailing } from "../helpers/declarations";
 import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
-import { smtpMessages } from "../helpers/smtp";
+import { MAX_ATTACHMENT_BYTES } from "../../services/attachments";
+import { capturedMail, rawMail } from "../helpers/mail-store";
 
 const HTTP_CONFLICT = 409;
 const stamp = Date.now();
@@ -29,7 +30,7 @@ const summarySchema = z.array(
 
 const invoice = {
   filename: "../archive/invoice-001.pdf\r\nX-Injected: yes",
-  contentType: "Application/PDF",
+  contentType: "application/pdf",
   content: PDF,
 };
 
@@ -76,9 +77,9 @@ describe("[integration] sends with attachments", () => {
     );
     expect(send?.json_attachments).to.not.contain(PDF.toString("base64"));
 
-    const mine = smtpMessages().filter((message) =>
-      message.includes(PDF.toString("base64")),
-    );
+    const mine = capturedMail()
+      .map(rawMail)
+      .filter((message) => message.includes(PDF.toString("base64")));
     expect(mine).to.have.length(2);
     expect(mine[0]).to.match(/Content-Type: application\/pdf/i);
     expect(mine[0]).to.contain("invoice-001.pdf");
@@ -107,8 +108,7 @@ describe("[integration] sends with attachments", () => {
   });
 
   it("refuses a file over the ceiling before anything is logged", async () => {
-    const { SendTemplate, GetSendCapabilities } = await mailing();
-    const { maxAttachmentBytes } = await GetSendCapabilities();
+    const { SendTemplate } = await mailing();
     const address = `too-large-${stamp}@example.test`;
     const refusal = await SendTemplate(slug, {
       tenantId: DEFAULT_TENANT_ID,
@@ -117,7 +117,7 @@ describe("[integration] sends with attachments", () => {
       attachments: [
         {
           filename: "huge.bin",
-          content: Buffer.alloc(maxAttachmentBytes + 1),
+          content: Buffer.alloc(MAX_ATTACHMENT_BYTES + 1),
         },
       ],
     }).catch((error: unknown) => error);
@@ -128,14 +128,6 @@ describe("[integration] sends with attachments", () => {
       address,
     );
     expect(logged).to.have.length(0);
-  });
-
-  it("reports what a send can carry through nodemailer", async () => {
-    const { GetSendCapabilities } = await mailing();
-    const capabilities = await GetSendCapabilities();
-    expect(capabilities.attachments).to.equal(true);
-    expect(capabilities.maxAttachments).to.equal(10);
-    expect(capabilities.maxAttachmentBytes).to.equal(10 * 1024 * 1024);
   });
 
   it("refuses to send again a send whose files the log does not keep", async () => {

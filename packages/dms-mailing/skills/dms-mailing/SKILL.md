@@ -26,8 +26,7 @@ https://dms.antelopejs.com/docs/modules/mailing (sending from code and the webho
 - The DMS backend and renderer releases the module runs on are in the README compatibility block and in `engines["@antelopejs/dms-frontend"]` of `frontend-vue/package.json`;
   0.4 is the DMS 0.8 line. Mailing 0.6 implements `@antelopejs/interface-dms-mailing` `>=0.8.0 <0.9.0`, adding declaration and import calls;
   interface 0.9 adds `DeclareSender`; `SendTemplate` / `RecordEmailEvent` callers do not change.
-- Module options: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML);
-  `maxAttachmentBytes` (default 10 MiB, all files of one send) and `maxAttachments` (default 10).
+- Module option: `useHtmlRender` (default `true`, DMS html-render chain; `false` = built-in standalone HTML).
 - Set the DMS `clientBaseUrl`: the webhook URL and the e-mail logo are built on it.
 - Per-workspace settings (sender, missing-variable guard, fallback locale, webhook secret, retention,
   categories) live on the Settings page and `GET`/`PUT /api/mailing/settings` (changed fields only).
@@ -52,14 +51,9 @@ const result = await SendTemplate("order-confirmed", {
   the template; pass every required one.
 - Don't pre-format amounts and dates per locale: pass `{ value: 987420, currency: "EUR" }` (minor units) or a
   `Date`, or an ISO string at a `date` path; the send locale formats them. Plain strings print as given.
-- Files: `attachments: [{ filename, contentType?, content: Buffer }]`, the same for every recipient. Bytes only
-  (a path, a URL or a string is refused). `GetSendCapabilities()` → `{ attachments, maxAttachments,
-  maxAttachmentBytes, maxAttachmentFileBytes }` before sending, to fall back to a link. A refusal rejects before
-  anything is sent or logged, `error.code` = `attachments_unsupported` (provider reports `features.attachments:
-  false`) | `attachments_too_large` | `invalid_attachment`; a file is never dropped. Names keep their last path
-  segment without control characters, types are lower-cased, `multipart/*` and `message/*` refused. The log keeps
-  name, type, size and SHA-256, never the bytes, so the dashboard cannot send it again (409
-  `no_replay_with_attachments`): resend from code. The automation action takes no attachments.
+- Files: `attachments: [{ filename, contentType?, content: Buffer }]`, the same for every recipient; at most 10 files
+  and 10 MiB, else `error.code` = `attachments_too_large` before anything is sent. The log keeps name, type, size and
+  SHA-256, never the bytes, so the dashboard cannot send it again (409 `no_replay_with_attachments`): resend from code.
 - In-process events: `RecordEmailEvent(tenantId, { provider, messageId, type, details })`.
   HTTP: `POST <clientBaseUrl>/api/mailing/events/<provider>/<tenantId>` with header `x-mailing-webhook-secret`.
 - Automation (if `interface-dms-automation` is loaded): action `mailing.send-template`, trigger `mailing.email-event`.

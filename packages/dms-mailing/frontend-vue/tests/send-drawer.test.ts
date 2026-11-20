@@ -117,7 +117,7 @@ describe('send drawer layout', () => {
 		expect(row?.textContent).toContain(SEND.source)
 	})
 
-	it('lists the files a send carried and says the log keeps none of them', async () => {
+	it('lists the files a send carried', async () => {
 		const row: SendRow = {
 			...SEND,
 			json_attachments: JSON.stringify([
@@ -136,12 +136,10 @@ describe('send drawer layout', () => {
 		const listed = host.querySelector('[data-send-attachment]')
 		expect(listed?.textContent).toContain('invoice-001.pdf')
 		expect(listed?.getAttribute('meta')).toContain('2 kB')
-		expect(host.querySelector('[data-attachments-not-kept]')).not.toBeNull()
 	})
 
 	it('shows no attachment section for a send without files', async () => {
 		const host = await render()
 		expect(host.querySelector('[data-send-attachment]')).toBeNull()
-		expect(host.querySelector('[data-attachments-not-kept]')).toBeNull()
 	})
 })

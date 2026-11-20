@@ -520,11 +520,6 @@ export class SendsController extends Controller(API_BASE_PATH) {
     await this.sends.linkReplayOf(result.sendId, originalId);
   }
 
-  /**
-   * Sends `send` again from what the log kept. The log keeps no attachment
-   * bytes, so a send that carried files is refused rather than repeated
-   * without them.
-   */
   private async repeat(
     send: MailingSend,
     to: string | undefined,

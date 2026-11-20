@@ -65,7 +65,8 @@ describe('sendFooterActions', () => {
 	})
 
 	it('offers no send again of a send whose files the log does not keep', () => {
-		const json = '[{"filename":"a.pdf","contentType":"application/pdf","size":3,"sha256":"ab"}]'
+		const json =
+			'[{"filename":"a.pdf","contentType":"application/pdf","size":3,"sha256":"ab"}]'
 		for (const status of ['failed', 'bounced', 'sent'] as const) {
 			const actions = sendFooterActions({ status, json_attachments: json })
 			expect(actions.map((action) => action.id)).toEqual([

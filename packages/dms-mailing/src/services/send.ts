@@ -2,6 +2,7 @@ import {
   type BatchEmailMessageResponse,
   type BatchEmailParams,
   type BatchEmailResponse,
+  type BufferAttachment,
   type EmailAddress,
   type EmailParams,
   type EmailResponse,
@@ -38,12 +39,7 @@ import {
   type TemplateContent,
 } from "../types";
 import { publishSendCreated } from "../realtime";
-import {
-  attachmentsLog,
-  attachmentsOfSend,
-  type CheckedAttachment,
-  toEmailAttachments,
-} from "./attachments";
+import { attachmentsLog, checkAttachments } from "./attachments";
 import { renderEmailHtml } from "./render";
 import { SendError } from "./send-error";
 import { getSettings } from "./settings";
@@ -77,8 +73,8 @@ export interface PreparedSend {
   category: string;
   /** Why the template needed a look when the send started. */
   attention: string;
-  /** The files every recipient gets, checked; empty for most sends. */
-  attachments: CheckedAttachment[];
+  /** The files every recipient gets; absent for most sends. */
+  attachments?: BufferAttachment[];
 }
 
 /**
@@ -273,7 +269,7 @@ export async function prepare(
   if (missing.length) {
     throw new SendError("missing_variables", missing.join(", "));
   }
-  const attachments = await attachmentsOfSend(params.attachments);
+  const attachments = checkAttachments(params.attachments);
   const { content, version, variables } = resolveContent(template, params);
   const settings = await getSettings(tenantId);
   const locale = pickLocale(content, params.locale, settings.fallbackLocale);
@@ -317,7 +313,7 @@ export function messageFor(
       templateSlug: prepared.slug,
     },
     tracking: { opens: true, clicks: true },
-    attachments: toEmailAttachments(prepared.attachments),
+    attachments: prepared.attachments,
   };
 }
 

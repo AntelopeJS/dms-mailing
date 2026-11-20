@@ -13,7 +13,7 @@ The AntelopeJS interface to send DMS mailing templates and report e-mail events 
 
 ## What it does
 
-- Sends a published template by its slug, to one recipient or many, in a given locale and with its variables and attached files (`SendTemplate`), and says what a send can carry (`GetSendCapabilities`).
+- Sends a published template by its slug, to one recipient or many, in a given locale and with its variables (`SendTemplate`).
 - Reports a provider event (delivered, opened, clicked, bounced…) against the send it belongs to (`RecordEmailEvent`).
 - Ships templates and template categories as code when a workspace is provisioned (`DeclareTemplate`, `DeclareTemplateCategory`). A declaration writes once: a template is created already published, and a slug or category id the workspace already has is left as it is.
 - Writes the workspace sender when a workspace is provisioned (`DeclareSender`).

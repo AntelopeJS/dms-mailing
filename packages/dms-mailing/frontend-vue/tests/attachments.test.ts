@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import {
-	formatFileSize,
-	sentAttachments,
-	shortHash,
-} from '../app/utils/attachments'
+import { formatFileSize, sentAttachments } from '../app/utils/attachments'
 
-const FILE = {
-	filename: 'invoice.pdf',
-	contentType: 'application/pdf',
-	size: 120,
-	sha256: '0123456789abcdef',
-}
+const FILE = { filename: 'invoice.pdf', size: 120 }
 
 describe('sentAttachments', () => {
 	it('reads the files the send log kept', () => {
@@ -26,15 +17,8 @@ describe('sentAttachments', () => {
 })
 
 describe('formatFileSize', () => {
-	it('picks the unit that keeps the figure readable', () => {
-		expect(formatFileSize(512, 'en')).toBe('512 byte')
+	it('writes kilobytes, never zero', () => {
+		expect(formatFileSize(120, 'en')).toBe('1 kB')
 		expect(formatFileSize(2048, 'en')).toBe('2 kB')
-		expect(formatFileSize(2.5 * 1024 * 1024, 'en')).toBe('2.5 MB')
-	})
-})
-
-describe('shortHash', () => {
-	it('keeps the first twelve characters', () => {
-		expect(shortHash(FILE.sha256)).toBe('0123456789ab')
 	})
 })
