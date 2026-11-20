@@ -23,6 +23,7 @@ import { categoriesSchema } from "../validation/settings.schema";
 import { DeclarationError, parseDeclared } from "./declaration-error";
 import { findCategory, getSettings, saveSettings } from "./settings";
 import { refreshTemplateAttention } from "./template-attention";
+import { emitDeclaredPublish } from "./template-lifecycle";
 import {
   localesWithoutSubject,
   publishedVersionOf,
@@ -106,6 +107,7 @@ async function createDeclared(
   }
   await GetModel(TemplateVersionModel, tenantId).materialize(template);
   await refreshTemplateAttention(tenantId);
+  emitDeclaredPublish(tenantId, template);
   return template;
 }
 

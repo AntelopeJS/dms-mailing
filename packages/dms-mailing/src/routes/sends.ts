@@ -30,7 +30,6 @@ import {
   type MailingSendEvent,
   type MailingTemplate,
   normalizeAddress,
-  SendEventModel,
   SendModel,
   TemplateModel,
 } from "../db";
@@ -39,7 +38,11 @@ import type { InterpolationMode } from "../engine/tokens";
 import { SendsPageController } from "../pages/sends";
 import { localeOfRequest } from "../services/localized-text";
 import { readCapabilities } from "../services/provider";
-import { buildProviderBanner } from "../services/provider-banner";
+import {
+  buildProviderBanner,
+  providerHealthOf,
+} from "../services/provider-banner";
+import { sendDetail } from "../services/send-detail";
 import { renderEmailHtml } from "../services/render";
 import {
   type CheckedSendParams,
@@ -48,15 +51,11 @@ import {
 import { MANUAL_SEND_SOURCE, subjectFor } from "../services/send";
 import { SendError } from "../services/send-error";
 import {
-  buildSendStats,
-  isTransportFailure,
-  type SendWindow,
   MAX_BULK_REPLAY,
   type SendStats,
-  trackingOf,
+  sendStatsFor,
 } from "../services/send-stats";
 import { buildSendStatItems } from "../services/send-stat-items";
-import type { DateRange } from "../services/metrics";
 import { assertSendPermission } from "../services/permissions";
 import { getSettings } from "../services/settings";
 import { findSuppression, suppressedSendIds } from "../services/suppressions";
@@ -234,9 +233,6 @@ export class SendsController extends Controller(API_BASE_PATH) {
   @TenantScopedModel(SendModel)
   declare sends: SendModel;
 
-  @TenantScopedModel(SendEventModel)
-  declare events: SendEventModel;
-
   @TenantScopedModel(TemplateModel)
   declare templates: TemplateModel;
 
@@ -331,14 +327,14 @@ export class SendsController extends Controller(API_BASE_PATH) {
   @Get("/sends/stats")
   async stats(): Promise<SendStatsResponse> {
     const range = currentRange(this.ctx);
-    const [current, previous, capabilities] = await Promise.all([
-      this.sendWindow(range),
-      isComparisonWanted(this.ctx)
-        ? this.sendWindow(comparisonRange(this.ctx, range))
-        : null,
+    const [stats, capabilities] = await Promise.all([
+      sendStatsFor(
+        this.tenantId,
+        range,
+        isComparisonWanted(this.ctx) ? comparisonRange(this.ctx, range) : null,
+      ),
       readCapabilities(),
     ]);
-    const stats = buildSendStats(current, previous, trackingOf(capabilities));
     return {
       ...stats,
       items: buildSendStatItems(stats, capabilities?.name ?? ""),
@@ -351,35 +347,19 @@ export class SendsController extends Controller(API_BASE_PATH) {
    */
   @Get("/sends/banner")
   async banner(): Promise<BannerContent | null> {
-    const since = new Date(Date.now() - HOUR_MS);
-    const [capabilities, failures, recentSends] = await Promise.all([
-      readCapabilities(),
-      this.sends.listProviderFailures(since, new Date()),
-      this.sends.countReal(since),
-    ]);
-    const suppressed = await suppressedSendIds(this.tenantId, failures);
-    return buildProviderBanner({
-      providerName: capabilities?.name ?? "",
-      providerReachable: capabilities !== null,
-      recentFailures: failures.length,
-      transportFailures: failures.filter(isTransportFailure).length,
-      suppressedFailures: suppressed.size,
-      recentSends,
-      since,
-    });
+    return buildProviderBanner(
+      await providerHealthOf(this.tenantId, new Date()),
+    );
   }
 
   @Get("/sends/:id")
   async detail(
     @Parameter("id", "param") id: string,
   ): Promise<SendDetailResponse> {
-    const send = await this.requireSend(id);
-    const events = await this.events.getBySend(id);
-    events.sort((left, right) => left.at.getTime() - right.at.getTime());
-    const [template, suppression] = await Promise.all([
-      this.templates.get(send.templateId),
-      findSuppression(this.tenantId, send.recipientEmail),
-    ]);
+    const detail = await sendDetail(this.tenantId, id);
+    assert(detail, HTTP_NOT_FOUND, NOT_FOUND);
+    const { send, events, suppression } = detail;
+    const template = await this.templates.get(send.templateId);
     return {
       send,
       events,
@@ -545,16 +525,6 @@ export class SendsController extends Controller(API_BASE_PATH) {
       },
       send.templateSlug,
     );
-  }
-
-  /** The window's sends tallied, and the latencies of its real ones. */
-  private async sendWindow(range: DateRange): Promise<SendWindow> {
-    const scope = { from: range.from, to: range.to };
-    const [tallies, latencies] = await Promise.all([
-      this.sends.tally({ ...scope, isTestLeftOut: false }, { by: "none" }),
-      this.sends.listLatencies({ ...scope, isTestLeftOut: true }),
-    ]);
-    return { tallies, latencies };
   }
 
   private async send(

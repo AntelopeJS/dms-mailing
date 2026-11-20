@@ -1,4 +1,10 @@
-import type { FallbackTally, SendTally } from "../db";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import {
+  type FallbackTally,
+  type MailingTemplate,
+  SendModel,
+  type SendTally,
+} from "../db";
 import { aggregate, byFirstSend, countOf, tallyGroups } from "./metrics";
 import { PROBLEM_STATUSES } from "../types";
 
@@ -94,4 +100,25 @@ export function performanceOf(
     sources: sourcesOf(bySource),
     fallbacks: fallbacksOf(fallbacks),
   };
+}
+
+/** The period a template's figures cover; open-ended without `to`. */
+export interface PerformanceWindow {
+  from: Date;
+  to?: Date;
+}
+
+/** A template's figures over its real sends of the window. */
+export async function templatePerformanceIn(
+  tenantId: string,
+  template: Pick<MailingTemplate, "_id" | "slug">,
+  window: PerformanceWindow,
+): Promise<TemplatePerformance> {
+  const sends = GetModel(SendModel, tenantId);
+  const scope = { ...window, isTestLeftOut: true, templateSlug: template.slug };
+  const [bySource, fallbacks] = await Promise.all([
+    sends.tally(scope, { by: "source" }),
+    sends.tallyFallbacks(scope),
+  ]);
+  return performanceOf(template._id, template.slug, bySource, fallbacks);
 }

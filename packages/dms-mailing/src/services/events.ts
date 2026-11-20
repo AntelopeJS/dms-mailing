@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -181,6 +181,23 @@ export function isSameEvent(
   );
 }
 
+/**
+ * The key a subscriber deduplicates a provider event on: the provider's event
+ * id when it gives one, else the identity {@link isSameEvent} compares. An
+ * event with neither an id nor a time gets the time it was received, so a
+ * repeated delivery of it gets another key.
+ */
+export function eventDeliveryId(
+  sendId: string,
+  event: Pick<EmailEvent, "type" | "details">,
+  at: Date,
+): string {
+  const eventId = eventIdOf(event.details);
+  if (eventId) return `${sendId}:${eventId}`;
+  const identity = `${event.type}|${at.toISOString()}|${JSON.stringify(event.details ?? {})}`;
+  return `${sendId}:${createHash("sha256").update(identity).digest("hex")}`;
+}
+
 /** A provider retrying its webhook must not count the event twice. */
 async function isRepeatedEvent(
   tenantId: string,
@@ -260,6 +277,10 @@ export async function recordEmailEvent(
       templateSlug: send.templateSlug,
       type: event.type,
       recipientEmail: send.recipientEmail,
+      isTest: send.isTest,
+      deliveryId: eventDeliveryId(send._id, event, at),
+      at: at.toISOString(),
+      source: send.source || undefined,
     },
     send,
   );

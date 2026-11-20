@@ -85,10 +85,15 @@ export class TemplateModel extends BasicDataModel(
       .run();
   }
 
-  /** Publishes only over the exact semantic revision that was inspected. */
-  async publishIfCurrent(
+  /**
+   * Writes a patch only over the exact semantic revision that was inspected,
+   * storing `nextRevision` as the new one.
+   * @returns Whether the write applied: false when another write came first
+   */
+  async updateIfCurrent(
     template: MailingTemplate,
     patch: TemplateFields,
+    nextRevision: string = randomUUID(),
   ): Promise<boolean> {
     const stored = TemplateModel.storedPatch(
       TemplateModel.fromFields(patch),
@@ -99,19 +104,35 @@ export class TemplateModel extends BasicDataModel(
         type: "update",
         revisionField: "revision",
         expectedRevision: template.revision ?? { kind: "missing" },
-        nextRevision: randomUUID(),
+        nextRevision,
         patch: { ...stored, updatedAt: new Date() },
       })
       .run();
     if (outcome === "unknown")
-      throw new Error("Mailing publication outcome is unknown; not retrying");
+      throw new Error(
+        "Mailing template write outcome is unknown; not retrying",
+      );
     return outcome === "applied";
+  }
+
+  /** Publishes only over the exact semantic revision that was inspected. */
+  publishIfCurrent(
+    template: MailingTemplate,
+    patch: TemplateFields,
+    nextRevision: string = randomUUID(),
+  ): Promise<boolean> {
+    return this.updateIfCurrent(template, patch, nextRevision);
   }
 
   /** The template holding `slug`: the unique index keeps it to one. */
   async getBySlug(slug: string): Promise<MailingTemplate | undefined> {
     const [template] = await this.getBy("slug", slug);
     return template;
+  }
+
+  /** The templates the attention refresh flagged with a reason. */
+  listNeedingAttention(): Promise<MailingTemplate[]> {
+    return this.getBy("needsAttention", true);
   }
 
   /**

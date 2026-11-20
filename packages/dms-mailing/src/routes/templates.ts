@@ -25,12 +25,7 @@ import {
   resolveEmail,
   valueFormatOf,
 } from "../engine";
-import {
-  type MailingTemplate,
-  SendModel,
-  type TemplateFields,
-  TemplateModel,
-} from "../db";
+import { type MailingTemplate, SendModel, TemplateModel } from "../db";
 import { INVALID_TEMPLATE, saveDetails } from "../data/templates-table";
 import { TemplatesPageController } from "../pages/templates";
 import { groupBy, statsWindowStart } from "../services/metrics";
@@ -41,8 +36,8 @@ import { localeOfRequest, withTextIn } from "../services/localized-text";
 import { getSettings } from "../services/settings";
 import { findStarter, STARTER_TEMPLATES } from "../services/starters";
 import {
-  performanceOf,
   statsOf,
+  templatePerformanceIn,
   type TemplatePerformance,
   type TemplateStats,
 } from "../services/template-stats";
@@ -61,7 +56,6 @@ import {
   pendingChanges,
   pickLocale,
   publishedVersionOf,
-  publishTemplate,
   saveDraft,
   publishedSnapshot,
   snapshotOfVersion,
@@ -72,7 +66,15 @@ import {
   refuseTakenSlug,
   requireTemplate,
 } from "../services/templates";
-import { type CategoryInLocale, type TemplateStatus } from "../types";
+import {
+  canTransition,
+  INVALID_TRANSITION,
+  publishTemplate,
+  type StatusAction,
+  type TemplateAction,
+  transitionTemplate,
+} from "../services/template-lifecycle";
+import type { CategoryInLocale } from "../types";
 import {
   duplicateSchema,
   previewSchema,
@@ -86,36 +88,10 @@ import type { TemplateContentResponse } from "./template-content";
 
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
-const INVALID_TRANSITION = "$dms_mailing.errors.invalid_transition";
 const NOTHING_TO_PUBLISH = "$dms_mailing.errors.nothing_to_publish";
 const NOTHING_TO_DISCARD = "$dms_mailing.errors.nothing_to_discard";
 const DRAFT_CONFLICT = "$dms_mailing.errors.draft_conflict";
 const EMPTY_SUBJECT = "$dms_mailing.errors.empty_subject";
-
-type TemplateAction = "publish" | "unpublish" | "archive" | "restore";
-
-/** The statuses each lifecycle action may start from. */
-const ALLOWED_FROM: Record<TemplateAction, TemplateStatus[]> = {
-  publish: ["draft", "live"],
-  unpublish: ["live"],
-  archive: ["draft", "live"],
-  restore: ["archived"],
-};
-
-const TARGET_STATUS: Record<
-  Exclude<TemplateAction, "publish">,
-  TemplateStatus
-> = {
-  unpublish: "draft",
-  archive: "archived",
-  restore: "draft",
-};
-
-/** What a lifecycle action records besides the new status. */
-const TRANSITION_FIELDS: Partial<Record<TemplateAction, () => TemplateFields>> =
-  {
-    unpublish: () => ({ unpublishedAt: new Date() }),
-  };
 
 export interface CategoriesResponse {
   categories: CategoryInLocale[];
@@ -247,16 +223,9 @@ export class TemplatesController extends Controller(
     @Parameter("id", "param") id: string,
   ): Promise<TemplatePerformance> {
     const template = await requireTemplate(this.templates, id);
-    const scope = {
+    return templatePerformanceIn(this.tenantId, template, {
       from: statsWindowStart(),
-      isTestLeftOut: true,
-      templateSlug: template.slug,
-    };
-    const [bySource, fallbacks] = await Promise.all([
-      this.sends.tally(scope, { by: "source" }),
-      this.sends.tallyFallbacks(scope),
-    ]);
-    return performanceOf(template._id, template.slug, bySource, fallbacks);
+    });
   }
 
   @Get("/:id/content")
@@ -398,26 +367,17 @@ export class TemplatesController extends Controller(
     action: TemplateAction,
   ): Promise<MailingTemplate> {
     const template = await requireTemplate(this.templates, id);
-    assert(
-      ALLOWED_FROM[action].includes(template.status),
-      HTTP_CONFLICT,
-      INVALID_TRANSITION,
-    );
+    assert(canTransition(template, action), HTTP_CONFLICT, INVALID_TRANSITION);
     return template;
   }
 
-  private async transition(
-    id: string,
-    action: Exclude<TemplateAction, "publish">,
-  ) {
-    await this.requireTransition(id, action);
-    const status = TARGET_STATUS[action];
-    await this.templates.updateFields(id, {
-      status,
-      updatedBy: this.author,
-      ...TRANSITION_FIELDS[action]?.(),
-    });
-    await refreshTemplateAttention(this.tenantId);
+  private async transition(id: string, action: StatusAction) {
+    const status = await transitionTemplate(
+      this.tenantId,
+      id,
+      action,
+      this.author,
+    );
     return { status };
   }
 

@@ -16,6 +16,66 @@ import { statsWindowStart } from "./metrics";
 /** How the stored `attention` field separates its reasons. */
 const REASON_SEPARATOR = ",";
 
+const TEMPLATE_ATTENTION_REASONS: TemplateAttentionReason[] = [
+  "stale_draft",
+  "never_sent",
+  "missing_locale",
+];
+
+const isAttentionReason = (value: string): value is TemplateAttentionReason =>
+  TEMPLATE_ATTENTION_REASONS.some((reason) => reason === value);
+
+/** The reasons a template's stored `attention` field names. */
+export function storedAttentionReasons(
+  template: Pick<MailingTemplate, "attention">,
+): TemplateAttentionReason[] {
+  return template.attention.split(REASON_SEPARATOR).filter(isAttentionReason);
+}
+
+/** A template that needs a look, and why. */
+export type TemplateNeedingAttention = {
+  templateId: string;
+  slug: string;
+  status: MailingTemplate["status"];
+  reasons: TemplateAttentionReason[];
+};
+
+/** The templates needing a look, by slug, and how many matched before the cap. */
+export interface TemplatesNeedingAttention {
+  templates: TemplateNeedingAttention[];
+  count: number;
+}
+
+/**
+ * The tenant's templates whose stored attention names one of `reasons` (any
+ * reason when empty), by slug, at most `limit` of them. Reads the fields the
+ * refresh stored: no refresh, no write.
+ */
+export async function templatesNeedingAttention(
+  tenantId: string,
+  reasons: TemplateAttentionReason[],
+  limit: number,
+): Promise<TemplatesNeedingAttention> {
+  const flagged = await GetModel(
+    TemplateModel,
+    tenantId,
+  ).listNeedingAttention();
+  const matching = flagged
+    .map((template) => ({
+      templateId: template._id,
+      slug: template.slug,
+      status: template.status,
+      reasons: storedAttentionReasons(template),
+    }))
+    .filter(
+      (entry) =>
+        entry.reasons.length > 0 &&
+        (!reasons.length || entry.reasons.some((r) => reasons.includes(r))),
+    )
+    .sort((left, right) => left.slug.localeCompare(right.slug));
+  return { templates: matching.slice(0, limit), count: matching.length };
+}
+
 /** The attention fields a template gets for its reasons. */
 function attentionFields(
   reasons: TemplateAttentionReason[],

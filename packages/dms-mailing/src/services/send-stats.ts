@@ -1,14 +1,22 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { ProviderCapabilities } from "@antelopejs/interface-email";
-import type { LatencySample, SendSummary, SendTally } from "../db";
+import {
+  type LatencySample,
+  SendModel,
+  type SendSummary,
+  type SendTally,
+} from "../db";
 import { isResolvedStage, type SendStatus } from "../types";
 import {
   aggregate,
   countOf,
+  type DateRange,
   deltaPercent,
   isDeliveryUntracked,
   latencyMedian,
   type ProviderTracking,
 } from "./metrics";
+import { readCapabilities } from "./provider";
 
 /**
  * A period's sends as the strip reads them: every send tallied, and the
@@ -165,4 +173,35 @@ export function isTransportFailure(
   failure: Pick<SendSummary, "error">,
 ): boolean {
   return TRANSPORT_ERROR.test(failure.error ?? "");
+}
+
+/** The window's sends tallied, and the latencies of its real ones. */
+async function sendWindowOf(
+  tenantId: string,
+  range: DateRange,
+): Promise<SendWindow> {
+  const sends = GetModel(SendModel, tenantId);
+  const scope = { from: range.from, to: range.to };
+  const [tallies, latencies] = await Promise.all([
+    sends.tally({ ...scope, isTestLeftOut: false }, { by: "none" }),
+    sends.listLatencies({ ...scope, isTestLeftOut: true }),
+  ]);
+  return { tallies, latencies };
+}
+
+/**
+ * The send log's figures of a tenant over `range`, compared with `previous`
+ * when given, as the stat strip computes them.
+ */
+export async function sendStatsFor(
+  tenantId: string,
+  range: DateRange,
+  previous: DateRange | null,
+): Promise<SendStats> {
+  const [current, compared, capabilities] = await Promise.all([
+    sendWindowOf(tenantId, range),
+    previous ? sendWindowOf(tenantId, previous) : null,
+    readCapabilities(),
+  ]);
+  return buildSendStats(current, compared, trackingOf(capabilities));
 }
