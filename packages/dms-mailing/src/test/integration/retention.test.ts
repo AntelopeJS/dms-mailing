@@ -3,12 +3,23 @@ import { mock } from "node:test";
 import { expect } from "chai";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { AtomicMutationQuery } from "@antelopejs/interface-database/atomic";
+import { retentionPurgedTrigger } from "../../automation/retention-purged-trigger";
+import { clearTriggerSubscriptions } from "../../automation/emitter";
 import {
   purgeInPages,
   purgeOrphanEvents,
   purgeSend,
+  purgeTenant,
 } from "../../crons/retention";
-import { type MailingSend, SendEventModel, SendModel } from "../../db";
+import {
+  type MailingSend,
+  RetentionRunModel,
+  retentionRunIdOf,
+  SendEventModel,
+  SendModel,
+} from "../../db";
+import { getSettings, saveSettings } from "../../services/settings";
+import { capture } from "../helpers/automation";
 import { recordEmailEvent } from "../../services/events";
 import { checkedRow } from "../helpers/checked";
 
@@ -65,8 +76,8 @@ async function seed(
   return id;
 }
 
-function sweep(f: Fixture): Promise<number> {
-  return purgeInPages(
+async function sweep(f: Fixture): Promise<number> {
+  const { purged } = await purgeInPages(
     {
       async loadPage(size) {
         return (await f.sends.listOlderThan(CUTOFF, size)).map(
@@ -77,6 +88,7 @@ function sweep(f: Fixture): Promise<number> {
     },
     { pageSize: PAGE_SIZE, maxRows: MAX_ROWS },
   );
+  return purged;
 }
 
 /** Whether `value` is callable, as the `run` method read off the prototype is. */
@@ -383,5 +395,119 @@ describe("[integration] replay-safe Mongo retention cleanup failures and orphans
     await purgeOrphanEvents(f.tenantId, PAGE_SIZE);
     expect(await f.events.getBySend(active)).to.have.length(1);
     expect(await f.events.getAll()).to.have.length(1);
+  });
+});
+
+describe("[integration] one retention claimant per workspace and night", () => {
+  const NOW = new Date("2026-11-20T03:15:00.000Z");
+  const DAY_MS = 86_400_000;
+
+  afterEach(() => {
+    clearTriggerSubscriptions();
+  });
+
+  async function retainedFixture(days: number | null): Promise<Fixture> {
+    const f = fixture();
+    if (days !== null) {
+      const settings = await getSettings(f.tenantId);
+      await saveSettings(f.tenantId, { ...settings, logRetentionDays: days });
+    }
+    return f;
+  }
+
+  it("purges a workspace once when two instances run the night together, and fires once with the total", async () => {
+    const f = await retainedFixture(30);
+    await Promise.all(Array.from({ length: 3 }, () => seed(f)));
+    const { received } = await capture(retentionPurgedTrigger, {});
+
+    const counts = await Promise.all([
+      purgeTenant(f.tenantId, NOW),
+      purgeTenant(f.tenantId, NOW),
+    ]);
+
+    expect(counts.toSorted((left, right) => left - right)).to.deep.equal([
+      0, 3,
+    ]);
+    expect(received).to.have.length(1);
+    expect(received[0]).to.deep.include({
+      tenantId: f.tenantId,
+      purged: 3,
+      capped: false,
+      retentionDays: 30,
+      runDay: "2026-11-20",
+      deliveryId: `${f.tenantId}:retention:2026-11-20`,
+    });
+    expect(await f.sends.getAll()).to.deep.equal([]);
+  });
+
+  it("does not run a workspace again the same day, and runs it the next day", async () => {
+    const f = await retainedFixture(30);
+    await purgeTenant(f.tenantId, NOW);
+    await seed(f);
+    const { received } = await capture(retentionPurgedTrigger, {});
+
+    expect(await purgeTenant(f.tenantId, NOW)).to.equal(0);
+    expect(await f.sends.getAll()).to.have.length(1);
+    expect(
+      await purgeTenant(f.tenantId, new Date(NOW.getTime() + DAY_MS)),
+    ).to.equal(1);
+    expect(received.map((payload) => payload.runDay)).to.deep.equal([
+      "2026-11-21",
+    ]);
+  });
+
+  it("fires nothing for a night that deleted nothing", async () => {
+    const f = await retainedFixture(30);
+    const { received } = await capture(retentionPurgedTrigger, {});
+
+    expect(await purgeTenant(f.tenantId, NOW)).to.equal(0);
+
+    expect(received).to.deep.equal([]);
+    expect(
+      await GetModel(RetentionRunModel, f.tenantId).get(
+        retentionRunIdOf(f.tenantId, "2026-11-20"),
+      ),
+    ).to.have.property("purged", 0);
+  });
+
+  it("claims each workspace's night apart: one workspace's claim does not refuse another's", async () => {
+    const first = await retainedFixture(30);
+    const second = await retainedFixture(30);
+    await seed(second);
+
+    await purgeTenant(first.tenantId, NOW);
+
+    expect(await purgeTenant(second.tenantId, NOW)).to.equal(1);
+  });
+
+  it("skips a workspace without a retention setting without claiming it", async () => {
+    const f = await retainedFixture(null);
+    await seed(f);
+
+    expect(await purgeTenant(f.tenantId, NOW)).to.equal(0);
+
+    expect(
+      await GetModel(RetentionRunModel, f.tenantId).getAll(),
+    ).to.deep.equal([]);
+    expect(await f.sends.getAll()).to.have.length(1);
+  });
+
+  it("drops the claims older than 30 days and keeps the recent ones", async () => {
+    const f = await retainedFixture(30);
+    const runs = GetModel(RetentionRunModel, f.tenantId);
+    await runs.insert(
+      ["2026-10-01", "2026-11-10"].map((day) => ({
+        _id: retentionRunIdOf(f.tenantId, day),
+        day,
+      })),
+    );
+
+    await purgeTenant(f.tenantId, NOW);
+
+    expect(
+      (await runs.getAll())
+        .map((run) => run.day)
+        .toSorted((left, right) => left.localeCompare(right)),
+    ).to.deep.equal(["2026-11-10", "2026-11-20"]);
   });
 });

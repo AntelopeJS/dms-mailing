@@ -1,9 +1,11 @@
 import { expect } from "chai";
 import { z } from "zod";
 import {
-  clearEmailEventSubscriptions,
+  type EmailEventPayload,
   emailEventTrigger,
 } from "../../automation/email-event-trigger";
+import { clearTriggerSubscriptions } from "../../automation/emitter";
+import { capture } from "../helpers/automation";
 import { authorizedClient, createClient, eventsPath } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 import { checkedText, parsedBody } from "../helpers/checked";
@@ -107,7 +109,7 @@ describe("[integration] events resilience", () => {
       expect(hook.status, JSON.stringify(hook.data)).to.equal(HTTP_OK);
       expect(hook.data.recorded).to.equal(true);
     } finally {
-      clearEmailEventSubscriptions();
+      clearTriggerSubscriptions();
     }
 
     const after = await client.get(`/api/mailing/sends/${sendId}`);
@@ -154,6 +156,103 @@ describe("[integration] events resilience", () => {
       (event) => event.type === "opened",
     );
     expect(opened).to.have.length(1);
+  });
+});
+
+/** A provider event as the manual webhook takes it. */
+type WebhookBody = {
+  messageId: string;
+  type: string;
+  at?: string;
+  details?: Record<string, string>;
+};
+
+describe("[integration] e-mail event trigger on test sends", () => {
+  afterEach(() => {
+    clearTriggerSubscriptions();
+  });
+
+  async function testSendWithMessageId(slug: string) {
+    const session = await ensureOwnerSession();
+    const client = authorizedClient(session.accessToken);
+    const settings = await client.get("/api/mailing/settings");
+    const created = await client.post(`${TABLE}/new`, {
+      slug,
+      name: slug,
+      category: "orders",
+    });
+    const sent = await client.post(
+      `/api/mailing/templates/${created.data._id}/test-send`,
+      { to: [`${slug}@example.test`], locale: "en", data: {} },
+    );
+    const sendId = checkedText.parse(sent.data.results[0].sendId);
+    const detail = await client.get(`/api/mailing/sends/${sendId}`);
+    const post = (body: WebhookBody) =>
+      client.post(eventsPath("manual"), body, {
+        headers: {
+          "x-mailing-webhook-secret": checkedText.parse(
+            settings.data.webhookSecret,
+          ),
+        },
+      });
+    return {
+      sendId,
+      messageId: checkedText.parse(detail.data.send.providerMessageId),
+      post,
+    };
+  }
+
+  it("marks a test send's event and fires it only where tests are taken", async () => {
+    const saved = await capture(emailEventTrigger, {});
+    const opted = await capture(emailEventTrigger, { includeTests: true });
+    const { sendId, messageId, post } =
+      await testSendWithMessageId("event-is-test");
+
+    const hook = await post({
+      messageId,
+      type: "opened",
+      details: { eventId: "evt-is-test-1" },
+    });
+
+    expect(hook.data.recorded).to.equal(true);
+    expect(saved.received).to.deep.equal([]);
+    const [payload] = opted.received;
+    expect(opted.received).to.have.length(1);
+    expect(payload).to.deep.include({
+      tenantId: "default",
+      sendId,
+      type: "opened",
+      isTest: true,
+      deliveryId: `${sendId}:evt-is-test-1`,
+      source: "dms-mailing:test-send",
+    });
+    expect(Number.isNaN(Date.parse(payload.at))).to.equal(false);
+  });
+
+  it("gives the same key to two events of one provider event id, and another to a new one", async () => {
+    const { sendId, messageId, post } =
+      await testSendWithMessageId("event-delivery-id");
+    const received: EmailEventPayload[] = [];
+    await emailEventTrigger.activate({ includeTests: true }, (payload) => {
+      received.push(payload);
+    });
+    const at = "2026-11-01T10:00:00.000Z";
+
+    await post({ messageId, type: "clicked", details: { eventId: "evt-a" } });
+    await post({ messageId, type: "opened", at, details: { ua: "x" } });
+
+    expect(received[0].deliveryId).to.equal(`${sendId}:evt-a`);
+    expect(received[1].deliveryId).to.match(
+      new RegExp(`^${sendId}:[0-9a-f]{64}$`),
+    );
+    const { eventDeliveryId } = await import("../../services/events");
+    expect(
+      eventDeliveryId(
+        sendId,
+        { type: "opened", details: { ua: "x" } },
+        new Date(at),
+      ),
+    ).to.equal(received[1].deliveryId);
   });
 });
 
