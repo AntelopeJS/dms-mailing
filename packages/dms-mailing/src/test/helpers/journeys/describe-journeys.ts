@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { expect } from "chai";
@@ -79,7 +80,7 @@ function runState(): Promise<JourneyState> {
 /** Removes the run's scratch and evidence folder once every journey passed; a failure keeps it for whoever reads the failure. */
 async function removeRunUnlessFailed(): Promise<void> {
   if (failed || run === undefined) return;
-  rmSync((await run).dir, { recursive: true, force: true });
+  await rm((await run).dir, { recursive: true, force: true });
 }
 
 /** Gives the next journey a workspace that never opened Mailing, under the module's default configuration. */
@@ -135,7 +136,10 @@ export function describeJourneys(
   }
   if (!cleanupRegistered) {
     cleanupRegistered = true;
-    after(removeRunUnlessFailed);
+    after(function () {
+      this.timeout(RESET_TIMEOUT_MS);
+      return removeRunUnlessFailed();
+    });
   }
   describe(`[journeys] ${feature}`, function () {
     this.timeout(RESET_TIMEOUT_MS);
