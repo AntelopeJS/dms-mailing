@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { buildTenantExportArchive } from "@antelopejs/interface-dms/base/tenant-export-archive";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
@@ -56,7 +56,7 @@ async function member(body: Json) {
     email,
     roles_ids: roleId === undefined ? [] : [roleId],
     language,
-    token,
+    token: createHash("sha256").update(token).digest("hex"),
     asTenantOwner: false,
     expiresAt: new Date(Date.now() + INVITE_LIFETIME_MS),
   });

@@ -66,18 +66,18 @@ await SendTemplate("order-confirmed", {
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                                     | Supported          | Tested with |
-| ------------------------------------------- | ------------------ | ----------- |
-| `@antelopejs/interface-api`                 | `>=0.3.3 <0.4.0`   | `0.3.3`     |
-| `@antelopejs/interface-api-util`            | `>=0.3.2 <0.4.0`   | `0.3.2`     |
-| `@antelopejs/interface-core`                | `>=0.5.0 <0.6.0`   | `0.5.1`     |
-| `@antelopejs/interface-data-api`            | `>=0.8.0 <0.9.0`   | `0.8.0`     |
-| `@antelopejs/interface-database`            | `>=0.4.0 <0.5.0`   | `0.4.1`     |
-| `@antelopejs/interface-database-decorators` | `>=0.5.0 <0.6.0`   | `0.5.2`     |
-| `@antelopejs/interface-dms`                 | `>=0.14.0 <0.15.0` | `0.14.0`    |
-| `@antelopejs/interface-dms-automation`      | `>=0.7.0 <0.8.0`   | `0.7.0`     |
-| `@antelopejs/interface-dms-mailing`         | `^0.11.2`          | `0.11.2`    |
-| `@antelopejs/interface-email`               | `>=0.2.0 <0.3.0`   | `0.2.1`     |
+| Package                                     | Supported                   | Tested with                 |
+| ------------------------------------------- | --------------------------- | --------------------------- |
+| `@antelopejs/interface-api`                 | `>=0.3.3 <0.4.0`            | `0.3.3`                     |
+| `@antelopejs/interface-api-util`            | `>=0.3.2 <0.4.0`            | `0.3.2`                     |
+| `@antelopejs/interface-core`                | `>=0.5.0 <0.6.0`            | `0.5.1`                     |
+| `@antelopejs/interface-data-api`            | `>=0.8.0 <0.9.0`            | `0.8.0`                     |
+| `@antelopejs/interface-database`            | `>=0.4.0 <0.5.0`            | `0.4.1`                     |
+| `@antelopejs/interface-database-decorators` | `>=0.5.0 <0.6.0`            | `0.5.2`                     |
+| `@antelopejs/interface-dms`                 | `0.14.7-next.1011.g9a5478b` | `0.14.7-next.1011.g9a5478b` |
+| `@antelopejs/interface-dms-automation`      | `>=0.7.0 <0.8.0`            | `0.7.0`                     |
+| `@antelopejs/interface-dms-mailing`         | `^0.11.2`                   | `0.11.2`                    |
+| `@antelopejs/interface-email`               | `>=0.2.0 <0.3.0`            | `0.2.1`                     |
 
 <!-- antelopejs-docs-compat:end -->
 
