@@ -2,3 +2,5 @@ packages:
   - "."
 minimumReleaseAgeExclude:
   - "@antelopejs/interface-*"
+  - "@antelopejs/dms@0.22.0"
+  - "@antelopejs/core@1.24.6"
