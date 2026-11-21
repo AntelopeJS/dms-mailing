@@ -1,6 +1,6 @@
 ---
 name: dms-mailing
-description: Sends and manages transactional e-mail with the @antelopejs/dms-mailing module of the AntelopeJS DMS. Use when installing or configuring dms-mailing, sending a template from code with SendTemplate, shipping templates or categories as code with DeclareTemplate / DeclareTemplateCategory, importing past sends with ImportSends, reporting provider events with RecordEmailEvent or the webhook, designing templates (blocks, variables, locales, versions), or debugging suppressed, refused, missing-variable or fallback-locale sends.
+description: Sends and manages transactional e-mail with the @antelopejs/dms-mailing module of the AntelopeJS DMS. Use when installing or configuring dms-mailing, sending a template from code with SendTemplate, shipping templates or categories as code with DeclareTemplate / DeclareTemplateCategory, importing past sends with ImportSends, reporting provider events with RecordEmailEvent or the webhook, mailing DMS notifications through the email channel, designing templates (blocks, variables, locales, versions), or debugging suppressed, refused, missing-variable or fallback-locale sends.
 icon: i-lucide-mail
 category: messaging
 tags: [email, templates, transactional, webhook, dms-module]
@@ -93,6 +93,17 @@ export async function declareMailingContent(tenantId: string) {
 - `ImportSends({ tenantId, sends: [{ importId, templateSlug, to, sentAt, events }] })` writes past sends with their own
   dates (demo data, migration): no delivery, no suppression/automation/realtime; skipped when `importId` was
   already imported. Retention still applies (90 days default).
+
+## DMS notifications by e-mail
+
+- Mailing registers the DMS e-mail notification channel itself: nothing to call.
+- A subject offers it with `email: true` (off until the user turns it on) or `email: { defaultOn: true }`;
+  the user switches it in Settings › Account › Notifications.
+- Send with `toUser(userId, { tenantId })`: without `tenantId` nothing is mailed (no workspace, so no sender or template).
+- Literal texts only: a `$` key title or description is not mailed (only the dashboard translates). Users need a validated
+  address and membership of that workspace.
+- Mails go through the workspace's `dms-notification` template, declared on the first notification in the workspace's
+  fallback locale and editable from then on; sends are labelled `dms-mailing:notification`.
 
 ## Gotchas
 
