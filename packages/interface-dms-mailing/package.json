@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/interface-dms-mailing",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "description": "AntelopeJS interface for the DMS mailing module: send templates and report e-mail events from any module.",
   "keywords": [
     "antelopejs",

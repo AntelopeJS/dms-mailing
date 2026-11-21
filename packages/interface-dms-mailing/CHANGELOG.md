@@ -1,6 +1,29 @@
 # Changelog
 
 
+## v0.11.3
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.2...interface-v0.11.3)
+
+### 🚀 Enhancements
+
+- **dms-mailing:** Send template e-mails with attachments ([#201](https://github.com/AntelopeJS/dms-mailing/pull/201))
+- **dms-mailing:** Add cc and a per-send reply-to to template e-mails ([#213](https://github.com/AntelopeJS/dms-mailing/pull/213))
+
+### 📦 Build
+
+- **deps:** Depend on the interface-dms 0.15 preview for the release train ([#215](https://github.com/AntelopeJS/dms-mailing/pull/215))
+- **deps:** Move the dms previews to the released stable versions ([#217](https://github.com/AntelopeJS/dms-mailing/pull/217))
+
+### ✅ Tests
+
+- **e2e:** Run the journeys on pull requests and in the merge queue, and the verify checks as tests ([#207](https://github.com/AntelopeJS/dms-mailing/pull/207))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+- Maxime Westhoven
+
 ## v0.11.2
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.1...interface-v0.11.2)
