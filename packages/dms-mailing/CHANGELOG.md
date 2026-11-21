@@ -1,6 +1,36 @@
 # Changelog
 
 
+## v0.10.6
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.5...v0.10.6)
+
+### 🚀 Enhancements
+
+- **dms-mailing:** Send template e-mails with attachments ([#201](https://github.com/AntelopeJS/dms-mailing/pull/201))
+- **dms-mailing:** Add cc and a per-send reply-to to template e-mails ([#213](https://github.com/AntelopeJS/dms-mailing/pull/213))
+
+### 📦 Build
+
+- **deps:** Depend on the interface-dms 0.15 preview for the release train ([#215](https://github.com/AntelopeJS/dms-mailing/pull/215))
+- **deps:** Move the dms previews to the released stable versions ([#217](https://github.com/AntelopeJS/dms-mailing/pull/217))
+
+### 🏡 Chore
+
+- **e2e:** Delete the verify skill and its dms-control references ([#210](https://github.com/AntelopeJS/dms-mailing/pull/210))
+
+### ✅ Tests
+
+- **e2e:** Run the journeys on pull requests and in the merge queue, and the verify checks as tests ([#207](https://github.com/AntelopeJS/dms-mailing/pull/207))
+- **e2e:** Run the HTTP journeys as integration tests and every inventory line in CI ([#208](https://github.com/AntelopeJS/dms-mailing/pull/208))
+- **e2e:** Run the journeys suite without the verify skill or dms-control ([#209](https://github.com/AntelopeJS/dms-mailing/pull/209))
+- **dms-mailing:** Give the journeys cleanup hook a timeout sized for Windows ([#214](https://github.com/AntelopeJS/dms-mailing/pull/214))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+- Maxime Westhoven
+
 ## v0.10.5
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.4...v0.10.5)
