@@ -47,6 +47,6 @@ export const SHARED_MODULE_SOURCES = {
   "dms-automation": {
     type: "package",
     package: "@antelopejs/dms-automation",
-    version: "0.11.1",
+    version: "0.11.5-next.203.g16a1971",
   },
 } as const;
