@@ -15,7 +15,7 @@
  * checkouts — stay in their own config.
  *
  * Each package version is exact, so a release of one of these modules changes
- * what CI tests only through a Renovate pull request (`renovate.json`).
+ * what CI tests only through a Renovate pull request (the shared Renovate preset).
  */
 export const SHARED_MODULE_SOURCES = {
   dms: {
