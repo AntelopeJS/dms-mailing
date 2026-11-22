@@ -1,6 +1,25 @@
 # Changelog
 
 
+## v0.10.7
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.6...v0.10.7)
+
+### 🚀 Enhancements
+
+- **dms-mailing:** Mail DMS notifications through the e-mail channel ([#197](https://github.com/AntelopeJS/dms-mailing/pull/197))
+
+### 🤖 CI
+
+- Re-sync the AntelopeJS pack for the release app ([#219](https://github.com/AntelopeJS/dms-mailing/pull/219))
+- Adopt the shared module lock refresh and checks ([#220](https://github.com/AntelopeJS/dms-mailing/pull/220))
+- Stop forwarding the retired RELEASE_GITHUB_TOKEN ([#221](https://github.com/AntelopeJS/dms-mailing/pull/221))
+
+### ❤️ Contributors
+
+- Maxime Westhoven
+- Antony Rizzitelli
+
 ## v0.10.6
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.5...v0.10.6)
