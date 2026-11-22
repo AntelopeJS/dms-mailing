@@ -36,8 +36,6 @@ jobs:
       test-job: true
     permissions:
       contents: read
-    secrets:
-      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
 
   # ci-node.yml exposes no outputs, so this copies its tier rule for the jobs
   # declared here: a push to main runs none of them, and only the nightly run
