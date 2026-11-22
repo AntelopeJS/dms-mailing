@@ -5,7 +5,8 @@ import { putSettings } from "./settings-basics.mjs";
 /** @typedef {import("../../mailing.mjs").Ctx} Ctx */
 
 const HOUR = 3_600_000;
-const iso = (/** @type {number} */ offset) => ({ $date: new Date(Date.now() - 3 * 24 * HOUR + offset).toISOString() });
+const THREE_DAYS_AGO = Date.now() - 3 * 24 * HOUR;
+const iso = (/** @type {number} */ offset) => ({ $date: new Date(THREE_DAYS_AGO + offset).toISOString() });
 const MINUTE = 60_000;
 
 /**
