@@ -43,13 +43,12 @@ export function biggestDrop(steps: FunnelStepReading[]): FunnelDrop | null {
 	)
 	const total = path[0]?.count ?? 0
 	if (!total) return null
-	const drops = path.slice(1).map((step, index) => {
-		const from = path[index] as FunnelStepReading
-		return {
-			from,
-			to: step,
-			points: ((from.count - step.count) / total) * PERCENT,
-		}
+	const drops = path.slice(1).flatMap((step, index) => {
+		const from = path[index]
+		if (!from) return []
+		return [
+			{ from, to: step, points: ((from.count - step.count) / total) * PERCENT },
+		]
 	})
 	return drops.reduce<FunnelDrop | null>(
 		(best, drop) => (drop.points > (best?.points ?? 0) ? drop : best),
@@ -77,7 +76,10 @@ export function formatRate(rate: number | null, locale: string): string {
 export const isCompared = (steps: FunnelStepReading[]): boolean =>
 	steps.some((step) => step.previousCount !== undefined)
 
-const DELTA_ARROWS: Record<number, string> = { 1: '▲ ', 0: '', [-1]: '▼ ' }
+function deltaArrow(delta: number): string {
+	if (delta > 0) return '▲ '
+	return delta < 0 ? '▼ ' : ''
+}
 
 /**
  * A step's change as the card prints it ("▲ 12 %"); a dash when none can be
@@ -85,7 +87,7 @@ const DELTA_ARROWS: Record<number, string> = { 1: '▲ ', 0: '', [-1]: '▼ ' }
  */
 export function formatDelta(delta: number | undefined, locale: string): string {
 	if (delta === undefined) return ABSENT_RATE
-	return `${DELTA_ARROWS[Math.sign(delta)] ?? ''}${formatRate(Math.abs(delta), locale)}`
+	return `${deltaArrow(delta)}${formatRate(Math.abs(delta), locale)}`
 }
 
 type DeltaTone = 'success' | 'error' | 'neutral'

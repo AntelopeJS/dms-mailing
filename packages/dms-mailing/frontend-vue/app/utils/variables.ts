@@ -9,6 +9,7 @@ import type {
 	VariableDefinition,
 	VariableType,
 } from '../types/mailing'
+import { stringFields } from './blocks/strings'
 import { flattenBlocks } from './blocks/tree'
 import { pathsInBlocks, textPaths } from './paths'
 
@@ -103,9 +104,9 @@ export interface VariableSubmission {
 }
 
 /** What a variable path may hold: letters, digits, `.`, `_` and `[]`. */
-export const VARIABLE_PATH_PATTERN = /^[A-Za-z0-9_.[\]]+$/
+export const VARIABLE_PATH_PATTERN = /^[\w.[\]]+$/
 
-const INVALID_PATH_CHARACTERS = /[^A-Za-z0-9_.[\]]+/g
+const INVALID_PATH_CHARACTERS = /[^\w.[\]]+/g
 const PATH_FILLER = '_'
 const EDGE_FILLERS = /^_+|_+$/g
 const FALLBACK_PATH_EXAMPLE = 'first_name'
@@ -174,10 +175,15 @@ interface PathRename {
 }
 
 function renameInBlock(block: Block, rename: PathRename): void {
-	const record = block as unknown as Record<string, unknown>
-	Object.entries(record)
-		.filter(([, value]) => typeof value === 'string')
-		.forEach(([key, value]) => (record[key] = rename.rewrite(value as string)))
+	Object.assign(
+		block,
+		Object.fromEntries(
+			[...stringFields(block)].map(([key, value]) => [
+				key,
+				rename.rewrite(value),
+			]),
+		),
+	)
 	renameInCondition(block.visibleIf, rename.from, rename.to)
 	if (block.type === 'if')
 		renameInCondition(block.condition, rename.from, rename.to)

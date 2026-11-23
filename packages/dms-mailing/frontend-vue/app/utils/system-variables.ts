@@ -6,6 +6,8 @@ import type {
 	VariableDefinition,
 } from '../types/mailing'
 import type { EditorCheck } from './editor-checks'
+import { isString } from './guards'
+import type { JsonObject } from './guards'
 import {
 	PREFERENCES_URL_PATH,
 	SYSTEM_PATHS,
@@ -17,7 +19,9 @@ import {
 /** The category whose e-mails are campaigns; the settings never remove it. */
 export const MARKETING_CATEGORY = 'marketing'
 
-type FooterLabelKey = 'unsubscribeLabel' | 'preferencesLabel'
+const LABEL_KEYS = ['unsubscribeLabel', 'preferencesLabel'] as const
+
+type FooterLabelKey = (typeof LABEL_KEYS)[number]
 
 /**
  * Each footer link: the label that shows it and the URL the caller passes.
@@ -30,7 +34,6 @@ export const FOOTER_LINK_PATHS: Record<FooterLabelKey, string> = {
 	preferencesLabel: PREFERENCES_URL_PATH,
 }
 
-const LABEL_KEYS = Object.keys(FOOTER_LINK_PATHS) as FooterLabelKey[]
 const SYSTEM_VARIABLE_TYPE = 'url'
 const CHECK_KEY_PREFIX = 'dms_mailing.editor.checks'
 
@@ -142,7 +145,7 @@ function unlinkedMarketingLocales(
 export function systemVariableChecks(
 	content: Pick<TemplateContent, 'locales'>,
 	category: string | null | undefined,
-	data: Record<string, unknown>,
+	data: JsonObject,
 ): EditorCheck[] {
 	const missing = systemVariables(content, category)
 		.filter((variable) => variable.required)
@@ -157,9 +160,9 @@ export function systemVariableChecks(
 
 /** Whether the data a canvas previews carries a usable URL for `path`. */
 export function hasSystemUrl(
-	data: Record<string, unknown> | null | undefined,
+	data: JsonObject | null | undefined,
 	path: string,
 ): boolean {
-	const value = data?.[path]
-	return typeof value === 'string' && value.trim() !== ''
+	const value = data && Object.hasOwn(data, path) ? data[path] : undefined
+	return isString(value) && value.trim() !== ''
 }

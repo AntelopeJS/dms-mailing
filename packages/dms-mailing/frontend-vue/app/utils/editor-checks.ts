@@ -5,8 +5,11 @@ import type {
 	TemplateContent,
 	VariableDefinition,
 } from '../types/mailing'
+import { stringFields } from './blocks/strings'
 import { flattenBlocks } from './blocks/tree'
 import { evaluateCondition } from './conditions'
+import { isJsonObject } from './guards'
+import type { JsonObject, JsonValue } from './guards'
 import { pickLocale } from './locales'
 import { isPresent, readPath } from './paths'
 import { splitTokens } from './tokens'
@@ -25,7 +28,7 @@ export interface EditorCheck {
 export interface CheckInput {
 	variables: VariableDefinition[]
 	detected: string[]
-	data: Record<string, unknown>
+	data: JsonObject
 	blocks: Block[]
 }
 
@@ -51,7 +54,7 @@ export function undeclaredPaths(
 /** Required declarations the data set does not provide. */
 export function missingRequired(
 	variables: VariableDefinition[],
-	data: Record<string, unknown>,
+	data: JsonObject,
 ): string[] {
 	return variables
 		.filter((variable) => variable.required)
@@ -120,14 +123,10 @@ function bodyChecks(content: TemplateContent): EditorCheck[] {
 
 /** Every text a locale shows: its envelope and each block's string fields. */
 function localeTexts(locale: LocaleContent): string[] {
-	const fields = flattenBlocks(locale.blocks).flatMap((block) =>
-		Object.values(block as unknown as Record<string, unknown>),
-	)
-	return [
-		locale.subject,
-		locale.preheader,
-		...fields.filter((value): value is string => typeof value === 'string'),
-	]
+	const fields = flattenBlocks(locale.blocks).flatMap((block) => [
+		...stringFields(block).values(),
+	])
+	return [locale.subject, locale.preheader, ...fields]
 }
 
 function tokensOf(locale: LocaleContent, kind: 'token' | 'invalid'): string[] {
@@ -149,13 +148,13 @@ function malformedTokenChecks(content: TemplateContent): EditorCheck[] {
 	)
 }
 
-const isStructured = (value: unknown): boolean =>
-	value !== null && typeof value === 'object' && !(value instanceof Date)
+const isStructured = (value: JsonValue | undefined): boolean =>
+	Array.isArray(value) || isJsonObject(value)
 
 /** Tokens whose test value is an object or a list: they print as raw data. */
 function structuredTokenChecks(
 	content: TemplateContent,
-	data: Record<string, unknown>,
+	data: JsonObject,
 ): EditorCheck[] {
 	const paths = localeEntries(content).flatMap(([, locale]) =>
 		tokensOf(locale, 'token'),
@@ -170,7 +169,7 @@ function structuredTokenChecks(
 /** What the publish review warns about the content's `{{…}}` tokens. */
 export function tokenChecks(
 	content: TemplateContent,
-	data: Record<string, unknown>,
+	data: JsonObject,
 ): EditorCheck[] {
 	return [
 		...malformedTokenChecks(content),

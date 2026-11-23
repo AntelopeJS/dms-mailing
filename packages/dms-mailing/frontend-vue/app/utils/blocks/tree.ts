@@ -40,7 +40,8 @@ export function moveBlock(
 	const target = index + direction
 	if (target < 0 || target >= list.length) return false
 	const [moved] = list.splice(index, 1)
-	list.splice(target, 0, moved as Block)
+	if (!moved) return false
+	list.splice(target, 0, moved)
 	return true
 }
 
@@ -59,7 +60,9 @@ export function duplicateBlock(blocks: Block[], id: string): Block | null {
 	const list = findParentList(blocks, id)
 	if (!list) return null
 	const index = list.findIndex((block) => block.id === id)
-	const copy = cloneWithNewIds(list[index] as Block)
+	const original = list[index]
+	if (!original) return null
+	const copy = cloneWithNewIds(original)
 	list.splice(index + 1, 0, copy)
 	return copy
 }
@@ -149,16 +152,16 @@ export function neighbourOf(blocks: Block[], id: string): string | null {
 	return sibling?.id ?? parentOf(blocks, list)?.id ?? null
 }
 
-/** How many blocks each branch of a condition holds (then, else). */
+/** How many blocks each branch of a condition holds (when true, when false). */
 export interface BranchCounts {
-	then: number
-	else: number | null
+	whenTrue: number
+	whenFalse: number | null
 }
 
 export function branchCounts(block: IfBlock): BranchCounts {
 	return {
-		then: block.children.length,
-		else: block.elseChildren ? block.elseChildren.length : null,
+		whenTrue: block.children.length,
+		whenFalse: block.elseChildren ? block.elseChildren.length : null,
 	}
 }
 

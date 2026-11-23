@@ -2,8 +2,8 @@ import type { VariableDefinition, VariableType } from '../types/mailing'
 
 const TOKEN_OPEN = '{{'
 const TOKEN_CLOSE = '}}'
-const PATH_CHARACTERS = /^[A-Za-z0-9_.[\]]*$/
-const PATH_CHARACTER = /[A-Za-z0-9_.[\]]/
+const PATH_CHARACTERS = /^[\w.[\]]*$/
+const PATH_CHARACTER = /[\w.[\]]/
 const MAX_SUGGESTIONS = 8
 
 /** An open `{{` the caret is typing a path after. */
