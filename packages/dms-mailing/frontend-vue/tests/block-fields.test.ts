@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fieldsFor, isFieldValueValid } from '../app/utils/blocks/fields'
+import { expectDefined } from './helpers/narrow'
 
 describe('fieldsFor', () => {
 	it('lists the editable fields of each block type', () => {
@@ -25,9 +26,10 @@ describe('fieldsFor', () => {
 	it('refuses an empty value for the fields the backend requires', () => {
 		const [source, labelPath] = fieldsFor('list')
 		expect(source?.isRequired && labelPath?.isRequired).toBe(true)
-		expect(isFieldValueValid(labelPath!, ' ')).toBe(false)
-		expect(isFieldValueValid(labelPath!, 'label')).toBe(true)
+		const required = expectDefined(labelPath)
+		expect(isFieldValueValid(required, ' ')).toBe(false)
+		expect(isFieldValueValid(required, 'label')).toBe(true)
 		const [text] = fieldsFor('paragraph')
-		expect(isFieldValueValid(text!, '')).toBe(true)
+		expect(isFieldValueValid(expectDefined(text), '')).toBe(true)
 	})
 })

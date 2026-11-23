@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, reactive } from 'vue'
 import CategoriesInput from '../app/components/CategoriesInput.vue'
@@ -10,8 +9,10 @@ import {
 	type Mounted,
 } from './helpers/nuxt-globals'
 import { stubApiData, type ApiDataStub } from './helpers/api-data'
+import { IconButtonStub } from './helpers/icon-button-stub'
 import type { StoredCategory } from '../app/types/mailing'
 
+/** @vitest-environment jsdom */
 const CATEGORIES: StoredCategory[] = [
 	{ id: 'orders', label: { en: 'Orders' }, icon: 'i-ph-package' },
 	{ id: 'marketing', label: { en: 'Marketing' }, icon: 'i-ph-sparkle' },
@@ -50,18 +51,9 @@ const FormFieldStub = defineComponent({
 			]),
 })
 
-const ButtonStub = defineComponent({
-	inheritAttrs: false,
-	props: { icon: { type: String, default: '' } },
-	setup:
-		(props, { attrs }) =>
-		() =>
-			h('button', { ...attrs, 'data-icon': props.icon }),
-})
-
 const GLOBALS = {
 	UFormField: FormFieldStub,
-	UButton: ButtonStub,
+	UButton: IconButtonStub,
 	UPopover: slotStub('UPopover'),
 	DmsEyebrowLabel: slotStub('DmsEyebrowLabel'),
 	DmsInputText: slotStub('DmsInputText'),
@@ -94,13 +86,11 @@ describe('CategoriesInput', () => {
 		api.respond(() => ({ counts: { orders: 2 } }))
 		const saved = reactive({ value: CATEGORIES })
 		mounted = mount(
-			defineComponent({
-				setup: () => () =>
-					h(CategoriesInput, {
-						modelValue: saved.value,
-						initialValue: saved.value,
-					}),
-			}),
+			() =>
+				h(CategoriesInput, {
+					modelValue: saved.value,
+					initialValue: saved.value,
+				}),
 			{},
 			GLOBALS,
 		)

@@ -1,13 +1,14 @@
 import { vi } from 'vitest'
+import type { ApiAnswer, ApiReply } from './answer'
 
 /** A request a component made through the DMS's `$authFetch`. */
 export interface AuthFetchCall {
 	path: string
 	method: string
-	body: unknown
+	body: ApiAnswer
 }
 
-export type AuthFetchBackend = (call: AuthFetchCall) => unknown
+export type AuthFetchBackend = (call: AuthFetchCall) => ApiReply
 
 export interface AuthFetchStub {
 	/** Every request made, in order. */
@@ -18,7 +19,7 @@ export interface AuthFetchStub {
 
 interface AuthFetchOptions {
 	method?: string
-	body?: unknown
+	body?: ApiAnswer
 }
 
 /**
@@ -61,8 +62,8 @@ export function stubAuthFetch(): AuthFetchStub {
  * others get the body.
  */
 export type MailingWriteMocks = Partial<
-	Record<TemplateWrite, (id: string, body: unknown) => unknown> &
-		Record<ModuleWrite, (body: unknown) => unknown>
+	Record<TemplateWrite, (id: string, body: ApiAnswer) => ApiReply> &
+		Record<ModuleWrite, (body: ApiAnswer) => ApiReply>
 >
 
 type TemplateWrite =

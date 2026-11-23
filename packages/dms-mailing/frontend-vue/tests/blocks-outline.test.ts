@@ -11,6 +11,7 @@ import {
 	BLOCK_PALETTE,
 } from '../app/utils/blocks'
 import type { Block, IfBlock } from '../app/types/mailing'
+import { expectDefined } from './helpers/narrow'
 
 const branch: IfBlock = {
 	id: 'if1',
@@ -57,8 +58,10 @@ describe('outline', () => {
 	})
 	it('summarises a block in a few characters', () => {
 		expect(summarizeBlock(branch)).toBe('order.isFirstOrder')
-		expect(summarizeBlock(branch.elseChildren![0]!)).toBe('Thanks for orderin…')
-		expect(summarizeBlock(BLOCKS[2]!)).toBe('')
+		expect(
+			summarizeBlock(expectDefined(expectDefined(branch.elseChildren)[0])),
+		).toBe('Thanks for orderin…')
+		expect(summarizeBlock(expectDefined(BLOCKS[2]))).toBe('')
 	})
 })
 

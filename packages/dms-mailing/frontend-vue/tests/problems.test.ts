@@ -5,6 +5,8 @@ import {
 	problemTone,
 	type ProblemSend,
 } from '../app/utils/problems'
+import type { SendEventRow, SendEventType } from '../app/types/mailing'
+import type { ApiRecord } from './helpers/answer'
 
 const send = (patch: Partial<ProblemSend>): ProblemSend => ({
 	status: 'bounced',
@@ -129,14 +131,13 @@ describe('describeProblem', () => {
 })
 
 describe('problemEventReason', () => {
-	const event = (type: string, details: object) =>
-		({
-			_id: type,
-			sendId: 's',
-			type,
-			at: '2026-10-07T10:00:00Z',
-			json_details: JSON.stringify(details),
-		}) as never
+	const event = (type: SendEventType, details: ApiRecord): SendEventRow => ({
+		_id: type,
+		sendId: 's',
+		type,
+		at: '2026-10-07T10:00:00Z',
+		json_details: JSON.stringify(details),
+	})
 
 	it('reads the reason of the latest problem event', () => {
 		expect(

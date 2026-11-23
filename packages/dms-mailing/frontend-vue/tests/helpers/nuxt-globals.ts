@@ -3,7 +3,6 @@ import { useApiErrorPresenter } from '../../../node_modules/@antelopejs/dms/fron
 import {
 	computed,
 	createApp,
-	defineComponent,
 	h,
 	nextTick,
 	onMounted,
@@ -12,26 +11,61 @@ import {
 	watch,
 	type Component,
 } from 'vue'
+import { CheckboxStub } from './checkbox-stub'
+import { InputStub } from './input-stub'
+import { slotStub } from './slot-stub'
+import { TagsStub } from './tags-stub'
+
+export { CheckboxStub, InputStub, slotStub, TagsStub }
 
 export interface OverlayCall {
 	title: string
-	component: unknown
-	componentOptions?: Record<string, unknown>
+	component: Component | { name: string }
+	componentOptions?: object
 	direction?: string
+}
+
+/** A toast a component raised. */
+export interface ToastCall {
+	title?: string
+	description?: string
+	color?: string
+	icon?: string
+	actions?: { label?: string; onClick: () => void }[]
+}
+
+/** A confirmation a component asked for. */
+export interface ConfirmCall {
+	title?: string
+	description?: string
+	color?: string
+	icon?: string
+	confirmLabel?: string
+	cancelLabel?: string
+	onConfirm?: () => Promise<void>
+}
+
+/** A route a component navigated to. */
+export interface NavigationCall {
+	path?: string
+	query?: Record<string, string>
 }
 
 export interface NuxtStubs {
 	modalCalls: OverlayCall[]
 	drawerCalls: OverlayCall[]
-	toasts: Record<string, unknown>[]
-	navigations: unknown[]
-	confirmations: Record<string, unknown>[]
+	toasts: ToastCall[]
+	navigations: NavigationCall[]
+	confirmations: ConfirmCall[]
 }
 
+/** A value a translated message interpolates. */
+export type TranslateParams = Record<string, string | number | boolean>
+
 /** Interpolates `{name}` params so assertions can read the rendered text. */
-export function translate(key: string, params?: unknown): string {
-	if (!params || typeof params !== 'object') return key
-	const values = Object.entries(params as Record<string, unknown>)
+export function translate(key: string, params?: TranslateParams): string {
+	if (!params) return key
+	const values = Object.entries(params)
 	return `${key}${values.map(([name, value]) => ` ${name}=${String(value)}`).join('')}`
 }
 
@@ -67,11 +101,11 @@ export function stubNuxtGlobals(email = 'camille@acme.com'): NuxtStubs {
 		locale: ref('en'),
 	}))
 	vi.stubGlobal('useTranslation', () => ({
-		processApiMessage: (message: unknown) => String(message),
+		processApiMessage: (message: string) => message,
 		processI18n: (message: string) => message,
 	}))
 	vi.stubGlobal('useToast', () => ({
-		add: (toast: Record<string, unknown>) => {
+		add: (toast: ToastCall) => {
 			stubs.toasts.push(toast)
 			return { id: stubs.toasts.length }
 		},
@@ -110,32 +144,19 @@ export function stubNuxtGlobals(email = 'camille@acme.com'): NuxtStubs {
 		},
 	}))
 	vi.stubGlobal('useConfirm', () => ({
-		confirm: async (options: Record<string, unknown>) => {
+		confirm: async (options: ConfirmCall) => {
 			stubs.confirmations.push(options)
 			return true
 		},
 	}))
-	vi.stubGlobal('navigateDms', async (route: unknown) => {
+	vi.stubGlobal('navigateDms', async (route: NavigationCall) => {
 		stubs.navigations.push(route)
 	})
 	return stubs
 }
 
-/** A stand-in for a global component that renders every slot it gets. */
-export function slotStub(name: string): Component {
-	return defineComponent({
-		name,
-		inheritAttrs: false,
-		setup:
-			(_, { slots, attrs }) =>
-			() =>
-				h(
-					'div',
-					{ 'data-stub': name, ...attrs },
-					Object.values(slots).flatMap((slot) => slot?.() ?? []),
-				),
-	})
-}
+/** The props a root component mounts with. */
+export type MountProps = NonNullable<Parameters<typeof createApp>[1]>
 
 export interface Mounted {
 	host: HTMLElement
@@ -145,7 +166,7 @@ export interface Mounted {
 /** Mounts a component with stand-ins for the given global components. */
 export function mount(
 	component: Component,
-	props: Record<string, unknown>,
+	props: MountProps,
 	globals: Record<string, Component> = {},
 ): Mounted {
 	const host = document.createElement('div')
@@ -171,62 +192,8 @@ export async function flush(): Promise<void> {
 	}
 }
 
-/** `UInput`: a native input bound to `modelValue`. */
-export const InputStub = defineComponent({
-	props: { modelValue: { type: [String, Number], default: '' } },
-	emits: ['update:modelValue'],
-	setup:
-		(props, { emit, attrs }) =>
-		() =>
-			h('input', {
-				...attrs,
-				value: props.modelValue,
-				onInput: (event: Event) =>
-					emit('update:modelValue', (event.target as HTMLInputElement).value),
-			}),
-})
-
-/** `UCheckbox`: a native checkbox bound to `modelValue`. */
-export const CheckboxStub = defineComponent({
-	props: { modelValue: Boolean, label: { type: String, default: '' } },
-	emits: ['update:modelValue'],
-	setup:
-		(props, { emit, attrs }) =>
-		() =>
-			h('label', [
-				h('input', {
-					...attrs,
-					type: 'checkbox',
-					checked: props.modelValue,
-					onChange: (event: Event) =>
-						emit(
-							'update:modelValue',
-							(event.target as HTMLInputElement).checked,
-						),
-				}),
-				props.label,
-			]),
-})
-
-/** `DmsInputTags`: a text input that adds the typed address on change. */
-export const TagsStub = defineComponent({
-	props: { modelValue: { type: Array, default: () => [] } },
-	emits: ['update:modelValue'],
-	setup:
-		(props, { emit }) =>
-		() =>
-			h('input', {
-				'data-tags': (props.modelValue as string[]).join(','),
-				onChange: (event: Event) =>
-					emit('update:modelValue', [
-						...(props.modelValue as string[]),
-						(event.target as HTMLInputElement).value,
-					]),
-			}),
-})
-
 /** Global stand-ins every form test mounts with. */
-export const FORM_STUBS: Record<string, Component> = {
+export const FORM_STUBS = {
 	UInput: InputStub,
 	DmsInputText: InputStub,
 	DmsInputEmail: InputStub,
@@ -236,11 +203,14 @@ export const FORM_STUBS: Record<string, Component> = {
 	UFormField: slotStub('UFormField'),
 	DmsFieldRow: slotStub('DmsFieldRow'),
 	UFieldGroup: slotStub('UFieldGroup'),
-}
+} satisfies Record<string, Component>
 
 /** Types into a native input and lets Vue react. */
-export async function typeInto(input: Element, value: string): Promise<void> {
-	const field = input as HTMLInputElement
+export async function typeInto(
+	input: HTMLInputElement,
+	value: string,
+): Promise<void> {
+	const field = input
 	field.value = value
 	field.dispatchEvent(new Event('input'))
 	field.dispatchEvent(new Event('change'))

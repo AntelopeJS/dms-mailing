@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, provide, ref } from 'vue'
 import FooterBlockView from '../app/components/blocks/BlockFooter.vue'
@@ -6,13 +5,10 @@ import type { FooterBlock } from '../app/types/mailing'
 import { TOKEN_DATA_KEY } from '../app/utils/tokens'
 import type { TokenData } from '../app/utils/tokens'
 import { mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
+import { TokenTextStub } from './helpers/token-text-stub'
 import type { Mounted } from './helpers/nuxt-globals'
 
-const TokenTextStub = defineComponent({
-	props: { text: { type: String, default: '' } },
-	setup: (props) => () => h('span', props.text),
-})
-
+/** @vitest-environment jsdom */
 const footer = (overrides: Partial<FooterBlock> = {}): FooterBlock => ({
 	id: 'f',
 	type: 'footer',

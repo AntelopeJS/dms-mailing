@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, createApp, h, nextTick, reactive, type App } from 'vue'
 import RetentionInput from '../app/components/RetentionInput.vue'
@@ -14,7 +13,12 @@ import {
 	type ApiDataStub,
 } from './helpers/api-data'
 import type { RetentionPreview } from '../app/types/mailing'
+import { query } from './helpers/narrow'
 
+/**
+ * The read the preview makes.
+ * @vitest-environment jsdom
+ */
 const PREVIEW_URL = '/api/mailing/settings/retention-preview'
 
 const SAVED_DAYS = 90
@@ -65,7 +69,7 @@ function mountRetention(): Harness {
 }
 
 function segmented(host: HTMLElement): HTMLElement {
-	return host.querySelector('[data-stub="DmsSegmentedControl"]') as HTMLElement
+	return query(host, '[data-stub="DmsSegmentedControl"]', HTMLElement)
 }
 
 describe('RetentionInput', () => {
