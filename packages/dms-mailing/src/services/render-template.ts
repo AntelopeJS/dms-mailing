@@ -7,7 +7,6 @@ import { renderEmailHtml } from "./render";
 import { SendError } from "./send-error";
 import { readSettings } from "./settings";
 import {
-  isPublished,
   localeContentOf,
   pickLocale,
   publishedSnapshot,
@@ -41,11 +40,12 @@ export interface RenderedTemplate {
 
 const DRAFT_VERSION = 0;
 
+/** The content a real send delivers: refused, as a send is, unless live. */
 function requirePublished(template: MailingTemplate): VersionedSnapshot {
-  if (!isPublished(template))
+  if (template.status !== "live")
     throw new SendError(
       "template_not_live",
-      `Template "${template.slug}" was never published`,
+      `Template "${template.slug}" is ${template.status}`,
     );
   return {
     ...publishedSnapshot(template),
