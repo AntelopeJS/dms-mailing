@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RightTab } from '../../composables/useTemplateEditor'
+import { isRightTab } from '../../composables/useTemplateEditor'
 import { useEditorContext } from '../../composables/useEditorContext'
 import { openIssueCount, testDataChecks } from '../../utils/editor-checks'
 
@@ -21,27 +21,30 @@ const issues = computed(() =>
 	session.testData ? openIssueCount(checks.value) : 1,
 )
 
+const dataItem = computed(() => {
+	const item = { value: 'data', label: t(`${KEY}.data`) }
+	if (issues.value === 0) return item
+	return {
+		...item,
+		badge: {
+			label: String(issues.value),
+			color: 'warning' as const,
+			variant: 'subtle' as const,
+		},
+	}
+})
+
 const items = computed(() => [
 	{ value: 'block', label: t(`${KEY}.block`) },
-	{
-		value: 'data',
-		label: t(`${KEY}.data`),
-		...(issues.value > 0
-			? {
-					badge: {
-						label: String(issues.value),
-						color: 'warning' as const,
-						variant: 'subtle' as const,
-					},
-				}
-			: {}),
-	},
+	dataItem.value,
 	{ value: 'template', label: t(`${KEY}.template`) },
 ])
 
 const tab = computed({
 	get: () => editor.rightTab,
-	set: (value: string | number) => (editor.rightTab = value as RightTab),
+	set: (value: string | number) => {
+		if (isRightTab(value)) editor.rightTab = value
+	},
 })
 </script>
 

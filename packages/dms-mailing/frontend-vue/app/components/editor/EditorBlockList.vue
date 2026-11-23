@@ -25,7 +25,6 @@ function onChange(change: SortableListChange<Block>): void {
 
 const root = ref<HTMLElement | null>(null)
 
-// The list is the editor's: a drop changes it in place, as a click does.
 useSortableList(root, () => props.list, {
 	group: DRAG_GROUP,
 	handle: DRAG_HANDLE,

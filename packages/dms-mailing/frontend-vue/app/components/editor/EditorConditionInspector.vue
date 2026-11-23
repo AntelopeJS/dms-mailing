@@ -22,7 +22,7 @@ const hasElse = computed({
 })
 
 function update(condition: Condition): void {
-	editor.updateBlock(props.block.id, { condition } as Partial<IfBlock>)
+	editor.updateBlock(props.block.id, { condition })
 }
 </script>
 

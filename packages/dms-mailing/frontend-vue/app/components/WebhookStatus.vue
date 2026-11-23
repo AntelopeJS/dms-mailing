@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MessageParams } from '../types/component'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useWebhookStatus } from '../composables/useMailingReads'
 import { CARD_DATE_FORMAT, formatCardDate } from '../utils/gallery'
@@ -35,7 +36,7 @@ const api = useMailingApi()
 const toast = useToast()
 const { t, locale } = useI18n()
 const { dateTimeFormat } = useRegionalFormat()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 
 const read = useWebhookStatus()
 /** The status read, `null` when the read failed. */
@@ -49,7 +50,7 @@ const lines = computed(() =>
 	status.value ? webhookStatusLines(status.value) : [],
 )
 
-const key = (path: string, params: Record<string, unknown> = {}): string =>
+const key = (path: string, params: MessageParams = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
 
 function lineText(line: WebhookStatusLine): string {
@@ -85,7 +86,7 @@ async function sendTest(): Promise<void> {
 				: undefined,
 		})
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		isTesting.value = false
 	}

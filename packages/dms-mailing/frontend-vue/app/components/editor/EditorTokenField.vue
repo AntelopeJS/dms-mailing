@@ -94,7 +94,8 @@ function clean(value: string): string {
 }
 
 function onInput(event: Event): void {
-	emit('update:modelValue', clean((event.target as HTMLTextAreaElement).value))
+	if (!(event.target instanceof HTMLTextAreaElement)) return
+	emit('update:modelValue', clean(event.target.value))
 	void nextTick(refreshQuery)
 }
 
@@ -124,16 +125,21 @@ function moveHighlight(step: number): void {
 	highlighted.value = (highlighted.value + step + count) % count
 }
 
-const MENU_KEYS: Record<string, () => void> = {
-	ArrowDown: () => moveHighlight(1),
-	ArrowUp: () => moveHighlight(-1),
-	Enter: () => choose(suggestions.value[highlighted.value] as PathSuggestion),
-	Tab: () => choose(suggestions.value[highlighted.value] as PathSuggestion),
-	Escape: () => (query.value = null),
+function chooseHighlighted(): void {
+	const suggestion = suggestions.value[highlighted.value]
+	if (suggestion) choose(suggestion)
 }
 
+const MENU_KEYS = new Map<string, () => void>([
+	['ArrowDown', () => moveHighlight(1)],
+	['ArrowUp', () => moveHighlight(-1)],
+	['Enter', chooseHighlighted],
+	['Tab', chooseHighlighted],
+	['Escape', () => (query.value = null)],
+])
+
 function onKeydown(event: KeyboardEvent): void {
-	const action = isOpen.value ? MENU_KEYS[event.key] : undefined
+	const action = isOpen.value ? MENU_KEYS.get(event.key) : undefined
 	if (action) {
 		event.preventDefault()
 		event.stopPropagation()

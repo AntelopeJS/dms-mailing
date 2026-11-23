@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
+import { resolveRegistered } from '../utils/components'
 import { useTemplateVersionsRead } from '../composables/useMailingReads'
 import type { TemplateStatus, TemplateVersionSummary } from '../types/mailing'
 import {
@@ -17,7 +17,7 @@ interface VersionHistoryProps {
 	/** The locale a preview opens on, when the version carries it. */
 	locale?: string
 	/** Copies a version into the draft; the caller reloads what it shows. */
-	restore: (version: number) => Promise<unknown>
+	restore: (version: number) => Promise<void>
 }
 
 const PREVIEW_COMPONENT = 'MailingVersionPreview'
@@ -31,10 +31,10 @@ const props = withDefaults(defineProps<VersionHistoryProps>(), {
 })
 
 const modal = useModal()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
-const previewComponent = resolveComponent(PREVIEW_COMPONENT) as Component
+const previewComponent = resolveRegistered(PREVIEW_COMPONENT)
 
 const readVersions = useTemplateVersionsRead(() => props.templateId)
 const versions = ref<TemplateVersionSummary[]>([])
@@ -45,7 +45,7 @@ async function load(): Promise<void> {
 	try {
 		versions.value = (await readVersions()).versions
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		loading.value = false
 	}

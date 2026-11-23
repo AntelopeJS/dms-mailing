@@ -6,7 +6,12 @@ import {
 	useTemplateContentRead,
 	useTemplateListRead,
 } from '../composables/useMailingReads'
-import { HTTP_CONFLICT, apiErrorStatus } from '../utils/api-error'
+import {
+	HTTP_CONFLICT,
+	apiErrorStatus,
+	asReportedError,
+} from '../utils/api-error'
+import type { ReportedError } from '../utils/api-error'
 import {
 	fitName,
 	freeSlug,
@@ -27,7 +32,7 @@ const props = defineProps<DuplicateModalProps>()
 const emit = defineEmits<{ success: [created?: boolean] }>()
 
 const api = useMailingApi()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { t } = useI18n()
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
@@ -95,12 +100,12 @@ function close(created: boolean): void {
 	emit('success', created)
 }
 
-function reportFailure(error: unknown): void {
+function reportFailure(error: ReportedError): void {
 	if (apiErrorStatus(error) === HTTP_CONFLICT) {
 		takenSlugs.value = new Set([...takenSlugs.value, slug.value])
 		return
 	}
-	presentError(error, { fallbackKey: 'error.500.description' })
+	errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 }
 
 async function submit(): Promise<void> {
@@ -116,7 +121,7 @@ async function submit(): Promise<void> {
 		close(true)
 		await navigateDms(editorRoute(id))
 	} catch (error) {
-		reportFailure(error)
+		reportFailure(asReportedError(error))
 	} finally {
 		saving.value = false
 	}

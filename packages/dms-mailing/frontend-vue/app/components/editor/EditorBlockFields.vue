@@ -4,6 +4,7 @@ import type { Block, TextAlign } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
 import { fieldsFor, isFieldValueValid } from '../../utils/blocks'
 import type { BlockField } from '../../utils/blocks'
+import { stringFields } from '../../utils/blocks/strings'
 
 interface Props {
 	block: Block
@@ -27,7 +28,10 @@ const { editor, session } = useEditorContext()
 
 const fields = computed(() => fieldsFor(props.block.type))
 const rejected = ref<Record<string, string>>({})
-const values = computed(() => props.block as unknown as Record<string, unknown>)
+const strings = computed(() => stringFields(props.block))
+const size = computed(() =>
+	props.block.type === 'heading' ? props.block.size : MIN_SIZE,
+)
 const pathItems = computed(() =>
 	[
 		...new Set([
@@ -49,7 +53,7 @@ watch(
 )
 
 function text(key: string): string {
-	return rejected.value[key] ?? String(values.value[key] ?? '')
+	return rejected.value[key] ?? strings.value.get(key) ?? ''
 }
 
 function errorOf(field: BlockField): string | undefined {
@@ -58,11 +62,14 @@ function errorOf(field: BlockField): string | undefined {
 		: undefined
 }
 
-function patch(key: string, value: unknown): void {
-	editor.updateBlock(props.block.id, { [key]: value } as Partial<Block>)
+function patch(key: string, value: string | number | undefined): void {
+	editor.updateBlock(props.block.id, { [key]: value })
 }
 
-function patchChecked(field: BlockField, value: unknown): void {
+function patchChecked(
+	field: BlockField,
+	value: string | number | null | undefined,
+): void {
 	const typed = String(value ?? '')
 	if (!isFieldValueValid(field, typed)) {
 		rejected.value = { ...rejected.value, [field.key]: typed }
@@ -102,14 +109,14 @@ function patchChecked(field: BlockField, value: unknown): void {
 			/>
 			<div v-else-if="field.kind === 'size'" class="flex items-center gap-3">
 				<USlider
-					:model-value="Number(values[field.key] ?? MIN_SIZE)"
+					:model-value="size"
 					:min="MIN_SIZE"
 					:max="MAX_SIZE"
 					class="flex-1"
 					@update:model-value="patch(field.key, $event)"
 				/>
 				<span class="text-dimmed w-10 text-right font-mono text-[11px]">
-					{{ values[field.key] }} px
+					{{ size }} px
 				</span>
 			</div>
 			<USelectMenu

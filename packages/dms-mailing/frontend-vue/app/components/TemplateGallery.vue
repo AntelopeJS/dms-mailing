@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// Imported rather than resolved by name: every module component is a lazy
-// chunk, and the grid would first render its "new template" tile alone,
-// then move it as the cards arrive.
 import TemplateCard from './TemplateCard.vue'
 import { useTemplateCategories } from '../composables/useTemplateCategories'
 import { useEventListener } from '@vueuse/core'
@@ -91,16 +88,15 @@ let shownViewKey = props.context.loading ? null : viewKeyOf()
  * button, a realtime change): the template count and the figures are reloaded
  * with them.
  */
-watch(
-	() => props.context.items,
-	() => {
-		const viewKey = viewKeyOf()
-		const isRefresh = viewKey === shownViewKey
-		shownViewKey = viewKey
-		if (!isRefresh) return
-		refreshFigures()
-	},
-)
+function refreshFiguresOnRefresh(): void {
+	const viewKey = viewKeyOf()
+	const isRefresh = viewKey === shownViewKey
+	shownViewKey = viewKey
+	if (!isRefresh) return
+	refreshFigures()
+}
+
+watch(() => props.context.items, refreshFiguresOnRefresh)
 
 const isAttentionTab = computed(() => isAttentionView(props.context.query))
 
@@ -214,9 +210,8 @@ function resetFilters(): void {
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
-	const element = target as HTMLElement | null
-	if (!element) return false
-	return element.isContentEditable || TYPING_TAGS.has(element.tagName)
+	if (!(target instanceof HTMLElement)) return false
+	return target.isContentEditable || TYPING_TAGS.has(target.tagName)
 }
 
 useEventListener(

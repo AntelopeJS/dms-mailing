@@ -19,9 +19,12 @@ import {
 /** The category whose e-mails are campaigns; the settings never remove it. */
 export const MARKETING_CATEGORY = 'marketing'
 
-const LABEL_KEYS = ['unsubscribeLabel', 'preferencesLabel'] as const
+export const FOOTER_LABEL_KEYS = [
+	'unsubscribeLabel',
+	'preferencesLabel',
+] as const
 
-type FooterLabelKey = (typeof LABEL_KEYS)[number]
+type FooterLabelKey = (typeof FOOTER_LABEL_KEYS)[number]
 
 /**
  * Each footer link: the label that shows it and the URL the caller passes.
@@ -59,7 +62,7 @@ const isFooter = (block: Block): block is FooterBlock => block.type === 'footer'
 
 /** The URL paths a footer shows a link for: the ones with a label. */
 export function footerLinkPaths(block: FooterBlock): string[] {
-	return LABEL_KEYS.filter((key) => block[key].trim()).map(
+	return FOOTER_LABEL_KEYS.filter((key) => block[key].trim()).map(
 		(key) => FOOTER_LINK_PATHS[key],
 	)
 }

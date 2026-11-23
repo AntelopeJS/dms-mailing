@@ -33,9 +33,7 @@ const { report } = useControlError()
 
 const selected = computed(() => props.modelValue ?? props.initialValue ?? '')
 
-const workspaceLocales = computed<LocaleDefinition[]>(
-	() => uniqueLocales.value as LocaleDefinition[],
-)
+const workspaceLocales = computed<LocaleDefinition[]>(() => uniqueLocales.value)
 
 function optionOf(entry: LocaleDefinition): LocaleOption {
 	return {

@@ -2,6 +2,7 @@
 import { useDebounceFn, useIntersectionObserver } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
 import { useStarterPreviewRead } from '../composables/useMailingReads'
+import type { JsonObject } from '../utils/guards'
 import type {
 	PreviewResponse,
 	PreviewVersion,
@@ -23,7 +24,7 @@ interface TemplatePreviewFrameProps {
 	/** Which saved content to render when `content` is absent. */
 	version?: PreviewVersion
 	content?: TemplateContent
-	data?: Record<string, unknown>
+	data?: JsonObject
 	width: number
 	scale?: number
 	refreshKey?: number
@@ -128,11 +129,10 @@ async function fetchTemplate(templateId: string): Promise<void> {
 
 async function load(): Promise<void> {
 	if (props.html !== undefined || !isVisible.value) return
-	if (!props.starterId && !props.templateId) return
 	try {
-		await (props.starterId
-			? fetchStarter()
-			: fetchTemplate(props.templateId as string))
+		if (props.starterId) await fetchStarter()
+		else if (props.templateId) await fetchTemplate(props.templateId)
+		else return
 		hasFailed.value = false
 	} catch {
 		fetchedHtml.value = ''
@@ -155,7 +155,7 @@ function measure(): void {
 	}
 	const bottom =
 		body.getBoundingClientRect().bottom +
-		parseFloat(view.getComputedStyle(body).marginBottom)
+		Number.parseFloat(view.getComputedStyle(body).marginBottom)
 	height.value = Math.ceil(bottom) || FALLBACK_HEIGHT
 }
 

@@ -22,6 +22,7 @@ import {
 import type { BlockContext } from '../utils/blocks'
 import { deepClone } from '../utils/clone'
 import { parseSnapshot, snapshotOf } from '../utils/draft-snapshot'
+import { oneOf } from '../utils/guards'
 import { renameVariablePath } from '../utils/variables'
 import {
 	createHistory,
@@ -38,10 +39,20 @@ export interface InsertTarget {
 	branch: IfBranch
 }
 
-export type LeftTab = 'blocks' | 'outline' | 'variables'
-export type RightTab = 'block' | 'data' | 'template'
-export type EditorDevice = 'desktop' | 'mobile'
-export type PreviewMode = 'variables' | 'data'
+const LEFT_TABS = ['blocks', 'outline', 'variables'] as const
+const RIGHT_TABS = ['block', 'data', 'template'] as const
+const EDITOR_DEVICES = ['desktop', 'mobile'] as const
+const PREVIEW_MODES = ['variables', 'data'] as const
+
+export type LeftTab = (typeof LEFT_TABS)[number]
+export type RightTab = (typeof RIGHT_TABS)[number]
+export type EditorDevice = (typeof EDITOR_DEVICES)[number]
+export type PreviewMode = (typeof PREVIEW_MODES)[number]
+
+export const isLeftTab = oneOf(LEFT_TABS)
+export const isRightTab = oneOf(RIGHT_TABS)
+export const isEditorDevice = oneOf(EDITOR_DEVICES)
+export const isPreviewMode = oneOf(PREVIEW_MODES)
 export type LocalePatch = Partial<Pick<LocaleContent, 'subject' | 'preheader'>>
 
 /** A clock, injectable so the history's coalescing is testable. */

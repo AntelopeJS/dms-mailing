@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useSetupFacts } from '../composables/useMailingReads'
+import { resolveRegistered } from '../utils/components'
 import {
 	isSetupComplete,
 	needsSetup,
@@ -7,7 +8,6 @@ import {
 	type SetupStep,
 	type SetupStepState,
 } from '../utils/overview-setup'
-import type { Component } from 'vue'
 import type { MailingComponentProps } from '../types/component'
 
 defineProps<MailingComponentProps>()
@@ -35,7 +35,8 @@ const STEP_BUTTON_VARIANTS: Record<SetupStepState, 'solid' | 'outline'> = {
 const { t } = useI18n()
 const { open: openModal } = useModal()
 
-const { data: facts, error, status, refresh } = useSetupFacts()
+const setup = useSetupFacts()
+const { data: facts, error, status } = setup
 const isResumed = ref(false)
 
 /** A failure shows once its retry is over; the facts read last stay meanwhile. */
@@ -64,7 +65,7 @@ const errorActions = computed(() => [
 	{
 		label: key('retry'),
 		icon: 'i-ph-arrows-clockwise',
-		onClick: () => void refresh(),
+		onClick: () => void setup.refresh(),
 	},
 ])
 
@@ -74,10 +75,10 @@ const stepDescription = (step: SetupStep): string =>
 function createTemplate(): void {
 	const modal = openModal({
 		title: t('dms_mailing.setup.create_template'),
-		component: resolveComponent(NEW_TEMPLATE_MODAL) as Component,
+		component: resolveRegistered(NEW_TEMPLATE_MODAL),
 		size: NEW_TEMPLATE_MODAL_SIZE,
 	})
-	const reread = () => refresh()
+	const reread = () => setup.refresh()
 	void modal.result.then(reread, reread)
 }
 </script>

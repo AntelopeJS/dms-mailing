@@ -32,7 +32,9 @@ const { t } = useI18n()
 <template>
 	<div class="flex flex-col gap-2">
 		<div class="flex items-center justify-between">
-			<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.last_30_days')" />
+			<DmsEyebrowLabel
+				:label="t('dms_mailing.templates.drawer.last_30_days')"
+			/>
 			<UButton
 				variant="link"
 				size="xs"

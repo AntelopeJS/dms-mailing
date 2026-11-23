@@ -2,7 +2,11 @@
 import { computed, inject } from 'vue'
 import type { FooterBlock } from '../../types/mailing'
 import { TOKEN_DATA_KEY } from '../../utils/tokens'
-import { FOOTER_LINK_PATHS, hasSystemUrl } from '../../utils/system-variables'
+import {
+	FOOTER_LABEL_KEYS,
+	FOOTER_LINK_PATHS,
+	hasSystemUrl,
+} from '../../utils/system-variables'
 
 interface Props {
 	block: FooterBlock
@@ -16,8 +20,6 @@ interface FooterLink {
 	hasUrl: boolean
 }
 
-type FooterLabelKey = keyof typeof FOOTER_LINK_PATHS
-
 const props = defineProps<Props>()
 
 const KEY = 'dms_mailing.editor.footer'
@@ -27,14 +29,12 @@ const { t } = useI18n()
 const data = inject(TOKEN_DATA_KEY, null)
 
 const links = computed<FooterLink[]>(() =>
-	(Object.keys(FOOTER_LINK_PATHS) as FooterLabelKey[])
-		.filter((key) => props.block[key].trim())
-		.map((key) => ({
-			key,
-			label: props.block[key],
-			path: FOOTER_LINK_PATHS[key],
-			hasUrl: hasSystemUrl(data?.value, FOOTER_LINK_PATHS[key]),
-		})),
+	FOOTER_LABEL_KEYS.filter((key) => props.block[key].trim()).map((key) => ({
+		key,
+		label: props.block[key],
+		path: FOOTER_LINK_PATHS[key],
+		hasUrl: hasSystemUrl(data?.value, FOOTER_LINK_PATHS[key]),
+	})),
 )
 const isEmpty = computed(() => !props.block.text.trim() && !links.value.length)
 const hasPendingUrl = computed(() => links.value.some((link) => !link.hasUrl))

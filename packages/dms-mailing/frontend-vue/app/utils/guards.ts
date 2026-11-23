@@ -81,3 +81,11 @@ export function jsonText(value: JsonValue | undefined): string {
 		return value.map((item) => (item === null ? '' : jsonText(item))).join(',')
 	return isJsonObject(value) ? OBJECT_TEXT : String(value)
 }
+
+/** A guard for the members of a closed list of string literals. */
+export function oneOf<const Values extends readonly string[]>(
+	values: Values,
+): (value: unknown) => value is Values[number] {
+	const known = new Set<string>(values)
+	return (value): value is Values[number] => isString(value) && known.has(value)
+}

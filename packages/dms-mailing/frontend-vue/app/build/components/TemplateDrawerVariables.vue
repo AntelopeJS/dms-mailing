@@ -24,7 +24,9 @@ const { t } = useI18n()
 
 <template>
 	<div class="flex flex-col gap-1">
-		<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.declared_detected')" />
+		<DmsEyebrowLabel
+			:label="t('dms_mailing.templates.drawer.declared_detected')"
+		/>
 		<p v-if="!variables.length" class="text-muted text-[12.5px]">
 			{{ t('dms_mailing.templates.drawer.no_variables') }}
 		</p>
@@ -100,7 +102,9 @@ const { t } = useI18n()
 	<MailingSystemVariables :variables="systemVars" />
 	<div class="flex flex-col gap-1.5">
 		<div class="flex items-center justify-between">
-			<DmsEyebrowLabel :label="t('dms_mailing.templates.drawer.call_from_code')" />
+			<DmsEyebrowLabel
+				:label="t('dms_mailing.templates.drawer.call_from_code')"
+			/>
 			<DmsCopyButton :value="snippet" />
 		</div>
 		<pre

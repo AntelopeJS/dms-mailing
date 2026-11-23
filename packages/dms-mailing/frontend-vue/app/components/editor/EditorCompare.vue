@@ -7,6 +7,7 @@ import type {
 } from '../../types/mailing'
 import { useMailingApi } from '../../composables/useMailingApi'
 import { describeChanges } from '../../utils/changes'
+import type { JsonObject } from '../../utils/guards'
 
 interface Props {
 	templateId: string
@@ -16,7 +17,7 @@ interface Props {
 	content: TemplateContent
 	publishedContent?: TemplateContent | null
 	changes?: TemplateChange[]
-	data?: Record<string, unknown>
+	data?: JsonObject
 }
 
 type SideId = 'published' | 'draft'
@@ -57,7 +58,8 @@ const heights = ref<Record<SideId, number>>({
 
 /** Fits a frame to its e-mail, so neither side scrolls on its own. */
 function fit(event: Event, side: SideId): void {
-	const body = (event.target as HTMLIFrameElement).contentDocument?.body
+	if (!(event.target instanceof HTMLIFrameElement)) return
+	const body = event.target.contentDocument?.body
 	if (!body) return
 	const margin = Number.parseFloat(getComputedStyle(body).marginBottom) || 0
 	const height = Math.ceil(body.getBoundingClientRect().bottom + margin)

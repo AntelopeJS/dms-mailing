@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MessageParams } from '../types/component'
 import { useSortableList } from '../composables/useSortableList'
 import { useCategoryUsage } from '../composables/useMailingReads'
 import { isMarketingCategory } from '../utils/system-variables'
@@ -54,7 +55,6 @@ const MOVE_FIELD_COMPONENT = 'DmsInputSelect'
 const LABEL_PART = 'label'
 const ROW_FIELD_UI = { error: 'mt-1 ps-9 text-[12px]' }
 
-// Labels are edited in the interface's language, the others kept as stored.
 const { t, locale } = useI18n()
 const { confirm } = useConfirm()
 
@@ -73,11 +73,8 @@ const usage = computed<Record<string, number>>(() =>
 const pickerOpen = ref<string | null>(null)
 let lastEmitted = serializeCategories(currentEntries())
 
-const key = (
-	path: string,
-	params: Record<string, unknown> = {},
-	plural = 1,
-): string => t(`${KEY_PREFIX}${path}`, params, plural)
+const key = (path: string, params: MessageParams = {}, plural = 1): string =>
+	t(`${KEY_PREFIX}${path}`, params, plural)
 
 /**
  * The form field of a row's label: the server names a refused row by its
