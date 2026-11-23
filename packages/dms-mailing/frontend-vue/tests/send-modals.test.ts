@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RealSendModal from '../app/components/RealSendModal.vue'
 import RecipientsField from '../app/components/RecipientsField.vue'
@@ -10,6 +9,7 @@ import type {
 import { defineComponent, h } from 'vue'
 import {
 	FORM_STUBS,
+	firstToastAction,
 	flush,
 	mount,
 	slotStub,
@@ -17,9 +17,12 @@ import {
 	typeInto,
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
+import { submitForm } from './helpers/dom'
+import { expectDefined, query, queryAll } from './helpers/narrow'
 import { mailingReads, stubApiData } from './helpers/api-data'
 import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
+/** @vitest-environment jsdom */
 const api = {
 	templateContent: vi.fn(),
 	preview: vi.fn(),
@@ -71,15 +74,17 @@ interface ReviewItem {
 	value?: string
 }
 
-const KeyValueListStub = defineComponent({
-	props: { items: { type: Array, default: () => [] } },
-	setup:
-		(props, { slots }) =>
+interface ReviewListProps {
+	items?: ReviewItem[]
+}
+
+const KeyValueListStub = defineComponent(
+	(props: ReviewListProps, { slots }) =>
 		() =>
 			h(
 				'dl',
 				{ 'data-review': '' },
-				(props.items as ReviewItem[]).map((item) =>
+				(props.items ?? []).map((item) =>
 					h(
 						'dd',
 						{ 'data-id': item.id },
@@ -87,7 +92,8 @@ const KeyValueListStub = defineComponent({
 					),
 				),
 			),
-})
+	{ props: { items: Array } },
+)
 
 const globals = {
 	...FORM_STUBS,
@@ -136,15 +142,27 @@ afterEach(() => {
 })
 
 const submitButton = (host: HTMLElement) =>
-	host.querySelector('ubutton[type="submit"]') as HTMLElement
+	query(host, 'ubutton[type="submit"]', HTMLElement)
+
+const tagsInput = (host: HTMLElement) =>
+	query(host, '[data-tags]', HTMLInputElement)
+
+const pathInput = (host: HTMLElement, path: string) =>
+	query(host, `[data-path="${path}"]`, HTMLInputElement)
+
+/** Ticks the acknowledgement the real send asks for. */
+async function acknowledge(host: HTMLElement): Promise<void> {
+	const ack = query(host, 'input[type="checkbox"]', HTMLInputElement)
+	ack.checked = true
+	ack.dispatchEvent(new Event('change'))
+	await flush()
+}
 
 const isDisabled = (host: HTMLElement) =>
 	submitButton(host).getAttribute('disabled') === 'true'
 
 const submit = async (host: HTMLElement) => {
-	;(host.querySelector('form') as HTMLFormElement).dispatchEvent(
-		new Event('submit'),
-	)
+	submitForm(host)
 	await flush()
 }
 
@@ -180,9 +198,8 @@ describe('TestSendModal', () => {
 		)
 		expect(view.host.querySelector('[data-version-choice]')).toBeNull()
 		await submit(view.host)
-		const input = api.testSend.mock.calls.at(-1)?.[1]
-		expect(input).not.toHaveProperty('content')
-		expect(input).not.toHaveProperty('version')
+		expect(api.testSend.mock.calls.at(-1)?.[1]).not.toHaveProperty('content')
+		expect(api.testSend.mock.calls.at(-1)?.[1]).not.toHaveProperty('version')
 		view.unmount()
 	})
 
@@ -201,10 +218,7 @@ describe('TestSendModal', () => {
 		const view = mount(TestSendModal, { templateId: 't1' }, globals)
 		await flush()
 		await submit(view.host)
-		const actions = stubs.toasts.at(-1)?.actions as {
-			onClick: () => void
-		}[]
-		actions[0]!.onClick()
+		firstToastAction(stubs.toasts.at(-1)).onClick()
 		expect(stubs.navigations.at(-1)).toEqual({
 			path: '/modules/mailing/sends',
 			query: { record: 's1' },
@@ -235,13 +249,13 @@ describe('TestSendModal', () => {
 		api.templateContent.mockResolvedValue(detail('draft'))
 		const view = mount(TestSendModal, { templateId: 't1' }, globals)
 		await flush()
-		await typeInto(view.host.querySelector('[data-tags]')!, 'not-an-address')
+		await typeInto(tagsInput(view.host), 'not-an-address')
 		expect(isDisabled(view.host)).toBe(true)
 		view.unmount()
 	})
 })
 
-describe('RealSendModal', () => {
+describe('RealSendModal acknowledgement', () => {
 	it('stays disabled until the acknowledgement is ticked', async () => {
 		api.templateContent.mockResolvedValue(detail('live'))
 		const view = mount(RealSendModal, { templateId: 't1' }, globals)
@@ -249,17 +263,9 @@ describe('RealSendModal', () => {
 		expect(
 			view.host.querySelector('[data-tags]')?.getAttribute('data-tags'),
 		).toBe('')
-		await typeInto(
-			view.host.querySelector('[data-tags]')!,
-			'margaux@northwind.co',
-		)
+		await typeInto(tagsInput(view.host), 'margaux@northwind.co')
 		expect(isDisabled(view.host)).toBe(true)
-		const ack = view.host.querySelector(
-			'input[type="checkbox"]',
-		) as HTMLInputElement
-		ack.checked = true
-		ack.dispatchEvent(new Event('change'))
-		await flush()
+		await acknowledge(view.host)
 		expect(isDisabled(view.host)).toBe(false)
 		await submit(view.host)
 		expect(api.realSend).toHaveBeenCalledWith('t1', {
@@ -299,17 +305,10 @@ describe('RealSendModal', () => {
 		api.templateContent.mockResolvedValue(detail('live'))
 		const view = mount(RealSendModal, { templateId: 't1' }, globals)
 		await flush()
-		const field = view.host.querySelector(
-			'[data-path="customer.firstName"]',
-		) as HTMLInputElement
+		const field = pathInput(view.host, 'customer.firstName')
 		expect(field.value).toBe('Margaux')
-		await typeInto(view.host.querySelector('[data-tags]')!, 'a@acme.com')
-		const ack = view.host.querySelector(
-			'input[type="checkbox"]',
-		) as HTMLInputElement
-		ack.checked = true
-		ack.dispatchEvent(new Event('change'))
-		await flush()
+		await typeInto(tagsInput(view.host), 'a@acme.com')
+		await acknowledge(view.host)
 		expect(isDisabled(view.host)).toBe(false)
 		await typeInto(field, '')
 		expect(isDisabled(view.host)).toBe(true)
@@ -324,7 +323,9 @@ describe('RealSendModal', () => {
 		})
 		view.unmount()
 	})
+})
 
+describe('RealSendModal values and review', () => {
 	it('sends the typed child value when the content also prints its object', async () => {
 		api.templateContent.mockResolvedValue(
 			detail('live', {
@@ -335,21 +336,13 @@ describe('RealSendModal', () => {
 		)
 		const view = mount(RealSendModal, { templateId: 't1' }, globals)
 		await flush()
-		const values = view.host.querySelector('[data-send-values]')!
+		const values = query(view.host, '[data-send-values]', HTMLElement)
 		expect(values.textContent).not.toContain('list_missing')
 		expect(values.textContent).toContain('dms_mailing.real_send.object_value')
 		expect(view.host.querySelector('[data-path="order"]')).toBeNull()
-		await typeInto(
-			view.host.querySelector('[data-path="order.number"]')!,
-			'B-7',
-		)
-		await typeInto(view.host.querySelector('[data-tags]')!, 'a@acme.com')
-		const ack = view.host.querySelector(
-			'input[type="checkbox"]',
-		) as HTMLInputElement
-		ack.checked = true
-		ack.dispatchEvent(new Event('change'))
-		await flush()
+		await typeInto(pathInput(view.host, 'order.number'), 'B-7')
+		await typeInto(tagsInput(view.host), 'a@acme.com')
+		await acknowledge(view.host)
 		await submit(view.host)
 		expect(api.realSend.mock.calls.at(-1)?.[1].data).toEqual({
 			order: { number: 'B-7' },
@@ -391,15 +384,9 @@ describe('RealSendModal', () => {
 		api.templateContent.mockResolvedValue(detail('live'))
 		const view = mount(RealSendModal, { templateId: 't1' }, globals)
 		await flush()
-		const tags = view.host.querySelector('[data-tags]')!
-		await typeInto(tags, 'a@acme.com')
-		const ack = view.host.querySelector(
-			'input[type="checkbox"]',
-		) as HTMLInputElement
-		ack.checked = true
-		ack.dispatchEvent(new Event('change'))
-		await flush()
-		await typeInto(view.host.querySelector('[data-tags]')!, 'b@acme.com')
+		await typeInto(tagsInput(view.host), 'a@acme.com')
+		await acknowledge(view.host)
+		await typeInto(tagsInput(view.host), 'b@acme.com')
 		expect(isDisabled(view.host)).toBe(true)
 		view.unmount()
 	})
@@ -411,12 +398,12 @@ describe('RealSendModal', () => {
 		expect(view.host.querySelector('form')).toBeNull()
 		const checks = view.host.querySelector('dmschecklist')
 		expect(checks).not.toBeNull()
-		const buttons = [...view.host.querySelectorAll('ubutton')] as HTMLElement[]
-		buttons[0]!.click()
+		const buttons = queryAll(view.host, 'ubutton', HTMLElement)
+		expectDefined(buttons[0]).click()
 		expect(stubs.modalCalls[0]?.component).toEqual({
 			name: 'MailingTestSendModal',
 		})
-		buttons[1]!.click()
+		expectDefined(buttons[1]).click()
 		await flush()
 		expect(stubs.navigations).toEqual([
 			{ path: '/modules/mailing/templates/t1', query: {} },
