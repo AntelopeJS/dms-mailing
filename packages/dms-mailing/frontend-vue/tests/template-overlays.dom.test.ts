@@ -1,16 +1,8 @@
-// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTemplateDrawer } from '../app/composables/useTemplateDrawer'
-import type { TemplateRow } from '../app/types/mailing'
-
-interface OpenCall {
-	title: string
-	component: unknown
-	componentOptions: Record<string, unknown>
-	componentKey?: string
-	direction?: string
-	size?: string
-}
+import type { TemplateContent, TemplateRow } from '../app/types/mailing'
+import { expectDefined } from './helpers/narrow'
+import { inSetup } from './helpers/nuxt-globals'
 
 interface Navigation {
 	hasPrev: boolean
@@ -18,15 +10,37 @@ interface Navigation {
 	next: () => void
 }
 
+interface OpenOptions {
+	templateId?: string
+	locale?: string
+	content?: TemplateContent
+	initialName?: string
+	navigation?: Navigation
+}
+
+interface OpenCall {
+	title: string
+	component: { name: string }
+	componentOptions: OpenOptions
+	componentKey?: string
+	direction?: string
+	size?: string
+}
+
+interface Patch {
+	componentKey?: string
+	componentOptions?: OpenOptions
+}
+
 const drawerCalls: OpenCall[] = []
 const modalCalls: OpenCall[] = []
-const patches: Record<string, unknown>[] = []
-let nextResult: unknown = undefined
+const patches: Patch[] = []
+let nextResult: boolean | undefined = undefined
 
 function handle() {
 	return {
 		result: Promise.resolve(nextResult),
-		patch: (patch: Record<string, unknown>) => patches.push(patch),
+		patch: (patch: Patch) => patches.push(patch),
 		close: () => undefined,
 	}
 }
@@ -69,8 +83,8 @@ function row(id: string): TemplateRow {
 
 describe('useTemplateDrawer', () => {
 	it('opens the test send with the editor draft and locale', () => {
-		const content = { locales: {} }
-		useTemplateDrawer().openTestSend('t1', { locale: 'fr', content })
+		const content: TemplateContent = { locales: {} }
+		inSetup(useTemplateDrawer).openTestSend('t1', { locale: 'fr', content })
 		expect(modalCalls[0]?.component).toEqual({ name: 'MailingTestSendModal' })
 		expect(modalCalls[0]?.componentOptions).toEqual({
 			templateId: 't1',
@@ -81,12 +95,15 @@ describe('useTemplateDrawer', () => {
 
 	it('calls back only when the dialog closes after a change', async () => {
 		const onDone = vi.fn()
-		useTemplateDrawer().openRealSend('t1', { onDone })
+		inSetup(useTemplateDrawer).openRealSend('t1', { onDone })
 		await Promise.resolve()
 		await Promise.resolve()
 		expect(onDone).not.toHaveBeenCalled()
 		nextResult = true
-		useTemplateDrawer().openNewTemplate({ initialName: 'Refund', onDone })
+		inSetup(useTemplateDrawer).openNewTemplate({
+			initialName: 'Refund',
+			onDone,
+		})
 		await Promise.resolve()
 		await Promise.resolve()
 		expect(onDone).toHaveBeenCalledTimes(1)
@@ -95,22 +112,22 @@ describe('useTemplateDrawer', () => {
 
 	it('opens the details from the right and steps through the rows shown', () => {
 		const rows = [row('a'), row('b'), row('c')]
-		useTemplateDrawer().openDetails(rows[1]!, { rows })
-		const call = drawerCalls[0]!
+		inSetup(useTemplateDrawer).openDetails(expectDefined(rows[1]), { rows })
+		const call = expectDefined(drawerCalls[0])
 		expect(call.direction).toBe('right')
 		expect(call.component).toEqual({ name: 'MailingTemplateDrawer' })
-		const navigation = call.componentOptions.navigation as Navigation
+		const navigation = expectDefined(call.componentOptions.navigation)
 		expect(navigation.hasPrev).toBe(true)
 		expect(navigation.hasNext).toBe(true)
 		navigation.next()
 		expect(patches[0]?.componentKey).toBe('c')
-		const options = patches[0]?.componentOptions as Record<string, unknown>
+		const options = expectDefined(patches[0]?.componentOptions)
 		expect(options.templateId).toBe('c')
-		expect((options.navigation as Navigation).hasNext).toBe(false)
+		expect(expectDefined(options.navigation).hasNext).toBe(false)
 	})
 
 	it('opens the details of a bare id without navigation', () => {
-		useTemplateDrawer().openDetails('x')
+		inSetup(useTemplateDrawer).openDetails('x')
 		expect(drawerCalls[0]?.componentOptions.templateId).toBe('x')
 		expect(drawerCalls[0]?.componentOptions.navigation).toBeUndefined()
 	})

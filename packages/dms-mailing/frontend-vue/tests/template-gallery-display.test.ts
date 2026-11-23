@@ -1,7 +1,7 @@
-// @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Component } from 'vue'
-import setup from '../app/plugins/template-gallery-display'
+import '../app/plugins/template-gallery-display'
+import { expectDefined } from './helpers/narrow'
 
 interface DisplayRegistration {
 	id: string
@@ -10,8 +10,13 @@ interface DisplayRegistration {
 
 type PluginSetup = () => void
 
-vi.hoisted(() => {
-	vi.stubGlobal('defineDmsPlugin', (pluginSetup: PluginSetup) => pluginSetup)
+const plugins = vi.hoisted(() => {
+	const setups: PluginSetup[] = []
+	vi.stubGlobal('defineDmsPlugin', (pluginSetup: PluginSetup) => {
+		setups.push(pluginSetup)
+		return pluginSetup
+	})
+	return setups
 })
 
 afterEach(() => {
@@ -25,7 +30,7 @@ describe('template gallery display plugin', () => {
 			'registerTableViewDisplay',
 			(registration: DisplayRegistration) => registrations.push(registration),
 		)
-		setup()
+		expectDefined(plugins[0], 'the registered plugin')()
 		expect(registrations.map((registration) => registration.id)).toEqual([
 			'mailing:gallery',
 		])

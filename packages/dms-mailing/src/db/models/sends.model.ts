@@ -71,18 +71,27 @@ export interface SendScope {
   templateSlug?: string;
 }
 
+/**
+ * The recipient's domain, lower-cased once the query answered: the database
+ * folds ASCII letters only. Two tallies can then share a domain.
+ */
+export interface DomainTallyGroup {
+  by: "domain";
+}
+
+/** The day of the window, counted from `from` in whole days. */
+export interface DayTallyGroup {
+  by: "day";
+  from: Date;
+}
+
 /** What a tally splits the sends by, besides the traits every figure reads. */
 export type TallyGroup =
   | { by: "none" }
   | { by: "template" }
   | { by: "source" }
-  /**
-   * The recipient's domain, lower-cased once the query answered: the
-   * database folds ASCII letters only. Two tallies can then share a domain.
-   */
-  | { by: "domain" }
-  /** The day of the window, counted from `from` in whole days. */
-  | { by: "day"; from: Date };
+  | DomainTallyGroup
+  | DayTallyGroup;
 
 /** The value a tally is grouped on: a slug, a domain, a source or a day. */
 export type TallyKey = string | number;

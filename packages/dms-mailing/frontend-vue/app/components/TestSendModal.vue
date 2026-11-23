@@ -6,11 +6,8 @@ import { useTemplateContentRead } from '../composables/useMailingReads'
 import type { SendResult, TestSendInput } from '../composables/useMailingApi'
 import { sendLogRoute } from '../utils/send-link'
 import { reasonKey, type SuppressionSummary } from '../utils/suppression'
-import {
-	isSendableRecipients,
-	localeOptions,
-	type NamedLocale,
-} from '../utils/recipients'
+import { isSendableRecipients, localeOptions } from '../utils/recipients'
+import type { JsonObject } from '../utils/guards'
 import type {
 	TemplateContent,
 	TemplateContentResponse,
@@ -25,7 +22,7 @@ interface TestSendModalProps {
 	/** The editor's unsaved draft, sent instead of the saved one. */
 	content?: TemplateContent
 	/** The editor's data set, sent instead of the saved test data. */
-	data?: Record<string, unknown>
+	data?: JsonObject
 	onSuccessCallback?: () => void
 }
 
@@ -33,11 +30,6 @@ type DataChoice = 'test' | 'none'
 
 /** Which saved content a test sends when a draft sits on a live template. */
 type VersionChoice = 'draft' | 'published'
-
-/** The part of the session user the dialog reads. */
-interface SignedInUser {
-	email?: string
-}
 
 const DATA_CHOICES: DataChoice[] = ['test', 'none']
 const VERSION_CHOICES: VersionChoice[] = ['draft', 'published']
@@ -48,7 +40,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { t, locale: uiLocale } = useI18n()
 const { user } = useCurrentUser()
 const { uniqueLocales } = useUniqueLocales()
@@ -56,7 +48,7 @@ const { uniqueLocales } = useUniqueLocales()
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
 const readContent = useTemplateContentRead(templateId)
 const detail = ref<TemplateContentResponse | null>(null)
-const ownEmail = (user.value as SignedInUser | null)?.email
+const ownEmail = user.value?.email
 const recipients = ref<string[]>(ownEmail ? [ownEmail] : [])
 const locale = ref(props.locale ?? '')
 const dataChoice = ref<DataChoice>('test')
@@ -69,7 +61,7 @@ onMounted(async () => {
 		detail.value = await readContent()
 		locale.value ||= detail.value.fallbackLocale
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	}
 })
 
@@ -105,7 +97,7 @@ const versionItems = computed(() =>
 const localeItems = computed(() =>
 	localeOptions(
 		Object.keys(content.value?.locales ?? {}),
-		uniqueLocales.value as NamedLocale[],
+		uniqueLocales.value,
 		uiLocale.value,
 	),
 )
@@ -117,7 +109,7 @@ const dataItems = computed(() =>
 	})),
 )
 
-const DATA_SETS: Record<DataChoice, () => Record<string, unknown>> = {
+const DATA_SETS: Record<DataChoice, () => JsonObject> = {
 	test: () => props.data ?? detail.value?.testData ?? {},
 	none: () => ({}),
 }
@@ -153,7 +145,9 @@ function contentOverride(): Pick<TestSendInput, 'content' | 'version'> {
 function reportFailures(results: SendResult[]): void {
 	results.forEach((result) => {
 		if (!result.error) return
-		presentError(result.error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(result.error, {
+			fallbackKey: 'error.500.description',
+		})
 	})
 	const sent = results.filter((result) => !result.error).length
 	if (sent) {
@@ -209,7 +203,7 @@ async function submit(): Promise<void> {
 		warnOwnSuppression(response.ownAddressSuppressed)
 		close(true)
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}

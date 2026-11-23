@@ -204,7 +204,8 @@ export function moveRow<T>(
 	if (target < 0 || target >= rows.length) return { rows, index }
 	const moved = [...rows]
 	const [row] = moved.splice(index, 1)
-	moved.splice(target, 0, row as T)
+	if (row === undefined) return { rows, index }
+	moved.splice(target, 0, row)
 	return { rows: moved, index: target }
 }
 

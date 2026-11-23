@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DuplicateModal from '../app/components/DuplicateModal.vue'
 import StarterGallery from '../app/components/StarterGallery.vue'
@@ -19,6 +18,9 @@ import {
 } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
 import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
+import { elementWithAttribute, inputAt, submitForm } from './helpers/dom'
+import { dropdownStub, type MenuItem } from './helpers/dropdown-stub'
+import { expectDefined, query } from './helpers/narrow'
 
 const api = {
 	templateContent: vi.fn(),
@@ -77,22 +79,14 @@ function detail(template: TemplateRow): TemplateContentResponse {
 	}
 }
 
-interface MenuItem {
-	label: string
-	onSelect: () => void
-}
-
 let menuGroups: MenuItem[][] = []
 
-const DropdownStub = {
-	props: { items: { type: Array, default: () => [] } },
-	setup(props: { items: MenuItem[][] }) {
-		return () => {
-			menuGroups = props.items
-			return null
-		}
-	},
-}
+const DropdownStub = dropdownStub((groups) => {
+	menuGroups = groups
+})
+
+const selectMenuItem = (index: number) =>
+	expectDefined(menuGroups.flat().at(index), `menu item ${index}`).onSelect()
 
 const globals = {
 	...FORM_STUBS,
@@ -167,7 +161,7 @@ afterEach(() => {
 
 const labels = () => menuGroups.flat().map((item) => item.label)
 
-describe('TemplateDrawer', () => {
+describe('TemplateDrawer lifecycle', () => {
 	it('offers only the valid lifecycle moves', async () => {
 		api.templateContent.mockResolvedValue(detail(row('live')))
 		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
@@ -192,11 +186,10 @@ describe('TemplateDrawer', () => {
 		const onChanged = vi.fn()
 		const view = mount(TemplateDrawer, { templateId: 't1', onChanged }, globals)
 		await flush()
-		menuGroups.flat()[0]!.onSelect()
+		selectMenuItem(0)
 		await flush()
 		expect(stubs.confirmations[0]?.title).toContain('lifecycle.publish_title')
-		const onConfirm = stubs.confirmations[0]?.onConfirm as () => Promise<void>
-		await onConfirm()
+		await expectDefined(stubs.confirmations[0]?.onConfirm)()
 		expect(api.publish).toHaveBeenCalledWith('t1', { revision: undefined })
 		await flush()
 		expect(onChanged).toHaveBeenCalled()
@@ -213,7 +206,7 @@ describe('TemplateDrawer', () => {
 			globals,
 		)
 		await flush()
-		menuGroups.flat()[0]!.onSelect()
+		selectMenuItem(0)
 		await flush()
 		expect(stubs.confirmations).toEqual([])
 		expect(api.restore).toHaveBeenCalledWith('t1', {})
@@ -232,21 +225,25 @@ describe('TemplateDrawer', () => {
 		)
 		expect(pills).toContain('dms_mailing.templates.drawer.not_declared')
 		expect(pills).toContain('dms_mailing.templates.drawer.unused')
-		const declare = [...view.host.querySelectorAll('ubutton')].find(
-			(button) =>
-				button.getAttribute('label') === 'dms_mailing.templates.drawer.declare',
-		) as HTMLElement
-		declare.click()
+		elementWithAttribute(
+			view.host,
+			'ubutton',
+			'label',
+			'dms_mailing.templates.drawer.declare',
+		).click()
 		await flush()
+		const declaresTrackingUrl: unknown = expect.arrayContaining([
+			{ path: 'order.trackingUrl', type: 'string', required: false },
+		])
 		expect(api.saveVariables).toHaveBeenCalledWith('t1', {
-			variables: expect.arrayContaining([
-				{ path: 'order.trackingUrl', type: 'string', required: false },
-			]),
+			variables: declaresTrackingUrl,
 			revision: 3,
 		})
 		view.unmount()
 	})
+})
 
+describe('TemplateDrawer contract and actions', () => {
 	it('shows a live template its published contract, not the draft declarations', async () => {
 		const live = detail(row('live', { isDraftPending: true }))
 		api.templateContent.mockResolvedValue({
@@ -288,23 +285,25 @@ describe('TemplateDrawer', () => {
 		const onChanged = vi.fn()
 		const view = mount(TemplateDrawer, { templateId: 't1', onChanged }, globals)
 		await flush()
-		menuGroups.flat().at(-1)!.onSelect()
+		selectMenuItem(-1)
 		await flush()
 		expect(api.templateContent).toHaveBeenCalledTimes(2)
 		expect(onChanged).toHaveBeenCalled()
 		view.unmount()
 	})
+})
 
+describe('TemplateDrawer details', () => {
 	it('opens the send log narrowed to the template', async () => {
 		api.templateContent.mockResolvedValue(detail(row('live')))
 		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
 		await flush()
-		const link = [...view.host.querySelectorAll('ubutton')].find(
-			(button) =>
-				button.getAttribute('label') ===
-				'dms_mailing.templates.drawer.open_send_log',
-		) as HTMLElement
-		link.click()
+		elementWithAttribute(
+			view.host,
+			'ubutton',
+			'label',
+			'dms_mailing.templates.drawer.open_send_log',
+		).click()
 		expect(stubs.navigations).toEqual([
 			{
 				path: '/modules/mailing/sends',
@@ -336,19 +335,18 @@ describe('TemplateDrawer', () => {
 		api.saveTemplateDetails.mockResolvedValue(1)
 		const view = mount(TemplateDrawer, { templateId: 't1' }, globals)
 		await flush()
-		;(
-			[...view.host.querySelectorAll('ubutton')].find(
-				(button) =>
-					button.getAttribute('aria-label') ===
-					'dms_mailing.templates.drawer.rename',
-			) as HTMLElement
+		elementWithAttribute(
+			view.host,
+			'ubutton',
+			'aria-label',
+			'dms_mailing.templates.drawer.rename',
 		).click()
 		await flush()
-		const input = view.host.querySelector('form input') as HTMLInputElement
-		await typeInto(input, '  Order shipped ')
-		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
-			new Event('submit'),
+		await typeInto(
+			query(view.host, 'form input', HTMLInputElement),
+			'  Order shipped ',
 		)
+		submitForm(view.host)
 		await flush()
 		expect(api.saveTemplateDetails).toHaveBeenCalledWith('t1', {
 			name: 'Order shipped',
@@ -389,20 +387,17 @@ describe('DuplicateModal', () => {
 		api.duplicate.mockResolvedValue({ id: 'copy-id' })
 		const view = mount(DuplicateModal, { templateId: 't1' }, globals)
 		await flush()
-		const [name, slug] = [
-			...view.host.querySelectorAll('input'),
-		] as HTMLInputElement[]
-		expect(name!.value).toBe(
+		const name = inputAt(view.host, 0)
+		const slug = inputAt(view.host, 1)
+		expect(name.value).toBe(
 			'dms_mailing.duplicate.copy_name name=Order confirmation',
 		)
-		expect(slug!.value).toBe(
+		expect(slug.value).toBe(
 			'dms-mailing-duplicate-copy-name-name-order-confirmation-2',
 		)
-		await typeInto(name!, 'Order confirmation (B2B)')
-		expect(slug!.value).toBe('order-confirmation-b2b')
-		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
-			new Event('submit'),
-		)
+		await typeInto(name, 'Order confirmation (B2B)')
+		expect(slug.value).toBe('order-confirmation-b2b')
+		submitForm(view.host)
 		await flush()
 		expect(api.duplicate).toHaveBeenCalledWith('t1', {
 			slug: 'order-confirmation-b2b',
@@ -419,12 +414,11 @@ describe('DuplicateModal', () => {
 		api.listTemplates.mockResolvedValue({ results: [long], total: 1 })
 		const view = mount(DuplicateModal, { templateId: 't1' }, globals)
 		await flush()
-		const [name, slug] = [
-			...view.host.querySelectorAll('input'),
-		] as HTMLInputElement[]
-		expect(name!.value.length).toBeLessThanOrEqual(120)
-		expect(name!.value).toContain('dms_mailing.duplicate.copy_name')
-		expect(slug!.value.length).toBeLessThanOrEqual(64)
+		const name = inputAt(view.host, 0)
+		const slug = inputAt(view.host, 1)
+		expect(name.value.length).toBeLessThanOrEqual(120)
+		expect(name.value).toContain('dms_mailing.duplicate.copy_name')
+		expect(slug.value.length).toBeLessThanOrEqual(64)
 		view.unmount()
 	})
 })
@@ -446,7 +440,7 @@ describe('StarterGallery', () => {
 		api.createTemplate.mockResolvedValue({ _id: 'new-id' })
 		const view = mount(StarterGallery, {}, globals)
 		await flush()
-		;(view.host.querySelector('[data-stub="DmsCardPanel"]') as HTMLElement).click()
+		query(view.host, '[data-stub="DmsCardPanel"]', HTMLElement).click()
 		await flush()
 		expect(api.createTemplate).toHaveBeenCalledWith({
 			name: 'Order confirmation',
@@ -464,7 +458,7 @@ describe('StarterGallery', () => {
 		api.createTemplate.mockRejectedValue({ statusCode: 409 })
 		const view = mount(StarterGallery, {}, globals)
 		await flush()
-		;(view.host.querySelector('[data-stub="DmsCardPanel"]') as HTMLElement).click()
+		query(view.host, '[data-stub="DmsCardPanel"]', HTMLElement).click()
 		await flush()
 		expect(stubs.modalCalls[0]?.componentOptions).toEqual({
 			initialName: 'Order confirmation',

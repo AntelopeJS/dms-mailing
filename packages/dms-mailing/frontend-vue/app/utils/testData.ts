@@ -1,9 +1,10 @@
-export function parseTestData(source: string): Record<string, unknown> | null {
+import { isJsonObjectValue } from './guards'
+import type { JsonObject } from './guards'
+
+export function parseTestData(source: string): JsonObject | null {
 	try {
 		const parsed: unknown = JSON.parse(source)
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
-			return null
-		return parsed as Record<string, unknown>
+		return isJsonObjectValue(parsed) ? parsed : null
 	} catch {
 		return null
 	}

@@ -12,10 +12,7 @@ const COMPONENT_PREFIX = 'Mailing'
 const components = import.meta.glob<VueModule>('./app/components/**/*.vue')
 
 function componentName(path: string): string {
-	return path
-		.split('/')
-		.at(-1)!
-		.replace(/\.vue$/, '')
+	return (path.split('/').at(-1) ?? path).replace(/\.vue$/, '')
 }
 
 const frontendModule: DmsFrontendModule = {

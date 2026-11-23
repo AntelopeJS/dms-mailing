@@ -26,7 +26,6 @@ describe("[unit] pages/settings form module defaults", () => {
       defaultValue: MODULE_DEFAULT_SETTINGS.fallbackLocale,
       offersDefault: true,
     });
-    /** `blockOnMissingVariables: false` is the "send" choice of the form. */
     expect(fields.get("missingVariables")).to.include({
       defaultValue: "send",
       offersDefault: true,

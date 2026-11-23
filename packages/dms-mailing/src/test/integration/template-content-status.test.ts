@@ -90,10 +90,6 @@ describe("[integration] template content and status", () => {
   it("previews the current content with test data and reports missing variables", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    /**
-     * Looked up by slug rather than on the table's first page, which other
-     * tests fill with their own templates.
-     */
     const { GetModel } =
       await import("@antelopejs/interface-database-decorators");
     const { DEFAULT_TENANT_ID } =

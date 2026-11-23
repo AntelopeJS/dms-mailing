@@ -8,6 +8,7 @@ import type {
   TemplateDeclaration,
 } from "@antelopejs/interface-dms-mailing";
 import { ensureOwnerSession } from "../helpers/owner";
+import { checkedRow } from "../helpers/checked";
 import { contentWith, declaration, mailing } from "../helpers/declarations";
 
 const HTTP_OK = 200;
@@ -125,15 +126,13 @@ describe("[integration] template declarations tenant checks", () => {
     await DeclareTemplate({ ...withoutTenant, tenantId: DEFAULT_TENANT_ID });
     const imported = await ImportSends({ sends, tenantId: DEFAULT_TENANT_ID });
     expect(imported.imported).to.equal(1);
+    const importedId = checkedRow(imported.sendIds[0]);
     expect(
-      await GetModel(SendModel, DEFAULT_TENANT_ID).get(imported.sendIds[0]!),
+      await GetModel(SendModel, DEFAULT_TENANT_ID).get(importedId),
     ).not.to.equal(undefined);
     expect(
-      (
-        await GetModel(SendEventModel, DEFAULT_TENANT_ID).getBySend(
-          imported.sendIds[0]!,
-        )
-      ).length,
+      (await GetModel(SendEventModel, DEFAULT_TENANT_ID).getBySend(importedId))
+        .length,
     ).to.equal(1);
   });
 });
@@ -229,7 +228,6 @@ describe("[integration] template declarations creating and reading", () => {
       declaration(`declared-thumbnail-${stamp}`),
     );
     const api = await client();
-    /** The card of a live template: its published version, no locale. */
     const preview = await api.post(
       `${TEMPLATES}/${declared.templateId}/preview`,
       { version: "published" },
@@ -256,10 +254,6 @@ describe("[integration] template declarations racing, kept and refused", () => {
     expect(await rowsWithSlug(slug)).to.equal(1);
   });
 
-  /**
-   * Written once: from its creation on, the template is the tenant's, and a
-   * later declaration of the same slug, changed or not, writes nothing.
-   */
   it("leaves a template a user edited as it is, whatever the code declares", async () => {
     const { DeclareTemplate } = await mailing();
     const slug = `declared-kept-${stamp}`;
@@ -376,32 +370,38 @@ describe("[integration] template declarations tenant isolation", () => {
           },
         ],
       });
-      sendIds.push(imported.sendIds[0]!);
+      sendIds.push(checkedRow(imported.sendIds[0]));
     }
     expect(new Set(templateIds).size).to.equal(2);
     expect(new Set(sendIds).size).to.equal(2);
     for (const [index, tenantId] of tenants.entries()) {
       const other = 1 - index;
+      const otherSendId = checkedRow(sendIds[other]);
       const templates = GetModel(TemplateModel, tenantId);
-      expect(await templates.get(templateIds[other]!)).to.equal(undefined);
+      expect(await templates.get(checkedRow(templateIds[other]))).to.equal(
+        undefined,
+      );
       expect(
-        JSON.parse((await templates.getBySlug(slug))!.json_content).locales.en
-          .subject,
+        JSON.parse(checkedRow(await templates.getBySlug(slug)).json_content)
+          .locales.en.subject,
       ).to.equal(tenantId);
       expect(
         (await getSettings(tenantId)).categories.find(
           (category) => category.id === "custom",
         )?.label,
       ).to.deep.equal({ en: tenantId });
-      expect(await GetModel(SendModel, tenantId).get(sendIds[other]!)).to.equal(
+      expect(await GetModel(SendModel, tenantId).get(otherSendId)).to.equal(
         undefined,
       );
       expect(
-        await GetModel(SendEventModel, tenantId).getBySend(sendIds[other]!),
+        await GetModel(SendEventModel, tenantId).getBySend(otherSendId),
       ).to.deep.equal([]);
       expect(
-        (await GetModel(SendEventModel, tenantId).getBySend(sendIds[index]!))
-          .length,
+        (
+          await GetModel(SendEventModel, tenantId).getBySend(
+            checkedRow(sendIds[index]),
+          )
+        ).length,
       ).to.equal(1);
     }
   });

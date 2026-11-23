@@ -1,4 +1,3 @@
-import type { Component } from 'vue'
 import type { MailingApi } from './useMailingApi'
 import type { EditorReads } from './useMailingReads'
 import type { EditorSession } from './useEditorSession'
@@ -6,8 +5,11 @@ import { isDraftConflict } from './useEditorSession'
 import type { EditorState } from './useTemplateEditor'
 import { useTemplateDrawer } from './useTemplateDrawer'
 import type { TemplateOverlays } from './useTemplateDrawer'
+import { asReportedError } from '../utils/api-error'
+import type { ReportedError } from '../utils/api-error'
 import { describeChanges } from '../utils/changes'
-import { deepClone } from '../utils/clone'
+import { cloneContent } from '../utils/clone'
+import { resolveRegistered } from '../utils/components'
 import {
 	contentChecks,
 	publishBlockers,
@@ -38,7 +40,7 @@ export interface ActionDeps {
 	reads: EditorReads
 	templateId: string
 	reload: () => Promise<void>
-	onError: (error: unknown) => void
+	onError: (error: ReportedError) => void
 }
 
 interface ActionTools {
@@ -55,7 +57,7 @@ function createTestAction(
 	return (): void =>
 		openTestSend(templateId, {
 			locale: editor.locale,
-			content: deepClone(editor.content),
+			content: cloneContent(editor.content),
 			data: session.testData ?? undefined,
 		})
 }
@@ -155,8 +157,9 @@ async function runPublish(deps: ActionDeps, tools: ActionTools): Promise<void> {
 		})
 		await deps.reload()
 	} catch (error) {
-		if (isDraftConflict(error)) return deps.session.markConflict()
-		deps.onError(error)
+		const failure = asReportedError(error)
+		if (isDraftConflict(failure)) return deps.session.markConflict()
+		deps.onError(failure)
 	}
 }
 
@@ -191,7 +194,7 @@ function createPublishAction(
 	tools: ActionTools,
 	test: () => void,
 ) {
-	const component = resolveComponent(PUBLISH_REVIEW_COMPONENT) as Component
+	const component = resolveRegistered(PUBLISH_REVIEW_COMPONENT)
 	return async (): Promise<void> => {
 		if (!canPublishNow(deps)) return
 		if (!(await deps.session.save())) return
@@ -204,7 +207,7 @@ function createPublishAction(
 			componentOptions: reviewOptions(deps, tools),
 			size: REVIEW_SIZE,
 		}).result
-		const handlers: Record<PublishReviewChoice, () => unknown> = {
+		const handlers: Record<PublishReviewChoice, () => void | Promise<void>> = {
 			publish: () => runPublish(deps, tools),
 			test,
 			keep: () => undefined,
@@ -241,7 +244,7 @@ function createDiscardAction(deps: ActionDeps, tools: ActionTools) {
 }
 
 function createCompareAction(deps: ActionDeps, tools: ActionTools) {
-	const component = resolveComponent(COMPARE_COMPONENT) as Component
+	const component = resolveRegistered(COMPARE_COMPONENT)
 	return (): void =>
 		void tools.modal.open({
 			title: tools.t(`${KEY}.compare.title`),
@@ -254,7 +257,7 @@ function createCompareAction(deps: ActionDeps, tools: ActionTools) {
 				templateId: deps.templateId,
 				locale: deps.editor.locale,
 				locales: deps.editor.locales,
-				content: deepClone(deps.editor.content),
+				content: cloneContent(deps.editor.content),
 				publishedContent: deps.session.state.publishedContent,
 				changes: deps.session.state.changes,
 				data: deps.session.testData ?? undefined,
@@ -278,8 +281,9 @@ function createRestoreAction(deps: ActionDeps, tools: ActionTools) {
 				deps.session.state.revision,
 			)
 		} catch (error) {
-			if (isDraftConflict(error)) return deps.session.markConflict()
-			return deps.onError(error)
+			const failure = asReportedError(error)
+			if (isDraftConflict(failure)) return deps.session.markConflict()
+			return deps.onError(failure)
 		}
 		tools.toast.add({
 			color: 'success',
@@ -325,17 +329,13 @@ function createLifecycleAction(deps: ActionDeps, tools: ActionTools) {
 		try {
 			const { status } = await calls[action](deps.templateId)
 			const { state } = deps.session
-			state.template = afterLifecycle(
-				state.template,
-				action,
-				status as typeof state.template.status,
-			)
+			state.template = afterLifecycle(state.template, action, status)
 			tools.toast.add({
 				color: 'success',
 				title: tools.t(`${KEY}.lifecycle.${action}_done`),
 			})
 		} catch (error) {
-			deps.onError(error)
+			deps.onError(asReportedError(error))
 		}
 	}
 }

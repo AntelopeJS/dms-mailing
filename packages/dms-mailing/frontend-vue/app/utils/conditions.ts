@@ -1,4 +1,6 @@
 import type { Condition, ConditionOperator } from '../types/mailing'
+import { jsonText } from './guards'
+import type { JsonObject, JsonValue } from './guards'
 import { readPath } from './paths'
 
 export const OPERATORS: ConditionOperator[] = [
@@ -31,13 +33,13 @@ export function describeCondition(
 	return `${condition.path} ${label} ${condition.value || EMPTY_VALUE_PLACEHOLDER}`
 }
 
-type Evaluator = (actual: unknown, expected: string) => boolean
+type Evaluator = (actual: JsonValue | undefined, expected: string) => boolean
 
 const EVALUATORS: Record<ConditionOperator, Evaluator> = {
 	truthy: (actual) => Boolean(actual),
 	falsy: (actual) => !actual,
-	eq: (actual, expected) => String(actual) === expected,
-	ne: (actual, expected) => String(actual) !== expected,
+	eq: (actual, expected) => jsonText(actual) === expected,
+	ne: (actual, expected) => jsonText(actual) !== expected,
 	gt: (actual, expected) => Number(actual) > Number(expected),
 	lt: (actual, expected) => Number(actual) < Number(expected),
 }
@@ -49,7 +51,7 @@ const EVALUATORS: Record<ConditionOperator, Evaluator> = {
  */
 export function evaluateCondition(
 	condition: Condition,
-	data: Record<string, unknown>,
+	data: JsonObject,
 ): boolean {
 	const evaluate = EVALUATORS[condition.operator]
 	return evaluate(readPath(data, condition.path), condition.value)

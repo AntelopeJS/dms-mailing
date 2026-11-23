@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MessageParams } from '../types/component'
 import { refDebounced } from '@vueuse/core'
 import { useRetentionPreview } from '../composables/useMailingReads'
 import {
@@ -64,11 +65,8 @@ const preview = computed<RetentionPreview | null>(() =>
 	previewRead.error.value ? null : previewRead.data.value,
 )
 
-const key = (
-	path: string,
-	params: Record<string, unknown> = {},
-	plural = 1,
-): string => t(`${KEY_PREFIX}${path}`, params, plural)
+const key = (path: string, params: MessageParams = {}, plural = 1): string =>
+	t(`${KEY_PREFIX}${path}`, params, plural)
 
 const presetLabel = (preset: number): string =>
 	preset === DAYS_PER_YEAR
@@ -101,7 +99,7 @@ function onCustomInput(value: number | null | undefined): void {
 	emitDays(clampRetention(value))
 }
 
-function previewParams(value: RetentionPreview): Record<string, unknown> {
+function previewParams(value: RetentionPreview) {
 	return {
 		when: isWithinADay(value.nextRunAt, new Date())
 			? key('tonight')

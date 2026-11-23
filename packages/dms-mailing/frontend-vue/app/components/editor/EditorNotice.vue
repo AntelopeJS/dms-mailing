@@ -15,7 +15,7 @@ interface Props {
 interface NoticeButton {
 	icon: string
 	labelKey: string
-	run: () => unknown
+	run: () => void
 }
 
 const props = defineProps<Props>()

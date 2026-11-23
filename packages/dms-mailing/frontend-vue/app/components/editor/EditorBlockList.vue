@@ -7,6 +7,7 @@ import {
 	type SortableListChange,
 } from '../../composables/useSortableList'
 import { DRAG_GROUP, DRAG_HANDLE, DRAG_ITEM } from '../../utils/blocks'
+import { isBlock } from '../../utils/draft-snapshot'
 import EditorBlock from './EditorBlock.vue'
 import EditorInsertPoint from './EditorInsertPoint.vue'
 
@@ -25,12 +26,12 @@ function onChange(change: SortableListChange<Block>): void {
 
 const root = ref<HTMLElement | null>(null)
 
-// The list is the editor's: a drop changes it in place, as a click does.
 useSortableList(root, () => props.list, {
 	group: DRAG_GROUP,
 	handle: DRAG_HANDLE,
 	draggable: DRAG_ITEM,
 	ghostClass: 'opacity-30',
+	accepts: isBlock,
 	onChange,
 })
 </script>

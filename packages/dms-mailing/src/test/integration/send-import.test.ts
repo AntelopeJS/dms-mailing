@@ -89,10 +89,6 @@ function declareTemplate(): Promise<void> {
   return templateDeclared;
 }
 
-/**
- * Imported sends land in the metrics by their own dates: a workspace of their
- * own keeps them out of the default one the metrics suites read.
- */
 describe("[integration] send import writes", () => {
   before(declareTemplate);
 

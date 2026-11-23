@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MessageParams } from '../types/component'
 import { TEMPLATES_PATH } from '../utils/pages'
 import { useClipboard } from '@vueuse/core'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -32,7 +33,7 @@ import {
 	type TimelineItem,
 	type TimelineTracking,
 } from '../utils/timeline'
-import type { Component } from 'vue'
+import { resolveRegistered } from '../utils/components'
 import type { SendDetailResponse, SendRow } from '../types/mailing'
 
 interface SendDrawerProps {
@@ -40,7 +41,7 @@ interface SendDrawerProps {
 	rowData?: SendRow
 	onSuccessCallback?: () => void
 	/** Shows another send of the table in this panel (DMS `showRow`). */
-	showRow?: (row: object | string) => Promise<void>
+	showRow?: (row: SendRow | string) => Promise<void>
 }
 
 interface StatTrioItem {
@@ -83,14 +84,16 @@ const props = defineProps<SendDrawerProps>()
 
 const api = useMailingApi()
 const toast = useToast()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const reportReplay = useReplayToast()
 const { confirm } = useConfirm()
 const { open: openModal } = useModal()
 const { t, locale } = useI18n()
 const { copy } = useClipboard()
 
-const KeyValueList = resolveComponent('DmsKeyValueList') as Component
+const KeyValueList = resolveRegistered('DmsKeyValueList')
+const RenderingModal = resolveRegistered(RENDERING_MODAL)
+const FixAddressModal = resolveRegistered(FIX_ADDRESS_MODAL)
 
 const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
 const readSend = useSendRead(sendId)
@@ -103,7 +106,7 @@ const sending = ref(false)
 const send = computed<DrawerSend | null>(
 	() => detail.value?.send ?? props.rowData ?? null,
 )
-const key = (path: string, params: Record<string, unknown> = {}): string =>
+const key = (path: string, params: MessageParams = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
 
 const dateOf = (iso: string, format: Intl.DateTimeFormatOptions): string =>
@@ -242,7 +245,9 @@ async function load(): Promise<void> {
 	try {
 		detail.value = await readSend()
 	} catch (error) {
-		presentError(error, { fallbackKey: `${KEY_PREFIX}send_unavailable` })
+		errorPresenter.presentError(error, {
+			fallbackKey: `${KEY_PREFIX}send_unavailable`,
+		})
 	} finally {
 		loading.value = false
 	}
@@ -271,7 +276,9 @@ async function showSend(id: string): Promise<void> {
 	try {
 		await props.showRow?.(id)
 	} catch (error) {
-		presentError(error, { fallbackKey: `${KEY_PREFIX}send_unavailable` })
+		errorPresenter.presentError(error, {
+			fallbackKey: `${KEY_PREFIX}send_unavailable`,
+		})
 	}
 }
 
@@ -295,7 +302,7 @@ function openRendering(): void {
 		title: t(renderingTitleKey(row.status), {
 			name: row.recipientName || row.recipientEmail,
 		}),
-		component: resolveComponent(RENDERING_MODAL) as Component,
+		component: RenderingModal,
 		componentOptions: { rowData: row, sendId: row._id },
 		size: RENDERING_MODAL_SIZE,
 	})
@@ -306,7 +313,7 @@ function openFixAddress(): void {
 	if (!row) return
 	const modal = openModal({
 		title: t('dms_mailing.sends.fix_address.title'),
-		component: resolveComponent(FIX_ADDRESS_MODAL) as Component,
+		component: FixAddressModal,
 		componentOptions: { rowData: row, version: row.templateVersion ?? 0 },
 		size: FIX_ADDRESS_MODAL_SIZE,
 	})
@@ -342,8 +349,7 @@ function replayDetails(row: SendRow) {
 }
 
 /** What goes again, and a warning when a draft test sends today's draft. */
-function replayBody() {
-	const row = send.value as SendRow
+function replayBody(row: SendRow) {
 	const warning = isDraftTest.value
 		? h(
 				'p',
@@ -369,7 +375,7 @@ async function replay(): Promise<void> {
 		)
 		settle()
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}
@@ -389,7 +395,7 @@ function confirmSendAgain(): void {
 		confirmIcon: 'i-ph-arrow-clockwise',
 		confirmLabel: t('dms_mailing.sends.confirm.replay_confirm'),
 		cancelLabel: key('replay.cancel'),
-		body: replayBody,
+		body: () => replayBody(row),
 		onConfirm: replay,
 	})
 }

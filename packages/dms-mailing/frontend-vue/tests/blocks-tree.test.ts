@@ -10,10 +10,11 @@ import {
 	neighbourOf,
 	removeBlock,
 } from '../app/utils/blocks'
-import type { Block, FooterBlock, IfBlock } from '../app/types/mailing'
+import type { Block } from '../app/types/mailing'
+import { expectFooter, expectIf } from './helpers/blocks'
 
 function tree(): Block[] {
-	const branch = createBlock('if') as IfBlock
+	const branch = expectIf(createBlock('if'))
 	branch.id = 'if1'
 	branch.children = [{ ...createBlock('paragraph'), id: 'p1' }]
 	return [
@@ -27,7 +28,7 @@ describe('block tree', () => {
 	it('finds nested blocks and their parent list', () => {
 		const blocks = tree()
 		expect(findBlock(blocks, 'p1')?.type).toBe('paragraph')
-		expect(findParentList(blocks, 'p1')).toBe((blocks[1] as IfBlock).children)
+		expect(findParentList(blocks, 'p1')).toBe(expectIf(blocks[1]).children)
 		expect(findParentList(blocks, 'h1')).toBe(blocks)
 		expect(findBlock(blocks, 'nope')).toBeNull()
 	})
@@ -47,7 +48,7 @@ describe('block tree', () => {
 	it('removes nested blocks', () => {
 		const blocks = tree()
 		expect(removeBlock(blocks, 'p1')).toBe(true)
-		expect((blocks[1] as IfBlock).children).toEqual([])
+		expect(expectIf(blocks[1]).children).toEqual([])
 	})
 })
 
@@ -67,7 +68,7 @@ describe('insertion and removal helpers', () => {
 	})
 	it('translates the default footer labels and keeps typed ones', () => {
 		const blocks = tree()
-		const footer = blocks[2] as FooterBlock
+		const footer = expectFooter(blocks[2])
 		footer.preferencesLabel = 'My settings'
 		localizeFooters(blocks, 'en', 'fr')
 		expect(footer.unsubscribeLabel).toBe('Se désinscrire')

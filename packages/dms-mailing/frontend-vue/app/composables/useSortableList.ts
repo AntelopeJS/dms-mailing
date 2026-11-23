@@ -1,5 +1,6 @@
 import { useSortable } from '@vueuse/integrations/useSortable'
 import { toRef, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
+import { isString } from '../utils/guards'
 
 /** What a drop did to a list, as vuedraggable's `change` event said it. */
 export interface SortableListChange<Item> {
@@ -33,7 +34,12 @@ export interface SortableListOptions<Item> {
 	/** Class of the slot the dragged item will land in. */
 	ghostClass?: string
 	/** What another list receives in place of the dragged item. */
-	clone?: (item: Item) => unknown
+	clone?: (item: Item) => object
+	/**
+	 * Whether what another list of the group hands over is an item of this
+	 * one. Without it, nothing dropped from another list lands here.
+	 */
+	accepts?: (value: unknown) => value is Item
 	onChange?: (change: SortableListChange<Item>) => void
 	/** After every drag, whatever it changed. */
 	onEnd?: () => void
@@ -48,21 +54,31 @@ interface SortableEvent {
 	pullMode?: boolean | 'clone'
 }
 
+type PassedOptions = Pick<
+	SortableListOptions<never>,
+	'group' | 'handle' | 'draggable' | 'ghostClass'
+>
+
 /**
  * The options the list sets. SortableJS keeps its default only for an option
  * absent from the object: a key set to `undefined` replaces it (an undefined
  * `draggable` makes no child an item, so nothing drags).
  */
-function defined<Options extends object>(options: Options): Partial<Options> {
-	return Object.fromEntries(
-		Object.entries(options).filter(([, value]) => value !== undefined),
-	) as Partial<Options>
+function passedOptions(options: PassedOptions): PassedOptions {
+	const passed: PassedOptions = {}
+	if (options.group !== undefined) passed.group = options.group
+	if (options.handle !== undefined) passed.handle = options.handle
+	if (options.draggable !== undefined) passed.draggable = options.draggable
+	if (options.ghostClass !== undefined) passed.ghostClass = options.ghostClass
+	return passed
 }
 
 /**
- * The item being dragged, by group. A drop on another list only names the
- * element, which belongs to the list it left: the list it lands in reads the
- * item the other one stored when the drag started.
+ * The item being dragged, by group: a drop on another list only names the
+ * element, which belongs to the list it left, so the list it lands in reads
+ * what the other one handed over when the drag started, and checks it with
+ * its `accepts`. A list that refuses it takes it out of here, and the list it
+ * left then keeps its item.
  */
 const dragged = new Map<string, unknown>()
 
@@ -80,15 +96,10 @@ export function useSortableList<Item>(
 	list: () => Item[],
 	options: SortableListOptions<Item> = {},
 ): void {
-	const groupName =
-		typeof options.group === 'string'
-			? options.group
-			: (options.group?.name ?? '')
+	const groupName = isString(options.group)
+		? options.group
+		: (options.group?.name ?? '')
 
-	/**
-	 * Where the dragged element stood: next to the node that followed it, not
-	 * at an index, as Vue removes an item by the markers around it.
-	 */
 	let origin: { parent: Node; next: Node | null } | undefined
 
 	function restore(item: HTMLElement): void {
@@ -96,7 +107,7 @@ export function useSortableList<Item>(
 	}
 
 	const { option } = useSortable(root, toRef(list), {
-		...defined({
+		...passedOptions({
 			group: options.group,
 			handle: options.handle,
 			draggable: options.draggable,
@@ -124,23 +135,25 @@ export function useSortableList<Item>(
 			options.onChange?.({ moved: { element, oldIndex, newIndex } })
 		},
 		onAdd: (event: SortableEvent) => {
-			const element = dragged.get(groupName) as Item | undefined
 			const { newIndex } = event
-			if (element === undefined || newIndex === undefined) return
-			// The element goes back to the list it left, below.
+			const element = dragged.get(groupName)
+			const { accepts } = options
+			if (newIndex === undefined || !accepts || !accepts(element)) {
+				dragged.delete(groupName)
+				return
+			}
 			event.item.remove()
 			list().splice(newIndex, 0, element)
 			options.onChange?.({ added: { element, newIndex } })
 		},
 		onRemove: (event: SortableEvent) => {
 			restore(event.item)
-			// A copy left: the list keeps its item, and SortableJS's stand-in goes.
 			if (event.pullMode === 'clone') {
 				event.clone.remove()
 				return
 			}
 			const { oldIndex } = event
-			if (oldIndex === undefined) return
+			if (oldIndex === undefined || !dragged.has(groupName)) return
 			const [element] = list().splice(oldIndex, 1)
 			if (element === undefined) return
 			options.onChange?.({ removed: { element, oldIndex } })

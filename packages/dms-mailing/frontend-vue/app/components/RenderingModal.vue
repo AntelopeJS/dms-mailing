@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import type { MessageParams } from '../types/component'
 import { useSendHtmlRead, useSendRead } from '../composables/useMailingReads'
 import type { SendHtmlResponse, SendRow } from '../types/mailing'
 
-type RenderingView = 'desktop' | 'mobile' | 'html'
+const RENDERING_VIEWS = ['desktop', 'mobile', 'html'] as const
+
+type RenderingView = (typeof RENDERING_VIEWS)[number]
 
 /** The rendering as the API answers it now: a draft test is approximate. */
 interface SendRendering extends SendHtmlResponse {
@@ -45,7 +48,7 @@ const FRAME_WIDTHS: Record<RenderingView, string> = {
 }
 
 const { t, locale } = useI18n()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 
 const view = ref<RenderingView>('desktop')
 const rendering = ref<SendRendering | null>(null)
@@ -56,11 +59,11 @@ const failed = ref(false)
 const sendIdValue = computed(() => props.rowData?._id ?? props.sendId ?? '')
 const readSend = useSendRead(sendIdValue)
 const readHtml = useSendHtmlRead(sendIdValue)
-const key = (path: string, params: Record<string, unknown> = {}): string =>
+const key = (path: string, params: MessageParams = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
 
 const viewItems = computed(() =>
-	(Object.keys(VIEW_ICONS) as RenderingView[]).map((value) => ({
+	RENDERING_VIEWS.map((value) => ({
 		value,
 		icon: VIEW_ICONS[value],
 		label: key(`views.${value}`),
@@ -100,7 +103,9 @@ async function load(): Promise<void> {
 		rendering.value = html
 	} catch (error) {
 		failed.value = true
-		presentError(error, { fallbackKey: `${KEY_PREFIX}error_description` })
+		errorPresenter.presentError(error, {
+			fallbackKey: `${KEY_PREFIX}error_description`,
+		})
 	} finally {
 		loading.value = false
 	}

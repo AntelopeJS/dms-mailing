@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { reactive } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplateGallery from '../app/components/TemplateGallery.vue'
@@ -17,6 +16,8 @@ import {
 	type ApiDataStub,
 } from './helpers/api-data'
 import { stubAuthFetch, type AuthFetchStub } from './helpers/auth-fetch'
+import { elementWithAttribute } from './helpers/dom'
+import { elementAs, expectDefined, query, queryAll } from './helpers/narrow'
 
 const CATEGORIES_URL = '/api/mailing/templates/categories'
 const OVERVIEW_URL = '/api/mailing/templates/overview'
@@ -68,13 +69,6 @@ const STALE_DRAFT = row({
 	updatedAt: '2026-01-01T00:00:00Z',
 	attention: 'stale_draft',
 })
-const ARCHIVED = row({
-	_id: 'archived',
-	name: 'Old receipt',
-	status: 'archived',
-	locales: 'en',
-})
-
 const stats = (id: string, sends: number): TemplateStats => ({
 	id,
 	slug: id,
@@ -84,9 +78,17 @@ const stats = (id: string, sends: number): TemplateStats => ({
 	lastSentAt: null,
 })
 
+/** The query string of the page the gallery sits on. */
+type RouteQuery = Record<string, string>
+
+/** What the categories read answers. */
+interface CategoriesAnswer {
+	categories: { id: string; label: string; icon: string }[]
+}
+
 interface ContextOptions {
 	items: TemplateRow[]
-	query?: Record<string, unknown>
+	query?: RouteQuery
 }
 
 function context({ items, query = {} }: ContextOptions) {
@@ -114,7 +116,7 @@ const globals = {
 let stubs: NuxtStubs
 let writes: AuthFetchStub
 let api: ApiDataStub
-let routeQuery: Record<string, unknown> = {}
+let routeQuery: RouteQuery = {}
 let templateTotal = 3
 
 const readsOf = (url: string) => api.reads.filter((read) => read.url === url)
@@ -150,7 +152,7 @@ afterEach(() => {
 const cardNames = (host: HTMLElement) =>
 	[...host.querySelectorAll('h3')].map((title) => title.textContent?.trim())
 
-describe('TemplateGallery', () => {
+describe('TemplateGallery cards', () => {
 	it('groups the cards by category, in the settings order', async () => {
 		const view = mount(
 			TemplateGallery,
@@ -248,7 +250,9 @@ describe('TemplateGallery', () => {
 		expect(readsOf(LIST_URL)).toHaveLength(2)
 		view.unmount()
 	})
+})
 
+describe('TemplateGallery sorting and empty states', () => {
 	it('drops the category groups under an explicit sort, and steps the drawer in the drawn order', async () => {
 		const ctx = context({
 			items: [DRAFT, LIVE, MISSING_DE],
@@ -270,19 +274,15 @@ describe('TemplateGallery', () => {
 			globals,
 		)
 		await flush()
-		const details = [
-			...grouped.host.querySelectorAll('ubutton[aria-label]'),
-		].filter(
-			(button) =>
-				button.getAttribute('aria-label') ===
-				'dms_mailing.templates.actions.details',
-		) as HTMLElement[]
-		details[0]!.click()
-		const rows = stubs.drawerCalls[0]?.componentOptions?.navigation as {
-			total: number
-			index: number
-		}
-		expect(rows).toMatchObject({ index: 0, total: 3 })
+		elementWithAttribute(
+			grouped.host,
+			'ubutton[aria-label]',
+			'aria-label',
+			'dms_mailing.templates.actions.details',
+		).click()
+		expect(expectDefined(stubs.drawerCalls[0]?.componentOptions)).toMatchObject(
+			{ navigation: { index: 0, total: 3 } },
+		)
 		grouped.unmount()
 	})
 
@@ -307,15 +307,13 @@ describe('TemplateGallery', () => {
 		})
 		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
-		const empty = view.host.querySelector(
-			'[data-stub="DmsEmptyState"]',
-		) as HTMLElement
+		const empty = query(view.host, '[data-stub="DmsEmptyState"]', HTMLElement)
 		expect(empty.getAttribute('title')).toContain('search=Refund')
-		const buttons = [...empty.querySelectorAll('ubutton')] as HTMLElement[]
-		buttons[0]!.click()
+		const buttons = queryAll(empty, 'ubutton', HTMLElement)
+		expectDefined(buttons[0]).click()
 		expect(ctx.table.setGlobalFilter).toHaveBeenCalledWith('')
 		expect(stubs.navigations).toEqual([])
-		buttons[1]!.click()
+		expectDefined(buttons[1]).click()
 		expect(stubs.modalCalls[0]?.componentOptions).toMatchObject({
 			initialName: 'Refund',
 		})
@@ -326,15 +324,13 @@ describe('TemplateGallery', () => {
 		const ctx = context({ items: [], query: { filter_category: 'is:billing' } })
 		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
-		;(
-			view.host.querySelector(
-				'[data-stub="DmsEmptyState"] ubutton',
-			) as HTMLElement
-		).click()
+		query(view.host, '[data-stub="DmsEmptyState"] ubutton', HTMLElement).click()
 		expect(stubs.navigations).toEqual([{ path: '/modules/mailing/templates' }])
 		view.unmount()
 	})
+})
 
+describe('TemplateGallery shortcuts', () => {
 	it('opens the new template dialog on N, not while typing', async () => {
 		const view = mount(
 			TemplateGallery,
@@ -361,7 +357,7 @@ describe('TemplateGallery', () => {
 		const ctx = context({ items: [LIVE] })
 		const view = mount(TemplateGallery, { context: ctx }, globals)
 		await flush()
-		const card = view.host.querySelector('dmscardpanel') as HTMLElement
+		const card = query(view.host, 'dmscardpanel', HTMLElement)
 		card.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 't', bubbles: true }),
 		)
@@ -374,12 +370,16 @@ describe('TemplateGallery', () => {
 		expect(ctx.actions.open).toHaveBeenCalledWith(LIVE)
 		view.unmount()
 	})
+})
 
+describe('TemplateGallery loading', () => {
 	it('keeps its skeleton until the categories answered, then draws the cards in their group', async () => {
-		let answerCategories: (value: unknown) => void = () => {}
+		let answerCategories: (value: CategoriesAnswer) => void = () => {}
 		api.respond(({ url }) => {
 			if (url === CATEGORIES_URL)
-				return new Promise((resolve) => (answerCategories = resolve))
+				return new Promise<CategoriesAnswer>(
+					(resolve) => (answerCategories = resolve),
+				)
 			if (url === OVERVIEW_URL) return { items: [] }
 			return { results: [LIVE], total: 1 }
 		})
@@ -423,12 +423,10 @@ describe('TemplateGallery', () => {
 			globals,
 		)
 		await flush()
-		const skeleton = loading.host.querySelector(
-			'[data-gallery-skeleton]',
-		) as HTMLElement
-		const skeletonCard = skeleton.querySelector('dmscardpanel') as HTMLElement
-		const skeletonHeading = skeleton.firstElementChild as HTMLElement
-		const skeletonBody = skeletonCard.lastElementChild as HTMLElement
+		const skeleton = query(loading.host, '[data-gallery-skeleton]', HTMLElement)
+		const skeletonCard = query(skeleton, 'dmscardpanel', HTMLElement)
+		const skeletonHeading = elementAs(skeleton.firstElementChild, HTMLElement)
+		const skeletonBody = elementAs(skeletonCard.lastElementChild, HTMLElement)
 
 		api.respond(({ url }) =>
 			url === CATEGORIES_URL
@@ -442,9 +440,9 @@ describe('TemplateGallery', () => {
 		)
 		await flush()
 		expect(loaded.host.querySelector('[data-gallery-skeleton]')).toBeNull()
-		const section = loaded.host.querySelector('section') as HTMLElement
-		const card = section.querySelector('article, dmscardpanel') as HTMLElement
-		const body = card.lastElementChild as HTMLElement
+		const section = query(loaded.host, 'section', HTMLElement)
+		const card = query(section, 'article, dmscardpanel', HTMLElement)
+		const body = elementAs(card.lastElementChild, HTMLElement)
 
 		expect(skeleton.className).toBe(section.className)
 		expect(skeletonHeading.className).toContain('flex items-center gap-2')
@@ -467,10 +465,10 @@ describe('TemplateGallery', () => {
 			globals,
 		)
 		await flush()
-		const chips = [
-			...view.host.querySelectorAll('button[aria-label]'),
-		] as HTMLElement[]
-		const missing = chips.find((chip) => chip.textContent?.trim() === 'de')!
+		const chips = queryAll(view.host, 'button[aria-label]', HTMLElement)
+		const missing = expectDefined(
+			chips.find((chip) => chip.textContent?.trim() === 'de'),
+		)
 		expect(missing.className).toContain('border-dashed')
 		missing.click()
 		expect(stubs.navigations).toEqual([

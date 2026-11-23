@@ -17,8 +17,6 @@ import type {
 	TemplateStats,
 	TemplateStatus,
 } from '../types/mailing'
-// Imported rather than resolved by name: every module component is a lazy
-// chunk, and a card would first render without its thumbnail.
 import TemplatePreviewFrame from './TemplatePreviewFrame.vue'
 
 interface TemplateCardProps {

@@ -1,5 +1,6 @@
 import type { Block, BlockType } from '../../types/mailing'
 import { BLOCK_ICONS } from './factory'
+import { stringFields } from './strings'
 
 export type OutlineRowKind = 'block' | 'else'
 
@@ -23,10 +24,8 @@ type Summarizer = (block: Block) => string
 
 const field =
 	(key: string): Summarizer =>
-	(block) => {
-		const value = (block as unknown as Record<string, unknown>)[key]
-		return typeof value === 'string' ? value : ''
-	}
+	(block) =>
+		stringFields(block).get(key) ?? ''
 
 const SUMMARIZERS: Record<BlockType, Summarizer> = {
 	hero: (block) => field('alt')(block) || field('imageUrl')(block),

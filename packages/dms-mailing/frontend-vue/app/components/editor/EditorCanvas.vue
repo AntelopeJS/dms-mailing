@@ -4,9 +4,11 @@ import { useEditorContext } from '../../composables/useEditorContext'
 import { useEditorAnnouncements } from '../../composables/useEditorAnnouncements'
 import { TOKEN_DATA_KEY } from '../../utils/tokens'
 import type { TokenData } from '../../utils/tokens'
+import type { JsonObject } from '../../utils/guards'
+import type { EditorDevice } from '../../composables/useTemplateEditor'
 import { emailLogoUrl } from '#dms-layout/app/emails/components/index'
 
-const DEVICE_WIDTHS: Record<string, number> = {
+const DEVICE_WIDTHS: Record<EditorDevice, number> = {
 	desktop: 600,
 	mobile: 380,
 }
@@ -18,13 +20,6 @@ const SCROLL_OPTIONS: ScrollIntoViewOptions = {
 	behavior: 'smooth',
 }
 
-/** The DMS app config the e-mail logo is read from. */
-interface EmailBrandingConfig {
-	branding?: {
-		logo?: { default?: { light?: string }; email?: { light?: string } }
-	}
-}
-
 const { t } = useI18n()
 const { editor, session } = useEditorContext()
 useEditorAnnouncements(editor)
@@ -34,14 +29,14 @@ useEditorAnnouncements(editor)
  * and the check `EmailLayout` runs with `publicLogoOnly`. The paper is white,
  * so the dark-mode logo never applies.
  */
-const logo = (useDmsAppConfig() as EmailBrandingConfig).branding?.logo
+const logo = useDmsAppConfig().branding.logo
 const logoUrl = emailLogoUrl(
 	logo?.email?.light || logo?.default?.light,
 	useDmsRuntimeConfig().public.dms?.clientBaseUrl ?? '',
 )
 
 const canvas = ref<HTMLElement | null>(null)
-const lastValidData = ref<Record<string, unknown>>({})
+const lastValidData = ref<JsonObject>({})
 
 const width = computed(() => `${DEVICE_WIDTHS[editor.device]}px`)
 const isTestDataInvalid = computed(

@@ -8,26 +8,21 @@ import {
 import { stubApiData, type ApiDataStub } from './helpers/api-data'
 
 let reads: ApiDataStub
-const options: Record<string, unknown>[] = []
 
 beforeEach(() => {
 	reads = stubApiData()
-	options.length = 0
-	const stubbed = globalThis.useApiData
-	vi.stubGlobal(
-		'useApiData',
-		(url: unknown, readOptions: Record<string, unknown>) => {
-			options.push(readOptions)
-			return stubbed(url as string, readOptions)
-		},
-	)
 })
 
 afterEach(() => {
 	vi.unstubAllGlobals()
 })
 
-const inScope = <T>(setup: () => T): T => effectScope().run(setup) as T
+function inScope<T>(setup: () => T): T {
+	const scope = effectScope()
+	const result = scope.run(setup)
+	if (result === undefined) throw new Error('the scope ran nothing')
+	return result
+}
 
 describe('reads made on demand', () => {
 	it('read nothing until asked, then the current URL each time', async () => {
@@ -36,7 +31,7 @@ describe('reads made on demand', () => {
 		const readContent = inScope(() => useTemplateContentRead(id))
 		await Promise.resolve()
 		expect(reads.reads).toEqual([])
-		expect(options[0]).toMatchObject({
+		expect(reads.options[0]).toMatchObject({
 			immediate: false,
 			refreshOnPageRefresh: false,
 		})

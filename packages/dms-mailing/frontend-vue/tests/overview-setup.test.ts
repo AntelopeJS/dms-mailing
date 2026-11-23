@@ -42,9 +42,7 @@ describe('setupSteps', () => {
 		})
 	})
 
-	// The provider is set in the project's configuration: no button leads to
-	// a read-only field.
-	it('offers no destination for the provider step', () => {
+	it('offers no destination for the provider step, set in the project configuration, as no button leads to a read-only field', () => {
 		const provider = setupSteps(facts({ isProviderConnected: false }))[0]
 		expect(provider?.to).toBeUndefined()
 	})

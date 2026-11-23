@@ -5,6 +5,7 @@ import type {
 	TemplateContent,
 } from '../types/mailing'
 import { blockLabelKey } from './blocks/factory'
+import { stringFields } from './blocks/strings'
 import { findBlock } from './blocks/tree'
 
 /** One line of the publish review: "EN · Paragraph changed". */
@@ -64,27 +65,24 @@ const TEXT_FIELDS = ['text', 'label', 'alt'] as const
 
 function textOf(block: Block | null): string | undefined {
 	if (!block) return undefined
-	const fields = block as unknown as Record<string, unknown>
-	const field = TEXT_FIELDS.find((name) => typeof fields[name] === 'string')
-	return field ? (fields[field] as string) : undefined
+	const fields = stringFields(block)
+	return TEXT_FIELDS.map((name) => fields.get(name)).find(
+		(text) => text !== undefined,
+	)
 }
-
-type EnvelopeKind = Extract<TemplateChangeKind, 'subject' | 'preheader'>
-
-const ENVELOPE_KINDS: TemplateChangeKind[] = ['subject', 'preheader']
 
 function textsOf(
 	change: TemplateChange,
 	sources: ChangeSources,
 ): Pick<ChangeLine, 'before' | 'after'> {
-	if (ENVELOPE_KINDS.includes(change.kind)) {
-		const field = change.kind as EnvelopeKind
+	const { kind } = change
+	if (kind === 'subject' || kind === 'preheader') {
 		return {
-			before: sources.published?.locales[change.locale]?.[field],
-			after: sources.draft.locales[change.locale]?.[field],
+			before: sources.published?.locales[change.locale]?.[kind],
+			after: sources.draft.locales[change.locale]?.[kind],
 		}
 	}
-	if (change.kind !== 'block_changed') return {}
+	if (kind !== 'block_changed') return {}
 	return {
 		before: textOf(blockIn(sources.published, change)),
 		after: textOf(blockIn(sources.draft, change)),

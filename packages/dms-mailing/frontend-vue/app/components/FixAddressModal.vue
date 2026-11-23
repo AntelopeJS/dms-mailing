@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MessageParams } from '../types/component'
 import FormFieldRow from '../build/components/FormFieldRow.vue'
 import FormRows from '../build/components/FormRows.vue'
 import { useMailingApi } from '../composables/useMailingApi'
@@ -26,14 +27,14 @@ const KEY_PREFIX = 'dms_mailing.sends.fix_address.'
 const api = useMailingApi()
 const reportReplay = useReplayToast()
 const { t } = useI18n()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 
 const previous = computed(() => props.rowData?.recipientEmail ?? '')
 const address = ref(previous.value)
 const isTouched = ref(false)
 const sending = ref(false)
 
-const key = (path: string, params: Record<string, unknown> = {}): string =>
+const key = (path: string, params: MessageParams = {}): string =>
 	t(`${KEY_PREFIX}${path}`, params)
 
 const errorKey = computed(() =>
@@ -67,7 +68,7 @@ async function submit(): Promise<void> {
 		reportReplay(result, email, key('sent', { email }))
 		emit('success', true)
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}

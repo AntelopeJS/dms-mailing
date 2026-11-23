@@ -3,6 +3,11 @@ import EmailLayout from '#dms-layout/app/emails/components/EmailLayout.vue'
 import MailingBlocks from './components/MailingBlocks.vue'
 import type { ResolvedEmail } from '../types/mailing'
 
+/**
+ * The DMS frame without its heading and separator: the blocks carry the
+ * e-mail's own title and footer. The logo is left out unless a mail client can
+ * load it (`publicLogoOnly`).
+ */
 interface Props {
 	locale: string
 	email: ResolvedEmail
@@ -10,9 +15,6 @@ interface Props {
 
 const VIEWPORT = 'width=device-width, initial-scale=1'
 
-// The DMS frame without its heading and separator: the blocks carry the
-// e-mail's own title and footer. The logo is left out unless a mail client can
-// load it (`publicLogoOnly`).
 defineProps<Props>()
 </script>
 

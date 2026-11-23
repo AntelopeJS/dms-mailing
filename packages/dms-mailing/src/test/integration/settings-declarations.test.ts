@@ -1,10 +1,6 @@
 import { expect } from "chai";
 import { declaration, mailing } from "../helpers/declarations";
 
-/**
- * Categories live in the workspace settings, which the settings suite checks
- * against the defaults: these declarations go to a workspace of their own.
- */
 describe("[integration] template category declarations", () => {
   const stamp = Date.now();
   const tenantId = `declarations-${stamp}`;
@@ -91,7 +87,6 @@ describe("[integration] template category declarations", () => {
   });
 });
 
-/** The sender lives in the workspace settings too: a workspace of its own. */
 describe("[integration] sender declarations", () => {
   const stamp = Date.now();
   const tenantId = `sender-${stamp}`;

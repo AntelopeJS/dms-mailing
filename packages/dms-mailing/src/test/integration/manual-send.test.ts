@@ -8,11 +8,6 @@ const HTTP_UNPROCESSABLE = 422;
 const TABLE = "/api/mailing/tables/templates";
 const RECIPIENT = "julie@example.test";
 
-/**
- * A real send typed by hand from the dialog never goes out with a required
- * value missing, whatever the workspace's `blockOnMissingVariables` says; tests
- * and API calls keep following that setting.
- */
 describe("[integration] manual real sends", () => {
   it("refuses a manual real send that lacks a required variable", async () => {
     const session = await ensureOwnerSession();

@@ -8,12 +8,10 @@ import { useTemplateContentRead } from '../composables/useMailingReads'
 import type { SendResult } from '../composables/useMailingApi'
 import { useTemplateDrawer } from '../composables/useTemplateDrawer'
 import { firstName, formatCardDate } from '../utils/gallery'
+import { jsonText, ownValue } from '../utils/guards'
+import type { JsonValue } from '../utils/guards'
 import { localeChipClass, missingLocales } from '../utils/locales'
-import {
-	isSendableRecipients,
-	localeOptions,
-	type NamedLocale,
-} from '../utils/recipients'
+import { isSendableRecipients, localeOptions } from '../utils/recipients'
 import { sendLogRoute } from '../utils/send-link'
 import {
 	buildSendData,
@@ -56,7 +54,7 @@ const emit = defineEmits<{ success: [sent?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { t, locale: uiLocale } = useI18n()
 const onDate = (date: string): string =>
 	t('dms_mailing.common.on_date', { date })
@@ -109,7 +107,7 @@ onMounted(async () => {
 		values.value = initialSendValues(fields.value, detail.value.testData)
 		locale.value = detail.value.fallbackLocale
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		loading.value = false
 	}
@@ -170,11 +168,7 @@ watch(
 )
 
 const localeItems = computed(() =>
-	localeOptions(
-		sentLocales.value,
-		uniqueLocales.value as NamedLocale[],
-		uiLocale.value,
-	),
+	localeOptions(sentLocales.value, uniqueLocales.value, uiLocale.value),
 )
 
 const hasSender = computed(() => Boolean(detail.value?.sender?.email))
@@ -255,7 +249,7 @@ const checks = computed<ReadinessCheck[]>(() => {
 	]
 })
 
-function listLabel(field: SendField, value: unknown): string {
+function listLabel(field: SendField, value: JsonValue | undefined): string {
 	if (field.kind === 'object') return t('dms_mailing.real_send.object_value')
 	if (!Array.isArray(value)) return t('dms_mailing.real_send.list_missing')
 	return t(
@@ -265,8 +259,12 @@ function listLabel(field: SendField, value: unknown): string {
 	)
 }
 
-function setValue(path: string, value: unknown): void {
+function setValue(path: string, value: JsonValue | undefined): void {
 	values.value = { ...values.value, [path]: value }
+}
+
+function valueText(path: string): string {
+	return jsonText(ownValue(values.value, path) ?? '')
 }
 
 function close(sent: boolean): void {
@@ -296,7 +294,9 @@ function report(results: SendResult[]): void {
 	results
 		.filter((result) => result.error)
 		.forEach((result) =>
-			presentError(result.error, { fallbackKey: 'error.500.description' }),
+			errorPresenter.presentError(result.error, {
+				fallbackKey: 'error.500.description',
+			}),
 		)
 	const sent = results.filter((result) => !result.error).length
 	if (!sent) return
@@ -326,7 +326,7 @@ async function submit(): Promise<void> {
 		report(response.results)
 		close(true)
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		sending.value = false
 	}
@@ -402,7 +402,7 @@ async function submit(): Promise<void> {
 						<DmsInputText
 							v-else
 							:id="id"
-							:model-value="String(values[field.path] ?? '')"
+							:model-value="valueText(field.path)"
 							:data-path="field.path"
 							class="w-full"
 							@update:model-value="setValue(field.path, String($event ?? ''))"

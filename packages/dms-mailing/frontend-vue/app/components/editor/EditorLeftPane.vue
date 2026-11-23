@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { LeftTab } from '../../composables/useTemplateEditor'
+import { isLeftTab } from '../../composables/useTemplateEditor'
 import { useEditorContext } from '../../composables/useEditorContext'
 
 interface ShortcutEntry {
@@ -49,7 +49,9 @@ const items = computed(() => [
 
 const tab = computed({
 	get: () => editor.leftTab,
-	set: (value: string | number) => (editor.leftTab = value as LeftTab),
+	set: (value: string | number) => {
+		if (isLeftTab(value)) editor.leftTab = value
+	},
 })
 </script>
 

@@ -8,6 +8,7 @@ import {
 	suggestVariablePath,
 } from '../app/utils/variables'
 import type { TemplateContent, VariableDefinition } from '../app/types/mailing'
+import { expectDefined } from './helpers/narrow'
 
 const DECLARED: VariableDefinition[] = [
 	{ path: 'order.total', type: 'money', required: true },
@@ -113,7 +114,7 @@ describe('variable paths in the content', () => {
 		const content = usingContent()
 		renameVariablePath(content, 'order.total', 'order.amount')
 		renameVariablePath(content, 'order.lines', 'cart.items')
-		const [paragraph, branch] = content.locales.en!.blocks
+		const [paragraph, branch] = expectDefined(content.locales.en).blocks
 		expect(paragraph).toMatchObject({
 			text: 'Total {{order.amount}}, again {{order.amount}}',
 			visibleIf: { path: 'order.amount' },

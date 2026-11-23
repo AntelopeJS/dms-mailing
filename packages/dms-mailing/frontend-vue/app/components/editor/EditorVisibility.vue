@@ -46,7 +46,7 @@ function startRule(): void {
 	if (path) setRule(ruleOn(path))
 }
 
-function pickPath(value: unknown): void {
+function pickPath(value: string | number | null | undefined): void {
 	const path = String(value ?? '').trim()
 	if (!path) return
 	isPickingPath.value = false

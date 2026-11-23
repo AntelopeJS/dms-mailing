@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
 	BLOCK_PALETTE,
 	LOGIC_PALETTE,
+	cloneFromPalette,
 	createBlock,
 	newBlockId,
 } from '../app/utils/blocks'
+import { isBlock } from '../app/utils/draft-snapshot'
 
 describe('block factory', () => {
 	it('creates every palette block with a unique id and no visibility rule', () => {
@@ -15,6 +17,11 @@ describe('block factory', () => {
 			expect(block.visibleIf).toBeNull()
 			expect(ids.has(block.id)).toBe(false)
 			ids.add(block.id)
+		}
+	})
+	it('creates every palette block as one a block list accepts on a drop', () => {
+		for (const entry of [...BLOCK_PALETTE, ...LOGIC_PALETTE]) {
+			expect(isBlock(cloneFromPalette(entry, { locale: 'fr' }))).toBe(true)
 		}
 	})
 	it('gives an if block an empty then-branch and no else-branch', () => {

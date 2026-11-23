@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { localizeStarters, starterNameKey } from '../app/utils/starters'
 
-const FRENCH: Record<string, string> = {
-	'dms_mailing.starters.names.order-confirmed': 'Confirmation de commande',
-}
-const translate = (key: string): string | undefined => FRENCH[key]
+const FRENCH = new Map([
+	['dms_mailing.starters.names.order-confirmed', 'Confirmation de commande'],
+])
+const translate = (key: string): string | undefined => FRENCH.get(key)
 
 describe('localizeStarters', () => {
 	it('names a known starter in the interface language, else as shipped', () => {

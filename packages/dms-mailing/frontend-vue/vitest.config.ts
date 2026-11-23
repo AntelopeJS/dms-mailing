@@ -15,15 +15,29 @@ export default defineConfig({
 		},
 	},
 	test: {
-		// Most suites need no DOM, and setting jsdom up per file is the bulk of
-		// the run; the files that mount components opt in with a
-		// `// @vitest-environment jsdom` header.
-		environment: 'node',
-		include: ['tests/**/*.test.ts'],
-		typecheck: {
-			enabled: true,
-			include: ['tests/**/*.test-d.ts'],
-			tsconfig: 'tsconfig.typecheck.json',
-		},
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: 'node',
+					environment: 'node',
+					include: ['tests/**/*.test.ts'],
+					exclude: ['tests/**/*.dom.test.ts'],
+					typecheck: {
+						enabled: true,
+						include: ['tests/**/*.test-d.ts'],
+						tsconfig: 'tsconfig.typecheck.json',
+					},
+				},
+			},
+			{
+				extends: true,
+				test: {
+					name: 'dom',
+					environment: 'jsdom',
+					include: ['tests/**/*.dom.test.ts'],
+				},
+			},
+		],
 	},
 })

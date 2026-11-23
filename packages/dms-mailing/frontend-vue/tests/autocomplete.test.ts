@@ -6,6 +6,7 @@ import {
 	tokenQueryAt,
 } from '../app/utils/autocomplete'
 import type { VariableDefinition } from '../app/types/mailing'
+import { expectDefined } from './helpers/narrow'
 
 const VARIABLES: VariableDefinition[] = [
 	{ path: 'order.total', type: 'money', required: true },
@@ -62,7 +63,7 @@ describe('suggestPaths', () => {
 describe('insertSuggestion', () => {
 	it('replaces the typed token and places the caret after it', () => {
 		const text = 'Hi {{ord there'
-		const query = tokenQueryAt(text, 8)!
+		const query = expectDefined(tokenQueryAt(text, 8))
 		expect(insertSuggestion(text, query, 8, 'order.total')).toEqual({
 			text: 'Hi {{order.total}} there',
 			caret: 18,
@@ -70,7 +71,7 @@ describe('insertSuggestion', () => {
 	})
 	it('swallows the rest of the path and an existing closing }}', () => {
 		const text = 'Hi {{or}}!'
-		const query = tokenQueryAt(text, 7)!
+		const query = expectDefined(tokenQueryAt(text, 7))
 		expect(insertSuggestion(text, query, 7, 'order.number').text).toBe(
 			'Hi {{order.number}}!',
 		)

@@ -9,9 +9,11 @@ import type {
 	TemplateCategory,
 	TemplateRow,
 	TemplateStats,
+	TemplateStatus,
 	TemplateVersionSummary,
 	VariableDefinition,
 } from '../types/mailing'
+import type { JsonObject } from '../utils/guards'
 import type { WebhookTestResult } from '../utils/webhook-status'
 
 const BASE = '/api/mailing'
@@ -33,7 +35,7 @@ export interface PreviewInput {
 	/** Which content to render when `content` is absent; the draft by default. */
 	version?: PreviewVersion
 	content?: TemplateContent
-	data?: Record<string, unknown>
+	data?: JsonObject
 }
 
 export interface TestSendInput extends PreviewInput {
@@ -44,7 +46,7 @@ export interface TestSendInput extends PreviewInput {
 export interface RealSendInput {
 	to: string[]
 	locale?: string
-	data?: Record<string, unknown>
+	data?: JsonObject
 }
 
 export interface SendResult {
@@ -144,7 +146,7 @@ export interface CreateTemplateInput {
 }
 
 export interface StatusResponse {
-	status: string
+	status: TemplateStatus
 }
 
 export interface DuplicateResponse {
@@ -158,7 +160,7 @@ export interface VariablesResponse {
 }
 
 export interface TestDataResponse {
-	data: Record<string, unknown>
+	data: JsonObject
 }
 
 export interface TestSendResponse {
@@ -179,6 +181,12 @@ export interface StarterPreviewResponse {
 	locale: string
 }
 
+type AuthFetchOptions = NonNullable<
+	Parameters<ReturnType<typeof useAuthFetch>['$authFetch']>[1]
+>
+
+type AuthFetchBody = NonNullable<AuthFetchOptions['body']>
+
 /**
  * The mailing endpoints a component writes to, and the previews it renders
  * from a draft it sends. Every read goes through `useMailingReads`, with the
@@ -186,7 +194,7 @@ export interface StarterPreviewResponse {
  */
 export function useMailingApi() {
 	const { $authFetch } = useAuthFetch()
-	const post = <T>(path: string, body: object) =>
+	const post = <T>(path: string, body: AuthFetchBody) =>
 		$authFetch<T>(path, { method: 'POST', body })
 
 	return {
@@ -241,7 +249,7 @@ export function useMailingApi() {
 				variables,
 				revision,
 			}),
-		saveTestData: (id: string, data: Record<string, unknown>) =>
+		saveTestData: (id: string, data: JsonObject) =>
 			post<TestDataResponse>(mailingPath('templates', id, 'test-data'), {
 				data,
 			}),

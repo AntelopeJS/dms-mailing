@@ -257,7 +257,7 @@
 				"empty_title": "Aucun bloc sélectionné",
 				"empty_description": "Cliquez sur un bloc de l’e-mail pour le modifier ici.",
 				"position": "bloc {index} sur {total}",
-				"position_branches": "{position} · {then} + {else} blocs",
+				"position_branches": "{position} · {whenTrue} + {whenFalse} blocs",
 				"duplicate": "Dupliquer",
 				"delete": "Supprimer"
 			},

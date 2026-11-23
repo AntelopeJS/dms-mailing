@@ -9,13 +9,22 @@ import {
 	useStartersRead,
 	useTemplateListRead,
 } from '../composables/useMailingReads'
-import { HTTP_CONFLICT, apiErrorStatus } from '../utils/api-error'
+import {
+	HTTP_CONFLICT,
+	apiErrorStatus,
+	asReportedError,
+} from '../utils/api-error'
+import type { ReportedError } from '../utils/api-error'
 import { NO_CATEGORY, fromCategoryOption } from '../utils/categories'
 import { groupByCategory, matchesSearch } from '../utils/gallery'
 import { slugify, validateName, validateSlug } from '../utils/slug'
 import { editorRoute } from '../utils/editor-route'
 import type { StarterSummary, TemplateRow } from '../types/mailing'
-import type { CreateTemplateInput } from '../composables/useMailingApi'
+import type {
+	CreateTemplateInput,
+	StartersResponse,
+	TemplateListResponse,
+} from '../composables/useMailingApi'
 
 interface NewTemplateModalProps {
 	initialName?: string
@@ -54,7 +63,7 @@ interface TileGroup {
 
 const BLANK_SOURCE: SourceChoice = { kind: 'blank' }
 const ARCHIVED_STATUS = 'archived'
-const SEARCH_FIELDS = ['name', 'slug']
+const SEARCH_FIELDS = ['name', 'slug'] as const
 
 const SOURCE_FIELDS: Record<
 	SourceKind,
@@ -69,7 +78,7 @@ const props = defineProps<NewTemplateModalProps>()
 const emit = defineEmits<{ success: [created?: boolean] }>()
 
 const api = useMailingApi()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { t } = useI18n()
 
 const name = ref(props.initialName ?? '')
@@ -95,8 +104,10 @@ const templateSearch = ref('')
 
 onMounted(async () => {
 	const [templateList, starterList] = await Promise.all([
-		readTemplates().catch(() => ({ results: [] as TemplateRow[] })),
-		readStarters().catch(() => ({ starters: [] as StarterSummary[] })),
+		readTemplates().catch((): Pick<TemplateListResponse, 'results'> => ({
+			results: [],
+		})),
+		readStarters().catch((): StartersResponse => ({ starters: [] })),
 	])
 	templates.value = templateList.results
 	storedStarters.value = starterList.starters
@@ -238,20 +249,20 @@ function close(created: boolean): void {
 
 function creationInput(): CreateTemplateInput {
 	const chosenCategory = fromCategoryOption(category.value)
-	return {
+	const base: CreateTemplateInput = {
 		name: name.value.trim(),
 		slug: slug.value,
-		...(chosenCategory ? { category: chosenCategory } : {}),
-		...SOURCE_FIELDS[source.value.kind](source.value.id),
 	}
+	if (chosenCategory) base.category = chosenCategory
+	return { ...base, ...SOURCE_FIELDS[source.value.kind](source.value.id) }
 }
 
-function reportFailure(error: unknown): void {
+function reportFailure(error: ReportedError): void {
 	if (apiErrorStatus(error) === HTTP_CONFLICT) {
 		refusedSlugs.value = new Set([...refusedSlugs.value, slug.value])
 		return
 	}
-	presentError(error, { fallbackKey: 'error.500.description' })
+	errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 }
 
 async function submit(): Promise<void> {
@@ -263,7 +274,7 @@ async function submit(): Promise<void> {
 		close(true)
 		if (id) await navigateDms(editorRoute(id))
 	} catch (error) {
-		reportFailure(error)
+		reportFailure(asReportedError(error))
 	} finally {
 		saving.value = false
 	}

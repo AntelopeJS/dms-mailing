@@ -1,3 +1,8 @@
+import type { JsonValue } from '../utils/guards'
+
+/** The values a translation message interpolates. */
+export type MessageParams = Record<string, string | number>
+
 /**
  * Identity the DMS page renderer hands to every component it mounts. Optional
  * here because the mailing components are also mounted directly by our own
@@ -24,6 +29,6 @@ export interface GalleryDisplayContext<T> {
 	items: T[]
 	loading: boolean
 	pagination: GalleryPagination
-	options?: Record<string, unknown>
+	options?: Record<string, JsonValue | undefined>
 	refresh: () => Promise<void> | void
 }

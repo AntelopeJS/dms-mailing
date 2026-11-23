@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import ProviderPill from '../app/components/ProviderPill.vue'
@@ -10,6 +9,7 @@ import {
 	type ApiDataStub,
 } from './helpers/api-data'
 import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
+import { ButtonStub } from './helpers/button-stub'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 
 const api = { webhookTest: vi.fn() }
@@ -35,15 +35,6 @@ const PillStub = defineComponent({
 })
 
 const PILL_GLOBALS = { DmsStatusPill: PillStub }
-
-const ButtonStub = defineComponent({
-	props: { label: { type: String, default: '' } },
-	emits: ['click'],
-	setup:
-		(props, { emit }) =>
-		() =>
-			h('button', { onClick: () => emit('click') }, props.label),
-})
 
 let api$: ApiDataStub
 

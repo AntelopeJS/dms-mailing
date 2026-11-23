@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { TemplateDetails } from '../../composables/useMailingApi'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { asReportedError } from '../../utils/api-error'
 
 const KEY = 'dms_mailing.editor.template_tab'
 const NO_CATEGORY = '__none__'
@@ -32,7 +33,7 @@ async function persist(patch: Partial<TemplateDetails>): Promise<void> {
 		await session.saveDetails(patch)
 		toast.add({ color: 'success', title: t(`${KEY}.saved`) })
 	} catch (error) {
-		session.reportError(error)
+		session.reportError(asReportedError(error))
 	}
 }
 

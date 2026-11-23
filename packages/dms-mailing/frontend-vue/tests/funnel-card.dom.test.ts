@@ -1,27 +1,8 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import FunnelCard from '../app/components/FunnelCard.vue'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
-
-interface EmptyStateAction {
-	label: string
-	onClick: () => void
-}
-
-const EmptyStateStub = defineComponent({
-	props: {
-		title: { type: String, default: '' },
-		actions: { type: Array, default: () => [] },
-	},
-	setup: (props) => () =>
-		h('div', { 'data-empty-state': '' }, [
-			props.title,
-			...(props.actions as EmptyStateAction[]).map((action) =>
-				h('button', { onClick: action.onClick }, action.label),
-			),
-		]),
-})
+import { EmptyStateStub } from './helpers/empty-state-stub'
 
 const GLOBALS = {
 	DmsCardPanel: slotStub('DmsCardPanel'),

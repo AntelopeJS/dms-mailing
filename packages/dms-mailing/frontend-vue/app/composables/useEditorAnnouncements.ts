@@ -39,13 +39,15 @@ export function useEditorAnnouncements(editor: EditorState): void {
 		() => {
 			const announcement = editor.announcement
 			if (!announcement) return
-			toast.add({
+			const message = {
 				title: messageOf(announcement),
-				color: 'neutral',
-				...(announcement.undoable
-					? { actions: [undoAction(announcement.undoable)] }
-					: {}),
-			})
+				color: 'neutral' as const,
+			}
+			toast.add(
+				announcement.undoable
+					? { ...message, actions: [undoAction(announcement.undoable)] }
+					: message,
+			)
 		},
 	)
 }

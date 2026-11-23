@@ -25,17 +25,22 @@ const DRAFT: TemplateContent = {
 	},
 }
 
-const LABELS: Record<string, string> = {
-	'dms_mailing.blocks.paragraph': 'Paragraph',
-	'dms_mailing.blocks.if': 'Condition',
-	'dms_mailing.editor.changes.block_changed': '{block} changed',
-	'dms_mailing.editor.changes.block_added': '{block} added',
-	'dms_mailing.editor.changes.subject': 'Subject changed',
-	'dms_mailing.editor.changes.variable_added': '{variable} declared',
-}
+const LABELS = new Map([
+	['dms_mailing.blocks.paragraph', 'Paragraph'],
+	['dms_mailing.blocks.if', 'Condition'],
+	['dms_mailing.editor.changes.block_changed', '{block} changed'],
+	['dms_mailing.editor.changes.block_added', '{block} added'],
+	['dms_mailing.editor.changes.subject', 'Subject changed'],
+	['dms_mailing.editor.changes.variable_added', '{variable} declared'],
+])
 
-const translate = (key: string, params: Record<string, string> = {}) =>
-	(LABELS[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => params[name] ?? '')
+const translate = (key: string, params: Record<string, string> = {}) => {
+	const values = new Map(Object.entries(params))
+	return (LABELS.get(key) ?? key).replace(
+		/\{(\w+)\}/g,
+		(_, name: string) => values.get(name) ?? '',
+	)
+}
 
 describe('describeChanges', () => {
 	it('reads a declaration change without a locale, naming its path', () => {

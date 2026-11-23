@@ -10,6 +10,7 @@ import {
 } from "../../crons/retention";
 import { type MailingSend, SendEventModel, SendModel } from "../../db";
 import { recordEmailEvent } from "../../services/events";
+import { checkedRow } from "../helpers/checked";
 
 const OLD = new Date("2020-01-01T00:00:00Z");
 const CUTOFF = new Date("2021-01-01T00:00:00Z");
@@ -120,24 +121,22 @@ describe("[integration] replay-safe Mongo retention sweeps", () => {
   it("initializes a fresh identity and revision on every send", async () => {
     const f = fixture();
     const sourceId = await seed(f);
-    const source = await f.sends.getSnapshot(sourceId);
-    expect(source?.revision).to.be.a("string");
-    const [first] = await f.sends.insertSend(source!);
-    const [second] = await f.sends.insertSend(source!);
-    const firstSend = await f.sends.getSnapshot(first);
+    const source = checkedRow(await f.sends.getSnapshot(sourceId));
+    expect(source.revision).to.be.a("string");
+    const [first] = await f.sends.insertSend(source);
+    const [second] = await f.sends.insertSend(source);
+    const firstSend = checkedRow(await f.sends.getSnapshot(first));
     const secondSend = await f.sends.getSnapshot(second);
     expect(new Set([sourceId, first, second]).size).to.equal(3);
-    expect(firstSend?.revision)
-      .to.be.a("string")
-      .and.not.equal(source?.revision);
+    expect(firstSend.revision).to.be.a("string").and.not.equal(source.revision);
     expect(secondSend?.revision)
       .to.be.a("string")
-      .and.not.equal(firstSend?.revision);
-    expect(firstSend!.createdAt.getTime()).to.be.greaterThan(CUTOFF.getTime());
+      .and.not.equal(firstSend.revision);
+    expect(firstSend.createdAt.getTime()).to.be.greaterThan(CUTOFF.getTime());
     expect(await f.sends.retire(sourceId, CUTOFF)).to.equal(true);
     expect((await f.sends.getSnapshot(sourceId))?.revision)
       .to.be.a("string")
-      .and.not.equal(source?.revision);
+      .and.not.equal(source.revision);
     expect(await sweep(f)).to.equal(1);
     expect(await f.sends.getAll()).to.have.length(2);
   });
@@ -178,7 +177,7 @@ describe("[integration] replay-safe Mongo retention against webhook activity", (
     expect(candidate._id).to.equal(id);
     expect(
       await recordEmailEvent(f.tenantId, {
-        messageId: candidate.providerMessageId!,
+        messageId: checkedRow(candidate.providerMessageId),
         provider: "fixture",
         type: "opened",
         at: OLD,
@@ -192,10 +191,10 @@ describe("[integration] replay-safe Mongo retention against webhook activity", (
   it("serializes retirement against concurrent activity at the send document", async () => {
     const f = fixture();
     const id = await seed(f);
-    const candidate = await f.sends.get(id);
+    const candidate = checkedRow(await f.sends.get(id));
     const [retired, accepted] = await Promise.all([
       f.sends.retire(id, CUTOFF),
-      f.sends.recordActivity(candidate!, {
+      f.sends.recordActivity(candidate, {
         status: "opened",
         opens: 1,
         clicks: 0,
@@ -211,11 +210,11 @@ describe("[integration] replay-safe Mongo retention against webhook activity", (
   it("retries known conflicts and counts both concurrent opened webhooks", async () => {
     const f = fixture();
     const id = await seed(f);
-    const send = await f.sends.get(id);
+    const send = checkedRow(await f.sends.get(id));
     const accepted = await Promise.all(
       Array.from({ length: 2 }, () =>
         recordEmailEvent(f.tenantId, {
-          messageId: send!.providerMessageId!,
+          messageId: checkedRow(send.providerMessageId),
           provider: "fixture",
           type: "opened",
         }),
@@ -232,10 +231,10 @@ describe("[integration] replay-safe Mongo retention with uncertain writes", () =
   it("does not retry an uncertain webhook write or emit an unacknowledged event", async () => {
     const f = fixture();
     const id = await seed(f);
-    const send = await f.sends.get(id);
+    const send = checkedRow(await f.sends.get(id));
     const calls = await loseAcknowledgement(async () => {
       await recordEmailEvent(f.tenantId, {
-        messageId: send!.providerMessageId!,
+        messageId: checkedRow(send.providerMessageId),
         provider: "fixture",
         type: "opened",
       });
@@ -268,11 +267,11 @@ describe("[integration] replay-safe Mongo retention with uncertain writes", () =
   it("rejects a webhook after retirement and removes an already-paused writer's late event", async () => {
     const f = fixture();
     const id = await seed(f);
-    const send = await f.sends.get(id);
+    const send = checkedRow(await f.sends.get(id));
     expect(await f.sends.retire(id, CUTOFF)).to.equal(true);
     expect(
       await recordEmailEvent(f.tenantId, {
-        messageId: send!.providerMessageId!,
+        messageId: checkedRow(send.providerMessageId),
         provider: "fixture",
         type: "opened",
       }),

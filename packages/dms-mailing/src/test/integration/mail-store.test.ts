@@ -5,13 +5,6 @@ import { capturedMail, rawMail } from "../helpers/mail-store";
 
 const stamp = Date.now();
 
-/**
- * The SMTP fixture runs in the test config, which the harness loads as a
- * module instance of its own; the tests read what it kept through the folder
- * both instances name. A store kept in a variable of the config's instance,
- * or a fixture that answers `250` and drops the message, leaves this test
- * nothing to read.
- */
 describe("[integration] the SMTP fixture's mail store", () => {
   it("keeps each message with its envelope, headers and body where the tests read it", async () => {
     const { DeclareTemplate, SendTemplate } = await mailing();

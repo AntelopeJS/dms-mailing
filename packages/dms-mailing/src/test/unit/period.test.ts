@@ -28,11 +28,6 @@ describe("[unit] period range windows", () => {
     expect(spanDays(range)).to.equal(7);
   });
 
-  /**
-   * `from` and `to` are plain query parameters. Without a ceiling a caller can
-   * ask for centuries, and every daily series then allocates one bucket per
-   * day.
-   */
   it("clamps an absurd window instead of allocating a bucket per day", () => {
     const range = currentRange(
       ctxWith({
@@ -44,10 +39,6 @@ describe("[unit] period range windows", () => {
     expect(range.to.toISOString()).to.equal("2500-01-01T00:00:00.000Z");
   });
 
-  /**
-   * A reversed window is a typo: read as given, the comparison window would
-   * land in the future.
-   */
   it("swaps the bounds of a reversed window", () => {
     const range = currentRange(
       ctxWith({
@@ -94,10 +85,6 @@ describe("[unit] period range comparison windows", () => {
     expect(previous.to.getTime()).to.equal(current.from.getTime());
   });
 
-  /**
-   * `compareFrom`/`compareTo` are plain query parameters too, and every metric
-   * reads its comparison window from the send log in full.
-   */
   it("clamps an explicit comparison window like the current one", () => {
     const current = currentRange(ctxWith({}));
     const previous = comparisonRange(
