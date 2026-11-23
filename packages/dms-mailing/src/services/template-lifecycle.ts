@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
+import { announce } from "../automation/emitter";
 import { templatePublishedChannel } from "../automation/template-published-trigger";
 import {
   type TemplateAction,
@@ -74,17 +75,19 @@ function emitStatusChanged(
     revision: string;
   },
 ): void {
-  templateStatusChangedChannel.emit({
-    tenantId,
-    templateId: template._id,
-    slug: template.slug,
-    previousStatus: template.status,
-    status: change.status,
-    action: change.action,
-    publishedVersion: change.publishedVersion,
-    changedBy: change.author,
-    changedAt: new Date().toISOString(),
-    deliveryId: `${template._id}:${change.revision}`,
+  announce(templateStatusChangedChannel.id, () => {
+    templateStatusChangedChannel.emit({
+      tenantId,
+      templateId: template._id,
+      slug: template.slug,
+      previousStatus: template.status,
+      status: change.status,
+      action: change.action,
+      publishedVersion: change.publishedVersion,
+      changedBy: change.author,
+      changedAt: new Date().toISOString(),
+      deliveryId: `${template._id}:${change.revision}`,
+    });
   });
 }
 
@@ -95,20 +98,22 @@ function emitEditorPublish(
   outcome: AppliedPublish,
 ): void {
   const previousVersion = publishedVersionOf(template);
-  templatePublishedChannel.emit({
-    tenantId,
-    templateId: template._id,
-    slug: template.slug,
-    version: outcome.version,
-    previousVersion,
-    isNewVersion: outcome.version !== previousVersion,
-    previousStatus: template.status,
-    changeCount: outcome.changes.length,
-    locales: localeList(content),
-    publishedBy: outcome.publishedBy,
-    origin: "editor",
-    publishedAt: outcome.publishedAt.toISOString(),
-    deliveryId: `${template._id}:${outcome.revision}`,
+  announce(templatePublishedChannel.id, () => {
+    templatePublishedChannel.emit({
+      tenantId,
+      templateId: template._id,
+      slug: template.slug,
+      version: outcome.version,
+      previousVersion,
+      isNewVersion: outcome.version !== previousVersion,
+      previousStatus: template.status,
+      changeCount: outcome.changes.length,
+      locales: localeList(content),
+      publishedBy: outcome.publishedBy,
+      origin: "editor",
+      publishedAt: outcome.publishedAt.toISOString(),
+      deliveryId: `${template._id}:${outcome.revision}`,
+    });
   });
 }
 
@@ -147,25 +152,27 @@ export function emitDeclaredPublish(
   tenantId: string,
   template: MailingTemplate,
 ): void {
-  const content = parseContent(template);
-  const changes = [
-    ...diffContents({ locales: {} }, content),
-    ...diffVariables([], parseVariables(template)),
-  ];
-  templatePublishedChannel.emit({
-    tenantId,
-    templateId: template._id,
-    slug: template.slug,
-    version: publishedVersionOf(template),
-    previousVersion: 0,
-    isNewVersion: true,
-    previousStatus: "",
-    changeCount: changes.length,
-    locales: localeList(content),
-    publishedBy: template.publishedBy ?? "",
-    origin: "declaration",
-    publishedAt: new Date(template.publishedAt ?? Date.now()).toISOString(),
-    deliveryId: `${template._id}:declared`,
+  announce(templatePublishedChannel.id, () => {
+    const content = parseContent(template);
+    const changes = [
+      ...diffContents({ locales: {} }, content),
+      ...diffVariables([], parseVariables(template)),
+    ];
+    templatePublishedChannel.emit({
+      tenantId,
+      templateId: template._id,
+      slug: template.slug,
+      version: publishedVersionOf(template),
+      previousVersion: 0,
+      isNewVersion: true,
+      previousStatus: "",
+      changeCount: changes.length,
+      locales: localeList(content),
+      publishedBy: template.publishedBy ?? "",
+      origin: "declaration",
+      publishedAt: new Date(template.publishedAt ?? Date.now()).toISOString(),
+      deliveryId: `${template._id}:declared`,
+    });
   });
 }
 

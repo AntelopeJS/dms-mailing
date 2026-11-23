@@ -138,6 +138,21 @@ export class TriggerChannel<
   }
 }
 
+/**
+ * Builds and fires an event after the change it tells of was stored: a
+ * failure here is logged and never fails the change, which already applied.
+ */
+export function announce(event: string, fire: () => void): void {
+  try {
+    fire();
+  } catch (error) {
+    Logging.Warn(
+      `[dms-mailing] Could not fire "${event}" after its change was stored:`,
+      error,
+    );
+  }
+}
+
 /** Drops every subscription of every trigger, so a restarted module starts from nothing. */
 export function clearTriggerSubscriptions(): void {
   for (const channel of channels) channel.clear();

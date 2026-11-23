@@ -7,6 +7,7 @@ import {
   type AddressUnsuppressedPayload,
   addressUnsuppressedChannel,
 } from "../automation/address-unsuppressed-trigger";
+import { announce } from "../automation/emitter";
 import {
   type MailingSuppression,
   normalizeAddress,
@@ -118,10 +119,12 @@ export async function suppressAddressAndRead(
   const added = await model.add(entry);
   const row = await model.findByEmail(entry.email);
   if (added && row)
-    addressSuppressedChannel.emitOriginated(
-      subjectOf(tenantId, row),
-      suppressedPayload(tenantId, row),
-    );
+    announce(addressSuppressedChannel.id, () => {
+      addressSuppressedChannel.emitOriginated(
+        subjectOf(tenantId, row),
+        suppressedPayload(tenantId, row),
+      );
+    });
   return { added, row };
 }
 
@@ -203,10 +206,12 @@ export async function liftSuppression(
   if (!mayLift(row)) return { row, removed: false, refused: true };
   const removed = (await model.delete(row._id)) > 0;
   if (removed)
-    addressUnsuppressedChannel.emitOriginated(
-      subjectOf(tenantId, row),
-      unsuppressedPayload(tenantId, row, removedBy),
-    );
+    announce(addressUnsuppressedChannel.id, () => {
+      addressUnsuppressedChannel.emitOriginated(
+        subjectOf(tenantId, row),
+        unsuppressedPayload(tenantId, row, removedBy),
+      );
+    });
   return { row, removed, refused: false };
 }
 
