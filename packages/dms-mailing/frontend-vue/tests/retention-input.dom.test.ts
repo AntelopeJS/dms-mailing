@@ -17,7 +17,6 @@ import { query } from './helpers/narrow'
 
 /**
  * The read the preview makes.
- * @vitest-environment jsdom
  */
 const PREVIEW_URL = '/api/mailing/settings/retention-preview'
 

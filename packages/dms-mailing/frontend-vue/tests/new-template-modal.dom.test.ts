@@ -18,7 +18,6 @@ import {
 	type AuthFetchStub,
 } from './helpers/auth-fetch'
 
-/** @vitest-environment jsdom */
 const api = {
 	listTemplates: vi.fn(),
 	starters: vi.fn(),

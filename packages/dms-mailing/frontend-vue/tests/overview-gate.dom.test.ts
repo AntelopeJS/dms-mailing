@@ -11,7 +11,6 @@ let api: ApiDataStub
 
 /**
  * The read the gate makes for its facts.
- * @vitest-environment jsdom
  */
 const SETUP_URL = '/api/mailing/metrics/setup'
 

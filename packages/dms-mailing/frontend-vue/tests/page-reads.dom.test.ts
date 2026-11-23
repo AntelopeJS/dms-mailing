@@ -12,7 +12,6 @@ import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 import { ButtonStub } from './helpers/button-stub'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 
-/** @vitest-environment jsdom */
 const api = { webhookTest: vi.fn() }
 
 const PROVIDER_URL = '/api/mailing/provider'

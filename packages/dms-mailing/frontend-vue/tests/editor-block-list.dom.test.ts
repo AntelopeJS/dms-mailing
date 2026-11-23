@@ -40,7 +40,6 @@ import { callHandler, dragEvent, pair } from './helpers/sortable-drag'
 
 /**
  * The content every editor of the suite is built on.
- * @vitest-environment jsdom
  */
 const CONTENT: TemplateContent = {
 	locales: { en: { subject: 'Hi', preheader: '', blocks: [] } },

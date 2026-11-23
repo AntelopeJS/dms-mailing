@@ -6,7 +6,6 @@ import { mailingReads, stubApiData } from './helpers/api-data'
 import { stubAuthFetch } from './helpers/auth-fetch'
 import { elementAs } from './helpers/narrow'
 
-/** @vitest-environment jsdom */
 const SEND: SendRow = {
 	_id: '041f125a00000000',
 	templateId: 't1',

@@ -22,7 +22,6 @@ import { expectDefined, query, queryAll } from './helpers/narrow'
 import { mailingReads, stubApiData } from './helpers/api-data'
 import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
-/** @vitest-environment jsdom */
 const api = {
 	templateContent: vi.fn(),
 	preview: vi.fn(),

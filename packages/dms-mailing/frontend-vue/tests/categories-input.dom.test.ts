@@ -12,7 +12,6 @@ import { stubApiData, type ApiDataStub } from './helpers/api-data'
 import { IconButtonStub } from './helpers/icon-button-stub'
 import type { StoredCategory } from '../app/types/mailing'
 
-/** @vitest-environment jsdom */
 const CATEGORIES: StoredCategory[] = [
 	{ id: 'orders', label: { en: 'Orders' }, icon: 'i-ph-package' },
 	{ id: 'marketing', label: { en: 'Marketing' }, icon: 'i-ph-sparkle' },

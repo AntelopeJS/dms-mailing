@@ -8,7 +8,6 @@ import { mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 import { TokenTextStub } from './helpers/token-text-stub'
 import type { Mounted } from './helpers/nuxt-globals'
 
-/** @vitest-environment jsdom */
 const footer = (overrides: Partial<FooterBlock> = {}): FooterBlock => ({
 	id: 'f',
 	type: 'footer',

@@ -33,7 +33,6 @@ import { expectDefined } from './helpers/narrow'
 import { flush, mount } from './helpers/nuxt-globals'
 import type { Mounted } from './helpers/nuxt-globals'
 
-/** @vitest-environment jsdom */
 const CONFLICT = {
 	statusCode: 409,
 	data: { message: '$dms_mailing.errors.draft_conflict' },

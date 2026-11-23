@@ -15,12 +15,29 @@ export default defineConfig({
 		},
 	},
 	test: {
-		environment: 'node',
-		include: ['tests/**/*.test.ts'],
-		typecheck: {
-			enabled: true,
-			include: ['tests/**/*.test-d.ts'],
-			tsconfig: 'tsconfig.typecheck.json',
-		},
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: 'node',
+					environment: 'node',
+					include: ['tests/**/*.test.ts'],
+					exclude: ['tests/**/*.dom.test.ts'],
+					typecheck: {
+						enabled: true,
+						include: ['tests/**/*.test-d.ts'],
+						tsconfig: 'tsconfig.typecheck.json',
+					},
+				},
+			},
+			{
+				extends: true,
+				test: {
+					name: 'dom',
+					environment: 'jsdom',
+					include: ['tests/**/*.dom.test.ts'],
+				},
+			},
+		],
 	},
 })

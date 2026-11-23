@@ -19,7 +19,6 @@ import { stubAuthFetch, type AuthFetchStub } from './helpers/auth-fetch'
 import { elementWithAttribute } from './helpers/dom'
 import { elementAs, expectDefined, query, queryAll } from './helpers/narrow'
 
-/** @vitest-environment jsdom */
 const CATEGORIES_URL = '/api/mailing/templates/categories'
 const OVERVIEW_URL = '/api/mailing/templates/overview'
 const LIST_URL = '/api/mailing/tables/templates/list'

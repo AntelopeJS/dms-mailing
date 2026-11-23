@@ -7,7 +7,6 @@ import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
 /**
  * Past the frame's debounce before it reads.
- * @vitest-environment jsdom
  */
 const DEBOUNCE_WAIT_MS = 400
 

@@ -4,7 +4,6 @@ import { mount, stubNuxtGlobals } from './helpers/nuxt-globals'
 
 /**
  * Mounts the component on a path.
- * @vitest-environment jsdom
  */
 const mountPath = (path: string) => mount(VariablePath, { path })
 

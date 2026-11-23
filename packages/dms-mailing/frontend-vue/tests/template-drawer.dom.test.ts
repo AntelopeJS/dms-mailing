@@ -22,7 +22,6 @@ import { elementWithAttribute, inputAt, submitForm } from './helpers/dom'
 import { dropdownStub, type MenuItem } from './helpers/dropdown-stub'
 import { expectDefined, query } from './helpers/narrow'
 
-/** @vitest-environment jsdom */
 const api = {
 	templateContent: vi.fn(),
 	performance: vi.fn(),

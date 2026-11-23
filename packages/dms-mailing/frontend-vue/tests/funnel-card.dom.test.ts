@@ -4,7 +4,6 @@ import FunnelCard from '../app/components/FunnelCard.vue'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 import { EmptyStateStub } from './helpers/empty-state-stub'
 
-/** @vitest-environment jsdom */
 const GLOBALS = {
 	DmsCardPanel: slotStub('DmsCardPanel'),
 	DmsSegmentedControl: slotStub('DmsSegmentedControl'),

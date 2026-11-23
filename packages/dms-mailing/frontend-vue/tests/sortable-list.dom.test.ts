@@ -64,8 +64,6 @@ const List = defineComponent(
  * Mounts the lists and returns the SortableJS instance VueUse created on each
  * list element. SortableJS needs a pointer to drag with: the tests call the
  * handlers of its options as it calls them.
- *
- * @vitest-environment jsdom
  */
 function mountLists(lists: ListProps[]): Sortable[] {
 	const host = document.createElement('div')
