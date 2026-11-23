@@ -363,7 +363,9 @@ export interface PublishOutcome {
 export interface AppliedPublish extends PublishOutcome {
   /** The revision the publish wrote: unique per applied write. */
   revision: string;
+  /** When this publish applied, a publish that changed nothing included. */
   publishedAt: Date;
+  /** Who made this publish. */
   publishedBy: string;
 }
 
@@ -438,8 +440,8 @@ export async function publishSnapshot(
     version,
     changes,
     revision,
-    publishedAt: patch.publishedAt ?? new Date(),
-    publishedBy: shipped.publishedBy ?? template.publishedBy ?? author,
+    publishedAt: shipped.publishedAt ?? new Date(),
+    publishedBy: author,
   };
 }
 
