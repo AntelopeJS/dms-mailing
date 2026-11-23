@@ -21,6 +21,7 @@ import { authorizedClient } from "../helpers/http";
 import { ensureOwnerSession } from "../helpers/owner";
 
 const HTTP_OK = 200;
+const SECOND_MS = 1000;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 const VARIABLES = { customer: { firstName: "Ann" } };
@@ -210,17 +211,22 @@ describe("[integration] template-performance action", () => {
   });
 });
 
+const aSecondAgo = () => new Date(Date.now() - SECOND_MS);
+
 describe("[integration] provider-health action", () => {
   it("calls the provider failing from 3 failures making 10 percent of the hour", async () => {
     const tenantId = await newTenant();
-    for (let index = 0; index < 7; index++) await seedSend(tenantId);
+    for (let index = 0; index < 7; index++)
+      await seedSend(tenantId, { createdAt: aSecondAgo() });
     for (let index = 0; index < 3; index++)
       await seedSend(tenantId, {
+        createdAt: aSecondAgo(),
         status: "failed",
         stage: "problem",
         error: "550 rejected",
       });
     await seedSend(tenantId, {
+      createdAt: aSecondAgo(),
       status: "failed",
       stage: "problem",
       isTest: true,
@@ -246,6 +252,7 @@ describe("[integration] provider-health action", () => {
   it("calls one transport failure a provider failure", async () => {
     const tenantId = await newTenant();
     await seedSend(tenantId, {
+      createdAt: aSecondAgo(),
       status: "failed",
       stage: "problem",
       error: "connect ECONNREFUSED 127.0.0.1:25",
@@ -260,6 +267,7 @@ describe("[integration] provider-health action", () => {
     const tenantId = await newTenant();
     for (let index = 0; index < 3; index++)
       await seedSend(tenantId, {
+        createdAt: aSecondAgo(),
         status: "failed",
         stage: "resolved",
         error: "connect ECONNREFUSED 127.0.0.1:25",
