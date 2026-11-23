@@ -51,15 +51,19 @@ function sendOrigin(source: string | undefined): AutomationOriginFields {
 
 /**
  * Hands a provider event on a send to every subscription that takes it. An
- * event on a procedure's send counts as caused by that procedure: it passes
- * the circuit breaker on the send, and fires only where procedure-made
- * changes are taken.
+ * event on a procedure's send counts as caused by that procedure: it fires
+ * only where procedure-made changes are taken, and passes the circuit
+ * breaker on the workspace, the procedure and the recipient, so a procedure
+ * that sends again on each event of its own sends stops, whatever new send
+ * each round makes.
  */
 export function emitEmailEvent(payload: EmailEventPayload): void {
-  emailEventChannel.emitAttributed(`${payload.tenantId}|${payload.sendId}`, {
-    ...payload,
-    ...sendOrigin(payload.source),
-  });
+  const origin = sendOrigin(payload.source);
+  const recipient = payload.recipientEmail.trim().toLowerCase();
+  emailEventChannel.emitAttributed(
+    `${payload.tenantId}|${origin.originProcedureId ?? ""}|${recipient}`,
+    { ...payload, ...origin },
+  );
 }
 
 const STRING: JsonSchema = { type: "string" };
