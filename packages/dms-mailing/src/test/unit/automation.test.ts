@@ -12,7 +12,7 @@ import {
   emailEventTrigger,
   emitEmailEvent,
 } from "../../automation/email-event-trigger";
-import { clearTriggerSubscriptions } from "../../automation/emitter";
+import { announce, clearTriggerSubscriptions } from "../../automation/emitter";
 import { findSuppressionAction } from "../../automation/find-suppression-action";
 import { getSendAction } from "../../automation/get-send-action";
 import { getTemplateAction } from "../../automation/get-template-action";
@@ -256,19 +256,31 @@ describe("[unit] automation e-mail event trigger", () => {
     ]);
   });
 
-  it("drops events on one procedure's send past the breaker's limit, not on another send", async () => {
+  it("stops a procedure's sends to one recipient past the breaker's limit, whatever the send", async () => {
     const { received } = await capture(emailEventTrigger, {
       includeAutomationWrites: true,
     });
     const procedureSend = { ...EVENT, source: "automation:procedure-4" };
 
     for (let index = 0; index <= LOOP_GUARD_LIMIT; index++)
-      emitEmailEvent(procedureSend);
-    emitEmailEvent({ ...procedureSend, sendId: "other" });
+      emitEmailEvent({
+        ...procedureSend,
+        sendId: `send-${index}`,
+        recipientEmail: index % 2 ? "A@B" : "a@b",
+      });
+    emitEmailEvent({ ...procedureSend, recipientEmail: "other@b" });
+    emitEmailEvent({ ...procedureSend, source: "automation:procedure-5" });
     for (let index = 0; index <= LOOP_GUARD_LIMIT; index++)
       emitEmailEvent(EVENT);
 
-    expect(received).to.have.length(2 * LOOP_GUARD_LIMIT + 2);
+    expect(
+      received.filter(
+        (p) =>
+          p.recipientEmail.toLowerCase() === "a@b" &&
+          p.source === "automation:procedure-4",
+      ),
+    ).to.have.length(LOOP_GUARD_LIMIT);
+    expect(received).to.have.length(2 * LOOP_GUARD_LIMIT + 3);
   });
 
   it("clears the subscriptions when the node types are unregistered", async () => {
@@ -328,6 +340,16 @@ describe("[unit] automation suppression triggers", () => {
     for (let index = 0; index <= LOOP_GUARD_LIMIT; index++)
       addressSuppressedChannel.emitOriginated("t|id", SUPPRESSED);
     expect(received).to.have.length(2 * LOOP_GUARD_LIMIT + 2);
+  });
+});
+
+describe("[unit] automation event announcement", () => {
+  it("logs a failure to build or fire an event instead of failing the stored change", () => {
+    expect(() =>
+      announce("mailing.template-published", () => {
+        throw new Error("payload exploded");
+      }),
+    ).to.not.throw();
   });
 });
 

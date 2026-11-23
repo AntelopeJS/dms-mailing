@@ -268,47 +268,48 @@ describe("[integration] e-mail event trigger on a procedure's sends", () => {
     automationLoopGuard.reset();
   });
 
-  it("skips a procedure's send by default, names the procedure when taken, and breaks a loop", async () => {
+  it("skips a procedure's send by default, and stops a send, event, send chain to one recipient", async () => {
     const { DeclareTemplate } =
       await import("@antelopejs/interface-dms-mailing");
     await DeclareTemplate(declaration("event-procedure-send"));
-    const sent = await sendTemplateAction.execute(
-      {
-        slug: "event-procedure-send",
-        to: "procedure-send@example.test",
-        variables: { customer: { firstName: "Ann" } },
-      },
-      stepCtx("procedure-5"),
-    );
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
     const settings = await client.get("/api/mailing/settings");
-    const detail = await client.get(`/api/mailing/sends/${sent.sendId}`);
-    const messageId = checkedText.parse(detail.data.send.providerMessageId);
+    const secret = checkedText.parse(settings.data.webhookSecret);
     const saved = await capture(emailEventTrigger, {});
     const opted = await capture(emailEventTrigger, {
       includeAutomationWrites: true,
     });
+    const sendIds: string[] = [];
 
-    for (let index = 0; index <= LOOP_GUARD_LIMIT; index++) {
+    for (let round = 0; round <= LOOP_GUARD_LIMIT; round++) {
+      const sent = await sendTemplateAction.execute(
+        {
+          slug: "event-procedure-send",
+          to: round % 2 ? "Chain@Example.test" : "chain@example.test",
+          variables: { customer: { firstName: "Ann" } },
+        },
+        stepCtx("procedure-5"),
+      );
+      sendIds.push(sent.sendId);
+      const detail = await client.get(`/api/mailing/sends/${sent.sendId}`);
       const hook = await client.post(
         eventsPath("manual"),
-        { messageId, type: "opened", details: { eventId: `loop-${index}` } },
         {
-          headers: {
-            "x-mailing-webhook-secret": checkedText.parse(
-              settings.data.webhookSecret,
-            ),
-          },
+          messageId: checkedText.parse(detail.data.send.providerMessageId),
+          type: "delivered",
+          details: { eventId: `chain-${round}` },
         },
+        { headers: { "x-mailing-webhook-secret": secret } },
       );
       expect(hook.data.recorded).to.equal(true);
     }
 
     expect(saved.received).to.deep.equal([]);
-    expect(opted.received).to.have.length(LOOP_GUARD_LIMIT);
+    expect(opted.received.map((payload) => payload.sendId)).to.deep.equal(
+      sendIds.slice(0, LOOP_GUARD_LIMIT),
+    );
     expect(opted.received[0]).to.deep.include({
-      sendId: sent.sendId,
       source: "automation:procedure-5",
       originProcedureId: "procedure-5",
     });

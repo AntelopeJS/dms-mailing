@@ -257,6 +257,14 @@ describe("[integration] template-published trigger", () => {
     expect(new Set(published.received.map((p) => p.deliveryId)).size).to.equal(
       3,
     );
+    const [, second, unchanged] = published.received;
+    expect(
+      unchanged.publishedAt > second.publishedAt,
+      "time of this publish",
+    ).to.equal(true);
+    expect(unchanged.publishedBy)
+      .to.equal(second.publishedBy)
+      .and.not.equal("");
     expect(
       changed.received.map((p) => [p.previousStatus, p.status, p.action]),
     ).to.deep.equal([["draft", "live", "publish"]]);

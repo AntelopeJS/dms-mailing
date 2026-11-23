@@ -126,6 +126,27 @@ describe("[integration] send-template test runs", () => {
   });
 });
 
+describe("[integration] send-template sends", () => {
+  it("labels a send with a blank source as the procedure's", async () => {
+    const tenantId = await newTenant();
+    await declared("blank-source", tenantId);
+
+    const sent = await sendTemplateAction.execute(
+      {
+        tenantId,
+        slug: "blank-source",
+        to: "blank-source@example.test",
+        variables: VARIABLES,
+        source: "  ",
+      },
+      stepCtx("procedure-8"),
+    );
+
+    const row = await GetModel(SendModel, tenantId).get(sent.sendId);
+    expect(row?.source).to.equal("automation:procedure-8");
+  });
+});
+
 describe("[integration] send-template test run refusals", () => {
   it("refuses what a send refuses: an unknown slug, a draft, a missing value", async () => {
     const session = await ensureOwnerSession();

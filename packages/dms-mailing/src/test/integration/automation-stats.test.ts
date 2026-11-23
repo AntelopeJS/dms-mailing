@@ -8,6 +8,10 @@ import { sendTemplateAction } from "../../automation/send-template-action";
 import { templatePerformanceAction } from "../../automation/template-performance-action";
 import { TemplateModel } from "../../db";
 import {
+  readCapabilities,
+  resetCapabilitiesCache,
+} from "../../services/provider";
+import {
   declareIn as declared,
   newTenant,
   seedSend,
@@ -206,7 +210,7 @@ describe("[integration] template-performance action", () => {
   });
 });
 
-describe("[integration] provider-health and list-attention actions", () => {
+describe("[integration] provider-health action", () => {
   it("calls the provider failing from 3 failures making 10 percent of the hour", async () => {
     const tenantId = await newTenant();
     for (let index = 0; index < 7; index++) await seedSend(tenantId);
@@ -252,6 +256,44 @@ describe("[integration] provider-health and list-attention actions", () => {
     expect(health).to.deep.include({ failing: true, transportFailures: 1 });
   });
 
+  it("leaves out failures someone resolved by sending again", async () => {
+    const tenantId = await newTenant();
+    for (let index = 0; index < 3; index++)
+      await seedSend(tenantId, {
+        status: "failed",
+        stage: "resolved",
+        error: "connect ECONNREFUSED 127.0.0.1:25",
+      });
+
+    const health = await providerHealthAction.execute({ tenantId }, stepCtx());
+
+    expect(health).to.deep.include({
+      failing: false,
+      recentFailures: 0,
+      transportFailures: 0,
+    });
+  });
+
+  it("calls an unreachable provider unhealthy, with no features", async () => {
+    resetCapabilitiesCache();
+    await readCapabilities(() => Promise.reject(new Error("provider down")));
+    try {
+      const health = await providerHealthAction.execute({}, stepCtx());
+
+      expect(health).to.deep.include({
+        reachable: false,
+        healthy: false,
+        openTracking: false,
+        clickTracking: false,
+        batch: false,
+      });
+    } finally {
+      resetCapabilitiesCache();
+    }
+  });
+});
+
+describe("[integration] list-attention action", () => {
   it("lists the flagged templates by slug, filtered and capped", async () => {
     const tenantId = await newTenant();
     const templates = GetModel(TemplateModel, tenantId);

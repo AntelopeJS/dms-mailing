@@ -373,11 +373,33 @@ describe("[integration] render-template action", () => {
       ),
     ).to.satisfy(
       (messages: string[]) =>
-        messages[0].includes("never published") &&
+        messages[0].includes("is draft") &&
         messages[1].includes("Unknown template") &&
         messages[2].includes("no version 9") &&
         messages[3].includes("invalid input"),
     );
+  });
+});
+
+describe("[integration] render-template action refusals", () => {
+  it("refuses the published content of an unpublished template, as a send does, and renders its versions", async () => {
+    const client = await api();
+    const live = await declared("render-unpublished");
+    await client.post(
+      `/api/mailing/templates/${live.templateId}/unpublish`,
+      {},
+    );
+    const render = (version: string) =>
+      renderTemplateAction.execute(
+        { slug: "render-unpublished", version, variables: VARIABLES },
+        stepCtx(),
+      );
+
+    const refused = await failureOf(render("published"));
+    const past = await render("1");
+
+    expect(refused).to.have.property("code", "template_not_live");
+    expect(past.subject).to.equal("Your order is ready");
   });
 
   it("creates no settings row and finds nothing in another workspace", async () => {
