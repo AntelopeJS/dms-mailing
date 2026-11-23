@@ -79,10 +79,6 @@ describe("[unit] services/metrics", () => {
 });
 
 describe("[unit] services/metrics engagement outlives the final status", () => {
-  /**
-   * The send ranks move it to "unsubscribed" or "spam" last: the open and the
-   * click that came before still happened.
-   */
   it("counts a send opened, clicked then unsubscribed as opened and clicked", () => {
     const totals = totalsOf([
       send("unsubscribed", "a@gmail.com", 1, 1, 1),
@@ -252,7 +248,6 @@ describe("[unit] services/metrics daily series over a DMS period", () => {
     expect(points[points.length - 1]?.x).to.equal("2026-09-10");
   });
 
-  /** The KPI counts this send through `aggregate`; the chart must agree. */
   it("counts a send made on the last day of the window", () => {
     const points = seriesOf(
       [sentAt("2026-09-10T12:30:00.000Z")],
@@ -263,11 +258,6 @@ describe("[unit] services/metrics daily series over a DMS period", () => {
     expect(points.reduce((total, point) => total + point.y, 0)).to.equal(1);
   });
 
-  /**
-   * Boundaries are local, keys must follow them: a send just after local
-   * midnight belongs to the local day that just started, not the UTC one that
-   * is still running.
-   */
   it("buckets a send by the local day the window is cut on", () => {
     const points = seriesOf(
       [sentAt("2026-09-06T22:30:00.000Z")],

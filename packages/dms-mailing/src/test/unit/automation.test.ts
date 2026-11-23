@@ -29,11 +29,6 @@ describe("[unit] automation nodes", () => {
     });
   });
 
-  /**
-   * The automation module ships no loop node: a procedure cannot call this
-   * action once per contact, so the fan-out has to happen inside it. The port
-   * must therefore accept a list, which `sendTemplate` already handles.
-   */
   it("accepts a list of recipients on the `to` port, not just one address", () => {
     const schema = sendTemplateAction.inputSchema;
     expect(schema)

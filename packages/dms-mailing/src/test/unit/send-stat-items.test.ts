@@ -60,7 +60,6 @@ describe("[unit] services/send-stat-items comparisons", () => {
   });
 
   it("compares the deliverability, the problems and the latency", () => {
-    /** The first text of a detail: "joined" folds its parts from the left. */
     const first = (text: ComposedText): ComposedText => {
       if (!text.key.endsWith(".joined")) return text;
       const joinedLeft = text.params?.left;

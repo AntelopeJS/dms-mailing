@@ -102,10 +102,6 @@ describe("[integration] tenant export", () => {
   it("pages the reads without skipping or repeating a row", async () => {
     const session = await ensureOwnerSession();
     const client = authorizedClient(session.accessToken);
-    /**
-     * The list answers 10 rows unless told otherwise; the export reads them
-     * all.
-     */
     const list = await client.get(`${TABLE}/list?limit=${LIST_ALL}`);
     expect(list.status, JSON.stringify(list.data)).to.equal(HTTP_OK);
     const slugs = slugRowsSchema
