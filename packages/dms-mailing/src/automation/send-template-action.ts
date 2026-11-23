@@ -99,7 +99,7 @@ async function paramsOf(
     to: input.to,
     locale: input.locale,
     variables: input.variables ?? {},
-    source: input.source ?? automationActor(ctx.procedureId),
+    source: input.source?.trim() || automationActor(ctx.procedureId),
   };
 }
 
