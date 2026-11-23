@@ -19,7 +19,7 @@ const escapeLines = (value: string): string =>
 
 const SAFE_SCHEMES = ["http:", "https:", "mailto:"];
 const BLOCKED_HREF = "#";
-const SCHEME_PATTERN = /^\s*([a-z][a-z0-9+.-]*):/i;
+const SCHEME_PATTERN = /^\s*[a-z][a-z0-9+.-]*:/i;
 
 /**
  * A link target can be an interpolated variable, so it is data the sender does
@@ -34,7 +34,7 @@ export const safeUrl = (
 ): string => {
   const scheme = SCHEME_PATTERN.exec(value);
   if (!scheme) return value;
-  return SAFE_SCHEMES.includes(scheme[1]!.toLowerCase() + ":")
+  return SAFE_SCHEMES.includes(scheme[0].trim().toLowerCase())
     ? value
     : blocked;
 };
