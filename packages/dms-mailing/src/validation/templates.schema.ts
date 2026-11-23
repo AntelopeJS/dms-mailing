@@ -33,7 +33,7 @@ export const conditionSchema = z.object({
 const alignSchema = z.enum(["left", "center", "right"]);
 const base = { id: z.string().min(1), visibleIf: conditionSchema.nullable() };
 
-export const blockSchema: z.ZodType<Block, z.ZodTypeDef, unknown> = z.lazy(() =>
+export const blockSchema: z.ZodType<Block, unknown> = z.lazy(() =>
   z.discriminatedUnion("type", [
     z.object({
       ...base,
@@ -100,7 +100,7 @@ export const localeContentSchema = z.object({
 });
 
 export const templateContentSchema = z.object({
-  locales: z.record(localeContentSchema),
+  locales: z.record(z.string(), localeContentSchema),
 });
 
 /**

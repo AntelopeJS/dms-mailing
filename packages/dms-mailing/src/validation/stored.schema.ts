@@ -14,7 +14,7 @@ import type {
 } from "../types";
 
 /** What a stored JSON column holds, checked when it is read back. */
-type StoredSchema<T> = z.ZodType<T, z.ZodTypeDef, unknown>;
+type StoredSchema<T> = z.ZodType<T, unknown>;
 
 /**
  * `text`, a stored JSON column, parsed and read with `schema`: a
@@ -191,6 +191,7 @@ const storedBlockUnion = z.discriminatedUnion("type", [
 export const storedContentSchema: StoredSchema<TemplateContent> = z
   .object({
     locales: z.record(
+      z.string(),
       z
         .object({
           subject: z.string(),
@@ -250,7 +251,7 @@ export const storedCategoriesSchema: StoredSchema<TemplateCategory[]> = z.array(
   z
     .object({
       id: z.string(),
-      label: z.record(z.string()),
+      label: z.record(z.string(), z.string()),
       icon: z.string(),
     })
     .passthrough(),

@@ -21,7 +21,7 @@ const tenantIdSchema = z.string().trim().min(1);
  * own reads it.
  */
 export const localizedTextSchema = z
-  .record(z.string().trim().min(1).max(MAX_NAME_LENGTH))
+  .record(z.string(), z.string().trim().min(1).max(MAX_NAME_LENGTH))
   .refine((text) => Boolean(text[LOCALIZED_TEXT_FALLBACK_LOCALE]), {
     message: `a text in "${LOCALIZED_TEXT_FALLBACK_LOCALE}" is required`,
   });

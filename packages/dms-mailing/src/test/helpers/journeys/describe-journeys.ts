@@ -28,11 +28,11 @@ const journeySchema = z
     id: z.string(),
     title: z.string(),
     entryPoint: z.string(),
-    knownFailures: z.record(z.string()).default({}),
-    run: z
-      .function()
-      .args(z.instanceof(JourneyContext))
-      .returns(z.promise(z.void())),
+    knownFailures: z.record(z.string(), z.string()).default({}),
+    run: z.function({
+      input: [z.instanceof(JourneyContext)],
+      output: z.promise(z.void()),
+    }),
   })
   .strict();
 

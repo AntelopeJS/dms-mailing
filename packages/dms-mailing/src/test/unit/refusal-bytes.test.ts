@@ -1,5 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
+import { z } from "zod";
 import { MailingSettingsController } from "../../routes/settings";
 import { SuppressionsController } from "../../routes/suppressions";
 
@@ -8,10 +9,36 @@ const SETTINGS_BODY = {
   logRetentionDays: "forever",
 };
 const SUPPRESSION_BODY = { email: "not-an-address" };
-const EXPECTED_SETTINGS =
-  '{"message":"$dms_mailing.errors.invalid_settings","issues":[{"code":"invalid_type","expected":"number","received":"string","path":["logRetentionDays"],"message":"Expected number, received string"},{"code":"invalid_type","expected":"boolean","received":"string","path":["missingVariables"],"message":"Expected boolean, received string"}]}';
-const EXPECTED_SUPPRESSION =
-  '{"message":"$dms_mailing.suppressions.errors.invalid","issues":[{"validation":"email","code":"invalid_string","message":"Invalid email","path":["email"]}]}';
+const EXPECTED_SETTINGS = JSON.stringify({
+  message: "$dms_mailing.errors.invalid_settings",
+  issues: [
+    {
+      expected: "number",
+      code: "invalid_type",
+      path: ["logRetentionDays"],
+      message: "Invalid input: expected number, received string",
+    },
+    {
+      expected: "boolean",
+      code: "invalid_type",
+      path: ["missingVariables"],
+      message: "Invalid input: expected boolean, received string",
+    },
+  ],
+});
+const EXPECTED_SUPPRESSION = JSON.stringify({
+  message: "$dms_mailing.suppressions.errors.invalid",
+  issues: [
+    {
+      origin: "string",
+      code: "invalid_format",
+      format: "email",
+      pattern: String(z.regexes.email),
+      path: ["email"],
+      message: "Invalid email address",
+    },
+  ],
+});
 
 async function refusal(
   attempt: () => Promise<object>,
