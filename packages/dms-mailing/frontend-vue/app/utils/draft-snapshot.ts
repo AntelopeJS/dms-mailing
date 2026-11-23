@@ -74,7 +74,8 @@ const FIELD_CHECKS = new Map([
 	['footer', hasStrings('text', 'unsubscribeLabel', 'preferencesLabel')],
 ])
 
-function isBlock(value: unknown): value is Block {
+/** Whether `value` is a block whose fields, and nested blocks, all hold their types. */
+export function isBlock(value: unknown): value is Block {
 	return (
 		isRecord(value) &&
 		isString(value.id) &&

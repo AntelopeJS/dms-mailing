@@ -14,6 +14,7 @@ import {
 	type SortableListChange,
 	type SortableListOptions,
 } from '../app/composables/useSortableList'
+import { isRecord, isString } from '../app/utils/guards'
 import { elementAs, expectDefined } from './helpers/narrow'
 import {
 	builtGroup,
@@ -26,6 +27,9 @@ import {
 interface Item {
 	id: string
 }
+
+const isItem = (value: unknown): value is Item =>
+	isRecord(value) && isString(value.id)
 
 interface ListProps {
 	items: Item[]
@@ -137,6 +141,7 @@ describe('useSortableList between lists', () => {
 					items: target,
 					options: {
 						group: 'g',
+						accepts: isItem,
 						onChange: (change) => targetChanges.push(change),
 					},
 				},
@@ -161,6 +166,33 @@ describe('useSortableList between lists', () => {
 		])
 	})
 
+	it('leaves a list unchanged when it does not accept what lands on it', async () => {
+		const source = reactive([{ id: 'a' }])
+		const target = reactive<Item[]>([])
+		const added = vi.fn()
+		const [from, to] = pair(
+			mountLists([
+				{ items: source, options: { group: 'g' } },
+				{
+					items: target,
+					options: {
+						group: 'g',
+						accepts: (value): value is Item =>
+							isItem(value) && value.id !== 'a',
+						onChange: added,
+					},
+				},
+			]),
+		)
+		const item = firstItemOf(from, 0)
+		callHandler(from, 'onStart', dragEvent(item, { oldIndex: 0 }))
+		callHandler(to, 'onAdd', dragEvent(item, { newIndex: 0 }))
+		callHandler(from, 'onEnd', dragEvent(item))
+		await nextTick()
+		expect(ids(target)).toEqual([])
+		expect(added).not.toHaveBeenCalled()
+	})
+
 	it('hands a copy to the other list and keeps its own item (pull: clone)', async () => {
 		const palette = reactive([{ id: 'tile' }])
 		const canvas = reactive<Item[]>([])
@@ -175,7 +207,7 @@ describe('useSortableList between lists', () => {
 						clone: (item) => ({ id: `${item.id}-copy` }),
 					},
 				},
-				{ items: canvas, options: { group: { name: 'g' } } },
+				{ items: canvas, options: { group: { name: 'g' }, accepts: isItem } },
 			]),
 		)
 		expect(builtGroup(from).name).toBe('g')

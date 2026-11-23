@@ -35,6 +35,11 @@ export interface SortableListOptions<Item> {
 	ghostClass?: string
 	/** What another list receives in place of the dragged item. */
 	clone?: (item: Item) => object
+	/**
+	 * Whether what another list of the group hands over is an item of this
+	 * one. Without it, nothing dropped from another list lands here.
+	 */
+	accepts?: (value: unknown) => value is Item
 	onChange?: (change: SortableListChange<Item>) => void
 	/** After every drag, whatever it changed. */
 	onEnd?: () => void
@@ -71,10 +76,10 @@ function passedOptions(options: PassedOptions): PassedOptions {
 /**
  * The item being dragged, by group: a drop on another list only names the
  * element, which belongs to the list it left, so the list it lands in reads
- * what the other one handed over when the drag started. Lists of one group
- * share their item type.
+ * what the other one handed over when the drag started, and checks it with
+ * its `accepts`.
  */
-const dragged = new Map<string, (receive: (element: any) => void) => void>()
+const dragged = new Map<string, unknown>()
 
 /**
  * Lets the user reorder the items of `list` rendered in `root`, or move them
@@ -116,8 +121,7 @@ export function useSortableList<Item>(
 				: undefined
 			const element = list()[event.oldIndex ?? -1]
 			if (element === undefined) return
-			const handedOver = options.clone ? options.clone(element) : element
-			dragged.set(groupName, (receive) => receive(handedOver))
+			dragged.set(groupName, options.clone ? options.clone(element) : element)
 		},
 		onUpdate: (event: SortableEvent) => {
 			const { oldIndex, newIndex } = event
@@ -131,12 +135,12 @@ export function useSortableList<Item>(
 		},
 		onAdd: (event: SortableEvent) => {
 			const { newIndex } = event
-			if (newIndex === undefined) return
-			dragged.get(groupName)?.((element: Item) => {
-				event.item.remove()
-				list().splice(newIndex, 0, element)
-				options.onChange?.({ added: { element, newIndex } })
-			})
+			const element = dragged.get(groupName)
+			const { accepts } = options
+			if (newIndex === undefined || !accepts || !accepts(element)) return
+			event.item.remove()
+			list().splice(newIndex, 0, element)
+			options.onChange?.({ added: { element, newIndex } })
 		},
 		onRemove: (event: SortableEvent) => {
 			restore(event.item)
