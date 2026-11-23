@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useReplayToast } from '../app/composables/useReplayToast'
-import { stubNuxtGlobals, type NuxtStubs } from './helpers/nuxt-globals'
-
-interface ToastAction {
-	label: string
-	onClick: () => void
-}
+import {
+	firstToastAction,
+	stubNuxtGlobals,
+	type NuxtStubs,
+} from './helpers/nuxt-globals'
 
 describe('useReplayToast', () => {
 	let stubs: NuxtStubs
@@ -23,7 +22,7 @@ describe('useReplayToast', () => {
 		expect(stubs.toasts).toHaveLength(1)
 		const [toast] = stubs.toasts
 		expect(toast).toMatchObject({ color: 'success', title: 'Sent again' })
-		;(toast.actions as ToastAction[])[0].onClick()
+		firstToastAction(toast).onClick()
 		expect(stubs.navigations).toEqual([
 			{ path: '/modules/mailing/sends', query: { record: 's2' } },
 		])
@@ -47,7 +46,7 @@ describe('useReplayToast', () => {
 			description:
 				'dms_mailing.suppressions.notice.not_sent.reason reason=dms_mailing.suppressions.reasons.unsubscribe',
 		})
-		;(toast.actions as ToastAction[])[0].onClick()
+		firstToastAction(toast).onClick()
 		expect(stubs.navigations).toEqual([
 			{ path: '/modules/mailing/suppressions', query: { email: 'a@x.test' } },
 		])

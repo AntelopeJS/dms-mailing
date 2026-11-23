@@ -1,23 +1,18 @@
 import { vi } from 'vitest'
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
-import {
-	isApiRecord,
-	type ApiAnswer,
-	type ApiRecord,
-	type ApiReply,
-} from './answer'
+import type { ApiAnswer, ApiQuery, ApiReply } from './answer'
 
 /** A backend read a component made through `useApiData`. */
 export interface ApiRead {
 	url: string
-	query: ApiRecord
+	query: ApiQuery
 }
 
 export type ApiBackend = (read: ApiRead) => ApiReply
 
 /** The options a component passed to `useApiData`. */
 export interface ApiDataOptions {
-	query?: MaybeRefOrGetter<ApiRecord | undefined>
+	query?: MaybeRefOrGetter<ApiQuery | undefined>
 	pick?: string[]
 	immediate?: boolean
 	refreshOnPageRefresh?: boolean
@@ -33,13 +28,10 @@ export interface ApiDataStub {
 }
 
 function picked(value: ApiAnswer, keys: string[] | undefined): ApiAnswer {
-	if (!keys || !isApiRecord(value)) return value
-	return Object.fromEntries(
-		keys.map((key) => [
-			key,
-			Object.hasOwn(value, key) ? value[key] : undefined,
-		]),
-	)
+	if (!keys || value === null || value === undefined) return value
+	if (Object(value) !== value) return value
+	const fields = new Map<string, ApiAnswer>(Object.entries(value))
+	return Object.fromEntries(keys.map((key) => [key, fields.get(key)]))
 }
 
 /**

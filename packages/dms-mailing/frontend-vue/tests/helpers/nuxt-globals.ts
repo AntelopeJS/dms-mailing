@@ -13,6 +13,7 @@ import {
 } from 'vue'
 import { CheckboxStub } from './checkbox-stub'
 import { InputStub } from './input-stub'
+import { expectDefined } from './narrow'
 import { slotStub } from './slot-stub'
 import { TagsStub } from './tags-stub'
 
@@ -32,6 +33,16 @@ export interface ToastCall {
 	color?: string
 	icon?: string
 	actions?: { label?: string; onClick: () => void }[]
+}
+
+/** The first action button of a toast, or a thrown error when it has none. */
+export function firstToastAction(toast: ToastCall | undefined): {
+	onClick: () => void
+} {
+	return expectDefined(
+		expectDefined(toast, 'a toast').actions?.[0],
+		'an action',
+	)
 }
 
 /** A confirmation a component asked for. */

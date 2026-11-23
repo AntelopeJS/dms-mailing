@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { createEditorState } from '../app/composables/useTemplateEditor'
 import type { Block, TemplateContent } from '../app/types/mailing'
 import { HISTORY_COALESCE_MS } from '../app/utils/history'
+import { expectIf } from './helpers/blocks'
+import { expectDefined } from './helpers/narrow'
 
 const CONTENT: TemplateContent = {
 	locales: {
@@ -27,7 +29,7 @@ function steppingClock() {
 	return () => (now += HISTORY_COALESCE_MS)
 }
 
-describe('editor state', () => {
+describe('editor state blocks', () => {
 	it('starts clean on the requested locale and tracks dirtiness', () => {
 		const state = createEditorState(CONTENT, 'en', ['en', 'fr'])
 		expect(state.locale).toBe('en')
@@ -88,17 +90,20 @@ describe('editor state', () => {
 		state.duplicateBlockById('h1')
 		const copyId = state.selectedId
 		expect(copyId).not.toBe('h1')
-		state.moveBlockById(copyId as string, -1)
+		state.moveBlockById(expectDefined(copyId), -1)
 		expect(state.current?.blocks[0]?.id).toBe(copyId)
 	})
+})
+
+describe('editor state history', () => {
 	it('switches the else branch on and off', () => {
 		const state = createEditorState(CONTENT, 'en', ['en'])
 		const branch = state.addBlock('if')
 		state.setElse(branch.id, true)
 		const found = () => state.findBlock(branch.id)
-		expect(found()?.type === 'if' && found()?.elseChildren).toHaveLength(1)
+		expect(expectIf(found()).elseChildren).toHaveLength(1)
 		state.setElse(branch.id, false)
-		expect(found()?.type === 'if' && found()?.elseChildren).toBeNull()
+		expect(expectIf(found()).elseChildren).toBeNull()
 	})
 	it('marks only the revision a save captured as saved', () => {
 		const state = createEditorState(CONTENT, 'en', ['en'])
@@ -148,7 +153,10 @@ describe('editor state', () => {
 	})
 	it('switches to the locale an undo changes and announces it', () => {
 		const content: TemplateContent = {
-			locales: { ...CONTENT.locales, fr: { ...CONTENT.locales.en! } },
+			locales: {
+				...CONTENT.locales,
+				fr: { ...expectDefined(CONTENT.locales.en) },
+			},
 		}
 		const state = createEditorState(
 			content,
@@ -168,6 +176,9 @@ describe('editor state', () => {
 		state.redo()
 		expect(state.announcement?.kind).toBe('undone_in_locale')
 	})
+})
+
+describe('editor state locales and variables', () => {
 	it('adds a block above the footer when nothing is selected', () => {
 		const footer: Block = {
 			id: 'f1',
@@ -229,7 +240,7 @@ describe('editor state', () => {
 			blockType: 'if',
 			count: 1,
 		})
-		state.undoIfLatest(state.announcement?.undoable as string)
+		state.undoIfLatest(expectDefined(state.announcement?.undoable))
 		expect(state.findBlock(branch.id)).not.toBeNull()
 	})
 	it('renames a variable through the content as one undoable step', () => {
@@ -242,10 +253,13 @@ describe('editor state', () => {
 			declared,
 		)
 		state.updateBlock('h1', { text: 'Hi {{ name }}' })
-		state.setVariables([{ ...declared[0]!, path: 'first_name' }], {
-			from: 'name',
-			to: 'first_name',
-		})
+		state.setVariables(
+			[{ ...expectDefined(declared[0]), path: 'first_name' }],
+			{
+				from: 'name',
+				to: 'first_name',
+			},
+		)
 		expect(state.current?.blocks[0]).toMatchObject({
 			text: 'Hi {{first_name}}',
 		})

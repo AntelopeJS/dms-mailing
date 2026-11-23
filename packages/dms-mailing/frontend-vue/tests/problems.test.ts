@@ -6,7 +6,7 @@ import {
 	type ProblemSend,
 } from '../app/utils/problems'
 import type { SendEventRow, SendEventType } from '../app/types/mailing'
-import type { ApiRecord } from './helpers/answer'
+import type { ApiAnswer } from './helpers/answer'
 
 const send = (patch: Partial<ProblemSend>): ProblemSend => ({
 	status: 'bounced',
@@ -131,7 +131,7 @@ describe('describeProblem', () => {
 })
 
 describe('problemEventReason', () => {
-	const event = (type: SendEventType, details: ApiRecord): SendEventRow => ({
+	const event = (type: SendEventType, details: ApiAnswer): SendEventRow => ({
 		_id: type,
 		sendId: 's',
 		type,

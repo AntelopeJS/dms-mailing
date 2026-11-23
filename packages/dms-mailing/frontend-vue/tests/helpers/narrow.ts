@@ -10,7 +10,7 @@ export function expectDefined<T>(
 
 /** An element the DOM handed back, checked as the given element class. */
 export function elementAs<T extends Element>(
-	found: Element | null,
+	found: Node | null,
 	kind: new () => T,
 ): T {
 	if (!(found instanceof kind)) throw new Error(`expected a ${kind.name}`)

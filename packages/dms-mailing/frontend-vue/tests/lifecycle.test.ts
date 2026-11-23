@@ -10,7 +10,7 @@ import {
 	statusKeyOf,
 } from '../app/utils/lifecycle'
 
-describe('lifecycle', () => {
+describe('lifecycle transitions', () => {
 	it('dates an unpublish now, so the notice reads its moment', () => {
 		const template = {
 			_id: 't1',
@@ -47,6 +47,9 @@ describe('lifecycle', () => {
 		expect(canPublish('archived')).toBe(false)
 		expect(canPublish('draft')).toBe(true)
 	})
+})
+
+describe('lifecycle notices', () => {
 	it('picks the notice from status, version and pending changes', () => {
 		const base = { saveStatus: 'idle' as const }
 		expect(

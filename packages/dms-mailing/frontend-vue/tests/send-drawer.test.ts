@@ -1,11 +1,12 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SendDrawer from '../app/components/SendDrawer.vue'
 import type { SendRow } from '../app/types/mailing'
 import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
 import { stubAuthFetch } from './helpers/auth-fetch'
+import { elementAs } from './helpers/narrow'
 
+/** @vitest-environment jsdom */
 const SEND: SendRow = {
 	_id: '041f125a00000000',
 	templateId: 't1',
@@ -64,18 +65,16 @@ describe('send drawer layout', () => {
 
 	it('adds no inset or scroller of its own inside the drawer body', async () => {
 		const host = await render()
-		const root = host.firstElementChild as HTMLElement
+		const root = elementAs(host.firstElementChild, HTMLElement)
 		expect(root.className).not.toMatch(/(^|\s)(p|px|py|m)-\d/)
 		expect(root.className).not.toContain('h-full')
 		expect(host.querySelector('.overflow-y-auto')).toBeNull()
 		expect(host.querySelector('header')?.className).not.toMatch(/px-\d/)
 	})
 
-	// The DMS drawer body is a flex column: a root that grows keeps the
-	// DmsContainerFooter, which sticks and sits flush, at the drawer's bottom.
-	it('grows in the drawer body and puts its actions in the DMS footer', async () => {
+	it('grows in the flex-column drawer body and puts its actions in the DMS footer, flush at the bottom', async () => {
 		const host = await render()
-		const root = host.firstElementChild as HTMLElement
+		const root = elementAs(host.firstElementChild, HTMLElement)
 		expect(root.className).toContain('flex-1')
 		expect(root.className).toContain('flex-col')
 		expect(root.style.minHeight).toBe('')

@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import EditorCanvas from '../app/components/editor/EditorCanvas.vue'
@@ -17,6 +16,7 @@ import { stubAuthFetch } from './helpers/auth-fetch'
 import { mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
 import type { Mounted } from './helpers/nuxt-globals'
 
+/** @vitest-environment jsdom */
 const CLIENT_BASE_URL = 'https://dms.acme.com'
 const DEFAULT_SVG = '/logo.svg'
 const DEFAULT_PNG = 'https://cdn.acme.com/logo.png'

@@ -93,7 +93,9 @@ describe('buildTimeline', () => {
 		).at(-1)
 		expect(fromSend?.detail).toBe(SEND.error)
 	})
+})
 
+describe('buildTimeline steps to come', () => {
 	it('ghosts the happy-path steps still to come', () => {
 		const items = buildTimeline(
 			[event('1', 'sent', '2026-09-09T10:00:00.000Z')],
