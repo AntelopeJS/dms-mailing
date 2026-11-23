@@ -31,8 +31,8 @@ const position = computed(() => {
 	const counts = branchCounts(props.block)
 	return t(`${KEY}.position_branches`, {
 		position: base,
-		then: counts.then,
-		else: counts.else ?? 0,
+		whenTrue: counts.whenTrue,
+		whenFalse: counts.whenFalse ?? 0,
 	})
 })
 </script>

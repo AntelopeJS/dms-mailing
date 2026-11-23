@@ -1,4 +1,5 @@
 import type { SendEventRow, SendRow, SendStatus } from '../types/mailing'
+import { isRecord, isString } from './guards'
 
 export type ProblemKind =
 	| 'address_missing'
@@ -60,7 +61,7 @@ const PROBLEM_RULES: ProblemRule[] = [
 		kind: 'rejected_spam',
 		icon: 'i-ph-shield-warning',
 		statuses: ['bounced', 'failed'],
-		pattern: /5\.7\.[0-9]|\bspam\b|blocked|blacklist|reputation/i,
+		pattern: /5\.7\.\d|\bspam\b|blocked|blacklist|reputation/i,
 	},
 	{ kind: 'spam_report', icon: 'i-ph-prohibit', statuses: ['spam'] },
 	{
@@ -156,14 +157,10 @@ export function describeProblem(
 
 const PROBLEM_EVENT_TYPES: SendStatus[] = ['bounced', 'failed', 'spam']
 
-interface EventDetails {
-	reason?: unknown
-}
-
 function reasonOf(event: SendEventRow): string {
 	try {
-		const details = JSON.parse(event.json_details || '{}') as EventDetails
-		return typeof details.reason === 'string' ? details.reason : ''
+		const details: unknown = JSON.parse(event.json_details || '{}')
+		return isRecord(details) && isString(details.reason) ? details.reason : ''
 	} catch {
 		return ''
 	}

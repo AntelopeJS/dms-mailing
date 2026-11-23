@@ -3,7 +3,7 @@ import { languageLabel } from './locales'
 /** A manual send reaches at most this many addresses; a list needs an automation. */
 export const MAX_RECIPIENTS = 5
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
 
 export function isEmailAddress(value: string): boolean {
 	return EMAIL_PATTERN.test(value.trim())

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ReportedError } from '../../utils/api-error'
 import { onMounted, watch } from 'vue'
 import type { TemplateContentResponse } from '../../types/mailing'
 import { useMailingApi } from '../../composables/useMailingApi'
@@ -22,7 +23,7 @@ const props = defineProps<Props>()
 const locale = defineModel<string | null>('locale', { default: null })
 const emit = defineEmits<{ renamed: [string] }>()
 
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { uniqueLocales } = useUniqueLocales()
 const api = useMailingApi()
 
@@ -41,8 +42,8 @@ const editor = createEditorState(
 	props.loaded.variables ?? [],
 )
 
-function reportFailure(error: unknown): void {
-	presentError(error, { fallbackKey: 'error.500.description' })
+function reportFailure(error: ReportedError): void {
+	errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 }
 
 const reads = useEditorReads(props.templateId)

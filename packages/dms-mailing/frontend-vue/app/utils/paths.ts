@@ -1,9 +1,14 @@
 import type { Block, LocaleContent, TemplateContent } from '../types/mailing'
-import { splitTokens } from './tokens'
+import { stringFields } from './blocks/strings'
+import { isJsonObject } from './guards'
+import type { JsonValue } from './guards'
+import { splitTokens } from './token-segments'
 
 const TOKEN_FIELDS = ['text', 'value', 'href', 'label', 'alt', 'imageUrl']
 const PATH_SEPARATOR = '.'
 const ARRAY_SUFFIX = '[]'
+const ARRAY_LENGTH = 'length'
+const ARRAY_INDEX = /^(?:0|[1-9]\d*)$/
 const RESERVED_SEGMENTS = ['__proto__', 'constructor', 'prototype']
 
 export const UNSUBSCRIBE_URL_PATH = 'unsubscribeUrl'
@@ -29,10 +34,10 @@ export function pathBreakSegments(path: string): string[] {
 }
 
 function tokenPaths(block: Block): string[] {
-	const record = block as unknown as Record<string, unknown>
+	const fields = stringFields(block)
 	return TOKEN_FIELDS.flatMap((key) => {
-		const value = record[key]
-		return typeof value === 'string' ? textPaths(value) : []
+		const value = fields.get(key)
+		return value === undefined ? [] : textPaths(value)
 	})
 }
 
@@ -96,25 +101,37 @@ export function collectContentPaths(
 	].sort()
 }
 
-function readSegment(current: unknown, segment: string): unknown {
-	if (current === null || typeof current !== 'object') return undefined
+function readSegment(
+	current: JsonValue | undefined,
+	segment: string,
+): JsonValue | undefined {
 	if (RESERVED_SEGMENTS.includes(segment)) return undefined
-	return (current as Record<string, unknown>)[segment]
+	if (Array.isArray(current)) {
+		if (segment === ARRAY_LENGTH) return current.length
+		return ARRAY_INDEX.test(segment) ? current[Number(segment)] : undefined
+	}
+	if (!isJsonObject(current)) return undefined
+	return Object.hasOwn(current, segment) ? current[segment] : undefined
 }
 
 /**
  * Reads `path` (`order.total`, `order.lines[]`) in `data`, the way the backend
  * engine does; `undefined` when any segment is missing.
  */
-export function readPath(data: unknown, path: string): unknown {
+export function readPath(
+	data: JsonValue | undefined,
+	path: string,
+): JsonValue | undefined {
 	const trimmed = path.trim()
 	const normalized = trimmed.endsWith(ARRAY_SUFFIX)
 		? trimmed.slice(0, -ARRAY_SUFFIX.length)
 		: trimmed
-	return normalized.split(PATH_SEPARATOR).reduce<unknown>(readSegment, data)
+	return normalized
+		.split(PATH_SEPARATOR)
+		.reduce<JsonValue | undefined>(readSegment, data)
 }
 
 /** Whether `value` counts as provided: neither `undefined` nor `null`. */
-export function isPresent(value: unknown): boolean {
+export function isPresent<T>(value: T | null | undefined): value is T {
 	return value !== undefined && value !== null
 }

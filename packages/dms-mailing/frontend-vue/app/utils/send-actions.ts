@@ -141,7 +141,7 @@ export function shortSendId(id: string): string {
 	return id.slice(-SHORT_ID_LENGTH)
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
 
 /**
  * Why a corrected address cannot be used, as an i18n key: empty, not an

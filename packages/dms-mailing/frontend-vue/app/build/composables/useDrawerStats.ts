@@ -12,7 +12,6 @@ export function useDrawerStats(
 	t: ReturnType<typeof useI18n>['t'],
 	uiLocale: Ref<string>,
 ) {
-	/** The send log reads these: `?template=` narrows it, `?view=` opens a tab. */
 	const SENDS_TEMPLATE_KEY = 'template'
 	const SENDS_VIEW_KEY = 'view'
 	const PROBLEMS_VIEW = 'problems'
@@ -24,22 +23,18 @@ export function useDrawerStats(
 			maximumFractionDigits: OPEN_RATE_DIGITS,
 		}).format(value)
 
-	/** A rate in percent, written the reader's way ("20.8%", "20,8 %"). */
 	const formatPercent = (value: number) =>
 		new Intl.NumberFormat(uiLocale.value, {
 			style: 'percent',
 			maximumFractionDigits: OPEN_RATE_DIGITS,
 		}).format(value / PERCENT)
 
-	/** The send log narrowed to this template, on one of its tabs if given. */
 	function sendLogRoute(view?: string) {
-		return {
-			path: SENDS_PATH,
-			query: {
-				[SENDS_TEMPLATE_KEY]: template.value?.slug ?? '',
-				...(view ? { [SENDS_VIEW_KEY]: view } : {}),
-			},
-		}
+		const templateQuery = { [SENDS_TEMPLATE_KEY]: template.value?.slug ?? '' }
+		const query = view
+			? { ...templateQuery, [SENDS_VIEW_KEY]: view }
+			: templateQuery
+		return { path: SENDS_PATH, query }
 	}
 
 	function sendLogUrl(view?: string): string {

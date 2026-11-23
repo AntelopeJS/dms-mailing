@@ -21,6 +21,8 @@ import {
 } from '../utils/blocks'
 import type { BlockContext } from '../utils/blocks'
 import { deepClone } from '../utils/clone'
+import { parseSnapshot, snapshotOf } from '../utils/draft-snapshot'
+import { oneOf } from '../utils/guards'
 import { renameVariablePath } from '../utils/variables'
 import {
 	createHistory,
@@ -37,10 +39,20 @@ export interface InsertTarget {
 	branch: IfBranch
 }
 
-export type LeftTab = 'blocks' | 'outline' | 'variables'
-export type RightTab = 'block' | 'data' | 'template'
-export type EditorDevice = 'desktop' | 'mobile'
-export type PreviewMode = 'variables' | 'data'
+const LEFT_TABS = ['blocks', 'outline', 'variables'] as const
+const RIGHT_TABS = ['block', 'data', 'template'] as const
+const EDITOR_DEVICES = ['desktop', 'mobile'] as const
+const PREVIEW_MODES = ['variables', 'data'] as const
+
+export type LeftTab = (typeof LEFT_TABS)[number]
+export type RightTab = (typeof RIGHT_TABS)[number]
+export type EditorDevice = (typeof EDITOR_DEVICES)[number]
+export type PreviewMode = (typeof PREVIEW_MODES)[number]
+
+export const isLeftTab = oneOf(LEFT_TABS)
+export const isRightTab = oneOf(RIGHT_TABS)
+export const isEditorDevice = oneOf(EDITOR_DEVICES)
+export const isPreviewMode = oneOf(PREVIEW_MODES)
 export type LocalePatch = Partial<Pick<LocaleContent, 'subject' | 'preheader'>>
 
 /** A clock, injectable so the history's coalescing is testable. */
@@ -111,15 +123,6 @@ function copyLocale(
 	return copy
 }
 
-/** What one undo step restores: the content and the declarations. */
-interface DraftSnapshot {
-	content: TemplateContent
-	variables: VariableDefinition[]
-}
-
-const snapshotOf = (draft: DraftSnapshot): string =>
-	JSON.stringify({ content: draft.content, variables: draft.variables })
-
 /** A declared variable renamed in the content too, as one change. */
 export interface VariableRename {
 	from: string
@@ -132,7 +135,7 @@ function createCore(
 	locale: string,
 	locales: string[],
 ): EditorCore {
-	return reactive({
+	const core: EditorCore = {
 		content: deepClone(content),
 		variables: deepClone(variables),
 		locale,
@@ -148,7 +151,8 @@ function createCore(
 		isSearchRequested: false,
 		history: createHistory(snapshotOf({ content, variables })),
 		announcement: null,
-	}) as EditorCore
+	}
+	return reactive(core)
 }
 
 function createViews(core: EditorCore) {
@@ -269,7 +273,9 @@ function createBlockActions(deps: MutationDeps) {
 		const blocks = blocksOf(views)
 		return blocks ? findBlock(blocks, id) : null
 	}
-	const mutateTree = (change: (blocks: Block[]) => unknown): void => {
+	const mutateTree = (
+		change: (blocks: Block[]) => Block | boolean | null,
+	): void => {
 		const blocks = blocksOf(views)
 		if (blocks && change(blocks)) touch(true)
 	}
@@ -357,7 +363,8 @@ function createHistoryActions(
 ) {
 	function restore(snapshot: string | null, kind: AnnouncementKind): void {
 		if (snapshot === null) return
-		const next = JSON.parse(snapshot) as DraftSnapshot
+		const next = parseSnapshot(snapshot)
+		if (!next) return
 		const changed = changedLocales(core.content, next.content)
 		core.content = next.content
 		core.variables = next.variables

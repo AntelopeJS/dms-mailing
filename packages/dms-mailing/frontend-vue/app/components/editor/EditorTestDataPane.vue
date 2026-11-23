@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { asReportedError } from '../../utils/api-error'
 import type { EditorCheck } from '../../utils/editor-checks'
 
 interface Props {
@@ -44,7 +45,7 @@ async function save(): Promise<void> {
 		if (await session.saveTestData())
 			toast.add({ color: 'success', title: t(`${KEY}.saved`) })
 	} catch (error) {
-		session.reportError(error)
+		session.reportError(asReportedError(error))
 	} finally {
 		saving.value = false
 	}

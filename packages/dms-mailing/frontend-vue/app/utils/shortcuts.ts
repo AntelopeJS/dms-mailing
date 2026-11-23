@@ -67,25 +67,19 @@ const TEXT_TAGS = ['TEXTAREA', 'SELECT']
 const INPUT_TAG = 'INPUT'
 const EDITABLE_SELECTOR = '[contenteditable=""], [contenteditable="true"]'
 
-interface TargetLike {
-	tagName?: string
-	type?: string
-	isContentEditable?: boolean
-	closest?: (selector: string) => unknown
-}
-
 /**
  * Whether the keystroke lands in something the user types in: single-key
  * shortcuts (T, /, ⌫) must leave those alone.
  */
 export function isTypingTarget(target: EventTarget | null): boolean {
-	const element = target as TargetLike | null
-	if (!element?.tagName) return false
-	if (TEXT_TAGS.includes(element.tagName)) return true
-	if (element.tagName === INPUT_TAG)
-		return !NON_TEXT_INPUT_TYPES.includes(element.type ?? '')
-	if (element.isContentEditable) return true
-	return Boolean(element.closest?.(EDITABLE_SELECTOR))
+	if (!(target instanceof Element)) return false
+	if (TEXT_TAGS.includes(target.tagName)) return true
+	if (target.tagName === INPUT_TAG)
+		return !NON_TEXT_INPUT_TYPES.includes(
+			target instanceof HTMLInputElement ? target.type : '',
+		)
+	if (target instanceof HTMLElement && target.isContentEditable) return true
+	return Boolean(target.closest(EDITABLE_SELECTOR))
 }
 
 function matches(stroke: KeyStroke, candidate: ShortcutRule): boolean {

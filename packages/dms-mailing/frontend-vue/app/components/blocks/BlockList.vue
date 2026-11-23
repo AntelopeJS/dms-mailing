@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 import type { ListBlock } from '../../types/mailing'
+import { jsonText } from '../../utils/guards'
+import type { JsonValue } from '../../utils/guards'
 import { readPath } from '../../utils/paths'
 import { TOKEN_DATA_KEY } from '../../utils/tokens'
 
@@ -21,9 +23,9 @@ const TOKEN_CLOSE = '}}'
 const props = defineProps<Props>()
 const data = inject(TOKEN_DATA_KEY, null)
 
-const cell = (row: unknown, path: string): string => {
+const cell = (row: JsonValue, path: string): string => {
 	const value = readPath(row, path)
-	return value === undefined || value === null ? '' : String(value)
+	return value === undefined || value === null ? '' : jsonText(value)
 }
 
 const dataRows = computed<PreviewRow[] | null>(() => {

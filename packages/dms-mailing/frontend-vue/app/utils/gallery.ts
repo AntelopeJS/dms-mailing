@@ -1,4 +1,6 @@
 import type { TemplateCategory } from '../types/mailing'
+import { isString } from './guards'
+import type { JsonValue } from './guards'
 
 export interface CategoryGroup<T> {
 	category: TemplateCategory
@@ -61,6 +63,9 @@ export interface GalleryTable {
 	setGlobalFilter: (value: string) => void
 }
 
+/** The table's search, sort and filters, by query key. */
+export type GalleryQuery = Record<string, JsonValue | undefined>
+
 /**
  * The slice of the DMS `TableViewDisplayContext` the gallery display reads,
  * declared structurally: the layer does not import from the dms-ui layer.
@@ -71,7 +76,7 @@ export interface GalleryContext<T> {
 	pagination: GalleryPagination
 	actions?: GalleryActions<T>
 	/** Active filters, search and sort of the table, without paging. */
-	query?: Record<string, unknown>
+	query?: GalleryQuery
 	refresh: () => Promise<void> | void
 	table?: GalleryTable
 }
@@ -87,56 +92,45 @@ const TAB_FILTER_KEYS = new Set([
 ])
 
 /** The search typed in the table, trimmed; empty without one. */
-export function searchTermOf(
-	query: Record<string, unknown> | undefined,
-): string {
+export function searchTermOf(query: GalleryQuery | undefined): string {
 	const value = query?.[SEARCH_KEY]
-	return typeof value === 'string' ? value.trim() : ''
+	return isString(value) ? value.trim() : ''
 }
 
 /** The filters the user set (quick filters, filter rows), not the tab. */
-export function userFilterKeys(
-	query: Record<string, unknown> | undefined,
-): string[] {
+export function userFilterKeys(query: GalleryQuery | undefined): string[] {
 	return Object.keys(query ?? {}).filter(
 		(key) => key.startsWith(FILTER_PREFIX) && !TAB_FILTER_KEYS.has(key),
 	)
 }
 
 /** Whether the table shows its "Needs attention" tab. */
-export function isAttentionView(
-	query: Record<string, unknown> | undefined,
-): boolean {
+export function isAttentionView(query: GalleryQuery | undefined): boolean {
 	return ATTENTION_FILTER_KEY in (query ?? {})
 }
 
 /** Whether a search or a filter narrows what the gallery lists. */
-export function isNarrowed(
-	query: Record<string, unknown> | undefined,
-): boolean {
+export function isNarrowed(query: GalleryQuery | undefined): boolean {
 	return Boolean(searchTermOf(query)) || userFilterKeys(query).length > 0
 }
 
 /** Whether `row` holds `search`, whatever its case, in one of `fields`. */
-export function matchesSearch(
-	row: object,
+export function matchesSearch<K extends string>(
+	row: Partial<Record<K, string | number | null>>,
 	search: string,
-	fields: string[],
+	fields: readonly K[],
 ): boolean {
 	const term = search.trim().toLowerCase()
-	const cellOf = (field: string) =>
-		String((row as Record<string, unknown>)[field] ?? '').toLowerCase()
+	const cellOf = (field: K) => String(row[field] ?? '').toLowerCase()
 	return !term || fields.some((field) => cellOf(field).includes(term))
 }
 
 const SORT_KEY = 'sortKey'
 
 /** The table's sort column; absent without one. */
-export function sortKeyOf(
-	query: Record<string, unknown> | undefined,
-): string | undefined {
+export function sortKeyOf(query: GalleryQuery | undefined): string | undefined {
 	const key = query?.[SORT_KEY]
-	return typeof key === 'string' && key ? key : undefined
+	return isString(key) && key ? key : undefined
 }
 
 const MS_PER_HOUR = 3_600_000

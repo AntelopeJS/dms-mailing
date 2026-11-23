@@ -4,7 +4,11 @@
  * The block model, the resolved e-mail and the HTTP payloads are declared once
  * here so every component and composable reads the same shapes; the source of
  * truth is `src/types/blocks.ts` / `src/engine/resolved.ts` on the backend.
+ *
+ * @packageDocumentation
  */
+
+import type { JsonObject } from '../utils/guards'
 
 export type ConditionOperator = 'truthy' | 'falsy' | 'eq' | 'ne' | 'gt' | 'lt'
 
@@ -373,7 +377,7 @@ export interface TemplateContentResponse {
 	 */
 	publishedVariables?: VariableDefinition[] | null
 	publishedDetectedVariables?: string[] | null
-	testData: Record<string, unknown>
+	testData: JsonObject
 	fallbackLocale: string
 	/** Whether a send missing a variable fails rather than goes out blank. */
 	blockOnMissingVariables: boolean
@@ -489,8 +493,14 @@ export interface SendEventRow {
 	json_details: string
 }
 
-export type SuppressionReason =
-	'hard_bounce' | 'complaint' | 'unsubscribe' | 'manual'
+export const SUPPRESSION_REASONS = [
+	'hard_bounce',
+	'complaint',
+	'unsubscribe',
+	'manual',
+] as const
+
+export type SuppressionReason = (typeof SUPPRESSION_REASONS)[number]
 
 /** An address's entry on the suppression list, as the API answers it. */
 export interface SuppressionSummary {

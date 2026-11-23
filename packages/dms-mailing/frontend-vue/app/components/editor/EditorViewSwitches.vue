@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type {
-	EditorDevice,
-	PreviewMode,
+import {
+	isEditorDevice,
+	isPreviewMode,
 } from '../../composables/useTemplateEditor'
 import { useEditorContext } from '../../composables/useEditorContext'
 
@@ -37,14 +37,16 @@ const modeItems = computed(() => [
 
 const device = computed({
 	get: () => editor.device,
-	set: (value: string | number | undefined) =>
-		(editor.device = value as EditorDevice),
+	set: (value: string | number | undefined) => {
+		if (isEditorDevice(value)) editor.device = value
+	},
 })
 
 const mode = computed({
 	get: () => editor.previewMode,
-	set: (value: string | number | undefined) =>
-		(editor.previewMode = value as PreviewMode),
+	set: (value: string | number | undefined) => {
+		if (isPreviewMode(value)) editor.previewMode = value
+	},
 })
 </script>
 

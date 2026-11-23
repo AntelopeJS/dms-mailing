@@ -26,7 +26,6 @@ const { t } = useI18n()
 
 const root = ref<HTMLElement | null>(null)
 
-// A tile stays in the palette: the canvas receives the block it stands for.
 useSortableList(root, () => props.entries, {
 	group: PALETTE_GROUP,
 	sort: false,

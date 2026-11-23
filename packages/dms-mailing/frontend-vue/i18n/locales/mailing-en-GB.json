@@ -257,7 +257,7 @@
 				"empty_title": "No block selected",
 				"empty_description": "Click a block on the e-mail to edit it here.",
 				"position": "block {index} of {total}",
-				"position_branches": "{position} · {then} + {else} blocks",
+				"position_branches": "{position} · {whenTrue} + {whenFalse} blocks",
 				"duplicate": "Duplicate",
 				"delete": "Delete"
 			},

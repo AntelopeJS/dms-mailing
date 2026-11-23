@@ -15,7 +15,7 @@ const SKELETON_STARTERS = 4
 const emit = defineEmits<{ created: [] }>()
 
 const api = useMailingApi()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { t } = useI18n()
 const overlays = useTemplateDrawer()
 
@@ -64,7 +64,7 @@ async function createFrom(starter: StarterSummary): Promise<void> {
 			openNewTemplate(starter)
 			return
 		}
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		creatingId.value = null
 	}

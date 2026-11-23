@@ -4,20 +4,30 @@ import type {
 	TemplateStatus,
 	VariableDefinition,
 } from '../types/mailing'
+import type { JsonObject, JsonValue } from './guards'
 import { readPath } from './paths'
 
 const MS_PER_DAY = 86_400_000
 
-export type AttentionReason = 'stale_draft' | 'never_sent' | 'missing_locale'
+const ATTENTION_REASONS = [
+	'stale_draft',
+	'never_sent',
+	'missing_locale',
+] as const
+
+export type AttentionReason = (typeof ATTENTION_REASONS)[number]
+
+const KNOWN_REASONS = new Set<string>(ATTENTION_REASONS)
+
+const isAttentionReason = (reason: string): reason is AttentionReason =>
+	KNOWN_REASONS.has(reason)
 
 /** How the row's `attention` field separates its reasons. */
 const REASON_SEPARATOR = ','
 
 /** Why the server says a template needs a look, read off its row. */
 export function attentionReasons(row: TemplateRow): AttentionReason[] {
-	return row.attention
-		.split(REASON_SEPARATOR)
-		.filter(Boolean) as AttentionReason[]
+	return row.attention.split(REASON_SEPARATOR).filter(isAttentionReason)
 }
 
 /** Whole days between `date` and `now`; 0 for an unreadable date. */
@@ -83,7 +93,7 @@ export function validTransitions(row: TemplateRow): LifecycleAction[] {
 	return TRANSITIONS[row.status]?.(row) ?? []
 }
 
-const isFilled = (value: unknown) =>
+const isFilled = (value: JsonValue | undefined) =>
 	value !== undefined && value !== null && value !== ''
 
 /**
@@ -93,7 +103,7 @@ const isFilled = (value: unknown) =>
 export function variablesCovered(
 	declared: VariableDefinition[],
 	detected: string[],
-	testData: Record<string, unknown>,
+	testData: JsonObject,
 ): boolean {
 	const declaredPaths = new Set(declared.map((entry) => entry.path))
 	const everyUsedDeclared = detected.every((path) => declaredPaths.has(path))

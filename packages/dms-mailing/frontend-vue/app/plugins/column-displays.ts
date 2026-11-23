@@ -1,5 +1,6 @@
 import { h, type VNode } from 'vue'
 import CategoryLabel from '../components/CategoryLabel.vue'
+import { isString } from '../utils/guards'
 import { localeChipClass, localeChips } from '../utils/locales'
 
 export const LOCALE_CHIPS_DISPLAY_ID = 'mailing:locale-chips'
@@ -19,13 +20,10 @@ const emptyCell = () => h('span', { class: 'text-dimmed' }, EMPTY_CELL)
  * dashed in the warning tone, like the gallery card.
  */
 export function renderLocaleChips(
-	value: unknown,
+	value: string | null | undefined,
 	workspaceCodes: string[],
 ): VNode {
-	const chips = localeChips(
-		typeof value === 'string' ? value : '',
-		workspaceCodes,
-	)
+	const chips = localeChips(value ?? '', workspaceCodes)
 	if (!chips.length) return emptyCell()
 	return h(
 		'span',
@@ -37,8 +35,8 @@ export function renderLocaleChips(
 }
 
 /** A template's category as its settings label and icon. */
-export function renderCategory(value: unknown): VNode {
-	return h(CategoryLabel, { value: typeof value === 'string' ? value : null })
+export function renderCategory(value: string | null | undefined): VNode {
+	return h(CategoryLabel, { value: value ?? null })
 }
 
 function workspaceCodes(): string[] {
@@ -55,11 +53,18 @@ export default defineDmsPlugin(() => {
 	registerDataType({
 		id: LOCALE_CHIPS_DISPLAY_ID,
 		formatter: {
-			default: (value: unknown) => renderLocaleChips(value, workspaceCodes()),
+			default: (value: unknown) =>
+				renderLocaleChips(
+					isString(value) ? value : undefined,
+					workspaceCodes(),
+				),
 		},
 	})
 	registerDataType({
 		id: CATEGORY_DISPLAY_ID,
-		formatter: { default: renderCategory },
+		formatter: {
+			default: (value: unknown) =>
+				renderCategory(isString(value) ? value : undefined),
+		},
 	})
 })

@@ -123,7 +123,10 @@ function useReadOnDemand<T>(
 	return async () => {
 		await read.execute({ dedupe: 'defer' })
 		if (read.error.value) throw read.error.value
-		return read.data.value as T
+		const answer = read.data.value
+		if (answer === null || answer === undefined)
+			throw new Error('The read answered nothing')
+		return answer
 	}
 }
 

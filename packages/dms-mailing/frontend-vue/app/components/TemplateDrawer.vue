@@ -6,6 +6,8 @@ import TemplateDrawerVariables from '../build/components/TemplateDrawerVariables
 import { useElementSize } from '@vueuse/core'
 import {
 	useMailingApi,
+	type PublishResponse,
+	type StatusResponse,
 	type TemplateDetails,
 } from '../composables/useMailingApi'
 import {
@@ -62,7 +64,7 @@ type ConfirmTone = 'primary' | 'warning'
 
 interface LifecycleSpec {
 	icon: string
-	run: (id: string) => Promise<unknown>
+	run: (id: string) => Promise<PublishResponse | StatusResponse>
 	/** Absent: the move is harmless and runs at once. */
 	confirmColor?: ConfirmTone
 }
@@ -83,7 +85,7 @@ defineEmits<{ success: [changed?: boolean] }>()
 
 const api = useMailingApi()
 const toast = useToast()
-const { presentError } = useApiErrorPresenter()
+const errorPresenter = useApiErrorPresenter()
 const { confirm } = useConfirm()
 const { t, locale: uiLocale } = useI18n()
 const { uniqueLocales } = useUniqueLocales()
@@ -137,7 +139,7 @@ async function load(): Promise<void> {
 		performance.value = stats
 		locale.value ||= content.fallbackLocale
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	} finally {
 		loading.value = false
 	}
@@ -307,7 +309,7 @@ async function saveDetails(changes: Partial<TemplateDetails>): Promise<void> {
 		})
 		reloadInPlace()
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	}
 }
 
@@ -365,7 +367,7 @@ async function runLifecycle(action: LifecycleAction): Promise<void> {
 		})
 		settle()
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	}
 }
 
@@ -410,7 +412,7 @@ async function declareVariable(path: string): Promise<void> {
 		detail.value.variables = response.variables
 		detail.value.revision = response.revision
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 		reloadInPlace()
 	}
 }
@@ -434,7 +436,7 @@ async function restoreVersion(version: number): Promise<void> {
 			],
 		})
 	} catch (error) {
-		presentError(error, { fallbackKey: 'error.500.description' })
+		errorPresenter.presentError(error, { fallbackKey: 'error.500.description' })
 	}
 	reloadInPlace()
 }

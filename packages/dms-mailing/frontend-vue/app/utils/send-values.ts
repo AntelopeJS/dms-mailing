@@ -1,5 +1,14 @@
 import type { VariableDefinition, VariableType } from '../types/mailing'
 import { deepClone } from './clone'
+import {
+	childObject,
+	isBoolean,
+	isJsonObject,
+	isString,
+	jsonText,
+	ownValue,
+} from './guards'
+import type { JsonObject, JsonValue } from './guards'
 import { isPresent, readPath } from './paths'
 
 /**
@@ -16,7 +25,7 @@ export interface SendField {
 }
 
 /** The dialog's values, by variable path. */
-export type SendValues = Record<string, unknown>
+export type SendValues = Record<string, JsonValue | undefined>
 
 const PATH_SEPARATOR = '.'
 const ARRAY_SUFFIX = '[]'
@@ -27,10 +36,10 @@ const KIND_BY_TYPE: Partial<Record<VariableType, SendValueKind>> = {
 	array: 'list',
 }
 
-function kindOfValue(value: unknown): SendValueKind {
-	if (typeof value === 'boolean') return 'boolean'
+function kindOfValue(value: JsonValue | undefined): SendValueKind {
+	if (isBoolean(value)) return 'boolean'
 	if (Array.isArray(value)) return 'list'
-	return value !== null && typeof value === 'object' ? 'object' : 'text'
+	return isJsonObject(value) ? 'object' : 'text'
 }
 
 function normalize(path: string): string {
@@ -54,7 +63,7 @@ function isAncestor(path: string, other: string): boolean {
 export function sendFields(
 	declared: VariableDefinition[],
 	detected: string[],
-	testData: Record<string, unknown>,
+	testData: JsonObject,
 ): SendField[] {
 	const fields = declared.map((variable) => ({
 		path: normalize(variable.path),
@@ -78,8 +87,13 @@ export function sendFields(
 	return [...fields, ...undeclared]
 }
 
-const INITIAL_VALUES: Record<SendValueKind, (value: unknown) => unknown> = {
-	text: (value) => (isPresent(value) ? String(value) : ''),
+type ValueReader<T> = (value: JsonValue | undefined) => T
+
+const INITIAL_VALUES: Record<
+	SendValueKind,
+	ValueReader<JsonValue | undefined>
+> = {
+	text: (value) => (isPresent(value) ? jsonText(value) : ''),
 	boolean: (value) => Boolean(value),
 	list: (value) => (isPresent(value) ? value : undefined),
 	object: (value) => (isPresent(value) ? value : undefined),
@@ -88,7 +102,7 @@ const INITIAL_VALUES: Record<SendValueKind, (value: unknown) => unknown> = {
 /** The values the dialog opens with: the template's test data. */
 export function initialSendValues(
 	fields: SendField[],
-	testData: Record<string, unknown>,
+	testData: JsonObject,
 ): SendValues {
 	return Object.fromEntries(
 		fields.map((field) => [
@@ -98,8 +112,8 @@ export function initialSendValues(
 	)
 }
 
-const HAS_VALUE: Record<SendValueKind, (value: unknown) => boolean> = {
-	text: (value) => typeof value === 'string' && value.trim() !== '',
+const HAS_VALUE: Record<SendValueKind, ValueReader<boolean>> = {
+	text: (value) => isString(value) && value.trim() !== '',
 	boolean: () => true,
 	list: isPresent,
 	object: isPresent,
@@ -112,23 +126,15 @@ export function missingRequiredPaths(
 ): string[] {
 	return fields
 		.filter((field) => field.required)
-		.filter((field) => !HAS_VALUE[field.kind](values[field.path]))
+		.filter((field) => !HAS_VALUE[field.kind](ownValue(values, field.path)))
 		.map((field) => field.path)
 }
 
-function setPath(
-	target: Record<string, unknown>,
-	path: string,
-	value: unknown,
-): void {
+function setPath(target: JsonObject, path: string, value: JsonValue): void {
 	const segments = path.split(PATH_SEPARATOR)
 	if (segments.some((segment) => RESERVED_SEGMENTS.includes(segment))) return
-	const last = segments.pop() as string
-	const parent = segments.reduce<Record<string, unknown>>((node, segment) => {
-		const child = node[segment]
-		if (child === null || typeof child !== 'object') node[segment] = {}
-		return node[segment] as Record<string, unknown>
-	}, target)
+	const last = segments.at(-1) ?? path
+	const parent = segments.slice(0, -1).reduce(childObject, target)
 	parent[last] = value
 }
 
@@ -144,13 +150,14 @@ function depth(field: SendField): number {
 export function buildSendData(
 	fields: SendField[],
 	values: SendValues,
-): Record<string, unknown> {
-	const data: Record<string, unknown> = {}
+): JsonObject {
+	const data: JsonObject = {}
 	fields
-		.filter((field) => HAS_VALUE[field.kind](values[field.path]))
+		.filter((field) => HAS_VALUE[field.kind](ownValue(values, field.path)))
 		.sort((left, right) => depth(left) - depth(right))
-		.forEach((field) =>
-			setPath(data, field.path, deepClone(values[field.path])),
-		)
+		.forEach((field) => {
+			const value = ownValue(values, field.path)
+			if (value !== undefined) setPath(data, field.path, deepClone(value))
+		})
 	return data
 }

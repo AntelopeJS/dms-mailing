@@ -118,35 +118,37 @@ export interface BlockPlaceholders extends FooterLabels {
 	total: string
 }
 
-/** The footer labels mirror the backend's `blankContent` footer. */
-const BLOCK_PLACEHOLDERS: Record<string, BlockPlaceholders> = {
-	en: {
-		heading: 'New heading',
-		paragraph: 'Paragraph text…',
-		button: 'Button',
-		total: 'Total',
-		unsubscribe: 'Unsubscribe',
-		preferences: 'Preferences',
-	},
-	fr: {
-		heading: 'Nouveau titre',
-		paragraph: 'Votre texte…',
-		button: 'Bouton',
-		total: 'Total',
-		unsubscribe: 'Se désinscrire',
-		preferences: 'Préférences',
-	},
+const ENGLISH_PLACEHOLDERS: BlockPlaceholders = {
+	heading: 'New heading',
+	paragraph: 'Paragraph text…',
+	button: 'Button',
+	total: 'Total',
+	unsubscribe: 'Unsubscribe',
+	preferences: 'Preferences',
 }
+
+const FRENCH_PLACEHOLDERS: BlockPlaceholders = {
+	heading: 'Nouveau titre',
+	paragraph: 'Votre texte…',
+	button: 'Bouton',
+	total: 'Total',
+	unsubscribe: 'Se désinscrire',
+	preferences: 'Préférences',
+}
+
+/** The footer labels mirror the backend's `blankContent` footer. */
+const BLOCK_PLACEHOLDERS = new Map<string, BlockPlaceholders>([
+	['en', ENGLISH_PLACEHOLDERS],
+	['fr', FRENCH_PLACEHOLDERS],
+])
 /** A footer without unsubscribe and preferences links. */
 const NO_FOOTER_LINKS: FooterLabels = { unsubscribe: '', preferences: '' }
-const DEFAULT_PLACEHOLDER_LANGUAGE = 'en'
 const LANGUAGE_SEPARATOR = /[-_]/
 
 /** The starting words of a locale (`fr`, `fr-BE`…), English otherwise. */
 export function placeholdersFor(locale?: string): BlockPlaceholders {
 	const language = (locale ?? '').split(LANGUAGE_SEPARATOR)[0] ?? ''
-	return (BLOCK_PLACEHOLDERS[language] ??
-		BLOCK_PLACEHOLDERS[DEFAULT_PLACEHOLDER_LANGUAGE]) as BlockPlaceholders
+	return BLOCK_PLACEHOLDERS.get(language) ?? ENGLISH_PLACEHOLDERS
 }
 
 /** The default footer labels of a locale (`fr`, `fr-BE`…), English otherwise. */

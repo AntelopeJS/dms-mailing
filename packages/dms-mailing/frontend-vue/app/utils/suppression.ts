@@ -1,3 +1,4 @@
+import { SUPPRESSION_REASONS } from '../types/mailing'
 import type { SuppressionReason, SuppressionSummary } from '../types/mailing'
 import { SUPPRESSIONS_PATH } from './pages'
 
@@ -50,6 +51,11 @@ export function reasonKey(reason: SuppressionReason): string {
 /** The prefix of the error a suppressed send keeps, one key per reason. */
 const SUPPRESSED_ERROR_PREFIX = '$dms_mailing.errors.suppressed.'
 
+const KNOWN_REASONS = new Set<string>(SUPPRESSION_REASONS)
+
+const isSuppressionReason = (reason: string): reason is SuppressionReason =>
+	KNOWN_REASONS.has(reason)
+
 /**
  * The reason a suppressed send's error names ("manual" out of
  * `$dms_mailing.errors.suppressed.manual`); `null` for any other error.
@@ -58,7 +64,8 @@ export function suppressedReasonOf(
 	error: string | undefined,
 ): SuppressionReason | null {
 	if (!error?.startsWith(SUPPRESSED_ERROR_PREFIX)) return null
-	return error.slice(SUPPRESSED_ERROR_PREFIX.length) as SuppressionReason
+	const reason = error.slice(SUPPRESSED_ERROR_PREFIX.length)
+	return isSuppressionReason(reason) ? reason : null
 }
 
 /**

@@ -1,3 +1,5 @@
+import { childObject, isJsonObject, ownValue } from './guards'
+import type { JsonObject, JsonValue } from './guards'
 import { readPath } from './paths'
 import type { VariableType } from '../types/mailing'
 
@@ -15,12 +17,10 @@ export interface SendSnippetInput {
 	 */
 	variables: SnippetVariable[]
 	/** The template's test data: example values where it has them. */
-	testData: Record<string, unknown>
+	testData: JsonObject
 }
 
-type VariableTree = Record<string, unknown>
-
-const EXAMPLE_VALUES: Record<VariableType, unknown> = {
+const EXAMPLE_VALUES: Record<VariableType, JsonValue> = {
 	string: '…',
 	text: '…',
 	number: 0,
@@ -35,10 +35,7 @@ const ARRAY_SUFFIX = '[]'
 const PATH_SEPARATOR = '.'
 const INDENT = '  '
 const JSON_INDENT = 2
-const QUOTED_IDENTIFIER_KEY = /"([A-Za-z_$][\w$]*)":/g
-
-const isTree = (value: unknown): value is VariableTree =>
-	value !== null && typeof value === 'object' && !Array.isArray(value)
+const QUOTED_IDENTIFIER_KEY = /"([A-Z_$][\w$]*)":/gi
 
 /** A list item path (`order.items[].name`) stands for its list. */
 function rootVariable(variable: SnippetVariable): SnippetVariable {
@@ -47,19 +44,16 @@ function rootVariable(variable: SnippetVariable): SnippetVariable {
 }
 
 /** Sets `value` at a dotted path, never over a branch a deeper path built. */
-function setPath(tree: VariableTree, path: string, value: unknown): void {
+function setPath(tree: JsonObject, path: string, value: JsonValue): void {
 	const keys = path.split(PATH_SEPARATOR)
-	const leaf = keys.pop() as string
-	const parent = keys.reduce<VariableTree>((node, key) => {
-		if (!isTree(node[key])) node[key] = {}
-		return node[key] as VariableTree
-	}, tree)
-	if (!isTree(parent[leaf])) parent[leaf] = value
+	const leaf = keys.at(-1) ?? path
+	const parent = keys.slice(0, -1).reduce(childObject, tree)
+	if (!isJsonObject(ownValue(parent, leaf))) parent[leaf] = value
 }
 
 /** The variables a send passes, as one object of example values. */
-export function exampleVariables(input: SendSnippetInput): VariableTree {
-	const tree: VariableTree = {}
+export function exampleVariables(input: SendSnippetInput): JsonObject {
+	const tree: JsonObject = {}
 	input.variables
 		.map(rootVariable)
 		.filter((variable) => variable.path)
@@ -74,7 +68,7 @@ export function exampleVariables(input: SendSnippetInput): VariableTree {
 	return tree
 }
 
-function literal(value: unknown): string {
+function literal(value: JsonValue): string {
 	return JSON.stringify(value, null, JSON_INDENT)
 		.replace(QUOTED_IDENTIFIER_KEY, '$1:')
 		.split('\n')

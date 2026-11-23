@@ -1,4 +1,6 @@
 import type { SendEventRow, SendRow, SendStatus } from '../types/mailing'
+import { isJsonObjectValue, isString, jsonText, ownValue } from './guards'
+import type { JsonObject, JsonValue } from './guards'
 import { isSuppressedStatus, SUPPRESSED_STATUS } from './suppression'
 
 export type TimelineTone =
@@ -79,7 +81,7 @@ const TITLE_KEY_PREFIX = 'dms_mailing.sends.timeline.'
 const DETAIL_KEYS = ['reason', 'smtp', 'code', 'url', 'userAgent', 'client']
 const MONO_DETAIL_KEYS = new Set(['reason', 'smtp', 'code', 'url'])
 
-type EventDetails = Record<string, unknown>
+type EventDetails = JsonObject
 
 interface Detail {
 	text: string
@@ -94,18 +96,19 @@ const WORDED_ELSEWHERE = new Set<SendStatus>([SUPPRESSED_STATUS])
 function parseDetails(raw: string): EventDetails {
 	try {
 		const parsed: unknown = raw ? JSON.parse(raw) : {}
-		return typeof parsed === 'object' && parsed !== null
-			? (parsed as EventDetails)
-			: {}
+		return isJsonObjectValue(parsed) ? parsed : {}
 	} catch {
 		return {}
 	}
 }
 
 function eventDetail(details: EventDetails): Detail {
-	const key = DETAIL_KEYS.find((candidate) => details[candidate])
+	const key = DETAIL_KEYS.find((candidate) => ownValue(details, candidate))
 	if (!key) return NO_DETAIL
-	return { text: String(details[key]), isMono: MONO_DETAIL_KEYS.has(key) }
+	return {
+		text: jsonText(ownValue(details, key)),
+		isMono: MONO_DETAIL_KEYS.has(key),
+	}
 }
 
 /** What a step says beyond its event: the message id, the raw error. */
@@ -127,8 +130,8 @@ interface StepTitle {
 	titleParams: Record<string, string>
 }
 
-const textOf = (value: unknown): string =>
-	typeof value === 'string' ? value : ''
+const textOf = (value: JsonValue | undefined): string =>
+	isString(value) ? value : ''
 
 /**
  * Whether a bounce event was temporary: the provider's `bounceType` when it
@@ -223,7 +226,7 @@ function pendingSteps(
 	if (isOver) return []
 	const path = trackedPath(tracking)
 	const furthest = Math.max(
-		...reached.map((type) => path.indexOf(type as SendStatus)),
+		...reached.map((type) => path.indexOf(type)),
 		path.indexOf(send.status),
 	)
 	if (furthest < 0) return []
