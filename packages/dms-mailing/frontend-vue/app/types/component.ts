@@ -1,13 +1,13 @@
 import type { JsonValue } from '../utils/guards'
 
+/** The values a translation message interpolates. */
+export type MessageParams = Record<string, string | number>
+
 /**
  * Identity the DMS page renderer hands to every component it mounts. Optional
  * here because the mailing components are also mounted directly by our own
  * pages and drawers, outside the renderer.
  */
-/** The values a translation message interpolates. */
-export type MessageParams = Record<string, string | number>
-
 export interface MailingComponentProps {
 	componentId?: string
 	pageId?: string

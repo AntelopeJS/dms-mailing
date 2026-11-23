@@ -2,18 +2,13 @@ import type { Ref } from 'vue'
 import { describe, expectTypeOf, it } from 'vitest'
 import { useSortableList } from '../app/composables/useSortableList'
 
-/**
- * The item of the list the type test checks: `ajs dms verify-source`
- * type-checks the layer against the installed `@vueuse/integrations`, so the
- * composable has to compile against its `useSortable` overloads, which take
- * the list as a `MaybeRef`, not a getter.
- */
+/** The item of the list the type test checks. */
 interface ListItem {
 	id: string
 }
 
 describe('useSortableList', () => {
-	it('takes the list as a getter and compiles against useSortable', () => {
+	it('takes the list as a getter, though useSortable takes a MaybeRef, as ajs dms verify-source type-checks it', () => {
 		expectTypeOf(useSortableList<ListItem>)
 			.parameter(1)
 			.toEqualTypeOf<() => ListItem[]>()

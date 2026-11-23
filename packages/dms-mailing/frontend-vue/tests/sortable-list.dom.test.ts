@@ -166,13 +166,14 @@ describe('useSortableList between lists', () => {
 		])
 	})
 
-	it('leaves a list unchanged when it does not accept what lands on it', async () => {
+	it('leaves both lists unchanged when the target does not accept what lands on it', async () => {
 		const source = reactive([{ id: 'a' }])
 		const target = reactive<Item[]>([])
 		const added = vi.fn()
+		const removed = vi.fn()
 		const [from, to] = pair(
 			mountLists([
-				{ items: source, options: { group: 'g' } },
+				{ items: source, options: { group: 'g', onChange: removed } },
 				{
 					items: target,
 					options: {
@@ -186,11 +187,17 @@ describe('useSortableList between lists', () => {
 		)
 		const item = firstItemOf(from, 0)
 		callHandler(from, 'onStart', dragEvent(item, { oldIndex: 0 }))
+		to.el.prepend(item)
 		callHandler(to, 'onAdd', dragEvent(item, { newIndex: 0 }))
+		callHandler(from, 'onRemove', dragEvent(item, { oldIndex: 0 }))
 		callHandler(from, 'onEnd', dragEvent(item))
 		await nextTick()
+		expect(ids(source)).toEqual(['a'])
 		expect(ids(target)).toEqual([])
+		expect(domIds(from)).toEqual(['a'])
+		expect(domIds(to)).toEqual([])
 		expect(added).not.toHaveBeenCalled()
+		expect(removed).not.toHaveBeenCalled()
 	})
 
 	it('hands a copy to the other list and keeps its own item (pull: clone)', async () => {

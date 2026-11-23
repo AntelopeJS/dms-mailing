@@ -77,7 +77,8 @@ function passedOptions(options: PassedOptions): PassedOptions {
  * The item being dragged, by group: a drop on another list only names the
  * element, which belongs to the list it left, so the list it lands in reads
  * what the other one handed over when the drag started, and checks it with
- * its `accepts`.
+ * its `accepts`. A list that refuses it takes it out of here, and the list it
+ * left then keeps its item.
  */
 const dragged = new Map<string, unknown>()
 
@@ -137,7 +138,10 @@ export function useSortableList<Item>(
 			const { newIndex } = event
 			const element = dragged.get(groupName)
 			const { accepts } = options
-			if (newIndex === undefined || !accepts || !accepts(element)) return
+			if (newIndex === undefined || !accepts || !accepts(element)) {
+				dragged.delete(groupName)
+				return
+			}
 			event.item.remove()
 			list().splice(newIndex, 0, element)
 			options.onChange?.({ added: { element, newIndex } })
@@ -149,7 +153,7 @@ export function useSortableList<Item>(
 				return
 			}
 			const { oldIndex } = event
-			if (oldIndex === undefined) return
+			if (oldIndex === undefined || !dragged.has(groupName)) return
 			const [element] = list().splice(oldIndex, 1)
 			if (element === undefined) return
 			options.onChange?.({ removed: { element, oldIndex } })
