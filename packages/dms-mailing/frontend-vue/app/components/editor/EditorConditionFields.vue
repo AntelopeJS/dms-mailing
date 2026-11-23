@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Condition, ConditionOperator } from '../../types/mailing'
+import type { Condition } from '../../types/mailing'
 import { useEditorContext } from '../../composables/useEditorContext'
+import { oneOf } from '../../utils/guards'
 import {
 	OPERATORS,
 	OPERATORS_WITH_VALUE,
@@ -55,6 +56,12 @@ const evaluation = computed(() => {
 function update(patch: Partial<Condition>): void {
 	emit('update', { ...props.condition, ...patch })
 }
+
+const isOperator = oneOf(OPERATORS)
+
+function updateOperator(value: string | number | undefined): void {
+	if (isOperator(value)) update({ operator: value })
+}
 </script>
 
 <template>
@@ -76,7 +83,7 @@ function update(patch: Partial<Condition>): void {
 				:items="operatorItems"
 				size="sm"
 				:aria-label="t(`${KEY}.operator`)"
-				@update:model-value="update({ operator: $event as ConditionOperator })"
+				@update:model-value="updateOperator"
 			/>
 			<UInput
 				:model-value="needsValue ? condition.value : ''"
