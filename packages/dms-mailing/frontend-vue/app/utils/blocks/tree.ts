@@ -4,7 +4,7 @@ import type {
 	FooterBlock,
 	IfBlock,
 } from '../../types/mailing'
-import { deepClone } from '../clone'
+import { cloneBlock } from '../clone'
 import { footerLabelsFor, newBlockId } from './factory'
 
 const isIf = (block: Block): block is IfBlock => block.type === 'if'
@@ -46,7 +46,7 @@ export function moveBlock(
 }
 
 export function cloneWithNewIds(block: Block): Block {
-	const copy = deepClone(block)
+	const copy = cloneBlock(block)
 	copy.id = newBlockId(copy.type)
 	if (!isIf(copy)) return copy
 	copy.children = copy.children.map(cloneWithNewIds)

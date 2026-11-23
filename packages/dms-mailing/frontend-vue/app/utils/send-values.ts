@@ -1,5 +1,5 @@
 import type { VariableDefinition, VariableType } from '../types/mailing'
-import { deepClone } from './clone'
+import { cloneJson } from './clone'
 import {
 	childObject,
 	isBoolean,
@@ -157,7 +157,7 @@ export function buildSendData(
 		.sort((left, right) => depth(left) - depth(right))
 		.forEach((field) => {
 			const value = ownValue(values, field.path)
-			if (value !== undefined) setPath(data, field.path, deepClone(value))
+			if (value !== undefined) setPath(data, field.path, cloneJson(value))
 		})
 	return data
 }

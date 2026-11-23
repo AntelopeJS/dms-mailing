@@ -8,7 +8,7 @@ import type { TemplateOverlays } from './useTemplateDrawer'
 import { asReportedError } from '../utils/api-error'
 import type { ReportedError } from '../utils/api-error'
 import { describeChanges } from '../utils/changes'
-import { deepClone } from '../utils/clone'
+import { cloneContent } from '../utils/clone'
 import { resolveRegistered } from '../utils/components'
 import {
 	contentChecks,
@@ -57,7 +57,7 @@ function createTestAction(
 	return (): void =>
 		openTestSend(templateId, {
 			locale: editor.locale,
-			content: deepClone(editor.content),
+			content: cloneContent(editor.content),
 			data: session.testData ?? undefined,
 		})
 }
@@ -257,7 +257,7 @@ function createCompareAction(deps: ActionDeps, tools: ActionTools) {
 				templateId: deps.templateId,
 				locale: deps.editor.locale,
 				locales: deps.editor.locales,
-				content: deepClone(deps.editor.content),
+				content: cloneContent(deps.editor.content),
 				publishedContent: deps.session.state.publishedContent,
 				changes: deps.session.state.changes,
 				data: deps.session.testData ?? undefined,

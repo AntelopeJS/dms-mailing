@@ -20,7 +20,7 @@ import {
 	removeBlock,
 } from '../utils/blocks'
 import type { BlockContext } from '../utils/blocks'
-import { deepClone } from '../utils/clone'
+import { cloneContent, cloneLocale, cloneVariables } from '../utils/clone'
 import { parseSnapshot, snapshotOf } from '../utils/draft-snapshot'
 import { oneOf } from '../utils/guards'
 import { renameVariablePath } from '../utils/variables'
@@ -116,7 +116,7 @@ function copyLocale(
 	to: string,
 ): LocaleContent {
 	const copy = {
-		...deepClone(source),
+		...cloneLocale(source),
 		blocks: source.blocks.map(cloneWithNewIds),
 	}
 	localizeFooters(copy.blocks, from, to)
@@ -136,8 +136,8 @@ function createCore(
 	locales: string[],
 ): EditorCore {
 	const core: EditorCore = {
-		content: deepClone(content),
-		variables: deepClone(variables),
+		content: cloneContent(content),
+		variables: cloneVariables(variables),
 		locale,
 		locales,
 		revision: 0,
@@ -404,7 +404,7 @@ function createLifecycleActions({ core, select, touch }: MutationDeps) {
 		 */
 		setVariables(next: VariableDefinition[], rename?: VariableRename): void {
 			if (rename) renameVariablePath(core.content, rename.from, rename.to)
-			core.variables = deepClone(next)
+			core.variables = cloneVariables(next)
 			touch(true)
 		},
 		/** Marks the content up to `revision` as saved (the latest by default). */
@@ -412,8 +412,8 @@ function createLifecycleActions({ core, select, touch }: MutationDeps) {
 			core.savedRevision = revision ?? core.revision
 		},
 		reset(content: TemplateContent, variables = core.variables): void {
-			core.content = deepClone(content)
-			core.variables = deepClone(variables)
+			core.content = cloneContent(content)
+			core.variables = cloneVariables(variables)
 			core.history = createHistory(snapshotOf(core))
 			core.savedRevision = core.revision
 			select(null)

@@ -11,7 +11,7 @@ import type { MailingApi, TemplateDetails } from './useMailingApi'
 import type { EditorReads } from './useMailingReads'
 import type { EditorState } from './useTemplateEditor'
 import type { TokenFieldHandle } from './useEditorContext'
-import { deepClone } from '../utils/clone'
+import { cloneContent, cloneVariables } from '../utils/clone'
 import { collectContentPaths } from '../utils/paths'
 import { parseTestData } from '../utils/testData'
 import type { SaveStatus } from '../utils/lifecycle'
@@ -178,8 +178,8 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 		state.saveStatus = 'saving'
 		try {
 			const response = await api.saveContent(templateId, {
-				content: deepClone(editor.content),
-				variables: deepClone(editor.variables),
+				content: cloneContent(editor.content),
+				variables: cloneVariables(editor.variables),
 				revision: state.revision,
 			})
 			state.revision = response.revision
@@ -220,8 +220,8 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 		if (editor.dirty === 0 || state.saveStatus === 'conflict') return
 		cancel()
 		const draft = {
-			content: deepClone(editor.content),
-			variables: deepClone(editor.variables),
+			content: cloneContent(editor.content),
+			variables: cloneVariables(editor.variables),
 		}
 		const keepalive = JSON.stringify(draft).length < KEEPALIVE_MAX_LENGTH
 		void api

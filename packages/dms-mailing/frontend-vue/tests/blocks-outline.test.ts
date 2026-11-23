@@ -76,7 +76,7 @@ describe('tree positions', () => {
 		])
 		expect(blockPosition(BLOCKS, 'p2')).toEqual({ index: 4, total: 5 })
 		expect(blockPosition(BLOCKS, 'nope')).toBeNull()
-		expect(branchCounts(branch)).toEqual({ then: 1, else: 1 })
+		expect(branchCounts(branch)).toEqual({ whenTrue: 1, whenFalse: 1 })
 	})
 	it('inserts after the selected block in its own list', () => {
 		const point = insertionAfter(BLOCKS, 'c1')
