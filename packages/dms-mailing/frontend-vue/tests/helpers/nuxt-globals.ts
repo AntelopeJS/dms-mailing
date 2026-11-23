@@ -195,6 +195,22 @@ export function mount(
 	}
 }
 
+/** What `run` returns when a component's setup calls it, as a composable is used. */
+export function inSetup<T>(run: () => T): T {
+	const results: T[] = []
+	const mounted = mount(
+		{
+			setup: () => {
+				results.push(run())
+				return () => null
+			},
+		},
+		{},
+	)
+	mounted.unmount()
+	return expectDefined(results[0])
+}
+
 /** Lets pending promises and the re-render they cause settle. */
 export async function flush(): Promise<void> {
 	for (let pass = 0; pass < 5; pass += 1) {

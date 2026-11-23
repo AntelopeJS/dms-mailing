@@ -34,6 +34,7 @@ const STEP_BUTTON_VARIANTS: Record<SetupStepState, 'solid' | 'outline'> = {
 
 const { t } = useI18n()
 const { open: openModal } = useModal()
+const NewTemplateModal = resolveRegistered(NEW_TEMPLATE_MODAL)
 
 const setup = useSetupFacts()
 const { data: facts, error, status } = setup
@@ -75,7 +76,7 @@ const stepDescription = (step: SetupStep): string =>
 function createTemplate(): void {
 	const modal = openModal({
 		title: t('dms_mailing.setup.create_template'),
-		component: resolveRegistered(NEW_TEMPLATE_MODAL),
+		component: NewTemplateModal,
 		size: NEW_TEMPLATE_MODAL_SIZE,
 	})
 	const reread = () => setup.refresh()

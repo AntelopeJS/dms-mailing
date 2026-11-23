@@ -3,11 +3,18 @@ import { createApp, defineComponent, h, onBeforeUnmount } from 'vue'
 import OverviewGate from '../app/components/OverviewGate.vue'
 import type { SetupFacts } from '../app/utils/overview-setup'
 import { stubApiData, type ApiDataStub } from './helpers/api-data'
-import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
+import {
+	flush,
+	mount,
+	slotStub,
+	stubNuxtGlobals,
+	type NuxtStubs,
+} from './helpers/nuxt-globals'
 import { ButtonStub } from './helpers/button-stub'
 import { EmptyStateStub } from './helpers/empty-state-stub'
 
 let api: ApiDataStub
+let stubs: NuxtStubs
 
 /**
  * The read the gate makes for its facts.
@@ -49,7 +56,7 @@ const facts = (overrides: Partial<SetupFacts> = {}): SetupFacts => ({
 })
 
 beforeEach(() => {
-	stubNuxtGlobals()
+	stubs = stubNuxtGlobals()
 	vi.stubGlobal('onBeforeUnmount', onBeforeUnmount)
 	api = stubApiData()
 })
@@ -124,6 +131,19 @@ describe('OverviewGate', () => {
 				message.includes('Extraneous non-props attributes'),
 			),
 		).toEqual([])
+	})
+
+	it('opens the new template dialog from the setup step', async () => {
+		api.respond(() => facts({ liveTemplateCount: 0 }))
+		const { host } = mount(Gate, {}, GLOBALS)
+		await flush()
+		const create = [...host.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('create_template'),
+		)
+		create?.click()
+		expect(stubs.modalCalls[0]?.component).toEqual({
+			name: 'MailingNewTemplateModal',
+		})
 	})
 
 	it('offers no resume once every step is done', async () => {

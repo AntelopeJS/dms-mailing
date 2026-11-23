@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SendDrawer from '../app/components/SendDrawer.vue'
-import type { SendRow } from '../app/types/mailing'
-import { flush, mount, slotStub, stubNuxtGlobals } from './helpers/nuxt-globals'
+import type { SendRow, SendStatus } from '../app/types/mailing'
+import {
+	flush,
+	mount,
+	slotStub,
+	stubNuxtGlobals,
+	type NuxtStubs,
+} from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
 import { stubAuthFetch } from './helpers/auth-fetch'
-import { elementAs } from './helpers/narrow'
+import { elementAs, query } from './helpers/narrow'
 
 const SEND: SendRow = {
 	_id: '041f125a00000000',
@@ -139,5 +145,45 @@ describe('send drawer layout', () => {
 	it('shows no attachment section for a send without files', async () => {
 		const host = await render()
 		expect(host.querySelector('[data-send-attachment]')).toBeNull()
+	})
+})
+
+describe('send drawer footer', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals()
+		document.body.innerHTML = ''
+	})
+
+	async function openFrom(
+		status: SendStatus,
+		action: string,
+	): Promise<NuxtStubs> {
+		const row: SendRow = { ...SEND, status }
+		const stubs = stubNuxtGlobals()
+		stubAuthFetch()
+		stubApiData().respond(
+			mailingReads({ send: () => ({ send: row, events: [] }) }),
+		)
+		const host = await render(row)
+		query(
+			host,
+			`[data-send-footer] [label="dms_mailing.sends.drawer.actions.${action}"]`,
+			HTMLElement,
+		).click()
+		return stubs
+	}
+
+	it('opens the rendering of the send from View the e-mail', async () => {
+		const stubs = await openFrom('sent', 'rendering')
+		expect(stubs.modalCalls[0]?.component).toEqual({
+			name: 'MailingRenderingModal',
+		})
+	})
+
+	it('opens the corrected address dialog of a bounced send', async () => {
+		const stubs = await openFrom('bounced', 'fix_address')
+		expect(stubs.modalCalls[0]?.component).toEqual({
+			name: 'MailingFixAddressModal',
+		})
 	})
 })

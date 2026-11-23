@@ -92,6 +92,8 @@ const { t, locale } = useI18n()
 const { copy } = useClipboard()
 
 const KeyValueList = resolveRegistered('DmsKeyValueList')
+const RenderingModal = resolveRegistered(RENDERING_MODAL)
+const FixAddressModal = resolveRegistered(FIX_ADDRESS_MODAL)
 
 const sendId = computed(() => props.rowData?._id ?? props.sendId ?? '')
 const readSend = useSendRead(sendId)
@@ -300,7 +302,7 @@ function openRendering(): void {
 		title: t(renderingTitleKey(row.status), {
 			name: row.recipientName || row.recipientEmail,
 		}),
-		component: resolveRegistered(RENDERING_MODAL),
+		component: RenderingModal,
 		componentOptions: { rowData: row, sendId: row._id },
 		size: RENDERING_MODAL_SIZE,
 	})
@@ -311,7 +313,7 @@ function openFixAddress(): void {
 	if (!row) return
 	const modal = openModal({
 		title: t('dms_mailing.sends.fix_address.title'),
-		component: resolveRegistered(FIX_ADDRESS_MODAL),
+		component: FixAddressModal,
 		componentOptions: { rowData: row, version: row.templateVersion ?? 0 },
 		size: FIX_ADDRESS_MODAL_SIZE,
 	})

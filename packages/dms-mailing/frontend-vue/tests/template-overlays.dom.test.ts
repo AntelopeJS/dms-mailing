@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTemplateDrawer } from '../app/composables/useTemplateDrawer'
 import type { TemplateContent, TemplateRow } from '../app/types/mailing'
 import { expectDefined } from './helpers/narrow'
+import { inSetup } from './helpers/nuxt-globals'
 
 interface Navigation {
 	hasPrev: boolean
@@ -83,7 +84,7 @@ function row(id: string): TemplateRow {
 describe('useTemplateDrawer', () => {
 	it('opens the test send with the editor draft and locale', () => {
 		const content: TemplateContent = { locales: {} }
-		useTemplateDrawer().openTestSend('t1', { locale: 'fr', content })
+		inSetup(useTemplateDrawer).openTestSend('t1', { locale: 'fr', content })
 		expect(modalCalls[0]?.component).toEqual({ name: 'MailingTestSendModal' })
 		expect(modalCalls[0]?.componentOptions).toEqual({
 			templateId: 't1',
@@ -94,12 +95,15 @@ describe('useTemplateDrawer', () => {
 
 	it('calls back only when the dialog closes after a change', async () => {
 		const onDone = vi.fn()
-		useTemplateDrawer().openRealSend('t1', { onDone })
+		inSetup(useTemplateDrawer).openRealSend('t1', { onDone })
 		await Promise.resolve()
 		await Promise.resolve()
 		expect(onDone).not.toHaveBeenCalled()
 		nextResult = true
-		useTemplateDrawer().openNewTemplate({ initialName: 'Refund', onDone })
+		inSetup(useTemplateDrawer).openNewTemplate({
+			initialName: 'Refund',
+			onDone,
+		})
 		await Promise.resolve()
 		await Promise.resolve()
 		expect(onDone).toHaveBeenCalledTimes(1)
@@ -108,7 +112,7 @@ describe('useTemplateDrawer', () => {
 
 	it('opens the details from the right and steps through the rows shown', () => {
 		const rows = [row('a'), row('b'), row('c')]
-		useTemplateDrawer().openDetails(expectDefined(rows[1]), { rows })
+		inSetup(useTemplateDrawer).openDetails(expectDefined(rows[1]), { rows })
 		const call = expectDefined(drawerCalls[0])
 		expect(call.direction).toBe('right')
 		expect(call.component).toEqual({ name: 'MailingTemplateDrawer' })
@@ -123,7 +127,7 @@ describe('useTemplateDrawer', () => {
 	})
 
 	it('opens the details of a bare id without navigation', () => {
-		useTemplateDrawer().openDetails('x')
+		inSetup(useTemplateDrawer).openDetails('x')
 		expect(drawerCalls[0]?.componentOptions.templateId).toBe('x')
 		expect(drawerCalls[0]?.componentOptions.navigation).toBeUndefined()
 	})
