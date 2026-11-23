@@ -7,8 +7,11 @@
 The repository is a pnpm workspace: the root holds the tool configs (one
 oxlint and oxfmt config for both packages), the two published packages live
 under `packages/`. `pnpm run knip` checks only the dependencies of
-`packages/dms-mailing`, with that package's own `knip.config.ts`. ESLint and Prettier own the Vue layer
-(`packages/dms-mailing/frontend-vue`), not oxlint and oxfmt.
+`packages/dms-mailing`, with that package's own `knip.config.ts`. oxlint lints
+every `.ts` and `.vue` file, the Vue layer (`packages/dms-mailing/frontend-vue`)
+included; ESLint adds `antelopeNuxtConfig` there, type-aware on `.vue` through
+the types its `prepare` script writes to `.dms-types`. Prettier, not oxfmt,
+formats the Vue layer.
 
 - `packages/dms-mailing/src/` — the whole server side. Pages are declared with DMS factories (`TableView`, `KpiCard`, `ChartCard`, `TopListCard`, `Section`, `Form` with sections), custom Vue only where the DMS has no block: `overview`, `templates`, the editor (`templates/:id`), `sends` and `settings`, all in the module sidebar. Every `CustomComponent` and the settings form carry a `.meta()` with `$dms_mailing.permissions.*` keys. Templates keep a draft (`json_draft`) next to the published content (`json_content`); publishing writes a row in `mailing_template_versions`.
 - `packages/dms-mailing/src/engine/` — pure TS, no runtime dependency: a block tree resolves to an e-mail (token interpolation, conditions, list expansion) and can render itself to standalone HTML when the front end is unreachable.

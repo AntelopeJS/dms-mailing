@@ -1,0 +1,6 @@
+{
+  "extends": "../../../packages/dms-mailing/frontend-vue/.dms-types/tsconfig.json",
+  "files": ["../../../packages/dms-mailing/frontend-vue/.dms-types/types.d.ts"],
+  "include": ["**/*.ts"],
+  "exclude": []
+}

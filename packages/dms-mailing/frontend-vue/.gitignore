@@ -26,3 +26,6 @@ logs
 # Prepare layers
 generated-layers.json
 i18n-registry.generated.ts
+
+# The types `ajs dms prepare-types` writes for type-aware lint
+.dms-types
