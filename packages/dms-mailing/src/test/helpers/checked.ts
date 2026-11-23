@@ -9,7 +9,7 @@ export const checkedNumber = z.number();
 /** The part of an API answer a test reads, checked against its schema. */
 export function parsedBody<Parsed>(
   response: { data: unknown },
-  schema: z.ZodType<Parsed, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<Parsed, unknown>,
 ): Parsed {
   return schema.parse(response.data);
 }

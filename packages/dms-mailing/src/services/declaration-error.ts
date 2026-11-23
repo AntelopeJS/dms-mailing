@@ -1,4 +1,4 @@
-import type { ZodError, ZodType, ZodTypeDef } from "zod";
+import type { ZodError, ZodType } from "zod";
 
 /**
  * Why a call made from code (a declaration, an import) was refused: `code`
@@ -25,7 +25,7 @@ function describeIssues(error: ZodError): string {
 
 /** `input` parsed by `schema`, or a `DeclarationError` under `code`. */
 export function parseDeclared<Output, Input>(
-  schema: ZodType<Output, ZodTypeDef, Input>,
+  schema: ZodType<Output, Input>,
   input: Input,
   code: string,
   subject: string,

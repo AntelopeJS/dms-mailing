@@ -34,7 +34,9 @@ const categoriesFormSchema = z.object({
             .object({
               properties: z.object({
                 label: z.object({
-                  additionalProperties: z.record(z.unknown()).optional(),
+                  additionalProperties: z
+                    .record(z.string(), z.unknown())
+                    .optional(),
                 }),
               }),
             })

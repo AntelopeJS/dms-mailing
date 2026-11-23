@@ -33,7 +33,7 @@ const MISSING_VARIABLES_POLICIES = ["refuse", "send"] as const;
 export const categorySchema = z.object({
   id: z.string().max(MAX_NAME_LENGTH).regex(SLUG_PATTERN),
   /** One label per language (`{ en: "Orders", fr: "Commandes" }`). */
-  label: z.record(z.string().trim().max(MAX_NAME_LENGTH)),
+  label: z.record(z.string(), z.string().trim().max(MAX_NAME_LENGTH)),
   icon: z.string().regex(CATEGORY_ICON_PATTERN),
 });
 
