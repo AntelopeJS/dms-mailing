@@ -10,6 +10,9 @@ export interface FetchFailure {
 
 export const HTTP_CONFLICT = 409
 
+/** What the editor reports to the user: a failed call, or the key of a refusal. */
+export type ReportedError = FetchFailure | string
+
 function isOptional<T>(
 	value: unknown,
 	isType: (candidate: unknown) => candidate is T,
@@ -24,6 +27,12 @@ function isFetchFailure(error: unknown): error is FetchFailure {
 		isOptional(error.status, isNumber) &&
 		isOptional(error.message, isString)
 	)
+}
+
+/** A caught value as the editor reports it: what is not a failed call or a message is reported blank. */
+export function asReportedError(error: unknown): ReportedError {
+	if (isFetchFailure(error)) return error
+	return isString(error) ? error : {}
 }
 
 /** The HTTP status of a failed call; 0 for a network failure. */

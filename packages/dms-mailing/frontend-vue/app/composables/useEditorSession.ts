@@ -19,8 +19,10 @@ import { noticeFor, statusKeyOf } from '../utils/lifecycle'
 import {
 	apiErrorMessage,
 	apiErrorStatus,
+	asReportedError,
 	HTTP_CONFLICT,
 } from '../utils/api-error'
+import type { ReportedError } from '../utils/api-error'
 
 export type { SaveStatus } from '../utils/lifecycle'
 
@@ -68,12 +70,12 @@ export interface SessionDeps {
 	reads: EditorReads
 	templateId: string
 	loaded: TemplateContentResponse
-	onError: (error: unknown) => void
+	onError: (error: ReportedError) => void
 }
 
 function createState(loaded: TemplateContentResponse): SessionState {
 	const testData = JSON.stringify(loaded.testData, null, JSON_INDENT)
-	return reactive({
+	const state: SessionState = {
 		template: { ...loaded.template },
 		version: loaded.version,
 		revision: loaded.revision,
@@ -88,7 +90,8 @@ function createState(loaded: TemplateContentResponse): SessionState {
 		performance: null,
 		saveStatus: 'idle',
 		activeField: null,
-	}) as SessionState
+	}
+	return reactive(state)
 }
 
 function createViews(state: SessionState, editor: EditorState) {
@@ -126,7 +129,7 @@ function createViews(state: SessionState, editor: EditorState) {
 }
 
 /** Whether a failed call is the server refusing a draft moved on elsewhere. */
-export function isDraftConflict(error: unknown): boolean {
+export function isDraftConflict(error: ReportedError): boolean {
 	return (
 		apiErrorStatus(error) === HTTP_CONFLICT &&
 		apiErrorMessage(error).includes(DRAFT_CONFLICT_KEY)
@@ -134,7 +137,7 @@ export function isDraftConflict(error: unknown): boolean {
 }
 
 /** A failure worth trying again on its own: the network or the server. */
-function isTransient(error: unknown): boolean {
+function isTransient(error: ReportedError): boolean {
 	const status = apiErrorStatus(error)
 	return status === NETWORK_ERROR_STATUS || status >= SERVER_ERROR_STATUS
 }
@@ -163,7 +166,7 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 		if (state.saveStatus !== 'conflict') onError(DRAFT_CONFLICT)
 		state.saveStatus = 'conflict'
 	}
-	function onFailure(error: unknown): void {
+	function onFailure(error: ReportedError): void {
 		if (isDraftConflict(error)) return markConflict()
 		failures += 1
 		state.saveStatus = 'error'
@@ -187,7 +190,7 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 			state.saveStatus = 'idle'
 			return true
 		} catch (error) {
-			onFailure(error)
+			onFailure(asReportedError(error))
 			return false
 		}
 	}
@@ -205,7 +208,6 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 		if (editor.dirty === 0) return state.saveStatus !== 'error'
 		return run()
 	}
-	/** Writes this editor's content over the draft saved elsewhere. */
 	async function overwrite(): Promise<boolean> {
 		cancel()
 		if (inFlight) await inFlight
@@ -214,7 +216,6 @@ function createSaver(deps: SessionDeps, state: SessionState) {
 		state.revision = latest.revision
 		return run()
 	}
-	/** The page is going away: hands the pending draft to a request that outlives it. */
 	function flush(): void {
 		if (editor.dirty === 0 || state.saveStatus === 'conflict') return
 		cancel()

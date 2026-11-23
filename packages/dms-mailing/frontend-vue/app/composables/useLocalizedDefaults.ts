@@ -7,8 +7,9 @@ import { localizeStarters, type OptionalTranslate } from '../utils/starters'
  * interface's language.
  */
 export function useLocalizedDefaults() {
-	const { t, te } = useI18n()
-	const translate: OptionalTranslate = (key) => (te(key) ? t(key) : undefined)
+	const i18n = useI18n()
+	const translate: OptionalTranslate = (key) =>
+		i18n.te(key) ? i18n.t(key) : undefined
 	return {
 		starters: (list: StarterSummary[]) => localizeStarters(list, translate),
 	}

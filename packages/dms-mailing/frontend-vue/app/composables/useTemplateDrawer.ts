@@ -1,5 +1,7 @@
-import type { Component } from 'vue'
 import type { TemplateContent, TemplateRow } from '../types/mailing'
+import { resolveRegistered } from '../utils/components'
+import { isString } from '../utils/guards'
+import type { JsonObject } from '../utils/guards'
 
 /**
  * How the templates overlays are reached.
@@ -18,8 +20,6 @@ const COMPONENTS = {
 	newTemplate: 'MailingNewTemplateModal',
 	duplicate: 'MailingDuplicateModal',
 } as const
-
-type OverlayName = keyof typeof COMPONENTS
 
 const DRAWER_DIRECTION = 'right'
 const SEND_MODAL_SIZE = 'md'
@@ -41,7 +41,7 @@ export interface TestSendOptions {
 	/** The editor's unsaved draft, sent instead of the saved content. */
 	content?: TemplateContent
 	/** The editor's data set, sent instead of the saved test data. */
-	data?: Record<string, unknown>
+	data?: JsonObject
 	onDone?: OverlayDone
 }
 
@@ -86,12 +86,28 @@ export interface TemplateOverlays {
 	openDuplicate: (templateId: string, options?: DuplicateOptions) => void
 }
 
-interface ContainerHandle {
-	result: Promise<unknown>
-	patch: (patch: Record<string, unknown>) => void
+interface RowNavigation {
+	index: number
+	total: number
+	hasPrev: boolean
+	hasNext: boolean
+	prev: () => void
+	next: () => void
 }
 
-function settle(handle: ContainerHandle, onDone?: OverlayDone): void {
+type DrawerBody = {
+	templateId: string
+	rowData: TemplateRow | undefined
+	onChanged: OverlayDone | undefined
+	navigation: RowNavigation | undefined
+}
+
+type DrawerHandle = ReturnType<ReturnType<typeof useDrawer>['open']>
+
+function settle(
+	handle: { result: Promise<unknown> },
+	onDone?: OverlayDone,
+): void {
 	void handle.result
 		.then((result) => {
 			if (result) onDone?.()
@@ -103,7 +119,7 @@ function rowNavigation(
 	rows: TemplateRow[],
 	current: TemplateRow,
 	go: (row: TemplateRow) => void,
-) {
+): RowNavigation | undefined {
 	const index = rows.findIndex((row) => row._id === current._id)
 	if (index < 0) return undefined
 	const at = (position: number) => () => {
@@ -128,21 +144,25 @@ export function useTemplateDrawer(): TemplateOverlays {
 	const drawer = useDrawer()
 	const modal = useModal()
 	const { t } = useI18n()
-	const components = Object.fromEntries(
-		Object.entries(COMPONENTS).map(([name, id]) => [
-			name,
-			resolveComponent(id) as Component,
-		]),
-	) as Record<OverlayName, Component>
+	const components = {
+		details: resolveRegistered(COMPONENTS.details),
+		testSend: resolveRegistered(COMPONENTS.testSend),
+		realSend: resolveRegistered(COMPONENTS.realSend),
+		newTemplate: resolveRegistered(COMPONENTS.newTemplate),
+		duplicate: resolveRegistered(COMPONENTS.duplicate),
+	}
 
 	function openDetails(
 		template: TemplateRow | string,
 		options: DetailsOptions = {},
 	): void {
-		const row = typeof template === 'string' ? undefined : template
-		const templateId = typeof template === 'string' ? template : template._id
-		let handle: ContainerHandle | undefined
-		const bodyFor = (target: TemplateRow | undefined, id: string) => ({
+		const row = isString(template) ? undefined : template
+		const templateId = isString(template) ? template : template._id
+		let handle: DrawerHandle | undefined = undefined
+		const bodyFor = (
+			target: TemplateRow | undefined,
+			id: string,
+		): DrawerBody => ({
 			templateId: id,
 			rowData: target,
 			onChanged: options.onDone,

@@ -17,7 +17,6 @@ export function useReplayToast() {
 	const { t } = useI18n()
 	const { processApiMessage } = useTranslation()
 
-	/** Why nothing went: the reason only, the title already says "Not sent". */
 	const suppressedReason = (error: string | undefined): string | undefined => {
 		const reason = suppressedReasonOf(error)
 		if (!reason) return error ? processApiMessage(error) : undefined

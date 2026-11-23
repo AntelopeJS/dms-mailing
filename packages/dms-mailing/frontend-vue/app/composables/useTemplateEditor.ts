@@ -21,6 +21,7 @@ import {
 } from '../utils/blocks'
 import type { BlockContext } from '../utils/blocks'
 import { deepClone } from '../utils/clone'
+import { parseSnapshot, snapshotOf } from '../utils/draft-snapshot'
 import { renameVariablePath } from '../utils/variables'
 import {
 	createHistory,
@@ -111,15 +112,6 @@ function copyLocale(
 	return copy
 }
 
-/** What one undo step restores: the content and the declarations. */
-interface DraftSnapshot {
-	content: TemplateContent
-	variables: VariableDefinition[]
-}
-
-const snapshotOf = (draft: DraftSnapshot): string =>
-	JSON.stringify({ content: draft.content, variables: draft.variables })
-
 /** A declared variable renamed in the content too, as one change. */
 export interface VariableRename {
 	from: string
@@ -132,7 +124,7 @@ function createCore(
 	locale: string,
 	locales: string[],
 ): EditorCore {
-	return reactive({
+	const core: EditorCore = {
 		content: deepClone(content),
 		variables: deepClone(variables),
 		locale,
@@ -148,7 +140,8 @@ function createCore(
 		isSearchRequested: false,
 		history: createHistory(snapshotOf({ content, variables })),
 		announcement: null,
-	}) as EditorCore
+	}
+	return reactive(core)
 }
 
 function createViews(core: EditorCore) {
@@ -269,7 +262,9 @@ function createBlockActions(deps: MutationDeps) {
 		const blocks = blocksOf(views)
 		return blocks ? findBlock(blocks, id) : null
 	}
-	const mutateTree = (change: (blocks: Block[]) => unknown): void => {
+	const mutateTree = (
+		change: (blocks: Block[]) => Block | boolean | null,
+	): void => {
 		const blocks = blocksOf(views)
 		if (blocks && change(blocks)) touch(true)
 	}
@@ -357,7 +352,8 @@ function createHistoryActions(
 ) {
 	function restore(snapshot: string | null, kind: AnnouncementKind): void {
 		if (snapshot === null) return
-		const next = JSON.parse(snapshot) as DraftSnapshot
+		const next = parseSnapshot(snapshot)
+		if (!next) return
 		const changed = changedLocales(core.content, next.content)
 		core.content = next.content
 		core.variables = next.variables
