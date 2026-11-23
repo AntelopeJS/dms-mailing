@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.10.8
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.7...v0.10.8)
+
+### 📦 Build
+
+- **deps:** Move to zod 4 and interface-dms 0.16 ([#224](https://github.com/AntelopeJS/dms-mailing/pull/224))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.10.7
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.6...v0.10.7)
