@@ -1,31 +1,37 @@
 import { vi } from 'vitest'
 import { computed, ref, toValue, watch, type MaybeRefOrGetter } from 'vue'
+import type { ApiAnswer, ApiQuery, ApiReply } from './answer'
 
 /** A backend read a component made through `useApiData`. */
 export interface ApiRead {
 	url: string
-	query: Record<string, unknown>
+	query: ApiQuery
 }
 
-export type ApiBackend = (read: ApiRead) => unknown
+export type ApiBackend = (read: ApiRead) => ApiReply
 
-interface ApiDataOptions {
-	query?: MaybeRefOrGetter<Record<string, unknown> | undefined>
+/** The options a component passed to `useApiData`. */
+export interface ApiDataOptions {
+	query?: MaybeRefOrGetter<ApiQuery | undefined>
 	pick?: string[]
 	immediate?: boolean
+	refreshOnPageRefresh?: boolean
 }
 
 export interface ApiDataStub {
 	/** Every read made, in order. */
 	reads: ApiRead[]
+	/** The options of every `useApiData` call, in order. */
+	options: ApiDataOptions[]
 	/** Answers the next reads; a thrown error or a rejection fails them. */
 	respond: (backend: ApiBackend) => void
 }
 
-function picked(value: unknown, keys: string[] | undefined): unknown {
-	if (!keys || !value || typeof value !== 'object') return value
-	const source = value as Record<string, unknown>
-	return Object.fromEntries(keys.map((key) => [key, source[key]]))
+function picked(value: ApiAnswer, keys: string[] | undefined): ApiAnswer {
+	if (!keys || value === null || value === undefined) return value
+	if (Object(value) !== value) return value
+	const fields = new Map<string, ApiAnswer>(Object.entries(value))
+	return Object.fromEntries(keys.map((key) => [key, fields.get(key)]))
 }
 
 /**
@@ -38,6 +44,7 @@ function picked(value: unknown, keys: string[] | undefined): unknown {
 export function stubApiData(): ApiDataStub {
 	const stub: ApiDataStub = {
 		reads: [],
+		options: [],
 		respond: (next) => {
 			backend = next
 		},
@@ -49,6 +56,7 @@ export function stubApiData(): ApiDataStub {
 			url: MaybeRefOrGetter<string | null | undefined>,
 			options: ApiDataOptions = {},
 		) => {
+			stub.options.push(options)
 			const data = ref<unknown>(null)
 			const error = ref<unknown>(null)
 			const status = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
@@ -71,8 +79,8 @@ export function stubApiData(): ApiDataStub {
 					status.value = 'error'
 				}
 			}
-			// A read made on demand (`immediate: false`) waits for `execute()`.
-			if (options.immediate !== false)
+			const readsOnDemand = options.immediate === false
+			if (!readsOnDemand)
 				watch(
 					() => JSON.stringify(request()),
 					() => void refresh(),
@@ -106,50 +114,46 @@ export function stubRegionalFormat(): void {
 
 /** The read routes of the mailing API, as a component's tests mock them. */
 export interface MailingReadMocks {
-	templateContent?: (id: string) => unknown
-	performance?: (id: string) => unknown
-	changes?: (id: string) => unknown
-	versions?: (id: string) => unknown
-	listTemplates?: () => unknown
-	starters?: () => unknown
-	starterPreview?: (id: string, locale?: string) => unknown
-	send?: (id: string) => unknown
-	sendHtml?: (id: string) => unknown
-	provider?: () => unknown
+	templateContent?: (id: string) => ApiAnswer
+	performance?: (id: string) => ApiAnswer
+	changes?: (id: string) => ApiAnswer
+	versions?: (id: string) => ApiAnswer
+	listTemplates?: () => ApiAnswer
+	starters?: () => ApiAnswer
+	starterPreview?: (id: string, locale: ApiAnswer) => ApiAnswer
+	send?: (id: string) => ApiAnswer
+	sendHtml?: (id: string) => ApiAnswer
+	provider?: () => ApiAnswer
 }
 
 type ReadRoute = (
 	mocks: MailingReadMocks,
-	match: RegExpExecArray,
+	id: string,
 	read: ApiRead,
-) => unknown
+) => ApiAnswer
 
 const READ_ROUTES: Array<[RegExp, ReadRoute]> = [
 	[/^\/api\/mailing\/templates\/starters$/, (m) => m.starters?.()],
 	[
 		/^\/api\/mailing\/templates\/starters\/([^/]+)\/preview$/,
-		(m, [, id], { query }) =>
-			m.starterPreview?.(id!, query.locale as string | undefined),
+		(m, id, read) => m.starterPreview?.(id, read.query.locale),
 	],
 	[
 		/^\/api\/mailing\/templates\/([^/]+)\/content$/,
-		(m, [, id]) => m.templateContent?.(id!),
+		(m, id) => m.templateContent?.(id),
 	],
 	[
 		/^\/api\/mailing\/templates\/([^/]+)\/performance$/,
-		(m, [, id]) => m.performance?.(id!),
+		(m, id) => m.performance?.(id),
 	],
-	[
-		/^\/api\/mailing\/templates\/([^/]+)\/changes$/,
-		(m, [, id]) => m.changes?.(id!),
-	],
+	[/^\/api\/mailing\/templates\/([^/]+)\/changes$/, (m, id) => m.changes?.(id)],
 	[
 		/^\/api\/mailing\/templates\/([^/]+)\/versions$/,
-		(m, [, id]) => m.versions?.(id!),
+		(m, id) => m.versions?.(id),
 	],
 	[/^\/api\/mailing\/tables\/templates\/list$/, (m) => m.listTemplates?.()],
-	[/^\/api\/mailing\/sends\/([^/]+)\/html$/, (m, [, id]) => m.sendHtml?.(id!)],
-	[/^\/api\/mailing\/sends\/([^/]+)$/, (m, [, id]) => m.send?.(id!)],
+	[/^\/api\/mailing\/sends\/([^/]+)\/html$/, (m, id) => m.sendHtml?.(id)],
+	[/^\/api\/mailing\/sends\/([^/]+)$/, (m, id) => m.send?.(id)],
 	[/^\/api\/mailing\/provider$/, (m) => m.provider?.()],
 ]
 
@@ -165,7 +169,7 @@ export function mailingReads(
 	return (read) => {
 		for (const [pattern, route] of READ_ROUTES) {
 			const match = pattern.exec(read.url)
-			const answer = match ? route(mocks, match, read) : undefined
+			const answer = match ? route(mocks, match[1] ?? '', read) : undefined
 			if (answer !== undefined) return answer
 		}
 		return fallback(read)

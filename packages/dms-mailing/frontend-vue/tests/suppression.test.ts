@@ -25,7 +25,7 @@ const WORDING = {
 }
 
 /** A send of the log nothing was sent for, as the API answers it. */
-const SUPPRESSED = 'suppressed' as SendStatus
+const SUPPRESSED = 'suppressed' satisfies SendStatus
 
 const ids = (send: Parameters<typeof sendFooterActions>[0]) =>
 	sendFooterActions(send).map((action) => action.id)

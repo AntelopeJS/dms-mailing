@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { expectDefined } from './helpers/narrow'
 import {
 	contentChecks,
 	missingRequired,
@@ -122,7 +123,7 @@ describe('content checks', () => {
 	})
 	it('names the locale a missing one really falls back to', () => {
 		const checks = contentChecks({
-			content: { locales: { fr: CONTENT.locales.fr! } },
+			content: { locales: { fr: expectDefined(CONTENT.locales.fr) } },
 			locales: ['en', 'fr'],
 			fallback: 'en',
 		})

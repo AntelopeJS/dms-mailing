@@ -1,11 +1,12 @@
-// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { VNode } from 'vue'
+import { isVNode, type VNode } from 'vue'
+import { z } from 'zod'
 import CategoryLabel from '../app/components/CategoryLabel.vue'
-import setup, {
+import {
 	renderCategory,
 	renderLocaleChips,
 } from '../app/plugins/column-displays'
+import { expectDefined } from './helpers/narrow'
 
 interface RegisteredType {
 	id: string
@@ -16,9 +17,18 @@ type PluginSetup = () => void
 
 const registered: RegisteredType[] = []
 
-vi.hoisted(() => {
-	vi.stubGlobal('defineDmsPlugin', (pluginSetup: PluginSetup) => pluginSetup)
+const plugins = vi.hoisted(() => {
+	const setups: PluginSetup[] = []
+	vi.stubGlobal('defineDmsPlugin', (pluginSetup: PluginSetup) => {
+		setups.push(pluginSetup)
+		return pluginSetup
+	})
+	return setups
 })
+
+function runPlugin(): void {
+	expectDefined(plugins[0], 'the registered plugin')()
+}
 
 beforeEach(() => {
 	registered.length = 0
@@ -34,17 +44,29 @@ afterEach(() => {
 	vi.unstubAllGlobals()
 })
 
+function childNodes(node: VNode): VNode[] {
+	const { children } = node
+	if (!Array.isArray(children)) throw new Error('expected child nodes')
+	return children.map((child) => {
+		if (!isVNode(child)) throw new Error('expected only child nodes')
+		return child
+	})
+}
+
 function texts(node: VNode): string[] {
-	if (typeof node.children === 'string') return [node.children]
+	const text = z.string().safeParse(node.children)
+	if (text.success) return [text.data]
 	if (!Array.isArray(node.children)) return []
-	return (node.children as (VNode | string)[]).flatMap((child) =>
-		typeof child === 'string' ? [child] : texts(child),
-	)
+	return node.children.flatMap((child) => {
+		if (isVNode(child)) return texts(child)
+		const part = z.string().safeParse(child)
+		return part.success ? [part.data] : []
+	})
 }
 
 describe('column displays plugin', () => {
 	it('registers the locale chips and category displays without a DOM', () => {
-		;(setup as unknown as PluginSetup)()
+		runPlugin()
 		expect(registered.map((type) => type.id)).toEqual([
 			'mailing:locale-chips',
 			'mailing:category',
@@ -59,12 +81,16 @@ describe('column displays plugin', () => {
 	})
 
 	it('draws the locale chips with the missing workspace ones dashed', () => {
-		;(setup as unknown as PluginSetup)()
-		const cell = registered[0]!.formatter.default('en,fr', 'en')
-		const chips = cell.children as VNode[]
+		runPlugin()
+		const cell = expectDefined(registered[0]).formatter.default('en,fr', 'en')
+		const chips = childNodes(cell)
 		expect(chips.map((chip) => chip.children)).toEqual(['en', 'fr', 'de'])
-		expect(String(chips[2]!.props?.class)).toContain('border-dashed')
-		expect(String(chips[0]!.props?.class)).not.toContain('border-dashed')
+		expect(String(expectDefined(chips[2]).props?.class)).toContain(
+			'border-dashed',
+		)
+		expect(String(expectDefined(chips[0]).props?.class)).not.toContain(
+			'border-dashed',
+		)
 	})
 
 	it('draws a dash for a row without locale information', () => {

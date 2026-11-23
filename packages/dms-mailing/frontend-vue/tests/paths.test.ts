@@ -60,6 +60,8 @@ describe('paths', () => {
 	})
 })
 
+const noBlocks: Block[] = []
+
 const localeContent = (subject: string, blocks: Block[]) => ({
 	subject,
 	preheader: '',
@@ -67,11 +69,7 @@ const localeContent = (subject: string, blocks: Block[]) => ({
 })
 
 describe('collectContentPaths', () => {
-	// The variables panel marks a declared path "unused" when nothing references
-	// it. Its detected list comes from the server and only refreshes on save, so
-	// a path wired into a condition read as unused until then. This is the live
-	// equivalent, and it has to see every source the backend sees.
-	it('sees a path used only by a display condition', () => {
+	it('sees a path used only by a display condition, so the variables panel does not mark it unused', () => {
 		const content = {
 			locales: {
 				en: localeContent('Hello', [
@@ -83,7 +81,7 @@ describe('collectContentPaths', () => {
 						align: 'left',
 						visibleIf: { path: 'order.mix', operator: 'truthy', value: '' },
 					},
-				] as Block[]),
+				]),
 			},
 		}
 		expect(collectContentPaths(content)).toContain('order.mix')
@@ -108,16 +106,14 @@ describe('collectContentPaths', () => {
 				en: {
 					subject: '{{a.one}}',
 					preheader: '{{a.two}}',
-					blocks: [] as Block[],
+					blocks: noBlocks,
 				},
 			},
 		}
 		expect(collectContentPaths(content)).toEqual(['a.one', 'a.two'])
 	})
 
-	// The backend drops these before answering, so the panel must too or they
-	// would show up as undeclared variables nobody can declare.
-	it('drops the system paths the runtime fills in', () => {
+	it('drops the system paths the runtime fills in, as the backend does, so they are not undeclared variables', () => {
 		const content = {
 			locales: {
 				en: localeContent(

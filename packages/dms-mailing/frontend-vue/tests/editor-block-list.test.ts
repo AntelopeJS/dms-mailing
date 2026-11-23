@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import Sortable from 'sortablejs'
 import {
 	afterEach,
@@ -35,8 +34,14 @@ import type {
 } from '../app/types/mailing'
 import { stubApiData } from './helpers/api-data'
 import { stubAuthFetch } from './helpers/auth-fetch'
+import { query } from './helpers/narrow'
 import { stubNuxtGlobals } from './helpers/nuxt-globals'
+import { callHandler, dragEvent, pair } from './helpers/sortable-drag'
 
+/**
+ * The content every editor of the suite is built on.
+ * @vitest-environment jsdom
+ */
 const CONTENT: TemplateContent = {
 	locales: { en: { subject: 'Hi', preheader: '', blocks: [] } },
 }
@@ -147,10 +152,8 @@ describe('editor draggable items', () => {
 		}
 	})
 	it('selects a block dropped into the list', async () => {
-		const spies: {
-			touch?: MockInstance<EditorState['touch']>
-			select?: MockInstance<EditorState['select']>
-		} = {}
+		let touchSpy: MockInstance<EditorState['touch']> | undefined
+		let selectSpy: MockInstance<EditorState['select']> | undefined
 		const source = reactive<Block[]>([
 			{ id: 'dropped', type: 'divider', visibleIf: null },
 		])
@@ -161,8 +164,8 @@ describe('editor draggable items', () => {
 				() => lists(source, target),
 				(state) => {
 					editor = state
-					spies.touch = vi.spyOn(state, 'touch').mockImplementation(() => {})
-					spies.select = vi.spyOn(state, 'select')
+					touchSpy = vi.spyOn(state, 'touch').mockImplementation(() => {})
+					selectSpy = vi.spyOn(state, 'select')
 				},
 			),
 		)
@@ -170,28 +173,23 @@ describe('editor draggable items', () => {
 		const host = document.createElement('div')
 		app.mount(host)
 		try {
-			const [from, to] = sortablesIn(host)
-			expect(from!.options).toMatchObject({
+			const [from, to] = pair(sortablesIn(host))
+			expect(from.options).toMatchObject({
 				group: { name: 'mailing-blocks' },
 				handle: '.mailing-drag-handle',
 				draggable: '>[data-drag-item]',
 			})
-			const item = from!.el.querySelector('[data-drag-item]') as HTMLElement
-			const handler = (sortable: Sortable | undefined, name: string) => {
-				const call: unknown = sortable && Reflect.get(sortable.options, name)
-				if (typeof call !== 'function') throw new Error(`no ${name} handler`)
-				return (event: unknown) => call(event)
-			}
-			handler(from, 'onStart')({ item, oldIndex: 0 })
-			to!.el.prepend(item)
-			handler(to, 'onAdd')({ item, newIndex: 0 })
-			handler(from, 'onRemove')({ item, oldIndex: 0 })
-			handler(from, 'onEnd')({})
+			const item = query(from.el, '[data-drag-item]', HTMLElement)
+			callHandler(from, 'onStart', dragEvent(item, { oldIndex: 0 }))
+			to.el.prepend(item)
+			callHandler(to, 'onAdd', dragEvent(item, { newIndex: 0 }))
+			callHandler(from, 'onRemove', dragEvent(item, { oldIndex: 0 }))
+			callHandler(from, 'onEnd', dragEvent(item))
 			await nextTick()
 			expect(source).toEqual([])
 			expect(target.map((block) => block.id)).toEqual(['dropped'])
-			expect(spies.touch).toHaveBeenCalledTimes(2)
-			expect(spies.select).toHaveBeenCalledExactlyOnceWith('dropped')
+			expect(touchSpy).toHaveBeenCalledTimes(2)
+			expect(selectSpy).toHaveBeenCalledExactlyOnceWith('dropped')
 			expect(editor?.selectedId).toBe('dropped')
 		} finally {
 			app.unmount()

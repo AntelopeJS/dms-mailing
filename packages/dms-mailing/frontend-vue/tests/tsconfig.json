@@ -1,6 +1,6 @@
 {
-  "extends": "../tsconfig.json",
-  "files": ["../.dms-types/types.d.ts"],
-  "include": ["**/*.ts"],
-  "exclude": []
+	"extends": "../tsconfig.json",
+	"files": ["../.dms-types/types.d.ts"],
+	"include": ["**/*.ts"],
+	"exclude": []
 }

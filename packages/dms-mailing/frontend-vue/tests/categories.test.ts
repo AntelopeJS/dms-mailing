@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { expectDefined } from './helpers/narrow'
 import {
 	CATEGORY_ICONS,
 	DEFAULT_CATEGORY_ICON,
@@ -38,10 +39,7 @@ describe('slugifyId', () => {
 })
 
 describe('the uncategorised sentinel', () => {
-	// Reka's `Select` reserves the empty string for "nothing selected": an item
-	// offering it makes the listbox refuse to open, silently. The sentinel must
-	// therefore never be empty, and must never leak out of the widget.
-	it('is never the empty string', () => {
+	it('is never the empty string Reka Select reserves for "nothing selected"', () => {
 		expect(NO_CATEGORY).not.toBe('')
 	})
 
@@ -63,9 +61,7 @@ describe('the uncategorised sentinel', () => {
 })
 
 describe('toStoredCategory', () => {
-	// The data-api edit leaves an absent key unchanged from 0.2.0 on, so "no
-	// category" must travel as an explicit `null` to clear a stored one.
-	it('sends null for every empty form of "no category"', () => {
+	it('sends an explicit null for every empty form of "no category", which clears a stored one', () => {
 		expect(toStoredCategory('')).toBeNull()
 		expect(toStoredCategory(null)).toBeNull()
 		expect(toStoredCategory(undefined)).toBeNull()
@@ -115,8 +111,8 @@ describe('toStoredCategories', () => {
 		let next = 0
 		const rows = toEditableRows(stored, 'fr', () => `row-${next++}`)
 		expect(rows.map((entry) => entry.label)).toEqual(['Commandes', 'Billing'])
-		rows[0]!.label = 'Achats'
-		rows[1]!.label = 'Facturation'
+		expectDefined(rows[0]).label = 'Achats'
+		expectDefined(rows[1]).label = 'Facturation'
 		expect(toStoredCategories(rows, 'fr')).toEqual([
 			{
 				id: 'orders',

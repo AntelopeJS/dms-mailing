@@ -41,9 +41,7 @@ describe('biggestDrop', () => {
 		expect(biggestDrop([])).toBeNull()
 	})
 
-	// A provider that reports nothing leaves "delivered" at 0: that is not a
-	// leak between sent and delivered.
-	it('never blames a step nothing measures', () => {
+	it('never blames a step nothing measures, as a provider reporting nothing leaves delivered at 0', () => {
 		expect(
 			biggestDrop([
 				step('sent', 32),
@@ -100,7 +98,9 @@ describe('the comparison of the steps', () => {
 		expect(deltaTone({ ...step('opened', 4), delta: 10 })).toBe('success')
 		expect(deltaTone({ ...step('opened', 4), delta: -10 })).toBe('error')
 		expect(deltaTone({ ...step('unsubscribed', 4), delta: 10 })).toBe('error')
-		expect(deltaTone({ ...step('unsubscribed', 4), delta: -10 })).toBe('success')
+		expect(deltaTone({ ...step('unsubscribed', 4), delta: -10 })).toBe(
+			'success',
+		)
 		expect(deltaTone(step('opened', 4))).toBe('neutral')
 	})
 })

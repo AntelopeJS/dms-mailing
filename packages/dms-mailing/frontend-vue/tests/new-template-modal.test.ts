@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import NewTemplateModal from '../app/components/NewTemplateModal.vue'
 import {
@@ -11,12 +10,15 @@ import {
 	type NuxtStubs,
 } from './helpers/nuxt-globals'
 import { mailingReads, stubApiData } from './helpers/api-data'
+import { inputAt, elementWithText, submitForm } from './helpers/dom'
+import { expectDefined, queryAll } from './helpers/narrow'
 import {
 	mailingWrites,
 	stubAuthFetch,
 	type AuthFetchStub,
 } from './helpers/auth-fetch'
 
+/** @vitest-environment jsdom */
 const api = {
 	listTemplates: vi.fn(),
 	starters: vi.fn(),
@@ -80,11 +82,12 @@ afterEach(() => {
 	document.body.innerHTML = ''
 })
 
-const inputs = (host: HTMLElement) => [...host.querySelectorAll('input')]
 const fields = (host: HTMLElement) =>
-	[...host.querySelectorAll('[data-stub="UFormField"]')] as HTMLElement[]
+	queryAll(host, '[data-stub="UFormField"]', HTMLElement)
+const slugError = (host: HTMLElement) =>
+	expectDefined(fields(host)[1]).getAttribute('error')
 
-describe('NewTemplateModal', () => {
+describe('NewTemplateModal form', () => {
 	it.each([false, true])(
 		'shows one translated warning for a JSON 403, core already presented %s',
 		async (alreadyPresented) => {
@@ -102,7 +105,7 @@ describe('NewTemplateModal', () => {
 			})
 			const view = mount(NewTemplateModal, { initialName: 'Refund' }, globals)
 			await flush()
-			view.host.querySelector('form')!.dispatchEvent(new Event('submit'))
+			submitForm(view.host)
 			await flush()
 			expect(stubs.toasts).toHaveLength(1)
 			expect(stubs.toasts[0]).toMatchObject({
@@ -120,29 +123,31 @@ describe('NewTemplateModal', () => {
 	it('derives the slug from the name until the slug is edited', async () => {
 		const view = mount(NewTemplateModal, {}, globals)
 		await flush()
-		const [name, slug] = inputs(view.host)
-		await typeInto(name!, 'Quote accepted')
-		expect((slug as HTMLInputElement).value).toBe('quote-accepted')
-		await typeInto(slug!, 'quote-ok')
-		await typeInto(name!, 'Quote accepted for real')
-		expect((slug as HTMLInputElement).value).toBe('quote-ok')
+		const name = inputAt(view.host, 0)
+		const slug = inputAt(view.host, 1)
+		await typeInto(name, 'Quote accepted')
+		expect(slug.value).toBe('quote-accepted')
+		await typeInto(slug, 'quote-ok')
+		await typeInto(name, 'Quote accepted for real')
+		expect(slug.value).toBe('quote-ok')
 		view.unmount()
 	})
 
 	it('asks for a slug when the name gives none, and derives it again once cleared', async () => {
 		const view = mount(NewTemplateModal, {}, globals)
 		await flush()
-		const [name, slug] = inputs(view.host)
-		await typeInto(name!, '日本語のテンプレート')
-		expect(fields(view.host)[1]!.getAttribute('error')).toBe(
+		const name = inputAt(view.host, 0)
+		const slug = inputAt(view.host, 1)
+		await typeInto(name, '日本語のテンプレート')
+		expect(slugError(view.host)).toBe(
 			'dms_mailing.new_template.slug_from_name_empty',
 		)
-		await typeInto(name!, 'Quote accepted')
-		await typeInto(slug!, 'quote-ok')
-		await typeInto(slug!, '')
-		expect((slug as HTMLInputElement).value).toBe('quote-accepted')
-		await typeInto(name!, 'Quote refused')
-		expect((slug as HTMLInputElement).value).toBe('quote-refused')
+		await typeInto(name, 'Quote accepted')
+		await typeInto(slug, 'quote-ok')
+		await typeInto(slug, '')
+		expect(slug.value).toBe('quote-accepted')
+		await typeInto(name, 'Quote refused')
+		expect(slug.value).toBe('quote-refused')
 		view.unmount()
 	})
 
@@ -167,21 +172,18 @@ describe('NewTemplateModal', () => {
 			['dms_mailing.templates.start_from.blank', 'Invoice available'],
 			['Welcome', 'Invoice'],
 		])
-		const search = inputs(view.host)[2]!
-		await typeInto(search, 'welc')
+		await typeInto(inputAt(view.host, 2), 'welc')
 		expect(titles()[1]).toEqual(['Welcome'])
 		view.unmount()
 	})
+})
 
+describe('NewTemplateModal submit', () => {
 	it('refuses a taken slug inline, before the server does', async () => {
 		const view = mount(NewTemplateModal, { initialName: 'Welcome' }, globals)
 		await flush()
-		expect(fields(view.host)[1]!.getAttribute('error')).toBe(
-			'dms_mailing.templates.slug_errors.taken',
-		)
-		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
-			new Event('submit'),
-		)
+		expect(slugError(view.host)).toBe('dms_mailing.templates.slug_errors.taken')
+		submitForm(view.host)
 		await flush()
 		expect(writes.calls).toEqual([])
 		view.unmount()
@@ -190,19 +192,14 @@ describe('NewTemplateModal', () => {
 	it('creates from a starter and opens the editor of the new template', async () => {
 		const view = mount(NewTemplateModal, {}, globals)
 		await flush()
-		const starter = [
-			...view.host.querySelectorAll('button[role="radio"]'),
-		].find((tile) =>
-			tile.textContent?.includes('Invoice available'),
-		) as HTMLElement
-		starter.click()
-		await flush()
-		expect((inputs(view.host)[0] as HTMLInputElement).value).toBe(
+		elementWithText(
+			view.host,
+			'button[role="radio"]',
 			'Invoice available',
-		)
-		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
-			new Event('submit'),
-		)
+		).click()
+		await flush()
+		expect(inputAt(view.host, 0).value).toBe('Invoice available')
+		submitForm(view.host)
 		await flush()
 		expect(api.createTemplate).toHaveBeenCalledWith({
 			name: 'Invoice available',
@@ -220,13 +217,9 @@ describe('NewTemplateModal', () => {
 		api.createTemplate.mockRejectedValue({ statusCode: 409 })
 		const view = mount(NewTemplateModal, { initialName: 'Refund' }, globals)
 		await flush()
-		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
-			new Event('submit'),
-		)
+		submitForm(view.host)
 		await flush()
-		expect(fields(view.host)[1]!.getAttribute('error')).toBe(
-			'dms_mailing.templates.slug_errors.taken',
-		)
+		expect(slugError(view.host)).toBe('dms_mailing.templates.slug_errors.taken')
 		expect(stubs.toasts).toEqual([])
 		view.unmount()
 	})
@@ -239,13 +232,8 @@ describe('NewTemplateModal', () => {
 			globals,
 		)
 		await flush()
-		const tile = [...view.host.querySelectorAll('button[role="radio"]')].find(
-			(candidate) => candidate.textContent?.includes('welcome'),
-		) as HTMLElement
-		tile.click()
-		;(view.host.querySelector('form') as HTMLFormElement).dispatchEvent(
-			new Event('submit'),
-		)
+		elementWithText(view.host, 'button[role="radio"]', 'welcome').click()
+		submitForm(view.host)
 		await flush()
 		expect(api.createTemplate).toHaveBeenCalledWith({
 			name: 'Welcome B2B',

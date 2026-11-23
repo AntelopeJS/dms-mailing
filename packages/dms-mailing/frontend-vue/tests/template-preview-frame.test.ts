@@ -1,11 +1,14 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TemplatePreviewFrame from '../app/components/TemplatePreviewFrame.vue'
 import { flush, mount, stubNuxtGlobals } from './helpers/nuxt-globals'
+import { elementAs } from './helpers/narrow'
 import { stubApiData } from './helpers/api-data'
 import { mailingWrites, stubAuthFetch } from './helpers/auth-fetch'
 
-/** Past the frame's debounce before it reads. */
+/**
+ * Past the frame's debounce before it reads.
+ * @vitest-environment jsdom
+ */
 const DEBOUNCE_WAIT_MS = 400
 
 const api = { preview: vi.fn() }
@@ -81,7 +84,7 @@ describe('TemplatePreviewFrame', () => {
 			scale: 0.4,
 			lazy: true,
 		})
-		const box = view.host.firstElementChild as HTMLElement
+		const box = elementAs(view.host.firstElementChild, HTMLElement)
 		expect(box.style.width).toBe('240px')
 		expect(box.style.height).toBe('192px')
 		view.unmount()
