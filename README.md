@@ -86,7 +86,8 @@ The [module README compatibility block](packages/dms-mailing/README.md#compatibi
 - [Installation](https://dms.antelopejs.com/docs/modules/mailing/installation)
 - [Configuration](https://dms.antelopejs.com/docs/modules/mailing/configuration)
 - [Usage](https://dms.antelopejs.com/docs/modules/mailing/usage/overview)
-- [Extending](https://dms.antelopejs.com/docs/modules/mailing/extending): sending from code, templates as code, importing past sends, provider events and webhooks, automations
+- [Extending](https://dms.antelopejs.com/docs/modules/mailing/extending): sending from code, templates as code, importing past sends, provider events and webhooks
+- [Automation nodes](https://dms.antelopejs.com/docs/modules/mailing/automation): the triggers, actions and data node for procedures
 - [FAQ](https://dms.antelopejs.com/docs/modules/mailing/faq)
 
 The guide's sources live in [`packages/dms-mailing/docs`](./packages/dms-mailing/docs). The module ships the `dms-mailing` Claude Code skill in [`packages/dms-mailing/skills`](./packages/dms-mailing/skills), declared under `antelopeJs.skills`.
