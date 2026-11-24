@@ -2,7 +2,7 @@ import type {
   JsonObject,
   JsonSchema,
 } from "@antelopejs/interface-dms-automation";
-import { type ZodType, type ZodTypeDef, z } from "zod";
+import { type ZodType, z } from "zod";
 
 /** The `tenantId` input every mailing action takes. */
 export const TENANT_INPUT: JsonSchema = {
@@ -16,7 +16,7 @@ export const TENANT_INPUT: JsonSchema = {
  */
 export function parseInput<T>(
   actionId: string,
-  schema: ZodType<T, ZodTypeDef, unknown>,
+  schema: ZodType<T, unknown>,
   value: JsonObject,
 ): T {
   const parsed = schema.safeParse(value);

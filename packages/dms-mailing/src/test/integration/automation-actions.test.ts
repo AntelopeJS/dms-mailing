@@ -8,14 +8,14 @@ import { sendTemplateAction } from "../../automation/send-template-action";
 import { suppressAddressAction } from "../../automation/suppress-address-action";
 import { unsuppressAddressAction } from "../../automation/unsuppress-address-action";
 import { SendModel, SettingsModel, SuppressionModel } from "../../db";
-import { SendError } from "../../services/send";
+import { SendError } from "../../services/send-error";
 import {
   findSettings,
   getSettings,
   saveSettings,
 } from "../../services/settings";
 import { suppressAddress } from "../../services/suppressions";
-import { capture, newTenant, stepCtx } from "../helpers/automation";
+import { capture, dryRunOf, newTenant, stepCtx } from "../helpers/automation";
 import { checkedText } from "../helpers/checked";
 import { declaration, mailing } from "../helpers/declarations";
 import { authorizedClient } from "../helpers/http";
@@ -57,7 +57,7 @@ describe("[integration] send-template test runs", () => {
     const mailBefore = capturedMail().length;
     const ctx = stepCtx("procedure-1", true);
 
-    const result = await sendTemplateAction.dryRun!(
+    const result = await dryRunOf(sendTemplateAction)(
       {
         tenantId: "",
         slug: "dry-live",
@@ -90,7 +90,7 @@ describe("[integration] send-template test runs", () => {
       reason: "manual",
     });
 
-    const result = await sendTemplateAction.dryRun!(
+    const result = await dryRunOf(sendTemplateAction)(
       {
         slug: "dry-mixed",
         to: [
@@ -165,7 +165,7 @@ describe("[integration] send-template test run refusals", () => {
       blockOnMissingVariables: true,
     });
     const dry = (slug: string, tenant = DEFAULT_TENANT_ID) =>
-      sendTemplateAction.dryRun!(
+      dryRunOf(sendTemplateAction)(
         { tenantId: tenant, slug, to: "dry@example.test" },
         stepCtx("procedure-1", true),
       );
@@ -184,7 +184,7 @@ describe("[integration] send-template test run refusals", () => {
     await declared("dry-no-settings", tenantId);
     await GetModel(SettingsModel, tenantId).delete(tenantId);
 
-    await sendTemplateAction.dryRun!(
+    await dryRunOf(sendTemplateAction)(
       {
         tenantId,
         slug: "dry-no-settings",
@@ -204,14 +204,14 @@ describe("[integration] send-template test run refusals", () => {
 
     expect(
       await sendErrorCode(
-        sendTemplateAction.dryRun!(
+        dryRunOf(sendTemplateAction)(
           { tenantId: other, slug: "dry-isolated", to: "dry@example.test" },
           stepCtx("procedure-1", true),
         ),
       ),
     ).to.equal("template_not_found");
     const unknown = await failureOf(
-      sendTemplateAction.dryRun!(
+      dryRunOf(sendTemplateAction)(
         { tenantId: "no-such-tenant", slug: "dry-isolated", to: "a@b.c" },
         stepCtx("procedure-1", true),
       ),
@@ -288,7 +288,7 @@ describe("[integration] suppress-address action", () => {
       includeAutomationWrites: true,
     });
 
-    const result = await suppressAddressAction.dryRun!(
+    const result = await dryRunOf(suppressAddressAction)(
       { tenantId, email: "Dry-Add@example.test" },
       stepCtx("procedure-1", true),
     );
@@ -472,7 +472,7 @@ describe("[integration] unsuppress-address action edges", () => {
       includeAutomationWrites: true,
     });
 
-    const result = await unsuppressAddressAction.dryRun!(
+    const result = await dryRunOf(unsuppressAddressAction)(
       { tenantId, email: "dry-lift@example.test" },
       stepCtx("procedure-1", true),
     );

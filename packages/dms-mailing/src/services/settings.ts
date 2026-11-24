@@ -117,6 +117,9 @@ export async function getSettings(
   return winner;
 }
 
+/** Reads a tenant's settings: {@link getSettings}, or a read that stores nothing. */
+export type SettingsReader = typeof getSettings;
+
 export async function saveSettings(
   tenantId: string,
   values: MailingSettingsValues,

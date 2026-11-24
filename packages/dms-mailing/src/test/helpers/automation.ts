@@ -3,7 +3,9 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantModel } from "@antelopejs/interface-dms/db";
 import type {
+  ActionType,
   ExecutionCtx,
+  JsonObject,
   JsonValue,
   LogLevel,
   TriggerType,
@@ -110,4 +112,14 @@ export async function seedSend(
   });
   if (createdAt) await sends.table.get(id).update({ createdAt }).run();
   return id;
+}
+
+/** The test-run simulation of `action`, failing when it declares none. */
+export function dryRunOf<TInput, TOutput extends JsonObject | void>(
+  action: ActionType<TInput, TOutput>,
+): (input: TInput, ctx: ExecutionCtx) => Promise<TOutput> {
+  return (input, ctx) => {
+    if (!action.dryRun) throw new Error(`${action.id} declares no dryRun`);
+    return action.dryRun(input, ctx);
+  };
 }

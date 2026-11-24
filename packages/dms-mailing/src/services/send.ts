@@ -42,7 +42,7 @@ import { publishSendCreated } from "../realtime";
 import { attachmentsLog, checkAttachments } from "./attachments";
 import { renderEmailHtml } from "./render";
 import { SendError } from "./send-error";
-import { getSettings } from "./settings";
+import { getSettings, type SettingsReader } from "./settings";
 import { toSendStatus } from "./status";
 import { refreshAttentionIfFlagged } from "./template-attention";
 import {
@@ -244,10 +244,6 @@ export async function renderForSend(
   }
   return { email, html: await renderEmailHtml(email, prepared.locale) };
 }
-
-export type SettingsReader = (
-  tenantId: string,
-) => Promise<MailingSettingsValues>;
 
 export async function prepare(
   tenantId: string,
