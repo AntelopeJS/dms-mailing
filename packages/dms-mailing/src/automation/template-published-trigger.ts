@@ -86,7 +86,7 @@ export const templatePublishedTrigger = channelTrigger(
         type: "boolean",
         default: false,
         description:
-          "Also fire for templates a project declares at workspace setup",
+          "Also fire for templates created by a declaration: a project's templates at workspace setup, or the notification template when the first notification e-mail goes out",
       },
     },
     outputProperties: {
