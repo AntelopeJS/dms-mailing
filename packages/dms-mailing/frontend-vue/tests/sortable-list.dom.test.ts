@@ -271,7 +271,7 @@ describe('useSortableList options', () => {
 	it('leaves SortableJS its defaults, as a key present with undefined would replace the default and nothing would drag', () => {
 		const [list] = mountLists([{ items: reactive([{ id: 'a' }]), options: {} }])
 		const sortable = expectDefined(list)
-		const bare = new Sortable(document.createElement('div'))
+		const bare = new Sortable(document.createElement('div'), {})
 		for (const name of ['handle', 'draggable', 'ghostClass'] as const)
 			expect(sortable.options[name]).toBe(bare.options[name])
 		expect(sortable.options.draggable).toBe('>*')

@@ -37,7 +37,7 @@ describe('groupByCategory', () => {
 	})
 
 	it('labels the trailing group with what the caller translated', () => {
-		const groups = groupByCategory([{ _id: '1' }], [], 'Sans catégorie')
+		const groups = groupByCategory([{}], [], 'Sans catégorie')
 		expect(groups[0]?.category.label).toBe('Sans catégorie')
 	})
 

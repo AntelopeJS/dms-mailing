@@ -20,6 +20,7 @@ describe('lifecycle transitions', () => {
 			updatedAt: '2026-01-01T00:00:00.000Z',
 			updatedBy: 'me',
 			publishedAt: '2026-01-01T00:00:00.000Z',
+			attention: '',
 		}
 		const now = new Date('2026-02-03T04:05:06.000Z')
 		const unpublished = afterLifecycle(template, 'unpublish', 'draft', now)

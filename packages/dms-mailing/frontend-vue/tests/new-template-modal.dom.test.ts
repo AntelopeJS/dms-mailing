@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import NewTemplateModal from '../app/components/NewTemplateModal.vue'
+import { useApiErrorPresenter } from '../../node_modules/@antelopejs/dms/frontend-vue/layers/dms-core/app/composables/useApiErrorPresenter'
 import {
 	FORM_STUBS,
 	flush,
@@ -97,7 +98,7 @@ describe('NewTemplateModal form', () => {
 			}
 			api.createTemplate.mockImplementation(() => {
 				if (alreadyPresented)
-					globalThis.useApiErrorPresenter().presentError(error, {
+					useApiErrorPresenter().presentError(error, {
 						fallbackKey: 'error.500.description',
 					})
 				return Promise.reject(error)
