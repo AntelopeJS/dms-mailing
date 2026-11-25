@@ -1,6 +1,27 @@
 # Changelog
 
 
+## v0.11.4
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.3...interface-v0.11.4)
+
+### 📦 Build
+
+- **deps:** Move to zod 4 and interface-dms 0.16 ([#224](https://github.com/AntelopeJS/dms-mailing/pull/224))
+
+### 🏡 Chore
+
+- Adopt tooling-configs 0.10 and bring frontend-vue under the comment rule ([#225](https://github.com/AntelopeJS/dms-mailing/pull/225))
+
+### 🤖 CI
+
+- Re-sync the AntelopeJS pack for the release app ([#219](https://github.com/AntelopeJS/dms-mailing/pull/219))
+- Stop forwarding the retired RELEASE_GITHUB_TOKEN ([#221](https://github.com/AntelopeJS/dms-mailing/pull/221))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.11.3
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.2...interface-v0.11.3)
