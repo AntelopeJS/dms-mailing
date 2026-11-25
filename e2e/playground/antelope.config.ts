@@ -41,7 +41,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/dms",
-        version: "0.23.0",
+        version: "0.24.0",
       },
       config: {
         homepage: "/modules/mailing/overview",
@@ -67,7 +67,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/mongodb",
-        version: "~1.8.4",
+        version: "~1.8.14",
       },
       config: {
         url: process.env.MONGO_URL ?? "mongodb://localhost:27017",
