@@ -11,3 +11,5 @@ allowBuilds:
   mongodb-memory-server: false
 minimumReleaseAgeExclude:
   - "@antelopejs/interface-*"
+overrides:
+  "@antelopejs/interface-dms": 0.16.1-next.1038.g5226a6a

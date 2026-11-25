@@ -233,6 +233,7 @@ export class SendsPageController extends PageController(
       whileRowOpen: true,
       whileScrolled: true,
       whileSearching: true,
+      whileOnScreen: true,
       missedLabel: NEW_SENDS_LABEL,
     },
     views: {
