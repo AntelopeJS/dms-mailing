@@ -36,7 +36,6 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
     await import("@antelopejs/interface-dms-mailing"),
     await import("./implementations/dms-mailing"),
   );
-  registerAutomationNodes();
   registerTenantExport();
   registerRealtimeTopics();
   registerNotificationEmailChannel();
@@ -44,16 +43,17 @@ export async function construct(config: DmsMailingConfig = {}): Promise<void> {
 }
 
 export function destroy(): void {
-  unregisterAutomationNodes();
   unregisterTenantExport();
 }
 
-export function start(): void {
+export async function start(): Promise<void> {
   scheduledJobs = CRON_JOBS.map(scheduleJob);
+  await registerAutomationNodes();
 }
 
 export async function stop(): Promise<void> {
   const jobs = scheduledJobs;
   scheduledJobs = [];
   await Promise.all(jobs.map(stopJob));
+  await unregisterAutomationNodes();
 }

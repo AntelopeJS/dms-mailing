@@ -3,8 +3,12 @@ import type {
   BannerContent,
 } from "@antelopejs/interface-dms/base";
 import type { ComposedText } from "@antelopejs/interface-dms/base/types";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { API_BASE_PATH } from "../constants";
-import { MAX_BULK_REPLAY } from "./send-stats";
+import { SendModel } from "../db";
+import { readCapabilities } from "./provider";
+import { isTransportFailure, MAX_BULK_REPLAY } from "./send-stats";
+import { suppressedSendIds } from "./suppressions";
 
 /** What the provider banner is computed from. */
 export interface ProviderHealth {
@@ -31,6 +35,7 @@ export const FAILING_MIN_COUNT = 3;
 export const FAILING_MIN_RATE = 10;
 
 const PERCENT = 100;
+const HOUR_MS = 3_600_000;
 
 type BannerState = "missing" | "unreachable" | "failing";
 
@@ -161,5 +166,32 @@ export function buildProviderBanner(
     },
     description: description(health, state),
     actions: actions(health),
+  };
+}
+
+/**
+ * The provider's state and the tenant's provider failures of the hour before
+ * `now`, what the send log's banner is computed from.
+ */
+export async function providerHealthOf(
+  tenantId: string,
+  now: Date,
+): Promise<ProviderHealth> {
+  const since = new Date(now.getTime() - HOUR_MS);
+  const sends = GetModel(SendModel, tenantId);
+  const [capabilities, failures, recentSends] = await Promise.all([
+    readCapabilities(),
+    sends.listProviderFailures(since, now),
+    sends.countReal(since),
+  ]);
+  const suppressed = await suppressedSendIds(tenantId, failures);
+  return {
+    providerName: capabilities?.name ?? "",
+    providerReachable: capabilities !== null,
+    recentFailures: failures.length,
+    transportFailures: failures.filter(isTransportFailure).length,
+    suppressedFailures: suppressed.size,
+    recentSends,
+    since,
   };
 }

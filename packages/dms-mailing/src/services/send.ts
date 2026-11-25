@@ -42,7 +42,7 @@ import { publishSendCreated } from "../realtime";
 import { attachmentsLog, checkAttachments } from "./attachments";
 import { renderEmailHtml } from "./render";
 import { SendError } from "./send-error";
-import { getSettings } from "./settings";
+import { getSettings, type SettingsReader } from "./settings";
 import { toSendStatus } from "./status";
 import { refreshAttentionIfFlagged } from "./template-attention";
 import {
@@ -140,7 +140,8 @@ export type SendRecorder = (
 const MISSING_BATCH_RESPONSE =
   "The provider returned no result for this message";
 
-const UNRECORDED_SEND_ID = "";
+/** The send id of a recipient no send row was written for. */
+export const UNRECORDED_SEND_ID = "";
 
 const SINGLE_MESSAGE = 1;
 
@@ -212,13 +213,13 @@ export function refusedMissing(
   return isManualRealSend(params) ? system : [];
 }
 
-interface RenderedSend {
+export interface RenderedSend {
   email: ResolvedEmail;
   html: string;
 }
 
 /** The e-mail a send delivers, or a refusal over its missing values. */
-async function renderForSend(
+export async function renderForSend(
   prepared: PreparedSend,
   params: ModuleSendParams,
   isBlocking: boolean,
@@ -248,6 +249,7 @@ export async function prepare(
   tenantId: string,
   slug: string,
   params: ModuleSendParams,
+  settingsOf: SettingsReader = getSettings,
 ): Promise<PreparedSend> {
   const template = await GetModel(TemplateModel, tenantId).getBySlug(slug);
   if (!template) {
@@ -265,7 +267,7 @@ export async function prepare(
   }
   const attachments = checkAttachments(params.attachments);
   const { content, version, variables } = resolveContent(template, params);
-  const settings = await getSettings(tenantId);
+  const settings = await settingsOf(tenantId);
   const locale = pickLocale(content, params.locale, settings.fallbackLocale);
   return {
     content,

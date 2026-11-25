@@ -12,26 +12,19 @@ import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { z } from "zod";
 import { API_BASE_PATH, HTTP_CONFLICT, HTTP_NOT_FOUND } from "../constants";
-import { SuppressionModel } from "../db";
 import { SuppressionsPageController } from "../pages/suppressions";
-import { suppressAddress } from "../services/suppressions";
+import { liftSuppression, suppressAddress } from "../services/suppressions";
+import { manualSuppressionSchema } from "../validation/suppressions.schema";
 import { zodIssuesJson } from "./zod-json";
 
 const INVALID_SUPPRESSION = "$dms_mailing.suppressions.errors.invalid";
 const ALREADY_SUPPRESSED = "$dms_mailing.suppressions.errors.already";
 const NOT_SUPPRESSED = "$dms_mailing.suppressions.errors.not_found";
 const EMAIL_FIELD = "email";
-const MAX_NOTE_LENGTH = 500;
 /** A manual entry comes from no send. */
 const NO_SEND = "";
-
-const manualSuppressionSchema = z.object({
-  email: z.string().trim().email(),
-  note: z.string().trim().max(MAX_NOTE_LENGTH).optional(),
-});
 
 /** An address already on the list, told under the address field. */
 const alreadySuppressed = () => ({
@@ -47,9 +40,6 @@ export class SuppressionsController extends Controller(
 
   @AuthUserWithPermission(SuppressionsPageController)
   declare user: User;
-
-  @TenantScopedModel(SuppressionModel)
-  declare suppressions: SuppressionModel;
 
   /**
    * Puts an address on the list by hand: nothing is sent to it any more. A
@@ -84,8 +74,12 @@ export class SuppressionsController extends Controller(
   async remove(
     @Parameter("id", "param") id: string,
   ): Promise<{ removed: true }> {
-    const removed = await this.suppressions.delete(id);
-    assert(removed > 0, HTTP_NOT_FOUND, NOT_SUPPRESSED);
+    const { removed } = await liftSuppression(
+      getRequestTenantId(this.ctx),
+      { id },
+      this.user._id,
+    );
+    assert(removed, HTTP_NOT_FOUND, NOT_SUPPRESSED);
     return { removed: true };
   }
 }

@@ -359,6 +359,16 @@ export interface PublishOutcome {
   changes: TemplateChange[];
 }
 
+/** A publish that applied, with what its events tell. */
+export interface AppliedPublish extends PublishOutcome {
+  /** The revision the publish wrote: unique per applied write. */
+  revision: string;
+  /** When this publish applied, a publish that changed nothing included. */
+  publishedAt: Date;
+  /** Who made this publish. */
+  publishedBy: string;
+}
+
 /**
  * Publishes a snapshot in one conditional write, including declaration
  * metadata when supplied. A losing writer never inserts speculative history.
@@ -371,7 +381,7 @@ export async function publishSnapshot(
   draft: TemplateDraft,
   author: string,
   metadata: TemplateFields = {},
-): Promise<PublishOutcome | undefined> {
+): Promise<AppliedPublish | undefined> {
   const previous = publishedVersionOf(template);
   const changes = changesOf(template, draft);
   const isUnchanged = previous > NEVER_PUBLISHED && changes.length === 0;
@@ -412,8 +422,13 @@ export async function publishSnapshot(
     publishedAt: shipped.publishedAt ?? template.publishedAt ?? new Date(),
     updatedBy: author,
   };
+  const revision = randomUUID();
   if (
-    !(await GetModel(TemplateModel, tenantId).publishIfCurrent(template, patch))
+    !(await GetModel(TemplateModel, tenantId).publishIfCurrent(
+      template,
+      patch,
+      revision,
+    ))
   )
     return undefined;
   await versions.materialize({
@@ -421,31 +436,13 @@ export async function publishSnapshot(
       patch.json_published_version ?? template.json_published_version,
   });
   await refreshTemplateAttention(tenantId);
-  return { version, changes };
-}
-
-/**
- * Ships the working content: it becomes what `SendTemplate` sends, a version
- * row keeps it for the history, and the draft is cleared. Re-publishing a
- * template whose draft changes nothing makes it live again without a version.
- */
-export async function publishTemplate(
-  tenantId: string,
-  template: MailingTemplate,
-  author: string,
-): Promise<PublishOutcome> {
-  const outcome = await publishSnapshot(
-    tenantId,
-    template,
-    {
-      content: workingContent(template),
-      variables: workingVariables(template),
-    },
-    author,
-  );
-  if (!outcome)
-    throw new HTTPResult(HTTP_CONFLICT, "$dms_mailing.errors.draft_conflict");
-  return outcome;
+  return {
+    version,
+    changes,
+    revision,
+    publishedAt: shipped.publishedAt ?? new Date(),
+    publishedBy: author,
+  };
 }
 
 /**

@@ -74,6 +74,16 @@ export async function findSettings(
 }
 
 /**
+ * The tenant's settings, or the defaults when it has none, without storing
+ * anything: what a read that must not write (a test run, a preview) uses.
+ */
+export async function readSettings(
+  tenantId: string,
+): Promise<MailingSettingsValues> {
+  return (await findSettings(tenantId)) ?? defaults();
+}
+
+/**
  * Creates the tenant's row under its tenant id, so two concurrent first
  * readers cannot both insert one: the loser's insert is refused on the key.
  * Resolves false when another writer created the row first.
@@ -106,6 +116,9 @@ export async function getSettings(
     );
   return winner;
 }
+
+/** Reads a tenant's settings: {@link getSettings}, or a read that stores nothing. */
+export type SettingsReader = typeof getSettings;
 
 export async function saveSettings(
   tenantId: string,

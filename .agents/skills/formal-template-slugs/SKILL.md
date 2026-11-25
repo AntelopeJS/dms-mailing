@@ -12,7 +12,7 @@ description: "Model-check with TLA+ that creations of one template slug that rac
 `COVERS` in [`check.mjs`](check.mjs) lists the covered files. See what changed since the model last matched the code:
 
 ```bash
-git diff 7be1f0884d0f9c160f45d1c1bc99a28687173be1..HEAD -- packages/dms-mailing/src/db/tables/templates.table.ts packages/dms-mailing/src/services/templates.ts packages/dms-mailing/src/data/templates-table.ts packages/dms-mailing/src/routes/templates.ts packages/dms-mailing/src/services/declarations.ts packages/dms-mailing/src/db/models/templates.model.ts
+git diff f734a30227657bb6981a98dee843c213fc220ae5..HEAD -- packages/dms-mailing/src/db/tables/templates.table.ts packages/dms-mailing/src/services/templates.ts packages/dms-mailing/src/data/templates-table.ts packages/dms-mailing/src/routes/templates.ts packages/dms-mailing/src/services/declarations.ts packages/dms-mailing/src/db/models/templates.model.ts
 ```
 
 Any change to a covered file breaks `ModelInSync`, which names the files. Read the change against the [coverage record](#coverage-record). A change to a function in it needs the model updated (see [Update the model](#update-the-model)) before the other rules mean anything. A new code path that inserts a template is a new kind of racer and needs a new action, and its file goes into `COVERS`.
@@ -109,7 +109,7 @@ Left out:
 | Action in `TemplateSlugs.tla` | Code |
 | --- | --- |
 | `DeclareReadsSlug` | `services/declarations.ts` `declareTemplate`: `getBySlug`, answers `kept` when a template holds the slug |
-| `DeclareInserts` | `declarations.ts` `createDeclared`: `insertFields` inside the `try`, whose `IsDuplicateKeyError` catch returns `undefined` (`DeclareKeepsWinner`); `db/models/templates.model.ts` `insertFields` |
+| `DeclareInserts` | `declarations.ts` `createDeclared`: `insertFields` inside the `try`, whose `IsDuplicateKeyError` catch returns `undefined` (`DeclareKeepsWinner`); `db/models/templates.model.ts` `insertFields`; the created template's `emitDeclaredPublish` afterwards makes no database call |
 | `DeclareRereadsWinner` | `declareTemplate`: `getBySlug` after `createDeclared`, answers `kept` or throws "disappeared"; `templates.model.ts` `getBySlug` |
 | `NewInserts` | `data/templates-table.ts` `withSeeding`: `refuseTakenSlug(base.func.call(...))` (`NewRefusesTaken`) |
 | `NewInitializes` | `withSeeding`: `initializeTemplate`, `services/templates.ts` `initializeTemplate`: `updateFields` |
@@ -119,4 +119,4 @@ Left out:
 
 `check.mjs` reads the five guards of `SlugGuards.tla` out of the code with patterns. It reads a missing guard as `FALSE`, and exits 2 only when a covered file cannot be read.
 
-Sync commit: `7be1f0884d0f9c160f45d1c1bc99a28687173be1` (2026-11-04). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.
+Sync commit: `f734a30227657bb6981a98dee843c213fc220ae5` (2026-11-24). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.

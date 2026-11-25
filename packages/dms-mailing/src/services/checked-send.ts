@@ -1,16 +1,23 @@
 import type { EmailAddress } from "@antelopejs/interface-email";
 import type { SendTemplateResult } from "@antelopejs/interface-dms-mailing";
+import type { ResolvedEmail } from "../types";
 import { type MailingSuppression, normalizeAddress } from "../db";
 import {
   aggregateResults,
   type DeliveredMessage,
   type ModuleSendParams,
+  type PreparedSend,
   prepare,
   recordAll,
+  renderForSend,
   sendTemplate,
+  UNRECORDED_SEND_ID,
 } from "./send";
+import { SendError } from "./send-error";
+import { readSettings } from "./settings";
 import { suppressionsOf } from "./suppressions";
 import { addressOf, toRecipients } from "./addresses";
+import { isSendableAddress } from "../validation/suppressions.schema";
 
 /**
  * A send the module checks against the suppression list. `allowSuppressed`
@@ -19,6 +26,9 @@ import { addressOf, toRecipients } from "./addresses";
 export interface CheckedSendParams extends ModuleSendParams {
   allowSuppressed?: string[];
 }
+
+/** Why a simulated send would not reach an address that is no e-mail address. */
+const INVALID_RECIPIENT_ERROR = "$dms_mailing.errors.invalid_recipient";
 
 /** Why nothing was sent to a recipient, as the log and the dialogs say it. */
 export const SUPPRESSED_ERROR_PREFIX = "$dms_mailing.errors.suppressed.";
@@ -126,4 +136,81 @@ export async function sendUnlessSuppressed(
         : sentResults[nextSent++],
     ),
   );
+}
+
+/** What a send would deliver, worked out without sending or storing anything. */
+interface SendPreview {
+  prepared: PreparedSend;
+  email: ResolvedEmail;
+}
+
+/**
+ * Runs the checks of a send, renders what it would deliver and discards it:
+ * the same refusals as a send, with no settings row created, no send
+ * recorded and no provider called.
+ */
+async function previewSend(
+  slug: string,
+  params: ModuleSendParams,
+): Promise<SendPreview> {
+  const prepared = await prepare(params.tenantId, slug, params, readSettings);
+  const settings = await readSettings(params.tenantId);
+  const { email } = await renderForSend(
+    prepared,
+    params,
+    settings.blockOnMissingVariables,
+  );
+  return { prepared, email };
+}
+
+/** What a simulated send would have done, and what it would have delivered. */
+export interface SimulatedSend {
+  result: SendTemplateResult;
+  /** `null` when every recipient is suppressed: nothing would be rendered. */
+  preview: SendPreview | null;
+  suppressed: number;
+}
+
+function simulatedResult(
+  to: EmailAddress,
+  row: MailingSuppression | undefined,
+): SendTemplateResult {
+  if (row)
+    return {
+      sendId: UNRECORDED_SEND_ID,
+      status: "suppressed",
+      error: suppressedError(row),
+    };
+  if (!isSendableAddress(addressOf(to)))
+    return {
+      sendId: UNRECORDED_SEND_ID,
+      status: "failed",
+      error: INVALID_RECIPIENT_ERROR,
+    };
+  return { sendId: UNRECORDED_SEND_ID, status: "sent" };
+}
+
+/**
+ * Runs the checks of {@link sendUnlessSuppressed} in the same order without
+ * writing or sending anything: the same refusals, and per recipient the
+ * outcome a send would have, `sent` standing for "would leave".
+ */
+export async function simulateUnlessSuppressed(
+  slug: string,
+  params: CheckedSendParams,
+): Promise<SimulatedSend> {
+  const recipients = toRecipients(params.to);
+  if (recipients.length === 0)
+    throw new SendError("no_recipient", `Template "${slug}" has no recipient`);
+  const rows = await blockedRecipients(params, recipients);
+  const rowOf = (to: EmailAddress) => rows.get(normalizeAddress(addressOf(to)));
+  const isAnyAllowed = recipients.some((to) => rowOf(to) === undefined);
+  const preview = isAnyAllowed ? await previewSend(slug, params) : null;
+  if (!preview) await prepare(params.tenantId, slug, params, readSettings);
+  const results = recipients.map((to) => simulatedResult(to, rowOf(to)));
+  return {
+    result: aggregateResults(results),
+    preview,
+    suppressed: results.filter((entry) => entry.status === "suppressed").length,
+  };
 }

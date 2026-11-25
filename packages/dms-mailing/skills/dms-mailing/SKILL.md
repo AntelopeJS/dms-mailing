@@ -56,7 +56,18 @@ const result = await SendTemplate("order-confirmed", {
   SHA-256, never the bytes, so the dashboard cannot send it again (409 `no_replay_with_attachments`): resend from code.
 - In-process events: `RecordEmailEvent(tenantId, { provider, messageId, type, details })`.
   HTTP: `POST <clientBaseUrl>/api/mailing/events/<provider>/<tenantId>` with header `x-mailing-webhook-secret`.
-- Automation (if `interface-dms-automation` is loaded): action `mailing.send-template`, trigger `mailing.email-event`.
+- Automation (if `interface-dms-automation` is loaded), every action taking an optional `tenantId` (empty: default
+  workspace; unknown: step fails), every trigger an optional `tenantId` filter:
+  - Triggers: `mailing.email-event` (test sends only with `includeTests`), `mailing.address-suppressed`,
+    `mailing.address-unsuppressed`; procedure-made changes, and events on sends whose `source` is
+    `automation:<procedure id>`, fire only with `includeAutomationWrites`;
+    `mailing.template-published` (declarations only with `includeDeclared`), `mailing.template-status-changed`,
+    `mailing.retention-purged` (once per workspace and night). Dedup on the payload's `deliveryId`.
+  - Writes with `dryRun`: `mailing.send-template`, `mailing.suppress-address` (`manual`/`unsubscribe`),
+    `mailing.unsuppress-address` (bounces and complaints need `force`).
+  - Reads: `mailing.find-suppression`, `mailing.check-suppressions`, `mailing.get-send`, `mailing.get-template`,
+    `mailing.render-template`, `mailing.send-stats`, `mailing.template-performance`, `mailing.provider-health`,
+    `mailing.list-attention`. Data node: `mailing.send-log-link`.
 
 ## Ship templates as code
 

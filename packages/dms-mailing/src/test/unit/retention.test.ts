@@ -7,6 +7,7 @@ import {
   purgeInPages,
   retentionLimit,
   RETENTION_JOB,
+  runDayOf,
   scheduleJob,
   stopJob,
 } from "../../crons";
@@ -53,9 +54,10 @@ describe("[unit] crons/retention", () => {
     const rowCount = RETENTION_LIMITS.pageSize * 2 + EXTRA_ROW;
     const pass = fakePass(rowCount);
 
-    const purged = await purgeInPages(pass);
+    const { purged, capped } = await purgeInPages(pass);
 
     expect(purged).to.equal(rowCount);
+    expect(capped, "a backlog drained below the cap").to.equal(false);
     expect(pass.purged).to.have.length(rowCount);
     expect(pass.pageSizes).to.deep.equal([
       RETENTION_LIMITS.pageSize,
@@ -67,9 +69,10 @@ describe("[unit] crons/retention", () => {
   it("stops at the bounded number of rows per run", async () => {
     const pass = fakePass(BACKLOG);
 
-    const purged = await purgeInPages(pass, SMALL_LIMITS);
+    const { purged, capped } = await purgeInPages(pass, SMALL_LIMITS);
 
     expect(purged).to.equal(SMALL_LIMITS.maxRows);
+    expect(capped, "rows left past the cap").to.equal(true);
     expect(pass.pageSizes).to.deep.equal([2, 2, 1]);
   });
 
@@ -77,8 +80,26 @@ describe("[unit] crons/retention", () => {
     const pass = fakePass(BACKLOG);
     pass.purgeSend = () => Promise.resolve(0);
 
-    expect(await purgeInPages(pass, SMALL_LIMITS)).to.equal(0);
+    expect(await purgeInPages(pass, SMALL_LIMITS)).to.deep.equal({
+      purged: 0,
+      capped: true,
+    });
     expect(pass.pageSizes).to.deep.equal([2, 2, 1]);
+  });
+
+  it("reports no cap when the last page comes back short exactly at the cap", async () => {
+    const pass = fakePass(SMALL_LIMITS.maxRows - EXTRA_ROW);
+
+    expect(await purgeInPages(pass, SMALL_LIMITS)).to.deep.equal({
+      purged: SMALL_LIMITS.maxRows - EXTRA_ROW,
+      capped: false,
+    });
+  });
+
+  it("keys a night's run by its UTC day", () => {
+    expect(runDayOf(new Date("2026-11-20T23:59:59.999Z"))).to.equal(
+      "2026-11-20",
+    );
   });
 
   it("drops the task from the node-cron registry when it is stopped", async () => {

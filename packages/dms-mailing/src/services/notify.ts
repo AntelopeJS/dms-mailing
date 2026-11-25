@@ -36,7 +36,7 @@ export const ALERT_WINDOW_MS = 3_600_000;
 
 const PERCENT = 100;
 const SENDS_PAGE = "/modules/mailing/sends";
-const PROBLEMS_VIEW = "problems";
+const PROBLEMS_VIEW: SendLogView = "problems";
 const IDEMPOTENCY_KEY_SEPARATOR = ":";
 /** The DMS keys notifications across every module: ours carry the module's name. */
 const IDEMPOTENCY_KEY_PREFIX = "mailing:problems";
@@ -71,10 +71,28 @@ export function problemWindowOf(sends: SendSummary[]): ProblemWindow {
   };
 }
 
+/** The tabs of the send log a link may open. */
+export const SEND_LOG_VIEWS = [
+  "all",
+  "problems",
+  "in-progress",
+  "delivered",
+  "engaged",
+  "unsubscribed",
+  "suppressed",
+] as const;
+
+export type SendLogView = (typeof SEND_LOG_VIEWS)[number];
+
+/** The send log on a tab, the drawer open on one send: a dashboard-relative path. */
+export function sendLogLink(sendId: string, view: SendLogView = "all"): string {
+  const query = new URLSearchParams({ view, record: sendId });
+  return `${SENDS_PAGE}?${query.toString()}`;
+}
+
 /** The send log on the Problems tab, the drawer open on the send that tipped it. */
 export function problemsLink(sendId: string): string {
-  const query = new URLSearchParams({ view: PROBLEMS_VIEW, record: sendId });
-  return `${SENDS_PAGE}?${query.toString()}`;
+  return sendLogLink(sendId, PROBLEMS_VIEW);
 }
 
 export function problemsNotification(
