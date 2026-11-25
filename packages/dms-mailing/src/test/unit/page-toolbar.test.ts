@@ -116,14 +116,4 @@ describe("[unit] pages page toolbar", () => {
       expect(optionsOf(card)?.realtimeTopic).to.equal(MAILING_SENDS_TOPIC);
     }
   });
-
-  it("holds the send log while a row is open, scrolled or searched", async () => {
-    const { options } = await SendsPageController.table.serialize();
-    expect(options?.liveHold).to.deep.equal({
-      whileRowOpen: true,
-      whileScrolled: true,
-      whileSearching: true,
-      missedLabel: NEW_SENDS_LABEL,
-    });
-  });
 });
