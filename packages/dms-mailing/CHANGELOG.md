@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v0.10.9
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.8...v0.10.9)
+
+### 🩹 Fixes
+
+- State liveHold.whileOnScreen on the sends log ([#227](https://github.com/AntelopeJS/dms-mailing/pull/227))
+
+### 🏡 Chore
+
+- Adopt tooling-configs 0.10 and bring frontend-vue under the comment rule ([#225](https://github.com/AntelopeJS/dms-mailing/pull/225))
+- **deps:** Update antelopejs modules ([#229](https://github.com/AntelopeJS/dms-mailing/pull/229))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.10.8
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.7...v0.10.8)
