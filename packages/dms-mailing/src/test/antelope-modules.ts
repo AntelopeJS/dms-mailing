@@ -27,22 +27,22 @@ export const SHARED_MODULE_SOURCES = {
   "auth-jwt": {
     type: "package",
     package: "@antelopejs/auth-jwt",
-    version: "1.1.2",
+    version: "1.1.3",
   },
   api: {
     type: "package",
     package: "@antelopejs/api",
-    version: "1.7.5",
+    version: "1.7.8",
   },
   "file-storage-local": {
     type: "package",
     package: "@antelopejs/file-storage-local",
-    version: "0.2.1",
+    version: "0.2.2",
   },
   nodemailer: {
     type: "package",
     package: "@antelopejs/nodemailer",
-    version: "0.0.12",
+    version: "0.0.14",
   },
   "dms-automation": {
     type: "package",
