@@ -4,6 +4,7 @@ import {
 	initialSendValues,
 	missingRequiredPaths,
 	sendFields,
+	type SendValues,
 } from '../app/utils/send-values'
 import { sendLogRoute } from '../app/utils/send-link'
 
@@ -78,7 +79,7 @@ describe('real send values', () => {
 			{ path: 'user.firstName', required: false, kind: 'text' },
 			{ path: 'meta', required: false, kind: 'object' },
 		])
-		const values = {
+		const values: SendValues = {
 			...initialSendValues(orderFields, orderData),
 			'order.number': 'B-7',
 		}

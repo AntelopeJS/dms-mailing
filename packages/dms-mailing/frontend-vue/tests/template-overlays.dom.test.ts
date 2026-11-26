@@ -78,6 +78,7 @@ function row(id: string): TemplateRow {
 		status: 'live',
 		updatedAt: '',
 		updatedBy: '',
+		attention: '',
 	}
 }
 

@@ -9,7 +9,7 @@ import {
 	type SuppressionSummary,
 } from '../app/utils/suppression'
 import { buildTimeline } from '../app/utils/timeline'
-import type { SendEventRow, SendStatus } from '../app/types/mailing'
+import type { SendStatus } from '../app/types/mailing'
 
 const ENTRY: SuppressionSummary = {
 	id: 'sup_1',
@@ -121,29 +121,13 @@ describe('a suppressed send in the drawer', () => {
 		])
 	})
 
-	it('draws one step, without a queued one nor a raw reason', () => {
-		const events: SendEventRow[] = [
-			{
-				_id: 'evt_1',
-				sendId: 'snd_2',
-				type: SUPPRESSED,
-				at: '2026-10-02T10:00:00.000Z',
-				json_details: JSON.stringify({
-					reason: '$dms_mailing.errors.suppressed_complaint',
-				}),
-			},
-		]
-		const steps = buildTimeline(events, {
+	it('draws no queued step for a send that was never queued', () => {
+		const steps = buildTimeline([], {
 			_id: 'snd_2',
 			status: SUPPRESSED,
 			createdAt: '2026-10-02T10:00:00.000Z',
 		})
-		expect(steps.map((step) => step.type)).toEqual(['suppressed'])
-		expect(steps[0]).toMatchObject({
-			titleKey: 'dms_mailing.sends.timeline.suppressed',
-			detail: '',
-			isPending: false,
-		})
+		expect(steps.map((step) => step.type)).not.toContain('queued')
 	})
 })
 

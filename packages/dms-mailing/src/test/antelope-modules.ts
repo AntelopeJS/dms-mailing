@@ -21,7 +21,7 @@ export const SHARED_MODULE_SOURCES = {
   dms: {
     type: "package",
     package: "@antelopejs/dms",
-    version: "0.23.0",
+    version: "0.24.0",
   },
   mongodb: { type: "local", path: "node_modules/@antelopejs/mongodb" },
   "auth-jwt": {
@@ -47,6 +47,6 @@ export const SHARED_MODULE_SOURCES = {
   "dms-automation": {
     type: "package",
     package: "@antelopejs/dms-automation",
-    version: "0.11.6",
+    version: "0.11.7",
   },
 } as const;

@@ -48,6 +48,7 @@ function row(
 		status,
 		updatedAt: '2026-10-07T10:00:00Z',
 		updatedBy: 'Julie Martin',
+		attention: '',
 		...overrides,
 	}
 }
@@ -74,6 +75,7 @@ function detail(template: TemplateRow): TemplateContentResponse {
 		publishedDetectedVariables: ['customer.firstName', 'order.trackingUrl'],
 		testData: {},
 		fallbackLocale: 'en',
+		blockOnMissingVariables: false,
 		categories: [],
 		sender: { name: 'Acme', email: 'hello@acme.com', replyTo: '' },
 	}
