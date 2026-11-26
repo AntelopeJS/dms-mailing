@@ -9,7 +9,6 @@ import { join } from "node:path";
  * with the pattern of the shared Renovate preset's regex manager, so a pin
  * Renovate cannot see fails here too.
  */
-
 const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const LOCKS = join(PACKAGE_ROOT, "antelope-lock");
 const MODULES = "src/test/antelope-modules.ts";

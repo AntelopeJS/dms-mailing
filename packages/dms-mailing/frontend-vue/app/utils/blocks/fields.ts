@@ -1,4 +1,5 @@
 import type { BlockType } from '../../types/mailing'
+import { nullProto } from '../null-proto'
 
 /**
  * `tokens` multi-line text with `{{` autocomplete, `token` the one-line
@@ -39,7 +40,7 @@ const field = (
 
 const REQUIRED: FieldOptions = { isRequired: true }
 
-const FIELDS: Record<BlockType, BlockField[]> = {
+const FIELDS: Record<BlockType, BlockField[]> = nullProto({
 	hero: [field('imageUrl', 'token'), field('alt', 'token')],
 	heading: [
 		field('text', 'tokens'),
@@ -66,7 +67,7 @@ const FIELDS: Record<BlockType, BlockField[]> = {
 		field('unsubscribeLabel', 'text', { help: 'unsubscribe_label_help' }),
 		field('preferencesLabel', 'text', { help: 'preferences_label_help' }),
 	],
-}
+})
 
 export function fieldsFor(type: BlockType): BlockField[] {
 	return FIELDS[type]

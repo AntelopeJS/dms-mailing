@@ -1,4 +1,5 @@
 import type { SendSummary, SendTally, SendTraits, TallyKey } from "../db";
+import { nullProto } from "../types/null-proto";
 import {
   BUSINESS_AUDIENCE,
   isResolvedStage,
@@ -7,10 +8,10 @@ import {
   type SendStatus,
 } from "../types";
 
-const LEAVES_OUT_TESTS: Record<SendAudience, boolean> = {
+const LEAVES_OUT_TESTS: Record<SendAudience, boolean> = nullProto({
   [BUSINESS_AUDIENCE]: true,
   [OPERATIONAL_AUDIENCE]: false,
-};
+});
 
 const isAudience = (raw: string): raw is SendAudience =>
   Object.hasOwn(LEAVES_OUT_TESTS, raw);

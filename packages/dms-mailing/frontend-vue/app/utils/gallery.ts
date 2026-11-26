@@ -106,7 +106,7 @@ export function userFilterKeys(query: GalleryQuery | undefined): string[] {
 
 /** Whether the table shows its "Needs attention" tab. */
 export function isAttentionView(query: GalleryQuery | undefined): boolean {
-	return ATTENTION_FILTER_KEY in (query ?? {})
+	return Object.hasOwn(query ?? {}, ATTENTION_FILTER_KEY)
 }
 
 /** Whether a search or a filter narrows what the gallery lists. */

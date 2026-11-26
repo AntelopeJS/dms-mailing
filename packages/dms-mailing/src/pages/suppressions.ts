@@ -8,6 +8,7 @@ import { API_BASE_PATH, MODULE_ID, SENDS_PATH } from "../constants";
 import { SuppressionsTableAPI } from "../data/suppressions-table";
 import { SUPPRESSION_REASONS, type SuppressionReason } from "../types";
 import { mailingConfigureCategory } from "./module";
+import { nullProto } from "../types/null-proto";
 
 const SUPPRESSIONS_ORDER = 1;
 const PAGE_SIZE = 50;
@@ -15,12 +16,12 @@ const SUPPRESSIONS_URL = `${API_BASE_PATH}/suppressions`;
 
 const key = (path: string): string => `$dms_mailing.suppressions.${path}`;
 
-const REASON_ICONS: Record<SuppressionReason, string> = {
+const REASON_ICONS: Record<SuppressionReason, string> = nullProto({
   hard_bounce: "i-ph-at",
   complaint: "i-ph-prohibit",
   unsubscribe: "i-ph-user-minus",
   manual: "i-ph-hand",
-};
+});
 
 const reasonView = (reason: SuppressionReason): TableViewView => ({
   id: reason.replace("_", "-"),

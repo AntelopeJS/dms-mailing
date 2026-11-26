@@ -83,6 +83,7 @@ import {
   variablesSchema,
 } from "../validation/templates.schema";
 import type { TemplateContentResponse } from "./template-content";
+import { nullProto } from "../types/null-proto";
 
 const STARTER_NOT_FOUND = "$dms_mailing.errors.starter_not_found";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
@@ -105,17 +106,17 @@ const ALLOWED_FROM: Record<TemplateAction, TemplateStatus[]> = {
 const TARGET_STATUS: Record<
   Exclude<TemplateAction, "publish">,
   TemplateStatus
-> = {
+> = nullProto({
   unpublish: "draft",
   archive: "archived",
   restore: "draft",
-};
+});
 
 /** What a lifecycle action records besides the new status. */
 const TRANSITION_FIELDS: Partial<Record<TemplateAction, () => TemplateFields>> =
-  {
+  nullProto({
     unpublish: () => ({ unpublishedAt: new Date() }),
-  };
+  });
 
 export interface CategoriesResponse {
   categories: CategoryInLocale[];

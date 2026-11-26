@@ -22,6 +22,7 @@ import type { JsonValue } from "../types/json";
 import { parseJson } from "../validation/json";
 import { jsonObjectSchema } from "../validation/json.schema";
 import { sendEventTypeSchema } from "../validation/send-event-type.schema";
+import { nullProto } from "../types/null-proto";
 
 const eventSchema = z.object({
   messageId: z.string().min(1),
@@ -32,11 +33,11 @@ const eventSchema = z.object({
 
 type ParsedEvent = z.infer<typeof eventSchema>;
 
-const STATUS_OF_REFUSAL: Record<WebhookRefusal, number> = {
+const STATUS_OF_REFUSAL: Record<WebhookRefusal, number> = nullProto({
   missing_secret: HTTP_FORBIDDEN,
   bad_secret: HTTP_FORBIDDEN,
   invalid_event: HTTP_BAD_REQUEST,
-};
+});
 
 interface ReceivedEvent {
   provider: string;

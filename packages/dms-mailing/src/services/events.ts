@@ -18,6 +18,7 @@ import { notifyProblems } from "./notify";
 import { suppressAddress, suppressionReasonOf } from "./suppressions";
 import { isText } from "../validation/guards";
 import { isJsonObject } from "../validation/json";
+import { nullProto } from "../types/null-proto";
 
 export interface SendCounters {
   status: SendStatus;
@@ -27,7 +28,7 @@ export interface SendCounters {
 
 type CounterKey = keyof Pick<SendCounters, "opens" | "clicks">;
 
-const RANK: Record<SendStatus, number> = {
+const RANK: Record<SendStatus, number> = nullProto({
   queued: 0,
   sent: 1,
   delivered: 2,
@@ -38,12 +39,12 @@ const RANK: Record<SendStatus, number> = {
   bounced: 7,
   failed: 7,
   suppressed: 8,
-};
+});
 
-const COUNTERS: Partial<Record<SendEventType, CounterKey>> = {
+const COUNTERS: Partial<Record<SendEventType, CounterKey>> = nullProto({
   opened: "opens",
   clicked: "clicks",
-};
+});
 
 const MAX_ACTIVITY_ATTEMPTS = 5;
 

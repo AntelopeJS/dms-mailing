@@ -1,4 +1,5 @@
 import type { TemplateRow, TemplateStatus } from '../types/mailing'
+import { nullProto } from './null-proto'
 
 export type LifecycleAction = 'unpublish' | 'archive' | 'restore'
 
@@ -13,11 +14,11 @@ const BUTTONS: Record<LifecycleAction, LifecycleButton> = {
 	restore: { action: 'restore', icon: 'i-ph-arrow-u-up-left' },
 }
 
-const TRANSITIONS: Record<TemplateStatus, LifecycleAction[]> = {
+const TRANSITIONS: Record<TemplateStatus, LifecycleAction[]> = nullProto({
 	draft: ['archive'],
 	live: ['unpublish', 'archive'],
 	archived: ['restore'],
-}
+})
 
 export function lifecycleActions(status: TemplateStatus): LifecycleButton[] {
 	return (TRANSITIONS[status] ?? []).map((action) => BUTTONS[action])

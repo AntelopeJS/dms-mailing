@@ -20,6 +20,7 @@ import type { EditorCheck } from '../utils/editor-checks'
 import type { LifecycleAction } from '../utils/lifecycle'
 import { afterLifecycle, isPublishable } from '../utils/lifecycle'
 import { systemVariableChecks } from '../utils/system-variables'
+import { nullProto } from '../utils/null-proto'
 
 const PUBLISH_REVIEW_COMPONENT = 'MailingEditorPublishReview'
 const COMPARE_COMPONENT = 'MailingEditorCompare'
@@ -295,11 +296,11 @@ function createRestoreAction(deps: ActionDeps, tools: ActionTools) {
 	}
 }
 
-const LIFECYCLE_ICONS: Record<LifecycleAction, string> = {
+const LIFECYCLE_ICONS: Record<LifecycleAction, string> = nullProto({
 	unpublish: 'i-ph-eye-slash',
 	archive: 'i-ph-archive',
 	restore: 'i-ph-arrow-u-up-left',
-}
+})
 const CONFIRMED_LIFECYCLE: LifecycleAction[] = ['unpublish', 'archive']
 
 async function confirmLifecycle(

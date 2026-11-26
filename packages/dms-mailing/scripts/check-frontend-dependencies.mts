@@ -7,7 +7,6 @@ import { join } from "node:path";
  * manifest depends on `sortablejs` and never again on `vuedraggable`. Prints
  * the violations only; exits 1 when there are any.
  */
-
 const MANIFEST = join(
   import.meta.dirname,
   "..",

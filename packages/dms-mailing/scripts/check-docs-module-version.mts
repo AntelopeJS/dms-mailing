@@ -10,7 +10,6 @@ import { join, relative } from "node:path";
  * are any. With `--write` it rewrites each violation to `^major.minor.0` of this
  * package instead, which the release runs right after the version bump.
  */
-
 const PACKAGE_ROOT = join(import.meta.dirname, "..");
 const SCANNED = ["README.md", "docs", "skills"];
 const SOURCE =

@@ -5,6 +5,7 @@ import type {
 	VariableType,
 } from '../../types/mailing'
 import { hasFooterLinksByDefault } from '../system-variables'
+import { nullProto } from '../null-proto'
 
 export interface PaletteEntry {
 	type: BlockType
@@ -14,7 +15,7 @@ export interface PaletteEntry {
 }
 
 /** The icon that stands for each block type, in the palette and the outline. */
-export const BLOCK_ICONS: Record<BlockType, string> = {
+export const BLOCK_ICONS: Record<BlockType, string> = nullProto({
 	heading: 'i-ph-text-h',
 	paragraph: 'i-ph-text-align-left',
 	hero: 'i-ph-image',
@@ -25,7 +26,7 @@ export const BLOCK_ICONS: Record<BlockType, string> = {
 	divider: 'i-ph-minus',
 	footer: 'i-ph-rows',
 	if: 'i-ph-git-branch',
-}
+})
 
 const entry = (type: BlockType, isWide = false): PaletteEntry => ({
 	type,
@@ -185,7 +186,7 @@ function conditionPath(context: BlockContext): string {
 
 type BlockBuilder = (id: string, context: BlockContext) => Block
 
-const BUILDERS: Record<BlockType, BlockBuilder> = {
+const BUILDERS: Record<BlockType, BlockBuilder> = nullProto({
 	hero: (id) => ({ id, type: 'hero', imageUrl: '', alt: '', visibleIf: null }),
 	heading: (id, context) => ({
 		id,
@@ -248,7 +249,7 @@ const BUILDERS: Record<BlockType, BlockBuilder> = {
 			visibleIf: null,
 		}
 	},
-}
+})
 
 /**
  * A new block of `type`. Its content stays neutral: no invented `{{token}}`;

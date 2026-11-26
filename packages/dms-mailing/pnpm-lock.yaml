@@ -52,8 +52,8 @@ importers:
         specifier: ~1.8.14
         version: 1.8.14(socks@2.8.10)
       '@antelopejs/tooling-configs':
-        specifier: '>=0.10.0 <0.11.0'
-        version: 0.10.0(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.65.1)
+        specifier: ^0.10.7
+        version: 0.10.7(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.65.1)
       '@types/chai':
         specifier: ^4.3.20
         version: 4.3.20
@@ -229,8 +229,8 @@ packages:
   '@antelopejs/mongodb@1.8.14':
     resolution: {integrity: sha512-/8lLfg0uNwzSZfeWkfuKBUR9Df/XHpYEFqHseRU5l6OAVB/Xoq2cL6Hyl7WfC3UTHXZuOOLopz6MJFT+v3EgqA==}
 
-  '@antelopejs/tooling-configs@0.10.0':
-    resolution: {integrity: sha512-5UwQirzbFvd6Elzab7B8sssS2zVp5m2zIc0sAr7hpAMvHq7Cy0JIqY0XEZlwFJ3NwJZez5fBPbTU/6/lYJt+0Q==}
+  '@antelopejs/tooling-configs@0.10.7':
+    resolution: {integrity: sha512-13abD0BhsR9RF6LQoYYKa+XBknlmcrZVB6iW3BwdfHKu6pPG4ClhAQCLJSSPYtbTMuvNU4imI+dVFSB78TdTnQ==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -3367,7 +3367,7 @@ snapshots:
       - snappy
       - socks
 
-  '@antelopejs/tooling-configs@0.10.0(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.65.1)':
+  '@antelopejs/tooling-configs@0.10.7(knip@6.35.1)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.65.1)':
     dependencies:
       '@oxlint/plugins': 1.94.0
       dts-bundle-generator: 9.5.1

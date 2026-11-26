@@ -1,15 +1,15 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import { parseBody } from "../../data/body";
 import type { JsonValue } from "../../types/json";
 import { testDataSchema } from "../../validation/templates.schema";
+import { isHttpResult } from "../helpers/http-result";
 
 /** The status of the HTTP answer `run` throws; `undefined` when it throws none. */
 function thrownStatus(run: () => JsonValue): number | undefined {
   try {
     run();
   } catch (error) {
-    return error instanceof HTTPResult ? error.getStatus() : undefined;
+    return isHttpResult(error) ? error.getStatus() : undefined;
   }
   return undefined;
 }
