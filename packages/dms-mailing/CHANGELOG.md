@@ -1,6 +1,24 @@
 # Changelog
 
 
+## v0.10.10
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.9...v0.10.10)
+
+### 🩹 Fixes
+
+- **release:** Restore the release-it config of both packages ([#233](https://github.com/AntelopeJS/dms-mailing/pull/233))
+- **release:** Restore the release-it devDependencies of both packages ([#234](https://github.com/AntelopeJS/dms-mailing/pull/234))
+
+### 🏡 Chore
+
+- Drop the hand-copied release hooks and typecheck the Vue layer tests ([#230](https://github.com/AntelopeJS/dms-mailing/pull/230))
+- **deps:** Update antelopejs modules ([#231](https://github.com/AntelopeJS/dms-mailing/pull/231))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.10.9
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.8...v0.10.9)
