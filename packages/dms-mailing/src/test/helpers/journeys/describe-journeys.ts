@@ -15,7 +15,7 @@ import { resetWorkspace } from "./workspace";
 const DEFAULT_TIMEOUT_MS = 60_000;
 const RESET_TIMEOUT_MS = 30_000;
 const RUN_ID_BYTES = 4;
-const WORKSPACE_MARKER = "pnpm-workspace.yaml";
+const WORKSPACE_MARKER = "e2e/journeys.config.ts";
 
 /**
  * A journey of `e2e/journeys/<feature>.mjs`, as the e2e kit declares it: its
