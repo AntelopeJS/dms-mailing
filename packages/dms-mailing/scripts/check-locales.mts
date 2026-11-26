@@ -10,7 +10,6 @@ import { join, relative } from "node:path";
  * template expression are resolved at runtime and are not checked. Prints the
  * violations only; exits 1 when there are any.
  */
-
 type Messages = { [key: string]: string | Messages };
 
 const PACKAGE = join(import.meta.dirname, "..");

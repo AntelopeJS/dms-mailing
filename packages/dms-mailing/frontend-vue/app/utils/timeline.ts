@@ -2,6 +2,7 @@ import type { SendEventRow, SendRow, SendStatus } from '../types/mailing'
 import { isJsonObjectValue, isString, jsonText, ownValue } from './guards'
 import type { JsonObject, JsonValue } from './guards'
 import { isSuppressedStatus, SUPPRESSED_STATUS } from './suppression'
+import { nullProto } from './null-proto'
 
 export type TimelineTone =
 	'neutral' | 'success' | 'primary' | 'error' | 'warning'
@@ -121,9 +122,9 @@ const SEND_DETAILS: Partial<
 }
 
 /** Steps whose title names the provider when the send knows it. */
-const PROVIDER_TITLE_KEYS: Partial<Record<SendStatus, string>> = {
+const PROVIDER_TITLE_KEYS: Partial<Record<SendStatus, string>> = nullProto({
 	sent: `${TITLE_KEY_PREFIX}sent_to`,
-}
+})
 
 interface StepTitle {
 	titleKey: string
@@ -151,10 +152,10 @@ export function isSoftBounceEvent(
 /** Event titles that depend on what the event says. */
 const EVENT_TITLE_KEYS: Partial<
 	Record<SendStatus, (details: EventDetails, send: TimelineSend) => string>
-> = {
+> = nullProto({
 	bounced: (details, send) =>
 		`${TITLE_KEY_PREFIX}${isSoftBounceEvent(details, send) ? 'soft_bounce' : 'bounced'}`,
-}
+})
 
 function titleOf(
 	type: SendStatus,
@@ -246,7 +247,8 @@ function pendingSteps(
  * reading (the raw SMTP answer, the provider's message id), then the steps of
  * the happy path still to come, ghosted. A problem or an unsubscription has
  * no step to come, and neither has a step the provider never reports. A send
- * to a suppressed address was never queued: its one step says so.
+ * to a suppressed address was never queued, so it has no queued step; the
+ * drawer words it in a banner.
  */
 export function buildTimeline(
 	events: SendEventRow[],

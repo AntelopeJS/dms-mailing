@@ -30,8 +30,10 @@ function around(base, minutes) {
   return { $date: new Date(base.getTime() + minutes * 60_000).toISOString() };
 }
 
-/** One send per place around the three boundaries: each period counts the sends inside it and none outside. */
-/** @type {[string, { $date: string }][]} */
+/**
+ * One send per place around the three boundaries: each period counts the sends inside it and none outside.
+ * @type {[string, { $date: string }][]}
+ */
 const AGES = [
   ["in24-a", ago(0, 2)],
   ["in24-b", ago(0, 23.83)],

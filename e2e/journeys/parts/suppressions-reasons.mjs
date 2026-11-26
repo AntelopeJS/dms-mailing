@@ -7,8 +7,10 @@ import { declareLive, entryOf, importSends, postEvent, secretOf, suppressionRows
  * @typedef {{ name: string, type: string, details?: Record<string, unknown>, isTest?: boolean, reason: string | null }} Case
  */
 
-/** What each provider event does to the list: the reason it adds, or null when the address stays off. */
-/** @type {Case[]} */
+/**
+ * What each provider event does to the list: the reason it adds, or null when the address stays off.
+ * @type {Case[]}
+ */
 const CASES = [
   { name: "hard bounce type hard", type: "bounced", details: { bounceType: "hard", reason: "550 5.1.1 No such user" }, reason: "hard_bounce" },
   { name: "bounce type permanent", type: "bounced", details: { bounceType: "permanent" }, reason: "hard_bounce" },

@@ -1,8 +1,8 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import { z } from "zod";
 import { MailingSettingsController } from "../../routes/settings";
 import { SuppressionsController } from "../../routes/suppressions";
+import { isHttpResult } from "../helpers/http-result";
 
 const SETTINGS_BODY = {
   blockOnMissingVariables: "yes",
@@ -46,8 +46,8 @@ async function refusal(
   try {
     await attempt();
   } catch (thrown: unknown) {
-    expect(thrown).to.be.instanceOf(HTTPResult);
-    if (thrown instanceof HTTPResult) {
+    expect(isHttpResult(thrown)).to.equal(true);
+    if (isHttpResult(thrown)) {
       return [thrown.getStatus(), thrown.getContentType(), thrown.getBody()];
     }
   }

@@ -28,9 +28,10 @@ import type {
  * components showing one request share it. The ones a drawer, a dialog or the
  * editor makes when it opens or asks: `ReadOnDemand`. Writes go through
  * `useMailingApi`.
+ *
+ * `useProviderInfo` reads the e-mail provider the page toolbar names; nothing
+ * is read while `enabled` is false.
  */
-
-/** The e-mail provider the page toolbar names; nothing read while `enabled` is false. */
 export function useProviderInfo(
 	enabled: MaybeRefOrGetter<boolean>,
 ): ApiDataResult<ProviderInfo> {

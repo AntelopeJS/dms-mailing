@@ -57,7 +57,7 @@ function text(key: string): string {
 }
 
 function errorOf(field: BlockField): string | undefined {
-	return field.key in rejected.value
+	return Object.hasOwn(rejected.value, field.key)
 		? t('dms_mailing.editor.fields.required')
 		: undefined
 }

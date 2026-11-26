@@ -10,6 +10,7 @@ import type {
 import { isObject, isText } from "../validation/guards";
 import { webhookSecretMatches } from "./events";
 import { WEBHOOK_SECRET_HEADER } from "../constants";
+import { nullProto } from "../types/null-proto";
 
 export { WEBHOOK_SECRET_HEADER };
 
@@ -21,12 +22,13 @@ const WEBHOOK_TEST_TIMEOUT_MS = 10_000;
 const JSON_CONTENT_TYPE = "application/json";
 
 /** What the webhook answers a caller it refuses, in its own words. */
-export const WEBHOOK_REFUSAL_MESSAGES: Record<WebhookRefusal, string> = {
-  missing_secret: `The ${WEBHOOK_SECRET_HEADER} header is missing. Send the webhook secret shown in Mailing > Settings > Provider & webhook.`,
-  bad_secret: `The ${WEBHOOK_SECRET_HEADER} header does not match the webhook secret of this workspace (Mailing > Settings > Provider & webhook). It changes when the secret is rotated.`,
-  invalid_event:
-    'The body is not a mailing event: send JSON with "messageId" and "type".',
-};
+export const WEBHOOK_REFUSAL_MESSAGES: Record<WebhookRefusal, string> =
+  nullProto({
+    missing_secret: `The ${WEBHOOK_SECRET_HEADER} header is missing. Send the webhook secret shown in Mailing > Settings > Provider & webhook.`,
+    bad_secret: `The ${WEBHOOK_SECRET_HEADER} header does not match the webhook secret of this workspace (Mailing > Settings > Provider & webhook). It changes when the secret is rotated.`,
+    invalid_event:
+      'The body is not a mailing event: send JSON with "messageId" and "type".',
+  });
 
 /** The body of a refused webhook call. */
 export type WebhookRefusalBody = {

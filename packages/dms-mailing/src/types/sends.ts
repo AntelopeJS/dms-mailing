@@ -1,3 +1,4 @@
+import { nullProto } from "./null-proto";
 import type {
   SendEventType,
   SendStatus,
@@ -56,7 +57,7 @@ export const SEND_STAGES: SendStage[] = [
   "resolved",
 ];
 
-export const STAGE_BY_STATUS: Record<SendStatus, SendStage> = {
+export const STAGE_BY_STATUS: Record<SendStatus, SendStage> = nullProto({
   queued: "in_progress",
   sent: "in_progress",
   delivered: "delivered",
@@ -67,7 +68,7 @@ export const STAGE_BY_STATUS: Record<SendStatus, SendStage> = {
   failed: "problem",
   unsubscribed: "unsubscribed",
   suppressed: "suppressed",
-};
+});
 
 const RESOLVABLE_STAGE: SendStage = "problem";
 export const RESOLVED_STAGE: SendStage = "resolved";

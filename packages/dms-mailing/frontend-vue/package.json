@@ -1,42 +1,42 @@
 {
-  "name": "@antelopejs/dms-mailing-frontend-vue",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "license": "Apache-2.0",
-  "packageManager": "pnpm@10.2.0",
-  "engines": {
-    "@antelopejs/dms-frontend": ">=0.11.4 <0.12.0"
-  },
-  "scripts": {
-    "prepare": "ajs dms prepare-types --out .dms-types",
-    "format": "prettier --write .",
-    "lint": "eslint . && node --input-type=module -e \"import { assertApiErrorPresentation } from '@antelopejs/dms/checks/api-error-presentation'; assertApiErrorPresentation(['app']);\" && node --input-type=module -e \"import { assertDmsComponents } from '@antelopejs/dms/checks/dms-components'; await assertDmsComponents({ layer: '.', sources: ['../src'] });\"",
-    "typecheck:tests": "tsc -p tests/tsconfig.json --noEmit",
-    "lint:fix": "eslint . --fix",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@vueuse/core": "^14.3.0",
-    "@vueuse/integrations": "^14.3.0",
-    "sortablejs": "^1.14.0",
-    "vue": "^3.5.18"
-  },
-  "devDependencies": {
-    "@antelopejs/core": "~1.24.6",
-    "@antelopejs/dms-frontend": ">=0.11.8 <0.12.0",
-    "@antelopejs/tooling-configs": ">=0.10.0 <0.11.0",
-    "@nuxt/eslint-config": "^1.17.0",
-    "@nuxt/ui": "4.10.0",
-    "@types/sortablejs": "^1.15.9",
-    "@vitejs/plugin-vue": "^6.0.0",
-    "@vitest/runner": "^4.1.5",
-    "eslint": "^9.39.5",
-    "vite": "^8.2.2",
-    "jsdom": "^26",
-    "prettier": "^3.5.3",
-    "prettier-plugin-tailwindcss": "^0.6.11",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.5"
-  }
+	"name": "@antelopejs/dms-mailing-frontend-vue",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"license": "Apache-2.0",
+	"packageManager": "pnpm@10.34.9",
+	"engines": {
+		"@antelopejs/dms-frontend": ">=0.11.4 <0.12.0"
+	},
+	"scripts": {
+		"prepare": "ajs dms prepare-types --out .dms-types",
+		"format": "prettier --write .",
+		"lint": "eslint . && node --input-type=module -e \"import { assertApiErrorPresentation } from '@antelopejs/dms/checks/api-error-presentation'; assertApiErrorPresentation(['app']);\" && node --input-type=module -e \"import { assertDmsComponents } from '@antelopejs/dms/checks/dms-components'; await assertDmsComponents({ layer: '.', sources: ['../src'] });\"",
+		"typecheck:tests": "tsc -p tests/tsconfig.json --noEmit",
+		"lint:fix": "eslint . --fix",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@vueuse/core": "^14.3.0",
+		"@vueuse/integrations": "^14.3.0",
+		"sortablejs": "^1.14.0",
+		"vue": "^3.5.18"
+	},
+	"devDependencies": {
+		"@antelopejs/core": "~1.24.6",
+		"@antelopejs/dms-frontend": ">=0.11.8 <0.12.0",
+		"@antelopejs/tooling-configs": "^0.10.7",
+		"@nuxt/eslint-config": "^1.17.0",
+		"@nuxt/ui": "4.10.0",
+		"@types/sortablejs": "^1.15.9",
+		"@vitejs/plugin-vue": "^6.0.0",
+		"@vitest/runner": "^4.1.5",
+		"eslint": "^9.39.5",
+		"vite": "^8.2.2",
+		"jsdom": "^26",
+		"prettier": "^3.5.3",
+		"prettier-plugin-tailwindcss": "^0.6.11",
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.5"
+	}
 }

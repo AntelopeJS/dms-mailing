@@ -75,11 +75,10 @@ const retentionDaysSchema = z.coerce
   .max(MAX_RETENTION_DAYS);
 
 /**
- * The settings as the form reads them, with the values derived for display.
+ * The settings as the form reads and writes them: who set the secret stays inside the module.
  * The DMS form reads and writes localized values whole
  * (`x-content-language: *`): category labels travel with every language.
  */
-/** The settings as the form reads and writes them: who set the secret stays inside the module. */
 type FormSettings = Omit<MailingSettingsValues, "webhookSecretSource">;
 
 function formSettings(values: MailingSettingsValues): FormSettings {

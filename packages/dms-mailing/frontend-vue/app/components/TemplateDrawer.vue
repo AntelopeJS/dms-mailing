@@ -31,6 +31,7 @@ import {
 	workingContract,
 } from '../utils/variables'
 import { systemVariables } from '../utils/system-variables'
+import { nullProto } from '../utils/null-proto'
 import type {
 	PreviewResponse,
 	TemplateContentResponse,
@@ -91,7 +92,7 @@ const { t, locale: uiLocale } = useI18n()
 const { uniqueLocales } = useUniqueLocales()
 const overlays = useTemplateDrawer()
 
-const LIFECYCLE: Record<LifecycleAction, LifecycleSpec> = {
+const LIFECYCLE: Record<LifecycleAction, LifecycleSpec> = nullProto({
 	publish: {
 		icon: 'i-ph-rocket-launch',
 		run: api.publish,
@@ -104,7 +105,7 @@ const LIFECYCLE: Record<LifecycleAction, LifecycleSpec> = {
 	},
 	archive: { icon: 'i-ph-archive', run: api.archive, confirmColor: 'warning' },
 	restore: { icon: 'i-ph-arrow-counter-clockwise', run: api.restore },
-}
+})
 
 const templateId = computed(() => props.rowData?._id ?? props.templateId ?? '')
 const readContent = useTemplateContentRead(templateId)
