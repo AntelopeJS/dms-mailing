@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v0.11.5
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.4...interface-v0.11.5)
+
+### 🩹 Fixes
+
+- **release:** Restore the release-it config of both packages ([#233](https://github.com/AntelopeJS/dms-mailing/pull/233))
+- **release:** Restore the release-it devDependencies of both packages ([#234](https://github.com/AntelopeJS/dms-mailing/pull/234))
+
+### 🏡 Chore
+
+- Drop the hand-copied release hooks and typecheck the Vue layer tests ([#230](https://github.com/AntelopeJS/dms-mailing/pull/230))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+
 ## v0.11.4
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/interface-v0.11.3...interface-v0.11.4)
