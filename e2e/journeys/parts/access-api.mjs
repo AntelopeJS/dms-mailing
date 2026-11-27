@@ -7,6 +7,7 @@ const SETTINGS = "modules.mailing.configure.settings";
 const SUPPRESSIONS = "modules.mailing.configure.suppressions";
 const TEMPLATES = "modules.mailing.main.templates";
 const SENDS = "modules.mailing.main.sends";
+const MISSING_PERMISSION = "$dms.refusals.permissions.missing_permission";
 
 /** Every route of the mailing API with the permission its guard names. */
 const ROUTES = [
@@ -25,10 +26,10 @@ const EVERYTHING = ["mailing.send", SETTINGS, SUPPRESSIONS, `${SUPPRESSIONS}.tab
 export const accessJourneys = [
   {
     id: "every-mailing-route-answers-401-without-a-session-and-403-to-a-member",
-    title: "every route of the mailing API answers 401 without a session and 403 `Forbidden: missing permission <page>` to a member even when its role grants every mailing permission (mailing.send and the page grants), while the owner is let in; the mailing.send gate is never reached by a member",
+    title: "every route of the mailing API answers 401 without a session and 403 `$dms.refusals.permissions.missing_permission` naming the page's permission to a member even when its role grants every mailing permission (mailing.send and the page grants), while the owner is let in; the mailing.send gate is never reached by a member",
     entryPoint: "every /api/mailing route",
     knownFailures: {
-      "a role granting everything passes the guard": "the DMS 0.20.7 page guard answers 403 `Forbidden: missing permission modules.mailing.configure.settings` to a member whose role holds `*`",
+      "a role granting everything passes the guard": "the DMS 0.20.7 page guard answers 403 `$dms.refusals.permissions.missing_permission` for modules.mailing.configure.settings to a member whose role holds `*`",
     },
     async run(ctx) {
       await declareLive(ctx, "access-order", { variables: [] });
@@ -37,7 +38,7 @@ export const accessJourneys = [
       for (const [method, path, permission] of ROUTES) {
         const anonymous = await mailing(ctx, `${method} ${path} as nobody`, method, path, { as: "anon", body: method === "GET" ? undefined : {} });
         const asMember = await mailing(ctx, `${method} ${path} as a member`, method, path, { as: "everything", body: method === "GET" ? undefined : {} });
-        const ok = anonymous.status === 401 && asMember.status === 403 && asMember.body === `Forbidden: missing permission ${permission}`;
+        const ok = anonymous.status === 401 && asMember.status === 403 && pick(asMember.body, "message") === MISSING_PERMISSION && pick(asMember.body, "params", "permissionId") === permission;
         if (!ok) failures.push(`${method} ${path}: ${anonymous.status} / ${asMember.status} ${JSON.stringify(asMember.body)}`);
       }
       await ctx.verify(`all ${ROUTES.length} routes: 401 for nobody, 403 naming the permission for a member`, [check("no route deviates", failures.length === 0, failures)]);
