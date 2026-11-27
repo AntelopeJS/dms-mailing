@@ -35,6 +35,7 @@ jobs:
       renovate-sync: false
       test-job: true
       module-locks: true
+      windows-merge-queue: true
     permissions:
       contents: read
 
