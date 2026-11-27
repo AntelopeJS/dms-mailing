@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
+    inputs:
+      nightly:
+        description: Run the nightly tier, with the Windows jobs, to prove a fix to a nightly failure
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +40,7 @@ jobs:
       renovate-sync: false
       test-job: true
       module-locks: true
+      nightly: ${{ inputs.nightly == true }}
     permissions:
       contents: read
 
@@ -59,6 +65,7 @@ jobs:
         id: tier
         env:
           EVENT: ${{ github.event_name }}
+          NIGHTLY: ${{ inputs.nightly == true }}
           TIER: ${{ steps.pick.outputs.tier }}
           FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full') }}
         run: |
@@ -76,7 +83,7 @@ jobs:
           fi
 
           os='["ubuntu-latest"]'
-          if [[ "$tier" == nightly ]]; then
+          if [[ "$tier" == nightly || "$NIGHTLY" == true ]]; then
             os='["ubuntu-latest","windows-latest"]'
           fi
 
