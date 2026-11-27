@@ -1,0 +1,39 @@
+name: backend-tests
+description: Build the module and run its backend suite with the harness caches.
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/setup
+    # The harness resolves the DMS stack's npm modules into this folder
+    # (`cacheFolder` in src/test/antelope.test.ts) and asks the registry for
+    # the newest version in range on every run; it falls back to the cached
+    # version only when the registry does not answer. A cached module keeps
+    # the dependencies it was installed with, so a lockfile change starts a
+    # fresh install. Between lockfile changes each run restores the newest
+    # cache and saves its own, so it downloads only what was published since.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: packages/dms-mailing/.antelope/cache
+        key: antelope-${{ runner.os }}-${{ hashFiles('packages/dms-mailing/src/test/antelope-modules.ts', 'packages/*/pnpm-lock.yaml') }}-${{ github.run_id }}
+        restore-keys: antelope-${{ runner.os }}-${{ hashFiles('packages/dms-mailing/src/test/antelope-modules.ts', 'packages/*/pnpm-lock.yaml') }}-
+    # mongodb-memory-server downloads mongod on first use; keyed on the
+    # version the test config pins.
+    - id: mongo
+      shell: bash
+      run: echo "version=$(grep -oP 'MONGO_BINARY_VERSION = "\K[^"]+' packages/dms-mailing/src/test/antelope.test.ts)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/mongodb-binaries
+        key: mongodb-binaries-${{ runner.os }}-${{ steps.mongo.outputs.version }}
+    - shell: bash
+      run: pnpm --dir packages/dms-mailing build
+    # Built once above: DMS_PREBUILT keeps both the script and the harness's
+    # install command from building the module again.
+    - shell: bash
+      run: pnpm --dir packages/dms-mailing test:backend
+      env:
+        DMS_PREBUILT: "1"
+    - name: Check that the module locks are committed
+      if: ${{ !cancelled() }}
+      uses: AntelopeJS/.github/.github/actions/module-locks-committed@v2

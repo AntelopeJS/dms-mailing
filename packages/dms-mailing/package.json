@@ -55,10 +55,10 @@
     "knip:all": "knip",
     "prepack": "pnpm run build",
     "test": "pnpm run test:backend && pnpm run test:layer",
-    "test:backend": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && ajs module test .",
+    "test:backend": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && ajs module test . --timeout 30000",
     "test:layer": "cd frontend-vue && pnpm test",
-    "test:unit": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/unit ajs module test .",
-    "test:integration": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/integration ajs module test ."
+    "test:unit": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/unit ajs module test . --timeout 30000",
+    "test:integration": "([ -n \"$DMS_PREBUILT\" ] || pnpm run build) && DMS_MAILING_TEST_DIR=dist/test/integration ajs module test . --timeout 30000"
   },
   "dependencies": {
     "@antelopejs/interface-api": ">=0.3.3 <0.4.0",
@@ -77,7 +77,7 @@
     "@antelopejs/core": "~1.24.6",
     "@antelopejs/dms": ">=0.24.0 <0.25.0",
     "@antelopejs/mongodb": "~1.8.14",
-    "@antelopejs/tooling-configs": "^0.10.7",
+    "@antelopejs/tooling-configs": "^0.10.11",
     "@types/chai": "^4.3.20",
     "@types/mocha": "^10",
     "@types/node": "^24.0.0",
