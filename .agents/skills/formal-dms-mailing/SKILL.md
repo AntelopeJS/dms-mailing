@@ -140,4 +140,4 @@ Left out:
 | `ImportReports` | `importOne` returning, `importSends` counting `imported` or `skipped`; the rules are read here |
 | `MailingTables.tla` | `services/events.ts` `RANK`, `DEFERRABLE_STATUSES`, `COUNTERS`, `MAX_ACTIVITY_ATTEMPTS`; `types/sends.ts` `SEND_EVENT_TYPES`; `services/send-import.ts` the order of the two `insertImported` calls of `importOne`, read by `check.mjs` |
 
-Sync commit: `26fb5d0676d6aa934a13b1676b2144018f876b12` (2026-11-23). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.
+Sync commit: `c2ff44dc5061f8ffd6d4931a9482de9c11de22a3` (2026-11-28). At that commit, every function above was read against its action, and `covered.json` holds the digests of the covered files as they are there.
