@@ -32,7 +32,7 @@ export const SHARED_MODULE_SOURCES = {
   api: {
     type: "package",
     package: "@antelopejs/api",
-    version: "1.7.9",
+    version: "1.7.10",
   },
   "file-storage-local": {
     type: "package",
