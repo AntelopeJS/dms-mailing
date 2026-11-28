@@ -83,8 +83,8 @@ await SendTemplate("order-confirmed", {
 
 The module also needs:
 
-- A DMS backend in a release that implements the `@antelopejs/interface-dms` range in the table above.
-- The `@antelopejs/dms-frontend` renderer in the range of `engines["@antelopejs/dms-frontend"]` in `frontend-vue/package.json`. The `ajs dms` CLI refuses to build the module with a renderer outside that range.
+- A DMS backend in a release that implements the `@antelopejs/interface-dms` range in the table above: `@antelopejs/dms` 0.25.0 or later.
+- The `@antelopejs/dms-frontend` renderer 0.11.11 or later, in the range of `engines["@antelopejs/dms-frontend"]` in `frontend-vue/package.json`. The `ajs dms` CLI refuses to build the module with a renderer outside that range.
 - A database module that enforces unique indexes, such as `@antelopejs/mongodb` or `@antelopejs/postgres`.
 - An e-mail provider, which is an `@antelopejs/interface-email` implementation such as `@antelopejs/nodemailer`.
 
