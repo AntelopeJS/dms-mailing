@@ -211,6 +211,18 @@ export interface SendTemplateParams {
   cc?: EmailAddress[];
   /** Where replies go, instead of the workspace's reply-to address. */
   replyTo?: EmailAddress;
+  /**
+   * A key of the caller's that names this send, such as the order and the
+   * event it answers (`order-1042:confirmed`), 1 to 200 characters. Each
+   * recipient of the call is claimed under the key, the template and the
+   * tenant as a `queued` send before anything leaves. A second call with the
+   * same key delivers nothing to a recipient the first one claimed and
+   * answers the outcome it recorded, so a retry after a timeout or a crash
+   * never mails a customer twice; a recipient the first call did not name is
+   * delivered to. A recipient whose first call stopped between its claim and
+   * the provider's answer stays `queued`. Without a key, every call sends.
+   */
+  idempotencyKey?: string;
 }
 
 /**

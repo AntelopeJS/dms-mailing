@@ -17,7 +17,8 @@ import { MAILING_SENDS_TABLE_NAME, MailingSend } from "../tables";
 const FIRST_ROW_OFFSET = 0;
 const SINGLE_ROW = 1;
 
-type NewSend = Omit<
+/** A send as `insertSend` writes it: its id, date and revision are the model's. */
+export type NewSend = Omit<
   MailingSend,
   "_id" | "createdAt" | "revision" | "isRetiring" | "lastActivityAt"
 >;
@@ -27,6 +28,15 @@ export type ImportedSendRow = Omit<
   MailingSend,
   "revision" | "isRetiring" | "lastActivityAt"
 >;
+
+/** What the provider answered a claimed send with. */
+export interface SendDelivery {
+  status: SendStatus;
+  provider?: string;
+  providerMessageId?: string;
+  latencyMs: number | null;
+  error?: string;
+}
 
 const MAX_MUTATION_ATTEMPTS = 5;
 
@@ -223,6 +233,45 @@ export class SendModel extends BasicDataModel(
       if (IsDuplicateKeyError(error)) return false;
       throw error;
     }
+  }
+
+  /**
+   * Claims a send under the id a caller's key gives it, as `queued`, before
+   * anything leaves; `false` when that id is taken, so a retry of the same
+   * key delivers nothing to the recipient.
+   */
+  async claimKeyedSend(send: ImportedSendRow): Promise<boolean> {
+    try {
+      await this.table.insert({ ...send, revision: randomUUID() }).run();
+      return true;
+    } catch (error) {
+      if (IsDuplicateKeyError(error)) return false;
+      throw error;
+    }
+  }
+
+  /** Writes what the provider answered on a claimed send, under its revision. */
+  async recordDelivery(
+    send: MailingSend,
+    delivery: SendDelivery,
+  ): Promise<boolean> {
+    const patch = Object.fromEntries(
+      Object.entries({
+        ...delivery,
+        stage: stageOf(delivery.status),
+        lastActivityAt: new Date(),
+      }).filter(([, value]) => value !== undefined),
+    );
+    const outcome = await this.table
+      .atomicMutation(send._id, {
+        type: "update",
+        revisionField: "revision",
+        expectedRevision: send.revision,
+        nextRevision: randomUUID(),
+        patch,
+      })
+      .run();
+    return wasApplied(outcome);
   }
 
   /** Reads the stored row, including the revision the mutation contract compares. */

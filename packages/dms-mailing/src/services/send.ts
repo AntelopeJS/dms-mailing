@@ -10,14 +10,10 @@ import {
   Send,
   SendBatch,
 } from "@antelopejs/interface-email";
+import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { MODULE_ID } from "../constants";
-import {
-  type MailingTemplate,
-  SendEventModel,
-  SendModel,
-  TemplateModel,
-} from "../db";
+import { type MailingTemplate, SendModel, TemplateModel } from "../db";
 import {
   missingRequiredVariables,
   missingSystemVariables,
@@ -34,12 +30,17 @@ import {
   type MailingSettingsValues,
   type ResolvedEmail,
   type SendStatus,
-  stageOf,
   type TemplateAttentionReason,
   type TemplateContent,
 } from "../types";
-import { publishSendCreated } from "../realtime";
-import { attachmentsLog, checkAttachments } from "./attachments";
+import { checkAttachments } from "./attachments";
+import {
+  checkedIdempotencyKey,
+  deliverOnce,
+  recordFirstEvent,
+  recordKeyed,
+  sendRowOf,
+} from "./keyed-send";
 import { renderEmailHtml } from "./render";
 import { SendError } from "./send-error";
 import { getSettings } from "./settings";
@@ -55,7 +56,7 @@ import {
   type VersionedSnapshot,
   workingSnapshot,
 } from "./templates";
-import { addressOf, nameOf, toRecipients } from "./addresses";
+import { toRecipients } from "./addresses";
 
 export interface PreparedSend {
   content: TemplateContent;
@@ -95,7 +96,8 @@ const TEST_SUBJECT_PREFIX = "[TEST] ";
 /** Source of a real send started by hand from the module's dialog. */
 export const MANUAL_SEND_SOURCE = "dms-mailing:manual";
 
-interface SendOutcome {
+/** What the provider, or the suppression check, answered for one recipient. */
+export interface SendOutcome {
   latencyMs: number | null;
   provider?: string;
   providerMessageId?: string;
@@ -435,42 +437,21 @@ async function deliver(input: DeliveryInput): Promise<DeliveredMessage[]> {
   return canBatch ? deliverBatch(input) : deliverEach(input);
 }
 
+/**
+ * Writes a send's row and its first history row, and tells the pages. Under a
+ * caller's key, a repeat writes nothing and answers the row it finds.
+ */
 async function record(
   tenantId: string,
   input: SendRecordInput,
 ): Promise<string> {
   const { prepared, to, params, status, outcome } = input;
-  const [sendId] = await GetModel(SendModel, tenantId).insertSend({
-    templateId: prepared.templateId,
-    templateSlug: prepared.slug,
-    locale: prepared.locale,
-    requestedLocale: prepared.requestedLocale,
-    templateVersion: prepared.version,
-    recipientEmail: addressOf(to),
-    recipientName: nameOf(to),
-    status,
-    stage: stageOf(status),
-    provider: outcome.provider,
-    providerMessageId: outcome.providerMessageId,
-    latencyMs: outcome.latencyMs,
-    error: outcome.error,
-    source: params.source,
-    json_variables: JSON.stringify(params.variables ?? {}),
-    json_attachments: attachmentsLog(prepared.attachments),
-    json_cc: prepared.cc && JSON.stringify(prepared.cc.map(addressOf)),
-    opens: 0,
-    clicks: 0,
-    isTest: Boolean(params.isTest),
-  });
-  await GetModel(SendEventModel, tenantId).insertForActiveSend({
-    sendId,
-    type: status,
-    at: new Date(),
-    json_details: JSON.stringify(
-      outcome.error ? { reason: outcome.error } : {},
-    ),
-  });
-  publishSendCreated(tenantId, sendId);
+  const key = checkedIdempotencyKey(params);
+  if (key !== undefined) return recordKeyed(tenantId, input, key);
+  const [sendId] = await GetModel(SendModel, tenantId).insertSend(
+    sendRowOf(prepared, params, to, status, outcome),
+  );
+  await recordFirstEvent(tenantId, sendId, status, outcome);
   return sendId;
 }
 
@@ -543,6 +524,7 @@ export async function sendTemplate(
   if (recipients.length === 0) {
     throw new SendError("no_recipient", `Template "${slug}" has no recipient`);
   }
+  const key = checkedIdempotencyKey(params);
   const prepared = await prepare(params.tenantId, slug, params);
   const settings = await getSettings(params.tenantId);
   const { email, html } = await renderForSend(
@@ -550,16 +532,38 @@ export async function sendTemplate(
     params,
     settings.blockOnMissingVariables,
   );
-  const delivered = await deliver({
+  const input: DeliveryInput = {
     prepared,
     settings,
     subject: subjectFor(email.subject, Boolean(params.isTest)),
     html,
     text: renderPlainText(email, prepared.locale),
     recipients,
-  });
-  const results = await recordAll(prepared, params, delivered);
+  };
+  const results =
+    key === undefined
+      ? await recordAll(prepared, params, await deliver(input))
+      : await deliverOnce(input, params, key, deliver);
   if (!params.isTest)
-    await refreshAttentionIfFlagged(params.tenantId, prepared, NEVER_SENT);
+    await refreshAttentionAfterSend(params.tenantId, prepared);
   return aggregateResults(results);
+}
+
+/**
+ * Refreshes the template's attention after a real send. A failure there is
+ * logged, not thrown: the e-mails left, and a caller that retried on the
+ * error would send them again.
+ */
+async function refreshAttentionAfterSend(
+  tenantId: string,
+  prepared: PreparedSend,
+): Promise<void> {
+  try {
+    await refreshAttentionIfFlagged(tenantId, prepared, NEVER_SENT);
+  } catch (error) {
+    Logging.Error(
+      "[dms-mailing] Could not refresh the template's attention after a send:",
+      error,
+    );
+  }
 }

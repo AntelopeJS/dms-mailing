@@ -124,4 +124,8 @@ export class MailingSend extends Table {
   /** Who sent it again: a user id. */
   @Field("string")
   declare resolvedBy?: string;
+
+  /** The caller's key of the send, when `SendTemplate` was given one. */
+  @Field("string")
+  declare idempotencyKey?: string;
 }

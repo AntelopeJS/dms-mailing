@@ -409,6 +409,7 @@
 			"version_not_found": "This template version does not exist.",
 			"invalid_transition": "This template cannot go to that status from its current one.",
 			"no_replay_after_spam": "The recipient reported this e-mail as spam: it is not sent again.",
+			"already_replayed": "This e-mail was already sent again.",
 			"nothing_to_publish": "This template has no content to publish yet.",
 			"replay_needs_new_address": "This address bounced. Send to a corrected address instead.",
 			"no_replay_with_attachments": "This e-mail carried attachments, which the send log does not keep. Send it again from the application that sent it.",

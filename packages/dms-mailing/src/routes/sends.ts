@@ -68,7 +68,11 @@ import {
   requireTemplate,
   snapshotOfVersion,
 } from "../services/templates";
-import type { SendStatus, SuppressionSummary, TemplateStatus } from "../types";
+import {
+  isResolvedStage,
+  type SuppressionSummary,
+  type TemplateStatus,
+} from "../types";
 import type { JsonObject } from "../types/json";
 import { parseJsonObject } from "../validation/json";
 import {
@@ -79,12 +83,25 @@ import {
   testSendSchema,
 } from "../validation/templates.schema";
 import { comparisonRange, currentRange, isComparisonWanted } from "./period";
+import {
+  ALREADY_REPLAYED,
+  CLAIMED_ELSEWHERE,
+  type ClaimedReplay,
+  isProblemSend,
+  isSuppressedResult,
+  needsNewAddress,
+  NOT_STARTED,
+  type ReplayFailedResponse,
+  replayReport,
+  type ReplayResponse,
+  replayResponse,
+} from "./replay";
+
+export type { ReplayFailedResponse, ReplayResponse } from "./replay";
 
 const NOT_FOUND = "$dms_mailing.errors.send_not_found";
 const INVALID_CONTENT = "$dms_mailing.errors.invalid_content";
 const INVALID_RECIPIENT = "$dms_mailing.errors.invalid_recipient";
-const REPLAY_PARTIAL = "$dms_mailing.sends.banner.replay_partial";
-const REPLAY_SKIPPED = "$dms_mailing.sends.banner.replay_skipped";
 const RECIPIENT_FIELD = "to";
 const NEEDS_NEW_ADDRESS = "$dms_mailing.errors.replay_needs_new_address";
 const NO_REPLAY_AFTER_SPAM = "$dms_mailing.errors.no_replay_after_spam";
@@ -128,29 +145,6 @@ export interface SendStatsResponse extends SendStats {
   items: StatGroupItem[];
 }
 
-/**
- * What a send again did. When the address is on the suppression list nothing
- * left: `status` is `suppressed`, the original stays a problem, and `warning`
- * carries the reason for the toast.
- */
-export interface ReplayResponse extends SendTemplateResult {
-  warning?: string;
-}
-
-/**
- * What "send the failures again" did: sent, failed to send again (could not
- * start, or the address went on the suppression list meanwhile), and left out
- * since the address is on the suppression list.
- */
-export interface ReplayFailedResponse {
-  count: number;
-  failed: number;
-  skipped: number;
-  results: SendTemplateResult[];
-  /** Tells the toast some failures could not be sent again. */
-  warning?: string;
-}
-
 export interface SendHtmlResponse {
   html: string;
   subject: string;
@@ -166,24 +160,6 @@ export interface SendHtmlResponse {
   fromName: string;
 }
 
-/** A failure someone else already sent again. */
-const CLAIMED_ELSEWHERE = "claimed-elsewhere";
-/** A failure whose send again could not start: it stays a problem. */
-const NOT_STARTED = "not-started";
-
-type ClaimedReplay =
-  | SendTemplateResult
-  | typeof CLAIMED_ELSEWHERE
-  | typeof NOT_STARTED;
-
-/** Problem statuses whose address is at fault: repeating the send cannot help. */
-const ADDRESS_PROBLEMS: SendStatus[] = ["bounced"];
-
-/** A permanent bounce only takes another address; a temporary one may retry. */
-function needsNewAddress(send: MailingSend): boolean {
-  return ADDRESS_PROBLEMS.includes(send.status) && !send.isSoftBounce;
-}
-
 const sameAddress = (left: string, right: string): boolean =>
   normalizeAddress(left) === normalizeAddress(right);
 
@@ -193,35 +169,6 @@ function sendInputError(error: ZodError): string {
     (issue) => issue.path[0] === RECIPIENT_FIELD,
   );
   return isRecipient ? INVALID_RECIPIENT : INVALID_CONTENT;
-}
-
-const isSuppressedResult = (result: SendTemplateResult): boolean =>
-  result.status === "suppressed";
-
-/** A suppressed send again carries its reason as a warning. */
-function replayResponse(result: SendTemplateResult): ReplayResponse {
-  return isSuppressedResult(result)
-    ? { ...result, warning: result.error }
-    : result;
-}
-
-function replayReport(
-  results: SendTemplateResult[],
-  notStarted: number,
-  skipped: number,
-): ReplayFailedResponse {
-  const suppressed = results.filter(isSuppressedResult).length;
-  const report: ReplayFailedResponse = {
-    count: results.length - suppressed,
-    failed: notStarted + suppressed,
-    skipped,
-    results,
-  };
-  const hasFailures =
-    report.failed > 0 || results.some((result) => result.status === "failed");
-  if (hasFailures) report.warning = REPLAY_PARTIAL;
-  else if (skipped > 0) report.warning = REPLAY_SKIPPED;
-  return report;
 }
 
 export class SendsController extends Controller(API_BASE_PATH) {
@@ -428,7 +375,8 @@ export class SendsController extends Controller(API_BASE_PATH) {
   /**
    * Sends the same version and data again, and marks the original as dealt
    * with. A permanent bounce only takes another address; a spam report is
-   * never answered with another e-mail.
+   * never answered with another e-mail. A problem is claimed before it goes,
+   * so a second request, at once or later, answers 409 and sends nothing.
    */
   @Post("/sends/:id/replay")
   async replay(
@@ -441,16 +389,37 @@ export class SendsController extends Controller(API_BASE_PATH) {
     );
     const send = await this.requireSend(id);
     assert(send.status !== "spam", HTTP_CONFLICT, NO_REPLAY_AFTER_SPAM);
+    assert(!isResolvedStage(send.stage), HTTP_CONFLICT, ALREADY_REPLAYED);
     const isFix = needsNewAddress(send);
     const isNewAddress = !!to && !sameAddress(to, send.recipientEmail);
     assert(!isFix || isNewAddress, HTTP_CONFLICT, NEEDS_NEW_ADDRESS);
-    const result = await this.repeat(
-      send,
-      to,
-      isFix ? FIX_ADDRESS_SOURCE : REPLAY_SOURCE,
-    );
+    const source = isFix ? FIX_ADDRESS_SOURCE : REPLAY_SOURCE;
+    if (isProblemSend(send)) {
+      const claimed = await this.sends.claimResolution(send._id, this.user._id);
+      assert(claimed, HTTP_CONFLICT, ALREADY_REPLAYED);
+      return this.repeatClaimed(send, to, source);
+    }
+    const result = await this.repeat(send, to, source);
     await this.recordReplay(send._id, result);
     return replayResponse(result);
+  }
+
+  /** Sends a claimed problem again; the claim is given back when nothing left. */
+  private async repeatClaimed(
+    send: MailingSend,
+    to: string | undefined,
+    source: string,
+  ): Promise<ReplayResponse> {
+    try {
+      const result = await this.repeat(send, to, source);
+      await this.recordReplay(send._id, result);
+      if (isSuppressedResult(result))
+        await this.sends.releaseResolution(send._id);
+      return replayResponse(result);
+    } catch (error) {
+      await this.sends.releaseResolution(send._id);
+      throw error;
+    }
   }
 
   /**
@@ -488,11 +457,7 @@ export class SendsController extends Controller(API_BASE_PATH) {
       return CLAIMED_ELSEWHERE;
     try {
       const send = await this.requireSend(sendId);
-      const result = await this.repeat(send, undefined, REPLAY_SOURCE);
-      await this.recordReplay(sendId, result);
-      if (isSuppressedResult(result))
-        await this.sends.releaseResolution(sendId);
-      return result;
+      return await this.repeatClaimed(send, undefined, REPLAY_SOURCE);
     } catch {
       await this.sends.releaseResolution(sendId);
       return NOT_STARTED;

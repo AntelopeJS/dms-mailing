@@ -277,6 +277,40 @@ describe("[integration] send lifecycle replays and stat strip", () => {
     expect(after.data.send.replayedBy).to.equal(replayedBy);
     expect(await sendsTo(api, recipient)).to.equal(2);
   });
+
+  it("answers 409 to a second send again of a problem already dealt with, which a send again without a claim would mail twice", async () => {
+    const api = await client();
+    const id = await liveTemplate(api, "replay-resolved");
+    const recipient = "replay-resolved@example.test";
+    const sendId = await sendOnce(api, id, recipient);
+    await markEvent(api, sendId, "failed", { reason: "421 4.3.0 Try later" });
+
+    const first = await api.post(`${SENDS}/${sendId}/replay`, {});
+    expect(first.status, JSON.stringify(first.data)).to.equal(HTTP_OK);
+    const second = await api.post(`${SENDS}/${sendId}/replay`, {});
+    expect(second.status).to.equal(HTTP_CONFLICT);
+    expect(JSON.stringify(second.data)).to.contain("already_replayed");
+    expect(await sendsTo(api, recipient)).to.equal(2);
+  });
+
+  it("sends a problem again once when two send again requests race, which two sends without a claim would both mail", async () => {
+    const api = await client();
+    const id = await liveTemplate(api, "replay-race");
+    const recipient = "replay-race@example.test";
+    const sendId = await sendOnce(api, id, recipient);
+    await markEvent(api, sendId, "failed", { reason: "421 4.3.0 Try later" });
+
+    const answers = await Promise.all([
+      api.post(`${SENDS}/${sendId}/replay`, {}),
+      api.post(`${SENDS}/${sendId}/replay`, {}),
+    ]);
+    expect(
+      answers
+        .map((answer) => answer.status)
+        .sort((left, right) => left - right),
+    ).to.deep.equal([HTTP_OK, HTTP_CONFLICT]);
+    expect(await sendsTo(api, recipient)).to.equal(2);
+  });
 });
 
 describe("[integration] send lifecycle failures and bounces", () => {
