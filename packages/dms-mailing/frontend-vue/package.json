@@ -6,7 +6,7 @@
 	"license": "Apache-2.0",
 	"packageManager": "pnpm@10.34.9",
 	"engines": {
-		"@antelopejs/dms-frontend": ">=0.11.4 <0.12.0"
+		"@antelopejs/dms-frontend": ">=0.11.11 <0.12.0"
 	},
 	"scripts": {
 		"prepare": "ajs dms prepare-types --out .dms-types",
@@ -24,8 +24,8 @@
 	},
 	"devDependencies": {
 		"@antelopejs/core": "~1.24.6",
-		"@antelopejs/dms-frontend": ">=0.11.8 <0.12.0",
-		"@antelopejs/tooling-configs": "^0.10.11",
+		"@antelopejs/dms-frontend": ">=0.11.11 <0.12.0",
+		"@antelopejs/tooling-configs": "^0.10.14",
 		"@nuxt/eslint-config": "^1.17.0",
 		"@nuxt/ui": "4.13.1",
 		"@types/sortablejs": "^1.15.9",
