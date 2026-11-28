@@ -1,6 +1,49 @@
 # Changelog
 
 
+## v0.11.0
+
+[compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.10...v0.11.0)
+
+### 📦 Build
+
+- Bump tooling-configs to 0.10.7 and fix buildTimeline suppressed doc ([#235](https://github.com/AntelopeJS/dms-mailing/pull/235))
+- **deps:** Update the AntelopeJS module locks ([#243](https://github.com/AntelopeJS/dms-mailing/pull/243))
+- **deps:** Land dms 0.24.2, core 1.24.8 and rimraf 6.1.4 with one copy per interface ([#245](https://github.com/AntelopeJS/dms-mailing/pull/245))
+- **deps:** Pin dms 0.24.3 stable in place of the preview ([#248](https://github.com/AntelopeJS/dms-mailing/pull/248))
+- **deps:** Update the AntelopeJS module locks ([#253](https://github.com/AntelopeJS/dms-mailing/pull/253))
+- **deps:** Move to dms 0.25.0, interface-dms 0.17.3 and tooling-configs 0.10.14 ([#254](https://github.com/AntelopeJS/dms-mailing/pull/254))
+- **deps:** Require @antelopejs/dms-frontend 0.11.11 and @antelopejs/dms 0.25 ([#255](https://github.com/AntelopeJS/dms-mailing/pull/255))
+- **deps:** Pin dms 0.25.2 for the e2e frontend build cache ([#257](https://github.com/AntelopeJS/dms-mailing/pull/257))
+
+### 🏡 Chore
+
+- **deps:** Update dependency @antelopejs/mongodb to v1.8.15 ([#237](https://github.com/AntelopeJS/dms-mailing/pull/237))
+- **deps:** Update dependency @vitejs/plugin-vue to v6.0.11 ([#238](https://github.com/AntelopeJS/dms-mailing/pull/238))
+- **deps:** Update dependency vitest to v4.1.12 ([#242](https://github.com/AntelopeJS/dms-mailing/pull/242))
+- **build:** Build the interface by its path in the module build ([#240](https://github.com/AntelopeJS/dms-mailing/pull/240))
+- **deps:** Update dependency @antelopejs/core to v1.24.8 ([#232](https://github.com/AntelopeJS/dms-mailing/pull/232))
+- **deps:** Update antelopejs tooling configs ([#251](https://github.com/AntelopeJS/dms-mailing/pull/251))
+- **deps:** Update antelopejs packages ([#250](https://github.com/AntelopeJS/dms-mailing/pull/250))
+- **deps:** Update non-major dependencies ([#252](https://github.com/AntelopeJS/dms-mailing/pull/252))
+
+### ✅ Tests
+
+- **e2e:** Assert the $dms missing-permission refusal key in the access journey ([#244](https://github.com/AntelopeJS/dms-mailing/pull/244))
+
+### 🤖 CI
+
+- Sync at tooling-configs 0.10.11 and run backend-tests on literal runners ([#249](https://github.com/AntelopeJS/dms-mailing/pull/249))
+
+#### ⚠️ Breaking Changes
+
+- **deps:** Require @antelopejs/dms-frontend 0.11.11 and @antelopejs/dms 0.25 ([#255](https://github.com/AntelopeJS/dms-mailing/pull/255))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli
+- dada-sudo
+
 ## v0.10.10
 
 [compare changes](https://github.com/AntelopeJS/dms-mailing/compare/v0.10.9...v0.10.10)
