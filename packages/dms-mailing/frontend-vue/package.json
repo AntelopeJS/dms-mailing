@@ -27,7 +27,7 @@
 		"@antelopejs/dms-frontend": ">=0.11.8 <0.12.0",
 		"@antelopejs/tooling-configs": "^0.10.11",
 		"@nuxt/eslint-config": "^1.17.0",
-		"@nuxt/ui": "4.10.0",
+		"@nuxt/ui": "4.13.1",
 		"@types/sortablejs": "^1.15.9",
 		"@vitejs/plugin-vue": "^6.0.0",
 		"@vitest/runner": "^4.1.5",
@@ -35,7 +35,7 @@
 		"vite": "^8.2.2",
 		"jsdom": "^26",
 		"prettier": "^3.5.3",
-		"prettier-plugin-tailwindcss": "^0.6.11",
+		"prettier-plugin-tailwindcss": "^0.8.0",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.5"
 	}
