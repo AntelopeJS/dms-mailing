@@ -82,7 +82,7 @@ jobs:
               e2e=smoke
             else
               e2e=all
-              shards='[1, 2]'
+              shards='[1, 2, 3]'
             fi
           fi
 
@@ -177,7 +177,7 @@ jobs:
       - if: env.E2E == 'smoke'
         run: pnpm e2e --grep @smoke
       - if: env.E2E == 'all'
-        run: pnpm e2e --shard=${{ matrix.shard }}/2 --reporter=blob
+        run: pnpm e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=blob
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
       # The suite's two entry files against the declarations @antelopejs/dms/e2e publishes.
@@ -210,13 +210,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: blob-report-*
           path: e2e/blob-reports
           merge-multiple: true
-      - run: pnpm exec playwright merge-reports --reporter html,json e2e/blob-reports
+      - run: |
+          version=$(sed -n "s/^  playwright@\([0-9.]*\):$/\1/p" pnpm-lock.yaml | head -n 1)
+          npx --yes "playwright@${version}" merge-reports --reporter html,json e2e/blob-reports
         env:
           PLAYWRIGHT_HTML_OUTPUT_DIR: e2e/playwright-report
           PLAYWRIGHT_HTML_OPEN: never
